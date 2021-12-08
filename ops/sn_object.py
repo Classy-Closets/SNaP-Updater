@@ -34,6 +34,34 @@ enum_machine_tokens = [('NONE', "None", "None", 'SCULPTMODE_HLT', 0),
                        ('PLINE', "PLINE", "PLINE", 'SCULPTMODE_HLT', 11),
                        ('BORE', "BORE", "BORE", 'SCULPTMODE_HLT', 13)]
 
+class SN_OBJ_delete(Operator):
+    bl_idname = "sn_object.delete"
+    bl_label = "Delete Operator that honors delete protected objects"
+
+    use_global: BoolProperty(name='Use Global', default=False)
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None
+
+    def execute(self, context):
+        contains_protected = False
+        delete_protected_objects = []
+        for obj in context.selected_objects:
+            if obj.snap.delete_protected:
+                obj.select_set(False)
+                contains_protected = True
+                delete_protected_objects.append(obj.name)
+
+        bpy.ops.object.delete(use_global=self.use_global)
+        if contains_protected:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT',
+                message="Unable to delete wall. Proceed building room and then \nadd door or open entry way to reflect open space.")
+
+
+        return {'FINISHED'}
+
 
 class SN_OBJ_delete(Operator):
     bl_idname = "sn_object.delete"

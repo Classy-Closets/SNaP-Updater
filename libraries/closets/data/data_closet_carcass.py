@@ -17,7 +17,7 @@ class Closet_Carcass(sn_types.Assembly):
     property_id = "{}.openings".format(closet_utils.CLOSET_LIB_NAME_SPACE)
     plan_draw_id = "{}.draw_plan".format(closet_utils.CLOSET_LIB_NAME_SPACE)
     show_in_library = True
-    category_name = "Closet Products - Partitions"
+    category_name = "Products - Partitions"
     opening_qty = 0
     is_hanging = True
     defaults = None

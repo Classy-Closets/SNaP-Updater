@@ -5,14 +5,64 @@ from snap import sn_utils
 import pathlib
 from distutils.dir_util import copy_tree
 import xml.etree.ElementTree as ET
+from copy import deepcopy
 import subprocess
 from bpy.types import Operator
 from bpy.props import (StringProperty,
                        BoolProperty,
                        EnumProperty,
                        IntProperty)
+from shutil import copyfile
 
 from . import pm_utils
+
+class SNAP_OT_Copy_Room(Operator):
+    bl_idname = "product_manager.copy_room"
+    bl_label = "Copies the selected Room"
+    bl_description = "Copies selected Room"
+
+    file_path: StringProperty(name="File Path", description="Room File Path", subtype="FILE_PATH")
+    def register_and_get_cat_and_name_from_xml(self):
+        project_root, room_file = os.path.split(self.file_path)
+        project_name = os.path.split(project_root)[1]
+        room_relative_path = os.path.join(project_name, room_file)
+        xml_path = os.path.join(project_root, '.snap', project_name + '.ccp')
+
+        xml = ET.parse(xml_path)
+        room_node = None
+
+        rooms_node = xml.findall('.//Rooms')[0]
+        for i, room in enumerate(rooms_node):
+            if room.attrib['path'] == room_relative_path:
+                room_node = room
+                index = i
+                break
+
+        new_attrib = deepcopy(room_node.attrib)
+        new_attrib['name'] += ' Copy'
+        new_attrib['path'] = os.path.join(project_name, new_attrib['category'] + '_' + new_attrib['name'] + '.blend')
+        new_element = ET.Element('Room', attrib=new_attrib)
+        new_element.text = new_attrib['name']
+        rooms_node.insert(index + 1, new_element)
+        xml.write(xml_path)
+        return new_attrib['name'], new_attrib['category']
+
+    def execute(self, context):
+        #only really necessary when the user copies the current room
+        if len(bpy.data.filepath) > 0:
+            bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
+        
+        name, cat = self.register_and_get_cat_and_name_from_xml()
+        copyfile(self.file_path, os.path.splitext(self.file_path)[0] + ' Copy.blend')
+        print(os.path.splitext(self.file_path)[0] + ' Copy.blend')
+        props = context.window_manager.sn_project
+        if len(props.projects) > 0:
+            project = props.projects[props.project_index]
+            print('opened' + os.path.splitext(self.file_path)[0] + ' Copy.blend')
+            project.add_room_from_file(name, cat, os.path.splitext(self.file_path)[0] + ' Copy.blend')
+            project.main_tabs = 'ROOMS'
+        bpy.ops.wm.open_mainfile(filepath=os.path.splitext(self.file_path)[0] + ' Copy.blend')
+        return {'FINISHED'}
 
 
 class SNAP_OT_Create_Project(Operator):
@@ -351,6 +401,7 @@ class SNAP_OT_Select_All_Rooms(Operator):
     bl_label = "Select All Rooms"
     bl_description = "This will select all of the rooms in the project"
 
+
     select_all: BoolProperty(name="Select All", default=True)
 
     @classmethod
@@ -462,6 +513,7 @@ classes = (
     SNAP_OT_Delete_Room,
     SNAP_OT_Select_All_Rooms,
     SNAP_OT_Prepare_Project_XML,
+    SNAP_OT_Copy_Room,
     SNAP_OT_Load_Projects
 )
 

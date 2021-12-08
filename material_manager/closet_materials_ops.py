@@ -3,7 +3,7 @@ import subprocess
 
 import bpy
 from bpy.types import Operator
-from bpy.props import BoolProperty
+from bpy.props import BoolProperty, StringProperty
 
 from snap import sn_unit
 from snap import sn_paths
@@ -545,6 +545,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
                 # Wall_Cleat
                 if "IS_WALL_CLEAT" in assembly.obj_bp:
+
                     exposed_left = assembly.get_prompt("Exposed Left")
                     exposed_right = assembly.get_prompt("Exposed Right")
                     exposed_top = assembly.get_prompt("Exposed Top")
@@ -657,14 +658,49 @@ class SN_MAT_OT_Unpack_Material_Images(Operator):
     bl_description = ""
     bl_options = {'UNDO'}
 
-    def execute(self, context):
-        materials_dir = sn_paths.CLOSET_MATERIAL_DIR
+    material_files = []
+    materials_dir: StringProperty(
+        name="Materials Path",
+        description="Material directory to unpack",
+        subtype='FILE_PATH')
 
-        for f in os.listdir(materials_dir):
+    _timer = None
+    
+    item_list = []        
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        props = context.window_manager.snap
+        self.materials_dir = sn_paths.CLOSET_MATERIAL_DIR
+        textures_dir = os.path.join(self.materials_dir, "textures")
+
+        if not os.path.exists(textures_dir):
+            os.makedirs(textures_dir)
+
+        bpy.ops.sn_library.open_browser_window(path=os.path.join(self.materials_dir, "textures"))
+
+        self.item_list = []
+
+        for f in os.listdir(self.materials_dir):
             if ".blend" in f:
-                mat_file_path = os.path.abspath(
-                    os.path.join(materials_dir, f))
+                self.item_list.append(f)
 
+        props.total_items = len(self.item_list)
+        self._timer = wm.event_timer_add(0.1, window=context.window)
+        wm.modal_handler_add(self)
+
+        return {'RUNNING_MODAL'}
+
+    def modal(self, context, event):
+        progress = context.window_manager.snap
+
+        if event.type == 'ESC':
+            return {'FINISHED'}
+
+        if event.type == 'TIMER':
+            if progress.current_item + 1 <= len(self.item_list):
+                b_file = self.item_list[progress.current_item]
+                mat_file_path = os.path.abspath(os.path.join(self.materials_dir, b_file))
                 script = os.path.join(
                     bpy.app.tempdir, 'unpack_material_images.py')
                 script_file = open(script, 'w')
@@ -678,7 +714,21 @@ class SN_MAT_OT_Unpack_Material_Images(Operator):
                       '"' + ' -b --python ' + '"' + script + '"')
                 subprocess.call(bpy.app.binary_path + ' "' + mat_file_path +
                                 '"' + ' -b --python ' + '"' + script + '"')
+                progress.current_item += 1
+                if progress.current_item + 1 <= len(self.item_list):
+                    header_text = "Processing Item " + str(progress.current_item + 1) + " of " + str(progress.total_items)
+                    context.area.header_text_set(text=header_text)
+            else:
+                return self.cancel(context)
+        return {'PASS_THROUGH'}
 
+    def cancel(self, context):
+        progress = context.window_manager.snap
+        progress.current_item = 0
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
+        context.window.cursor_set('DEFAULT')
+        context.area.header_text_set(None)
         return {'FINISHED'}
 
 

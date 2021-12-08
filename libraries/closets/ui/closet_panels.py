@@ -37,7 +37,7 @@ def draw_backing_mats(layout, back):
 
 
 class SNAP_PT_closet_options(Panel):
-    bl_label = "Closet Options"
+    bl_label = "Room Defaults"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_context = "objectmode"
@@ -56,7 +56,7 @@ class SNAP_PT_closet_options(Panel):
 
 
 class SNAP_PT_Closet_Properties(Panel):
-    bl_label = "Closet Properties"
+    bl_label = "Room Properties"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Item"

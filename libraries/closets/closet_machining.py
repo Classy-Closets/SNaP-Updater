@@ -212,40 +212,46 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         #         token.distance_between_holes = macp.door_pull_length
 
     def add_door_hinge_drilling(self, assembly):
-        self.remove_machining_token(assembly, 'Door Hinge Drilling')
-        obj, token = assembly.add_machine_token('Door Hinge Drilling' ,'BORE','6')
+        for child in assembly.obj_bp.children:
+            if child.snap.type_mesh == 'CUTPART':
+                self.remove_machining_token(assembly, 'Door Hinge Drilling')
+                obj, token = assembly.add_machine_token('Door Hinge Drilling', 'BORE', '6')
 
     def add_hamper_door_hinge_drilling(self, assembly):
-        self.remove_machining_token(assembly, 'Hamper Door Hinge Drilling')
-        obj, token = assembly.add_machine_token('Hamper Door Hinge Drilling' ,'BORE','6')
+        for child in assembly.obj_bp.children:
+            if child.snap.type_mesh == 'CUTPART':
+                self.remove_machining_token(assembly, 'Hamper Door Hinge Drilling')
+                obj, token = assembly.add_machine_token('Hamper Door Hinge Drilling', 'BORE', '6')
 
     def add_drawer_front_pull_drilling(self,assembly):
-        macp = get_machining_props()
-        self.remove_machining_token(assembly, 'Pull Drilling')
-        
-        if macp.add_machining_for_pulls:
-            no_pulls = assembly.get_prompt("No Pulls")
-            if no_pulls:
-                if not no_pulls.get_value():
-                    use_double_pulls = assembly.get_prompt("Use Double Pulls")
-                    center_pulls_on_drawers = assembly.get_prompt("Center Pulls on Drawers")
-                    drawer_pull_from_top = assembly.get_prompt("Drawer Pull From Top")
-                    
-                    obj, token = assembly.add_machine_token('Pull Drilling' ,'BORE','5')
-                    token.dim_in_x = (assembly.obj_y.location.y/2) - (macp.drawer_pull_length/2)
-                    token.end_dim_in_x  = (assembly.obj_y.location.y/2) + (macp.drawer_pull_length/2)
-                    
-                    if center_pulls_on_drawers.get_value():
-                        token.dim_in_y = math.fabs(assembly.obj_x.location.x)/2
-                        token.end_dim_in_y = math.fabs(assembly.obj_x.location.x)/2
-                    else:
-                        token.dim_in_y = math.fabs(assembly.obj_x.location.x) - drawer_pull_from_top.get_value()
-                        token.end_dim_in_y = math.fabs(assembly.obj_x.location.x) - drawer_pull_from_top.get_value()
-                        
-                    token.distance_between_holes = macp.drawer_pull_length
-                    token.dim_in_z = math.fabs(assembly.obj_z.location.z) + sn_unit.inch(.1)
-                    token.face_bore_dia = macp.pull_bore_dia
-                
+        for child in assembly.obj_bp.children:
+            if child.snap.type_mesh == 'CUTPART':
+                macp = get_machining_props()
+                self.remove_machining_token(assembly, 'Pull Drilling')
+
+                if macp.add_machining_for_pulls:
+                    no_pulls = assembly.get_prompt("No Pulls")
+                    if no_pulls:
+                        if not no_pulls.get_value():
+                            use_double_pulls = assembly.get_prompt("Use Double Pulls")
+                            center_pulls_on_drawers = assembly.get_prompt("Center Pulls on Drawers")
+                            drawer_pull_from_top = assembly.get_prompt("Drawer Pull From Top")
+
+                            obj, token = assembly.add_machine_token('Pull Drilling' , 'BORE', '5')
+                            token.dim_in_x = (assembly.obj_y.location.y / 2) - (macp.drawer_pull_length / 2)
+                            token.end_dim_in_x = (assembly.obj_y.location.y / 2) + (macp.drawer_pull_length / 2)
+
+                            if center_pulls_on_drawers.get_value():
+                                token.dim_in_y = math.fabs(assembly.obj_x.location.x) / 2
+                                token.end_dim_in_y = math.fabs(assembly.obj_x.location.x) / 2
+                            else:
+                                token.dim_in_y = math.fabs(assembly.obj_x.location.x) - drawer_pull_from_top.get_value()
+                                token.end_dim_in_y = math.fabs(assembly.obj_x.location.x) - drawer_pull_from_top.get_value()
+
+                            token.distance_between_holes = macp.drawer_pull_length
+                            token.dim_in_z = math.fabs(assembly.obj_z.location.z) + sn_unit.inch(.1)
+                            token.face_bore_dia = macp.pull_bore_dia
+
     def add_hamper_front_hinges(self,assembly):
         macp = get_machining_props()
         door_width = assembly.obj_y.location.y
@@ -534,7 +540,12 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 if bottom_shelf_setback.get_value() > setback.get_value():
                     setback = bottom_shelf_setback
 
+            if rod_setback and insert.obj_bp.sn_closets.is_accessory_bp:
+                setback = rod_setback
+
             left_panel, right_panel = self.get_adj_panels(insert_bp)
+            self.remove_machining_token(left_panel, 'System Holes Mid Right')
+            self.remove_machining_token(right_panel, 'System Holes Mid Left')
 
             if setback and setback.get_value() > macp.dim_to_front_system_hole:
                 dim_to_front = macp.dim_to_front_system_hole
@@ -550,7 +561,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 dim_to_front = dim_to_front + (part_width - right_depth.get_value())
 
                 if right_depth.get_value() > 0 or sdbr > 0:
-                    self.remove_machining_token(left_panel, 'System Holes Mid Right')
+                    
                     if left_panel.obj_bp.get('PARTITION_NUMBER') == 0:
                         obj, token = left_panel.add_machine_token('System Holes Mid Right', 'BORE', '5')  # For some reason the the left most panel is flipped faces
                     else:
@@ -574,7 +585,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 dim_to_front = dim_to_front + (part_width - left_depth.get_value())
 
                 if left_depth.get_value() > 0 or sdbl > 0:
-                    self.remove_machining_token(right_panel, 'System Holes Mid Left')
+                    
                     obj, token = right_panel.add_machine_token('System Holes Mid Left', 'BORE', '5')
                     token.dim_in_x = part_length - sn_unit.millimeter(9.5)
                     token.dim_in_y = part_width - (dim_to_front + setback.get_value())
@@ -1719,9 +1730,9 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             if props.is_ironing_board_door_front_bp:
                 self.add_hamper_front_hinges(assembly)
                 
-            if props.is_drawer_front_bp:
-                drawer_fronts.append(assembly)
-                self.add_drawer_front_pull_drilling(assembly)
+            # if props.is_drawer_front_bp:
+            #     drawer_fronts.append(assembly)
+            #     self.add_drawer_front_pull_drilling(assembly)
                 
             #CAM MACHINING
             if props.is_shelf_bp:

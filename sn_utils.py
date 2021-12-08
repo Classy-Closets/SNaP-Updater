@@ -138,6 +138,8 @@ def get_part_thickness(obj):
     if obj.snap.type_mesh == 'CUTPART':
         spec_group = bpy.context.scene.snap.spec_groups[obj.snap.spec_group_index]
         if obj.snap.cutpart_name in spec_group.cutparts:
+            print('using cutpart thickness')
+            print(spec_group.cutparts[obj.snap.cutpart_name].thickness)
             return spec_group.cutparts[obj.snap.cutpart_name].thickness
         else:
             if obj.parent:
@@ -370,6 +372,13 @@ def assign_materials_from_pointers(obj):
             material = get_material(slot.category_name, slot.item_name)
 
             if material:
+                if obj.snap.material_mapping == 'UV':
+                    node_group = material.node_tree.nodes.get("Group")
+                    if node_group and "Box Mapping" in node_group.node_tree.name:
+                        mode_input = node_group.inputs.get("Mode (Object=1; UV=0)")
+                        mode_input.default_value = 0
+                    material.name += "_uv"
+                    pass
                 obj.material_slots[index].material = material
 
     obj.display_type = 'TEXTURED'
@@ -2161,3 +2170,9 @@ def update_accordions_prompt():
     acc_props.break_width = 450
     acc_props.intermediate_space = longest_wall_inches
     acc_props.intermediate_qty = walls_qty
+
+
+def set_prompt_if_exists(assembly, prompt_name, value):
+    prompt = assembly.get_prompt(prompt_name)
+    if prompt:
+        prompt.set_value(value)

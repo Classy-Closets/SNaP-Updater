@@ -17,7 +17,7 @@ class Countertop_Insert(sn_types.Assembly):
     placement_type = "EXTERIOR"
     id_prompt = "sn_closets.counter_top"
     show_in_library = True
-    category_name = "Closet Products - Basic"
+    category_name = "Products - Basic"
 
     def update(self):
         self.obj_x.location.x = self.width

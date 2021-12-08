@@ -5,6 +5,7 @@ import time
 import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty
+import re
 
 from snap import sn_types
 from snap import sn_utils
@@ -41,6 +42,8 @@ class PlaceClosetAsset():
     class_name = ""
 
     def invoke(self, context, event):
+        self.object_selected_original_color = bpy.context.preferences.themes[0].view_3d.object_active.copy()
+        self.active_object_original_color = bpy.context.preferences.themes[0].view_3d.object_selected.copy()
         self.reset_properties()
         if not self.obj_bp_name:
             self.get_asset(context)
@@ -232,9 +235,11 @@ class PlaceClosetInsert(PlaceClosetAsset):
     selected_opening = None
     show_openings = True
     header_text = "Place Insert   (Esc, Right Click) = Cancel Command  :  (Left Click) = Place Insert"
+    adjacent_cant_be_deeper = False
 
     def execute(self, context):
         context.window.cursor_set('WAIT')
+        
 
         if self.obj_bp_name in bpy.data.objects:
             obj_bp = bpy.data.objects[self.obj_bp_name]
@@ -313,7 +318,11 @@ class PlaceClosetInsert(PlaceClosetAsset):
 
     def get_selected_opening(self):
         selected_obj_bp = sn_utils.get_assembly_bp(self.selected_obj)
+
         if self.selected_obj and selected_obj_bp.snap.type_group == 'OPENING':
+
+            
+                
             self.selected_opening = sn_types.Assembly(obj_bp=self.selected_obj.parent)
         else:
             self.selected_opening = None
@@ -358,6 +367,32 @@ class PlaceClosetInsert(PlaceClosetAsset):
                     self.insert.obj_y.location.y = self.selected_opening.obj_y.location.y
                     self.insert.obj_z.location.z = self.selected_opening.obj_z.location.z
 
+    def is_between_deeper(self):
+        # If the opening on either side is deeper, this returns true
+        if not self.selected_opening:
+            return False
+
+        opening_num = [child.name for child in self.selected_opening.obj_bp.parent.children if 'Opening' in child.name]
+        opening_num = list(sorted(opening_num))
+        opening_num = opening_num.index(self.selected_opening.obj_bp.name)
+
+        if opening_num is None:
+            print('Unknown partition number selected')
+            return None
+        
+        opening_num += 1
+        pard_assembly = sn_types.Assembly(obj_bp=self.selected_opening.obj_bp.parent)
+        depth_1_prompt = pard_assembly.get_prompt('Opening {} Depth'.format(opening_num - 1))
+        depth_2_prompt = pard_assembly.get_prompt('Opening {} Depth'.format(opening_num + 1))
+        depth_current_prompt = pard_assembly.get_prompt('Opening {} Depth'.format(opening_num))
+        depth_1 = depth_1_prompt.get_value() if depth_1_prompt else 0
+        depth_2 = depth_2_prompt.get_value() if depth_2_prompt else 0
+        depth_current = depth_current_prompt.get_value()
+        if depth_current < depth_1 or depth_current < depth_2:
+            return True
+        else:
+            False
+
     def modal(self, context, event):
         self.run_asset_calculators()
         bpy.ops.object.select_all(action='DESELECT')
@@ -378,11 +413,32 @@ class PlaceClosetInsert(PlaceClosetAsset):
 
         self.position_asset(context)
 
+        if self.adjacent_cant_be_deeper and self.is_between_deeper():
+            bpy.context.preferences.themes[0].view_3d.object_active = (1, 0, 0)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (1, 0, 0)
+            
+
+        elif self.adjacent_cant_be_deeper:
+            bpy.context.preferences.themes[0].view_3d.object_active = (0.14902, 1, 0.6)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (0.14902, 1, 0.6)
+
         if self.event_is_place_first_point(event) and self.selected_opening:
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
+            
+            if self.adjacent_cant_be_deeper and self.is_between_deeper():
+                bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT',
+                message="Adjacent openings can't be deeper that current opening for this object")
+                return self.cancel_drop(context)
             self.confirm_placement(context)
             return self.finish(context)
 
+
+
         if self.event_is_cancel_command(event):
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
             return self.cancel_drop(context)
 
         if self.event_is_pass_through(event):
@@ -394,7 +450,7 @@ class PlaceClosetInsert(PlaceClosetAsset):
 class SN_CLOSET_OT_drop(Operator, PlaceClosetAsset):
     bl_idname = "sn_closets.drop"
     bl_label = "Drag and Drop"
-    bl_description = "This is called when an asset is dropped from the Closet library"
+    bl_description = "This is called when an asset is dropped from the Product library"
     bl_options = {'UNDO'}
 
     filepath: StringProperty(name="Library Name")
@@ -404,7 +460,7 @@ class SN_CLOSET_OT_drop(Operator, PlaceClosetAsset):
         directory, file = os.path.split(self.filepath)
         filename, ext = os.path.splitext(file)
 
-        if scene_props.active_library_name == "Closet Library":
+        if scene_props.active_library_name == "Product Library":
             if hasattr(self.asset, 'drop_id'):
                 drop_id = self.asset.drop_id
                 eval('bpy.ops.{}("INVOKE_DEFAULT", filepath=self.filepath)'.format(drop_id))

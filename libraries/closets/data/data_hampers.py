@@ -28,7 +28,7 @@ class Hamper(sn_types.Assembly):
     drop_id = "sn_closets.insert_hamper_drop"
     placement_type = "SPLITTER"
     show_in_library = True
-    category_name = "Closet Products - Basic"    
+    category_name = "Products - Basic"    
     mirror_y = False
     
     upper_interior = None
@@ -359,6 +359,7 @@ class PROMPTS_Hamper_Prompts(sn_types.Prompts_Interface):
 class OPS_Hamper_Drop(Operator, PlaceClosetInsert):
     bl_idname = "sn_closets.insert_hamper_drop"
     bl_label = "Custom drag and drop for hamper insert"
+    adjacent_cant_be_deeper = True
     
     def execute(self, context):
         return super().execute(context)

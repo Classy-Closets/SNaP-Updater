@@ -1231,6 +1231,53 @@ class VIEW_OT_generate_2d_views(Operator):
 
             if not show_all_hashmarks:
                 break
+    
+    def annotate_switchs_plan_view(self, context, wall, obj):
+        # Add Outlets/Switched PV location
+        wall_thickness = sn_types.Assembly(wall.obj_bp).obj_y.location.y
+        wall_angle = round(math.degrees(wall.obj_bp.rotation_euler.z))
+        text_label =\
+            self.to_inch_lbl(obj.location.x) + " - " +\
+            self.to_inch_lbl(obj.location.x + obj.dimensions[0])
+        x_loc = obj.location.x + obj.dimensions[0] / 2
+        y_loc = obj.location.y 
+        z_loc = wall.obj_z.location.z
+        text = sn_types.Dimension()
+        text.anchor.rotation_mode = 'YZX'
+        text.parent(wall.obj_bp)
+        text.start_x(value=x_loc)
+        text.start_y(value=y_loc + unit.inch(9))
+        text.start_z(value=z_loc)
+        lbl_rot_x = math.radians(-90)
+        if wall_angle == 180:
+            lbl_rot_y = 0
+        else:
+            lbl_rot_y = math.radians(-wall_angle)
+        text.anchor.rotation_euler = (lbl_rot_x, lbl_rot_y, 0)
+        text.set_label(text_label)
+        self.ignore_obj_list.append(text.anchor)
+        self.ignore_obj_list.append(text.end_point)
+        # Draw Outlet/Switch Circle on PV location
+        cyl_y = y_loc + wall_thickness / 2
+        cyl_radius = (wall_thickness / 2) * 0.9
+        bpy.ops.mesh.primitive_cylinder_add(
+            radius=cyl_radius,
+            depth=0.001,
+            location=(x_loc, cyl_y, z_loc),
+            rotation=(0,0,0)
+        )
+        cyl = context.active_object
+        cyl.parent = wall.obj_bp
+
+
+    def plan_view_add_switches(self, context, wall):
+        wall_children = wall.obj_bp.children
+        for obj in wall_children:
+            name = obj.name
+            split_name = name.split(".")
+            category = split_name[0]
+            if category == "Outlets and Switches":
+                self.annotate_switchs_plan_view(context, wall, obj)
 
     def add_island_to_plan_view(self, island):
         island_assembly = sn_types.Assembly(obj_bp=island)
@@ -1441,8 +1488,7 @@ class VIEW_OT_generate_2d_views(Operator):
         entry_break_mesh.hide_viewport = True
         entry_break_mesh.hide_render = True
 
-        bool_mesh_original = 'MESH.Door Frame.Bool Obj'
-        bool_modifier = wall_mesh.modifiers.get(bool_mesh_original)
+        bool_modifier = [m for m in wall_mesh.modifiers if 'MESH' in m.name][0]
         bool_modifier.object = entry_break_mesh
 
     def plan_view_cleats_accys(self, obj_bp, scene):
@@ -1500,6 +1546,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 walls.append(wall)
 
                 self.plan_view_products_labels(context, wall)
+                self.plan_view_add_switches(context, wall)
 
                 # Add countertop cutparts to plan view
                 for child in obj.children:
@@ -2874,7 +2921,7 @@ class VIEW_OT_generate_2d_views(Operator):
             has_lbl = any([c.get('IS_VISDIM_A') for c in tk.children])
             if not has_lbl:
                 tk_ins_assy = sn_types.Assembly(tk.parent)
-                tk_skin = tk_ins_assy.get_prompt('Has TK Skin').get_value()
+                tk_skin = tk_ins_assy.get_prompt('Add TK Skin').get_value()
                 lbl_txt = 'TK'
                 if tk_skin:
                     lbl_txt += ' + 1/4" Skin'
@@ -3269,13 +3316,15 @@ class VIEW_OT_generate_2d_views(Operator):
     def add_meshes_to_freestyle_collections(self):
         for item in self.parts_for_freestyle():
             exc_objs = []
-            in_vis = (eval(f'{repr(item)}.{prop}') for prop in fet.VIS_TYPES)
-            in_hide = (eval(f'{repr(item)}.{prop}') for prop in fet.HIDE_TYPES)
+            in_vis = (eval(f'{repr(item)}{prop}') for prop in fet.VIS_TYPES)
+            include_vix_override = (eval(f'{repr(item)}{prop}') for prop in fet.VIS_INCLUDE_OVERRIDE)
+            in_hide = (eval(f'{repr(item)}{prop}') for prop in fet.HIDE_TYPES)
+            include_hide_override = (eval(f'{repr(item)}{prop}') for prop in fet.HIDE_INCLUDE_OVERRIDE)
             is_kd = self.shelf_is_kd(item)
             is_pv_dim_mesh = "pv_wallbreak_msh" in item.name
 
-            exclude_vis = any(in_vis)
-            exclude_hide = (any(in_hide) or is_kd)
+            exclude_vis = any(in_vis) and not any(include_vix_override)
+            exclude_hide = (any(in_hide) or is_kd) and not any(include_hide_override)
 
             if exclude_vis or exclude_hide or is_pv_dim_mesh:
                 if item.type == 'MESH':
@@ -3847,9 +3896,13 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def execute(self, context):
         dimprops = get_dimension_props()
+        room_type = context.scene.sn_roombuilder.room_type
         views_props = context.window_manager.views_2d
         accordions_only = views_props.views_option == 'ACCORDIONS'
         elevations_only = views_props.views_option == 'ELEVATIONS'
+        if room_type == 'SINGLE':
+            accordions_only = False
+            elevations_only = True
         context.window_manager.snap.use_opengl_dimensions = True
         self.font = opengl_dim.get_custom_font()
         self.font_bold = opengl_dim.get_custom_font_bold()

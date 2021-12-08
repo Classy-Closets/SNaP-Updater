@@ -503,7 +503,7 @@ def create_corner_toe_kicks(obj_bp, Left_Depth, Toe_Kick_Setback, Depth,
                             Width, Right_Depth):
     tk_path = path.join(
         closet_paths.get_library_path(),
-        "/Closet Products - Basic/Toe Kick.png")
+        "/Products - Basic/Toe Kick.png")
     wm_props = bpy.context.window_manager.snap
 
     left_tk = wm_props.get_asset(tk_path)

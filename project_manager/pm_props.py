@@ -358,11 +358,16 @@ class Project(PropertyGroup, CollectionMixIn):
         active_room_path = self.rooms[self.room_index].file_path
         col = layout.column(align=True)
         col.template_list("SNAP_UL_Rooms", "", self, "rooms", self, "room_index", maxrows=5)
-        row = col.row(align=True)
+        row = col.split(factor=0.5)
         row.operator(
             "project_manager.open_room",
             text="Open Room",
             icon='FILE_TICK').file_path = active_room_path
+
+        row.operator(
+            "product_manager.copy_room",
+            text="Copy Room",
+            icon='PACKAGE').file_path = active_room_path
 
     def draw_render_info(self, layout):
         box = layout.box()

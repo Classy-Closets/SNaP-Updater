@@ -1369,6 +1369,12 @@ class SnapObjectProps(PropertyGroup):
 
     delete_protected: BoolProperty(name='Delete Protected', description='Flag for sn_object.delete', default=False)
 
+    material_mapping: EnumProperty(
+        name="Material Mapping",
+        items=[('BOX', "Box", "Box"), ('UV', "UV", "UV")],
+        description="Mesh Mapping Type.",
+        default='BOX')
+
     def add_prompt(self, prompt_type, prompt_name):
         prompt = self.prompts.add()
         prompt.prompt_type = prompt_type
@@ -1954,6 +1960,7 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
             row.prop(self, "debug_mac")
             row = box.row()
             row.prop(self, "enable_franchise_pricing")
+            row.operator('closet_materials.unpack_material_images')
 
             addon_updater_ops.update_settings_ui(self, context)
 

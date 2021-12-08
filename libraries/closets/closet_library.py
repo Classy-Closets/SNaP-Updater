@@ -35,17 +35,17 @@ import bpy
 
 LIBRARY_NAME = "Closets"
 
-# CLOSET_PRODUCTS_FLOOR = "Closet Products - Floor Panels"
-CLOSET_PRODUCTS_PARTIONS = "Closet Products – Partitions"
-CLOSET_PRODUCTS_BASIC = "Closet Products - Basic"
-CLOSET_PRODUCTS_DRAWERS = "Closet Products - Drawers"
-CLOSET_PRODUCTS_SHELVES = "Closet Products - Shelves"
-CLOSET_PRODUCTS_HUTCH = "Closet Products - Hutch"
-CLOSET_PRODUCTS_ISLANDS = "Closet Products - Islands"
-CLOSET_PRODUCTS_STACKED = "Closet Products - Uppers"
-CLOSET_PARTS_ACCESSORIES = "Parts - Closet Accessories"
+# CLOSET_PRODUCTS_FLOOR = "Products - Floor Panels"
+CLOSET_PRODUCTS_PARTIONS = "Products – Partitions"
+CLOSET_PRODUCTS_BASIC = "Products - Basic"
+CLOSET_PRODUCTS_DRAWERS = "Products - Drawers"
+CLOSET_PRODUCTS_SHELVES = "Products - Shelves"
+CLOSET_PRODUCTS_HUTCH = "Products - Hutch"
+CLOSET_PRODUCTS_ISLANDS = "Products - Islands"
+CLOSET_PRODUCTS_STACKED = "Products - Uppers"
+CLOSET_PARTS_ACCESSORIES = "Parts - Accessories"
 SECTION_INSERTS_DIVIDERS = "Section Inserts - Dividers"
-CLOSET_PRODUCTS_GARAGE = "Closet Prodcuts - Garage"
+CLOSET_PRODUCTS_GARAGE = "Prodcuts - Garage"
 
 
 # --------CLOSET PRODUCTS HANGING
@@ -762,8 +762,8 @@ class PRODUCT_Belt_Rack(data_closet_hooks_and_pins.Belt_Accessories):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(12)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_Tie_Rack(data_closet_hooks_and_pins.Tie_Accessories):
@@ -772,8 +772,8 @@ class PRODUCT_Tie_Rack(data_closet_hooks_and_pins.Tie_Accessories):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(12)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_Robe_Hooks(data_closet_hooks_and_pins.Robe_Hook_Accessories):
@@ -782,8 +782,8 @@ class PRODUCT_Robe_Hooks(data_closet_hooks_and_pins.Robe_Hook_Accessories):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(4)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_Wire_Basket(data_single_parts.Wire_Basket):
@@ -824,7 +824,7 @@ class PRODUCT_Valet_Rod(data_single_parts.Valet_Rod):
 #         self.library_name = LIBRARY_NAME
 #         self.category_name = CLOSET_PARTS_ACCESSORIES
 #         self.width = sn_unit.inch(12)
-#         self.depth = sn_unit.inch(1)
+#         self.depth = sn_unit.inch(0.75)
 #         self.height = sn_unit.inch(3)
 
 
@@ -834,8 +834,8 @@ class PRODUCT_Double_Robe_Hooks(data_closet_hooks_and_pins.Double_Robe_Hook_Acce
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(4)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_DORB_Hooks(data_closet_hooks_and_pins.DORB_Hook_Accessories):
@@ -844,8 +844,8 @@ class PRODUCT_DORB_Hooks(data_closet_hooks_and_pins.DORB_Hook_Accessories):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(4)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_Coat_and_Hat_Hooks(data_closet_hooks_and_pins.Coat_and_Hat_Hook_Accessories):
@@ -854,8 +854,8 @@ class PRODUCT_Coat_and_Hat_Hooks(data_closet_hooks_and_pins.Coat_and_Hat_Hook_Ac
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PARTS_ACCESSORIES
         self.width = sn_unit.inch(4)
-        self.depth = sn_unit.inch(1)
-        self.height = sn_unit.inch(3)
+        self.depth = sn_unit.inch(0.75)
+        self.height = sn_unit.inch(3.64)
 
 
 class PRODUCT_Hanging_Rod(data_single_parts.Hanging_Rod):

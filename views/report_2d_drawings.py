@@ -46,9 +46,10 @@ class OPERATOR_create_pdf(bpy.types.Operator):
                 f = open(self.filepath, 'wb')
                 f.close()
             except IOError:
-                self.report(
-                    {'ERROR'},
-                    "The selected file could not be accessed!: {}".format(self.filepath))  # noqa: E501
+                directory, filename = os.path.split(self.filepath)
+                bpy.ops.snap.message_box(
+                    'INVOKE_DEFAULT',
+                    message="\"{}\" is currently open.\nUnable to overwrite file.".format(filename))
                 return False
         return True
 

@@ -865,31 +865,14 @@ class PROPERTIES_Scene_Variables(PropertyGroup):
         box = layout.box()
         col = box.column(align=True)
         row = col.row(align=True)
-        row.scale_y = 1.3
-        row.prop_enum(self, "main_tabs", 'DEFAULTS',icon='MODIFIER',  text="Closet Defaults")
-        row.prop_enum(self, "main_tabs", 'HARDWARE',icon='NOCURVE', text="Hardware")
-        row = col.row(align=True)
-        row.scale_y = 1.3
-        row.prop_enum(self, "main_tabs", 'DOORS',icon='MESH_PLANE', text="Wood Doors + Drawer Faces")
-        row.prop_enum(self, "main_tabs", 'MOLDING',icon='IPO_CONSTANT', text="Molding")
         
-        if self.main_tabs == 'DEFAULTS':
-            defaults.draw(box)
+        defaults.draw(box)
             
-        if self.main_tabs == 'MOLDING':
-            options.draw_molding_options(box)
-            
-        if self.main_tabs == 'DOORS':
-            options.draw_door_options(box)
-            
-        if self.main_tabs == 'HARDWARE':
-            options.draw_hardware_options(box)
-
     @classmethod
     def register(cls):
         bpy.types.Scene.sn_closets = PointerProperty(
-            name="SNaP Closet Library Scene Properties",
-            description="SNaP Closet Library Scene Properties",
+            name="SNaP Product Library Scene Properties",
+            description="SNaP Product Library Scene Properties",
             type=cls,
         )
         
@@ -1246,8 +1229,8 @@ class PROPERTIES_Object_Properties(PropertyGroup):
     @classmethod
     def register(cls):
         bpy.types.Object.sn_closets = PointerProperty(
-            name="SNaP Closet Library Object Properties",
-            description="SNaP Closet Library Object Properties",
+            name="SNaP Product Library Object Properties",
+            description="SNaP Product Library Object Properties",
             type=cls,
         )
         

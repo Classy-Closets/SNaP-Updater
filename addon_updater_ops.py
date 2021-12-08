@@ -248,7 +248,7 @@ class AddonUpdaterCheckNow(bpy.types.Operator):
             return {'CANCELLED'}
 
         if settings.updater_key:
-            updater.private_token = settings.updater_key            
+            updater.private_token = settings.updater_key
 
         updater.set_check_interval(
             enabled=settings.auto_check_update,

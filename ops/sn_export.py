@@ -2,6 +2,7 @@ import math
 import os
 import xml.etree.ElementTree as ET
 import filecmp
+import re
 
 import bpy
 import bmesh
@@ -13,6 +14,7 @@ from snap import sn_unit
 from snap import sn_xml
 from snap import sn_db
 from snap.libraries.closets.data import data_drawers
+from ..libraries.closets.common import common_lists
 
 try:
     from ..developer_utils import debug_xml_export
@@ -140,8 +142,32 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    # Slide
+    # Jewelry / Suspended Inserts
     if assembly.obj_bp.get("IS_BP_DRAWER_BOX"):
+        is_jewelry = "jewelry" in item_name.lower()
+        is_velvet_liner = "velvet" in item_name.lower()
+        if is_jewelry or is_velvet_liner:
+            cursor.execute(
+                "SELECT\
+                    sku\
+                FROM\
+                    {CCItems}\
+                WHERE\
+                    ProductType == 'AC' AND\
+                    Name == '{}' \
+                ;".format(
+                    item_name,
+                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location
+                )
+            )
+            rows = cursor.fetchall()
+
+            for row in rows:
+                sku = row[0]
+            
+            conn.close()
+            return sku
+        
         if "Drawer Slide" in item_name:
             mat_props = bpy.context.scene.closet_materials
             slide_type = mat_props.get_drawer_slide_type()
@@ -197,7 +223,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             rows = cursor.fetchall()
 
             if len(rows) == 0:
-                print("SKU match not found for selected part: {}".format(slide_name))
+                print("SKU match not found for selected part: {}".format(item_name))
                 print("Special Order Sku Returned: SO-0000001")
                 return 'SO-0000001'
             for row in rows:
@@ -206,6 +232,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
             conn.close()
             return sku
+
+
 
     # Hamper Laundry Bag
     if "Cloth Laundry Bag" in item_name:
@@ -1034,6 +1062,7 @@ class OPS_Export_XML(Operator):
     def get_part_width(self,assembly):
         width = math.fabs(assembly.obj_y.location.y)
         oversize_width = assembly.get_prompt("Oversize Width")
+
         if oversize_width:
             width += oversize_width.get_value()
         if assembly.obj_bp.sn_closets.is_filler_bp:
@@ -1772,6 +1801,8 @@ class OPS_Export_XML(Operator):
             l_end_cond = carcass_assembly.get_prompt("Left End Condition").get_value()
             r_end_cond = carcass_assembly.get_prompt("Right End Condition").get_value()
 
+            primary_edge_color_name = closet_materials.edges.get_edge_color().name
+
             edge_2 = ''
             edge_2_sku = ''
 
@@ -1798,6 +1829,7 @@ class OPS_Export_XML(Operator):
                 ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),                
                 ("dcname", "text", part_name + " Shelf"),
                 ("name", "text", part_name + " Shelf"),
+                ("wallname", "text", sn_utils.get_wall_bp(obj).snap.name_object),
                 ("x", "text", shelf_x_location),
                 ("y", "text", self.get_part_y_location(assembly.obj_bp,assembly.obj_bp.location.y)),
                 ("z", "text", self.get_part_z_location(assembly.obj_bp,assembly.obj_bp.location.z)),
@@ -1817,6 +1849,7 @@ class OPS_Export_XML(Operator):
                 ("cutl", "text", self.distance(sn_unit.inch(shelf_length_inch))),
                 ("cutt", "text", self.distance(sn_utils.get_part_thickness(obj))),
                 ("cutw", "text", self.get_part_width(assembly)),
+                ("primaryedgecolorname", "text", primary_edge_color_name),
                 ("edgeband1", "text", edge_1),
                 ("edgeband1sku", "text", edge_1_sku),
                 ("edgeband2", "text", edge_2),
@@ -2478,23 +2511,21 @@ class OPS_Export_XML(Operator):
                     slide_size = 10
                     sizes = [10, 12, 14, 16, 18, 20, 22]
                     for size in sizes:
-                        if assembly.obj_y.location.y >= sn_unit.inch(size):
+                        if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
 
                     sidemount_options = parent_assembly.get_prompt("Sidemount Options")
                     if sidemount_options:
                         if sidemount_options.get_value() == 0:
                             self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size) + "in")
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size) + "in")
                         else:
-                            self.write_hardware_node(elm_parts, obj_bp, name="HR BB SC " + str(slide_size) + "in")
                             self.write_hardware_node(elm_parts, obj_bp, name="HR BB SC " + str(slide_size) + "in")
                 else:
 
                     slide_size = 9
                     sizes = [9, 12, 15, 18, 21]
                     for size in sizes:
-                        if assembly.obj_y.location.y >= sn_unit.inch(size):
+                        if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
 
                     undermount_options = parent_assembly.get_prompt("Undermount Options")
@@ -2517,7 +2548,13 @@ class OPS_Export_XML(Operator):
                 
                 self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide L")
                 self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide R")
-
+        #Slides
+        if obj_bp.sn_closets.is_drawer_box_bp:
+            drawers_dict = self.get_jewel_inserts_data(obj_bp)
+            if len(drawers_dict) > 0:
+                for drawer, inserts in drawers_dict.items():
+                    for insert in inserts:
+                        self.write_hardware_node(elm_parts, drawer, name=insert)
         #Locked shelf - add KD fittings (4)
         if obj_bp.sn_closets.is_shelf_bp:
             assembly = sn_types.Assembly(obj_bp)
@@ -2602,7 +2639,153 @@ class OPS_Export_XML(Operator):
 
                 if nchild.snap.type_mesh in {'CUTPART','SOLIDSTOCK','BUYOUT'}:
                     if not nchild.hide_viewport:
-                        self.write_part_node(elm_parts, nchild, spec_group)                                
+                        self.write_part_node(elm_parts, nchild, spec_group)
+
+    def get_jewel_inserts_data(self, obj_bp):
+        drawers_dict = {}
+        dad = obj_bp.parent
+        dad_assy = sn_types.Assembly(dad)
+        insert_indexes = []
+        dad_width = round(sn_unit.meter_to_inch(dad_assy.obj_x.location.x))
+        insert_indexes = []
+        dad_dict = dad_assy.get_prompt_dict()
+        dad_pmpts = dad_dict.items()
+        dd_query = 'Use Double Drawer'
+        dd_prompts = [v for v in dad_pmpts if dd_query in v[0] and v[1] == True]
+        ji_query = 'Has Jewelry Insert'
+        ji_prompts = [v for v in dad_pmpts if ji_query in v[0] and v[1] == True]
+        si_query = 'Has Sliding Insert'
+        si_prompts = [v for v in dad_pmpts if si_query in v[0] and v[1] == True]
+        if len(dd_prompts) > 0 and len(ji_prompts) == 0:
+            self.iterate_dbl_drawers(obj_bp, drawers_dict, dad, dad_assy,
+                                     insert_indexes, dad_width, dd_prompts)
+        if len(ji_prompts) > 0 and len(dd_prompts) == 0:
+            self.iterate_jwl_inserts(obj_bp, drawers_dict, dad, dad_assy,
+                                     insert_indexes, dad_width,
+                                     ji_prompts, si_prompts)
+        return drawers_dict
+
+    def iterate_dbl_drawers(self, obj_bp, drawers_dict, dad, dad_assy, 
+                            insert_indexes, dad_width, dd_prompts):
+        for prompt in dd_prompts:
+            siblings = {}
+            siblings_by_idx = {}
+            insert_number = re.findall(r'\d{1}', prompt[0])[0]
+            insert_indexes.append(int(insert_number))
+            for obj in dad.children:
+                if obj.sn_closets.is_drawer_box_bp:
+                    loc_z_metric = sn_unit.meter_to_inch(obj.location[2])
+                    loc_z = round(loc_z_metric, 2)
+                    siblings[loc_z] = obj
+            for i, key in enumerate(sorted(siblings.keys())):
+                siblings_by_idx[i + 1] = siblings[key]
+            for index in insert_indexes:
+                if siblings_by_idx[index].name == obj_bp.name:
+                    insert_pmpt = dad_assy.get_prompt(
+                        f"Jewelry Insert Type {index}")
+                    if insert_pmpt is not None:
+                        insert_type = insert_pmpt.get_value()
+                        if insert_type == 0:
+                            qry_dict = None
+                            insert_width = 0
+                            if 18 <= dad_width < 21:
+                                insert_width = 18
+                            elif 21 <= dad_width < 24:
+                                insert_width = 21
+                            elif 24 <= dad_width:
+                                insert_width = 24
+                            qry_up = f'Upper Jewelry Insert Velvet Liner {insert_width}in {insert_number}'
+                            qry_down = f'Lower Jewelry Insert Velvet Liner {insert_width}in {insert_number}'
+                            up = dad_assy.get_prompt(qry_up).get_value()
+                            down = dad_assy.get_prompt(qry_down).get_value()
+                            if insert_width == 18:
+                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT
+                            elif insert_width == 21:
+                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT
+                            elif insert_width == 24:
+                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT
+                            if qry_dict is not None:
+                                up_label = qry_dict.get(up)
+                                down_label = qry_dict.get(down)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(up_label)
+                                drawers_dict[obj_bp].append(down_label)
+
+    def iterate_jwl_inserts(self, obj_bp, drawers_dict, dad, dad_assy, 
+                            insert_indexes, dad_width, ji_prompts, si_prompts):
+        has_sld_ins = len(si_prompts) > 0
+        for prompt in ji_prompts:
+            siblings = {}
+            siblings_by_idx = {}
+            insert_number = re.findall(r'\d{1}', prompt[0])[0]
+            insert_indexes.append(int(insert_number))
+            for obj in dad.children:
+                if obj.sn_closets.is_drawer_box_bp:
+                    loc_z_metric = sn_unit.meter_to_inch(obj.location[2])
+                    loc_z = round(loc_z_metric, 2)
+                    siblings[loc_z] = obj
+            for i, key in enumerate(sorted(siblings.keys())):
+                siblings_by_idx[i + 1] = siblings[key]
+            for index in insert_indexes:
+                if siblings_by_idx[index].name == obj_bp.name:
+                    insert_pmpt = dad_assy.get_prompt(
+                        f"Jewelry Insert Type {index}")
+                    if insert_pmpt is not None:
+                        insert_type = insert_pmpt.get_value()
+                        if insert_type == 1:
+                            # Standard Opening
+                            qry_ji = f'Jewelry Insert {dad_width}in {insert_number}'
+                            qry_si = f'Sliding Insert {dad_width}in {insert_number}'
+                            ji = dad_assy.get_prompt(qry_ji).get_value()
+                            si = dad_assy.get_prompt(qry_si).get_value()
+                            if dad_width == 18:
+                                ji_label = common_lists.JEWELRY_INSERTS_18IN_DICT.get(ji)
+                                si_label = common_lists.SLIDING_INSERTS_18IN_DICT.get(si)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                                if has_sld_ins:
+                                    drawers_dict[obj_bp].append(si_label)
+                            elif dad_width == 21:
+                                ji_label = common_lists.JEWELRY_INSERTS_21IN_DICT.get(ji)
+                                si_label = common_lists.SLIDING_INSERTS_21IN_DICT.get(si)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                                if has_sld_ins:
+                                    drawers_dict[obj_bp].append(si_label)
+                            elif dad_width == 24:
+                                ji_label = common_lists.JEWELRY_INSERTS_24IN_DICT.get(ji)
+                                si_label = common_lists.SLIDING_INSERTS_24IN_DICT.get(si)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                                if has_sld_ins:
+                                    drawers_dict[obj_bp].append(si_label)
+                        elif insert_type == 2:
+                            # Non-Standard, Great than 16" deep
+                            if 18 <= dad_width < 21:
+                                qry_ji = f'Lower Jewelry Insert Velvet Liner 18in {insert_number}'
+                                ji = dad_assy.get_prompt(qry_ji).get_value()
+                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT.get(ji)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                            elif 21 <= dad_width < 24:
+                                qry_ji = f'Lower Jewelry Insert Velvet Liner 21in {insert_number}'
+                                ji = dad_assy.get_prompt(qry_ji).get_value()
+                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT.get(ji)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                            elif 24 <= dad_width:
+                                qry_ji = f'Lower Jewelry Insert Velvet Liner 24in {insert_number}'
+                                ji = dad_assy.get_prompt(qry_ji).get_value()
+                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT.get(ji)
+                                drawers_dict[obj_bp] = []
+                                drawers_dict[obj_bp].append(ji_label)
+                        elif insert_type == 3:
+                            # Non-Standard, Lower than 16" deep
+                            qry_vl = f'Velvet Liner {insert_number}'
+                            vl = dad_assy.get_prompt(qry_vl).get_value()
+                            vl_label = common_lists.VELVET_LINERS_DICT.get(vl)
+                            drawers_dict[obj_bp] = []
+                            drawers_dict[obj_bp].append(vl_label)
 
     def write_parts_for_nested_subassembly(self,elm_parts,obj_bp,spec_group):
         for child in obj_bp.children:
@@ -2671,6 +2854,7 @@ class OPS_Export_XML(Operator):
         lbl = [
             ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),
             ("name", "text", hardware_name),
+            ("wallname", "text", 'Island' if sn_utils.get_closet_bp(obj_bp).get("IS_BP_ISLAND") else sn_utils.get_wall_bp(obj_bp).snap.name_object),
             ("x", "text", "0"),
             ("y", "text", "0"),
             ("z", "text", "0"),
@@ -2681,7 +2865,7 @@ class OPS_Export_XML(Operator):
             ("roty", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.y)))),
             ("rotz", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.z)))),
             ("material", "text", ""),#Str literal OKAY
-            ("copies", "text", ""),#Str literal OKAY
+            ("copies", "text", ""),#Str literal OKaY
             ("sku", "text", get_hardware_sku(obj_bp, assembly, hardware_name)),#Get sku value from Database
             ("color", "text", ""),#Str literal OKAY
             ("type", "text", "hardware")#Str literal OKAY
@@ -2691,12 +2875,30 @@ class OPS_Export_XML(Operator):
         self.label_count += 1
         self.part_count += 1
 
+    def is_wood_part(self, obj, assembly, mat_inventory_name):
+        """
+        Used to determine if a part is a 'Wood Part' that needs a routing of 'No_Cut'
+        and a class of 'Draw'. We can add to this logic as more wooden parts are
+        created.
+        """
+        wooden_materials = ["BBBB", "1/4 BIRCH VENEER PRE FINISHED"]
+        obj_props = assembly.obj_bp.sn_closets
+        if(obj_props.is_door_bp or obj_props.is_drawer_front_bp or obj_props.is_hamper_front_bp or obj.get('IS_DOOR') or obj.get('IS_BP_DRAWER_FRONT')):
+            if(assembly.get_prompt("Door Style")):
+                door_style = assembly.get_prompt("Door Style").get_value()
+                if (door_style != "Slab Door") and (door_style != "Melamine Glass Door"):
+                    return True
+        for cur_mat in wooden_materials:
+            if cur_mat in mat_inventory_name:
+                return True
+        return False
+
     def write_part_node(self,node,obj,spec_group):
         if obj.get('IS_BP_ASSEMBLY'):
             assembly = sn_types.Assembly(obj_bp=obj)
         else:
             assembly = sn_types.Assembly(obj.parent)
-        if assembly.obj_bp.snap.type_group != "PRODUCT" and 'Accessory Cleat' not in assembly.obj_bp.name:
+        if assembly.obj_bp.snap.type_group != "PRODUCT":
 
             obj_props = assembly.obj_bp.sn_closets
             closet_materials = bpy.context.scene.closet_materials
@@ -2758,11 +2960,16 @@ class OPS_Export_XML(Operator):
                     else:
                         part_name = "KD Shelf"
                 if part_name == "Shelf" :
-                    part_name = "Adj Shelf"                    
+                    part_name = "Adj Shelf"
+                if part_name == 'Left Filler' or part_name == 'Right Filler':
+                    part_name = 'Filler'
+                if 'Accessory Cleat' in part_name:
+                    part_name = 'Wall Cleat'
             part_name_splitted = part_name.split(".")
             part_name = part_name_splitted[0]            
             mat_sku = closet_materials.get_mat_sku(obj, assembly, part_name)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
+            
             if part_name == "Cover Cleat":
                 if mat_inventory_name == "Oxford White" or  mat_inventory_name =="Duraply White":
                     mat_inventory_name = "White Paper 11300"
@@ -2770,6 +2977,10 @@ class OPS_Export_XML(Operator):
                 elif mat_inventory_name == "Cabinet Almond" or mat_inventory_name =="Duraply Almond":
                     mat_inventory_name = "Almond Paper 11300"
                     mat_sku = "PM-0000001"
+
+            if assembly.obj_bp.get('IS_BP_LAYERED_CROWN'):
+                part_name = 'Layered Crown'
+
             if(part_name == "File Rail"):
                     mat_inventory_name = "White Paper 12310"
                     mat_sku = "PM-0000004"
@@ -2806,16 +3017,22 @@ class OPS_Export_XML(Operator):
             self.xml.add_element_with_text(elm_part,'FinishedLength', self.get_part_length(assembly))
             self.xml.add_element_with_text(elm_part,'Thickness',self.distance(sn_utils.get_part_thickness(obj)))
             self.xml.add_element_with_text(elm_part,'FinishedThickness', self.distance(sn_utils.get_part_thickness(obj)))
-            self.xml.add_element_with_text(elm_part,'Routing', "SK1")#Str literal okay
             if(part_name == "Cover Cleat"):
-                if(mat_inventory_name == "White Paper 11300" or mat_inventory_name =="Almond Paper 11300"):
-                    self.xml.add_element_with_text(elm_part,'Class', "draw")#Str literal okay
+                if(mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Almond Paper 11300"):
+                    self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
+                    self.xml.add_element_with_text(elm_part, 'Class', "draw")  # Str literal okay
                 else:
-                    self.xml.add_element_with_text(elm_part,'Class', "make")#Str literal okay
+                    self.xml.add_element_with_text(elm_part, 'Routing', "SK1")  # Str literal okay
+                    self.xml.add_element_with_text(elm_part, 'Class', "make")  # Str literal okay
             elif(part_name == "Toe Kick Stringer"):
-                self.xml.add_element_with_text(elm_part,'Class', "draw")#Str literal okay
+                self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
+                self.xml.add_element_with_text(elm_part, 'Class', "draw")  # Str literal okay
+            if self.is_wood_part(obj, assembly, mat_inventory_name):
+                self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
+                self.xml.add_element_with_text(elm_part, 'Class', "draw")  # Str literal okay
             else:
-                self.xml.add_element_with_text(elm_part,'Class', "make")#Str literal okay
+                self.xml.add_element_with_text(elm_part, 'Routing', "SK1")  # Str literal okay
+                self.xml.add_element_with_text(elm_part, 'Class', "make")  # Str literal okay
             self.xml.add_element_with_text(elm_part,'Type', "panel")#"panel" for part "unknown" for solid stock
 
             elm_unit = self.xml.add_element(elm_part,'Unit')
@@ -2855,6 +3072,7 @@ class OPS_Export_XML(Operator):
             closet_materials = bpy.context.scene.closet_materials
 
             #EDGEBANDING
+            primary_edge_color_name = ''
             edge_1 = ''
             edge_2 = ''
             edge_3 = ''
@@ -2873,16 +3091,20 @@ class OPS_Export_XML(Operator):
                 edge_2_color_name = secondary_edge_color.name
                 edge_3_color_name = secondary_edge_color.name
                 edge_4_color_name = secondary_edge_color.name
+                primary_edge_color_name = secondary_edge_color.name
+
             elif obj_props.is_door_bp or obj_props.is_drawer_front_bp:
                 edge_1_color_name = door_drawer_edge_color.name
                 edge_2_color_name = door_drawer_edge_color.name
                 edge_3_color_name = door_drawer_edge_color.name
                 edge_4_color_name = door_drawer_edge_color.name
+                primary_edge_color_name = door_drawer_edge_color.name
             else:
                 edge_1_color_name = edge_color.name
                 edge_2_color_name = edge_color.name
                 edge_3_color_name = edge_color.name
                 edge_4_color_name = edge_color.name
+                primary_edge_color_name = edge_color.name
 
             #Doors
             if obj_props.is_door_bp or obj_props.is_hamper_front_bp:
@@ -3145,7 +3367,6 @@ class OPS_Export_XML(Operator):
                     edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                     
                     carcass_bp = sn_utils.get_closet_bp(obj)
-                    print(carcass_bp)
                     if carcass_bp.get('IS_BP_L_SHELVES'):
                         exposed_left = assembly.get_prompt("Exposed Left")
                         exposed_right = assembly.get_prompt("Exposed Right")
@@ -3171,25 +3392,25 @@ class OPS_Export_XML(Operator):
                         l_assembly_end_cond = ''
                         r_assembly_end_cond = ''
                         b_assembly_end_cond = ''
-                        if l_assembly_end_cond_prompt and r_assembly_end_cond and b_assembly_end_cond:
+                        if l_assembly_end_cond_prompt and r_assembly_end_cond_prompt and b_assembly_end_cond_prompt:
                             l_assembly_end_cond = l_assembly_end_cond_prompt.get_value()
                             r_assembly_end_cond = r_assembly_end_cond_prompt.get_value()
                             b_assembly_end_cond = b_assembly_end_cond_prompt.get_value()
-                        if (l_carcass_end_cond == 'EP' and r_carcass_end_cond != 'EP') or (l_assembly_end_cond == True and r_assembly_end_cond != True):
+                        if (l_carcass_end_cond == 0 and r_carcass_end_cond != 0) or (l_assembly_end_cond == True and r_assembly_end_cond != True):
                             if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                                 edge_1 = "S1"
                             else:
                                 edge_1 = "L1"
                             edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                  
 
-                        if (l_carcass_end_cond != 'EP' and r_carcass_end_cond == 'EP') or (l_assembly_end_cond != True and r_assembly_end_cond == True):
+                        if (l_carcass_end_cond != 0 and r_carcass_end_cond == 0) or (l_assembly_end_cond != True and r_assembly_end_cond == True):
                             if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                                 edge_3 = "S2"
                             else:
                                 edge_3 = "L2"
                             edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
-                        if (l_carcass_end_cond == 'EP' and r_carcass_end_cond == 'EP') or (l_assembly_end_cond == True and r_assembly_end_cond == True):
+                        if (l_carcass_end_cond == 0 and r_carcass_end_cond == 0) or (l_assembly_end_cond == True and r_assembly_end_cond == True):
                             if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                                 edge_1 = "S1"
                                 edge_3 = "S2"
@@ -3220,6 +3441,9 @@ class OPS_Export_XML(Operator):
                             else:
                                 edge_3 = ""
                             edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+                    # removing distinction between right and left filler
+                    part_name = 'Filler'
                 if  part_name == "Right Filler":
                     if edge_bottom_of_right_filler:
                         if edge_bottom_of_right_filler.get_value():
@@ -3228,6 +3452,9 @@ class OPS_Export_XML(Operator):
                             else:
                                 edge_3 = ""
                             edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+                    # removing distinction between right and left filler
+                    part_name = 'Filler'
                 #Left Capping Filler
                 if  part_name == "Left Capping Filler":
                     if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
@@ -3312,19 +3539,6 @@ class OPS_Export_XML(Operator):
                         else:
                             edge_4 = "S2"
                         edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-
-            #Toe Kick
-            if obj_props.is_toe_kick_end_cap_bp:
-                #If the Toe Kick is Attached to an Island
-                if(obj.parent.parent and obj.parent.parent.sn_closets.is_island):
-                    if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
-                        edge_1 = "S1"
-                        edge_3 = "S2"
-                    else:
-                        edge_1 = "L1"
-                        edge_3 = "L2"
-                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             # Counter Top
             if obj_props.is_countertop_bp:
@@ -3485,22 +3699,26 @@ class OPS_Export_XML(Operator):
         
             #Toe Kick
             if obj_props.is_toe_kick_end_cap_bp:
-                #If the Toe Kick is Attached to an Island
-                if(obj.parent.parent.parent and obj.parent.parent.parent.sn_closets.is_island):
-                    if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
-                        edge_1 = "S1"
-                        edge_3 = "S2"
-                    else:
-                        edge_1 = "L1"
-                        edge_3 = "L2"
-                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                else:
-                    if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
-                        edge_1 = "S1"
-                    else:
-                        edge_1 = "L1"
-                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                parent_assembly = sn_types.Assembly(obj.parent.parent)
+                has_tk_skin = parent_assembly.get_prompt("Add TK Skin")
+                if has_tk_skin:
+                    if not has_tk_skin.get_value():
+                        # If the Toe Kick is Attached to an Island
+                        if(obj.parent.parent and obj.parent.parent.sn_closets.is_island):
+                            if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
+                                edge_1 = "S1"
+                                edge_3 = "S2"
+                            else:
+                                edge_1 = "L1"
+                                edge_3 = "L2"
+                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        else:                          
+                            if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
+                                edge_1 = "S1"
+                            else:
+                                edge_1 = "L1"
+                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             #Flat Crown
             if "IS_BP_FLAT_CROWN" in assembly.obj_bp:
@@ -3541,6 +3759,7 @@ class OPS_Export_XML(Operator):
                 ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),                
                 ("dcname", "text", part_name),
                 ("name", "text", part_name),
+                ("wallname", "text", 'Island' if sn_utils.get_closet_bp(obj).get("IS_BP_ISLAND") else sn_utils.get_wall_bp(obj).snap.name_object),
                 ("variablesection", "text", str(self.is_variable_section(assembly))),
                 ("x", "text", self.get_part_x_location(assembly.obj_bp,assembly.obj_bp.location.x)),
                 ("y", "text", self.get_part_y_location(assembly.obj_bp,assembly.obj_bp.location.y)),
@@ -3561,6 +3780,7 @@ class OPS_Export_XML(Operator):
                 ("cutl", "text", self.get_part_length(assembly)),#Part.AdjustedCutPartLength 
                 ("cutt", "text", self.distance(sn_utils.get_part_thickness(obj))),
                 ("cutw", "text", self.get_part_width(assembly)),#Part.AdjustedCutPartWidth
+                ("primaryedgecolorname", "text", primary_edge_color_name if edge_1 != '' or edge_2 != '' or edge_3 != '' or edge_4 != '' else ''),
                 ("edgeband1", "text", edge_1),
                 ("edgeband1sku", "text", edge_1_sku),
                 ("edgeband1name", "text", edge_1_color_name if edge_1 != '' else ''),
@@ -3714,6 +3934,8 @@ class OPS_Export_XML(Operator):
         elm_rooms = root.find("Rooms")
         rooms = list(elm_rooms)
 
+        wm = bpy.context.window_manager.sn_project
+        project_name = wm.current_file_project
         customer_name = elm_pinfo.find("customer_name").text
         client_id = elm_pinfo.find("client_id").text
         proj_address = elm_pinfo.find("project_address").text
@@ -3728,7 +3950,8 @@ class OPS_Export_XML(Operator):
         total_room_count = str(len(rooms))
         design_date = elm_pinfo.find("design_date").text
 
-        info = [('jobnumber', self.job_number),
+        info = [('projectname', project_name),
+                ('jobnumber', self.job_number),
                 ('customername', customer_name),
                 ('clientid', client_id),
                 ('projectaddress', proj_address),

@@ -59,7 +59,7 @@ def load_libraries(scene=None):
     wm_props = bpy.context.window_manager.snap
 
     wm_props.add_library(
-        name="Closet Library",
+        name="Product Library",
         lib_type='SNAP',
         root_dir=sn_paths.CLOSET_ROOT,
         thumbnail_dir=sn_paths.CLOSET_THUMB_DIR,
@@ -105,7 +105,6 @@ def load_libraries(scene=None):
         use_custom_icon=False,
         icon='MATERIAL'
     )
-
 
     wm_props.get_library_assets()
 

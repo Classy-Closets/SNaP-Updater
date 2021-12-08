@@ -16,7 +16,7 @@ class Hanging_Rods_with_Shelves(sn_types.Assembly):
     drop_id = "sn_closets.insert_rods_and_shelves_drop"
     placement_type = "INTERIOR"
     show_in_library = True
-    category_name = "Closet Products - Basic"
+    category_name = "Products - Basic"
     mirror_y = False
 
     shelves = []
@@ -456,7 +456,7 @@ class Shelves_Only(sn_types.Assembly):
     id_prompt = "sn_closets.shelves_only"
     placement_type = "INTERIOR"
     show_in_library = True
-    category_name = "Closet Products - Basic"
+    category_name = "Products - Basic"
     mirror_y = False
 
     def add_adj_prompts(self):
@@ -516,7 +516,7 @@ class Glass_Shelves(sn_types.Assembly):
     id_prompt = "sn_closets.glass_shelves"
     placement_type = "INTERIOR"
     show_in_library = True
-    category_name = "Closet Products - Basic"
+    category_name = "Products - Basic"
     mirror_y = False
     shelf_thickness_ppt_obj = None
 
@@ -704,6 +704,35 @@ class PROMPTS_Hanging_Rod_With_Shelves_Prompts(sn_types.Prompts_Interface):
 
         self.shelf_quantity_prompt.set_value(int(self.below_shelf_quantity))
 
+        add_rod_setback = self.insert.get_prompt("Add Rod Setback")
+        add_deep_rod_setback = self.insert.get_prompt("Add Deep Rod Setback")
+        add_top_shelf_setback = self.insert.get_prompt("Add Top Shelf Setback")
+        add_middle_shelf_setback = self.insert.get_prompt("Add Middle Shelf Setback")
+        add_bottom_shelf_setback = self.insert.get_prompt("Add Bottom Shelf Setback")
+        add_deep_rod_setback = self.insert.get_prompt("Add Deep Rod Setback")
+        add_shelves_in_top_section = self.insert.get_prompt("Add Shelves In Top Section")
+        add_top_shelf = self.insert.get_prompt("Add Top Shelf")
+        add_shelves_in_middle_section = self.insert.get_prompt("Add Shelves In Middle Section")
+        add_bottom_shelf = self.insert.get_prompt("Add Bottom Shelf")
+        is_hang_double = self.insert.get_prompt("Is Hang Double")
+        extra_deep_pard = self.insert.get_prompt("Extra Deep Pard")
+        prompts = [
+            add_top_shelf_setback, add_middle_shelf_setback, add_bottom_shelf_setback, add_deep_rod_setback,
+            add_shelves_in_top_section, add_top_shelf, add_shelves_in_middle_section, add_bottom_shelf,
+            is_hang_double, add_rod_setback, add_deep_rod_setback, extra_deep_pard]
+
+        if all(prompts):
+            if not add_top_shelf.get_value() and not add_shelves_in_top_section.get_value():
+                add_top_shelf_setback.set_value(0)
+            if not add_shelves_in_middle_section.get_value():
+                add_middle_shelf_setback.set_value(0)
+            if not add_bottom_shelf.get_value():
+                add_bottom_shelf_setback.set_value(0)
+            if self.insert.obj_y.location.y >= extra_deep_pard.get_value():
+                add_rod_setback.set_value(0)
+            else:
+                add_deep_rod_setback.set_value(0)
+
         for i in range(1,9):
             shelf = self.insert.get_prompt("Below Shelf " + str(i) + " Height")
             if shelf:
@@ -885,9 +914,14 @@ class PROMPTS_Hanging_Rod_With_Shelves_Prompts(sn_types.Prompts_Interface):
                         row.prop(add_middle_shelf_setback, "distance_value", text="Bottom Shelves Setback: ")
 
                     if add_bottom_shelf.get_value() and is_hang_double.get_value():
-                        row = box.row()
-                        row.label(text="", icon='BLANK1')
-                        row.prop(add_bottom_shelf_setback, "distance_value", text="Dust Shelf Setback: ")
+                        if extra_deep_pard and self.insert.obj_y.location.y >= extra_deep_pard.get_value():
+                            row = box.row()
+                            row.label(text="", icon='BLANK1')
+                            row.prop(add_bottom_deep_shelf_setback, "distance_value", text="Dust Shelf Setback: ")
+                        else:
+                            row = box.row()
+                            row.label(text="", icon='BLANK1')
+                            row.prop(add_bottom_shelf_setback, "distance_value", text="Dust Shelf Setback: ")
                 
                     #Below
                     shelf_quantity = self.insert.get_prompt("Below Shelf Quantity")    
@@ -1018,9 +1052,9 @@ class OPS_Rods_And_Shelves_Drop(Operator, PlaceClosetInsert):
         ihd = self.insert.get_prompt("Is Hang Double")
 
         if self.insert.obj_y.location.y >= edp.get_value():
-            if ihd.get_value():
+            if ihd and ihd.get_value():
                 abdss.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
-            adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))        
+            adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
 
 bpy.utils.register_class(OPS_Rods_And_Shelves_Drop)
 bpy.utils.register_class(PROMPTS_Shelf_Only_Prompts)

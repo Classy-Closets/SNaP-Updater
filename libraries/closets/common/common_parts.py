@@ -275,6 +275,7 @@ def add_wall_cleat(assembly):
     cleat.obj_bp.snap.comment_2 = "1008"
     cleat.obj_bp['IS_CLEAT'] = True
     cleat.obj_bp['IS_WALL_CLEAT'] = True
+    cleat.obj_bp.sn_closets.is_cleat_bp = True
     cleat.add_prompt("Exposed Top", 'CHECKBOX', False)
     cleat.add_prompt("Exposed Left", 'CHECKBOX', False)
     cleat.add_prompt("Exposed Right", 'CHECKBOX', False)
@@ -750,6 +751,13 @@ def add_shelf_fence(assembly):
 def add_accessory_panel(assembly):
     accessory_panel = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_EDGEBANDING))
     assembly.add_assembly(accessory_panel)
+    # these are setup for xml export. They are not linked up
+    accessory_panel.add_prompt('Exposed Left', 'CHECKBOX', True)
+    accessory_panel.add_prompt('Exposed Top', 'CHECKBOX', True)
+    accessory_panel.add_prompt('Exposed Right', 'CHECKBOX', True)
+    accessory_panel.add_prompt('Exposed Bottom', 'CHECKBOX', True)
+    accessory_panel.obj_bp['IS_WALL_CLEAT'] = True
+    accessory_panel.obj_bp['IS_CLEAT'] = True
     accessory_panel.set_name("Accessory Panel")
     accessory_panel.cutpart("Panel")
     accessory_panel.edgebanding('Edge', l1=True)

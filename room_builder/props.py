@@ -14,7 +14,7 @@ from snap import sn_unit
 from . import image_enums
 from .room_builder_main import (update_obstacle_index,
                                 update_wall_index,
-                                toggle_obstacle_hide)
+                                toggle_objects_hide)
 
 
 def set_view_port(self, context):
@@ -113,7 +113,7 @@ class Scene_Props(PropertyGroup):
                                 items=[('SHOW', 'Show Obstacles', 'Show Obstacles'),
                                        ('HIDE', 'Hide Obstacles', 'Hide Obstacles')],
                                 default='SHOW',
-                                update=toggle_obstacle_hide)
+                                update=toggle_objects_hide)
 
     carpet_material: EnumProperty(name="Carpet Material", items=image_enums.enum_carpet, update=update_floor_mat)
     wood_floor_material: EnumProperty(name="Wood Floor Material", items=image_enums.enum_wood_floor, update=update_floor_mat)

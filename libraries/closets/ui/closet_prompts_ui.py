@@ -235,6 +235,18 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 height = eval("float(self.Opening_" + str(i) + "_Height)/1000")
                 opening_height.set_value(height)
 
+    def update_flat_molding_heights(self):
+        molding_bps = [obj for obj in self.closet.obj_bp.children if 'IS_BP_CROWN_MOLDING' in obj]
+        wall_bp = self.closet.obj_bp.parent
+        wall = sn_types.Assembly(wall_bp)
+        for obj_bp in molding_bps:
+            molding = sn_types.Assembly(obj_bp)
+            dfc = molding.get_prompt('Distance From Ceiling')
+            if dfc:
+                dfc.set_value(wall.obj_z.location.z - molding.obj_bp.location.z)
+
+
+
     def update_fillers(self, context):
         if self.right_filler_changed:
             right_side_wall_filler = self.closet.get_prompt('Right Side Wall Filler')
@@ -458,6 +470,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         self.update_placement(context)
         self.update_fillers(context)
         self.update_backing(context)
+        self.update_flat_molding_heights()
 
         # props = context.scene.sn_closets
 
@@ -790,6 +803,21 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                 against_left_wall.set_value(False)
                             if(extend_right_end_pard_down.get_value() and height_right_side.get_value() > 0):
                                 against_right_wall.set_value(False)
+
+                    if "IS_BP_ROD_AND_SHELF" in obj_bp:
+                        extra_deep_pard = insert.get_prompt("Extra Deep Pard")
+                        add_deep_rod_setback = insert.get_prompt("Add Deep Rod Setback")
+                        depth = self.closet.get_prompt('Opening {} Depth'.format(opening))
+                        add_bottom_deep_shelf_setback = insert.get_prompt("Add Bottom Deep Shelf Setback")
+                        is_hang_double = insert.get_prompt("Is Hang Double")
+                        prompts = [extra_deep_pard, add_deep_rod_setback, depth, is_hang_double, add_bottom_deep_shelf_setback]
+
+                        if all(prompts):
+                            if depth.get_value() >= extra_deep_pard.get_value():
+                                add_deep_rod_setback.set_value(depth.get_value() - sn_unit.inch(12))
+                                if is_hang_double.get_value():
+                                    add_bottom_deep_shelf_setback.set_value(depth.get_value() - sn_unit.inch(12))
+
 
             if obj_props.is_closet_top_bp:
                 extend_left = insert.get_prompt("Extend Left Amount")

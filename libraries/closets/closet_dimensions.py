@@ -1439,7 +1439,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         parent_assy = sn_types.Assembly(parent_obj)
         lbl_text = 'TK'
         lbl_tgt = toe_kick
-        skin_pmt = parent_assy.get_prompt('Has TK Skin')
+        skin_pmt = parent_assy.get_prompt('Add TK Skin')
         toe_kick_x = toe_kick_assy.obj_x
         toe_kick_y = toe_kick_assy.obj_y
 
@@ -1975,38 +1975,36 @@ class SNAP_OT_Auto_Dimension(Operator):
             if hide_pmt and not hide_pmt.get_value():
                 labeled_cleat = cleat_assy
 
-        if labeled_cleat:
-            dim_offset = sn_unit.inch(2)
+        if labeled_cleat: 
+            dim_offset = -sn_unit.inch(3)
             cleat_aff_dist = labeled_cleat.obj_bp.matrix_world.translation.z
             width = labeled_cleat.obj_x.location.x
+            height = labeled_cleat.obj_y.location.y
+            dim_w_anchor_loc = (0, height + dim_offset, 0)
+            dim_h_end_loc = (0, height, 0)
+            aff_dim_anchor_loc = (0, 0, 0)
+            aff_dim_end_loc = (0, cleat_aff_dist, 0)
 
-            if obj.sn_closets.is_accessory_bp:
-                height = labeled_cleat.obj_z.location.z
-                dim_w_anchor_loc = (0, 0, -dim_offset)
-                dim_h_end_loc = (0, 0, height)
-                aff_dim_anchor_loc = (0, 0, -cleat_aff_dist)
-                aff_dim_end_loc = (0, 0, cleat_aff_dist)
-
-            else:
-                height = labeled_cleat.obj_y.location.y
-                dim_w_anchor_loc = (0, dim_offset, 0)
-                dim_h_end_loc = (0, height, 0)
-                aff_dim_anchor_loc = (0, cleat_aff_dist, 0)
-                aff_dim_end_loc = (0, -cleat_aff_dist, 0)
-
+            # Width dimension
             dim_w = self.add_tagged_dimension(labeled_cleat.obj_bp)
             dim_w.set_horizontal_line_txt_pos('BOTTOM')
             lbl_w = self.to_inch_lbl(width)
-            dim_w.anchor.location = dim_w_anchor_loc
+            dim_w.anchor.location = dim_w_anchor_loc 
             dim_w.end_x(value=width)
-            dim_w.set_label(lbl_w)
+            dim_w.set_label(" ")
+            width_lbl = self.add_tagged_dimension(labeled_cleat.obj_bp)
+            width_lbl.anchor.location = (
+                width / 2, height + dim_offset + sn_unit.inch(-2), 0)
+            width_lbl.set_label(lbl_w)
 
+            # Cleat height dimension
             dim_h = self.add_tagged_dimension(labeled_cleat.obj_bp)
             lbl_h = self.to_inch_lbl(abs(height))
-            dim_h.start_x(value=-dim_offset)
+            dim_h.start_x(value=dim_offset)
             dim_h.end_point.location = dim_h_end_loc
             dim_h.set_label(lbl_h)
 
+            # Height above the floor dimension
             aff_dim = self.add_tagged_dimension(labeled_cleat.obj_bp)
             aff_dim.anchor.location = aff_dim_anchor_loc
             aff_dim.end_point.location = aff_dim_end_loc
@@ -2996,7 +2994,7 @@ class SNAP_PT_Closet_2D_Setup(Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_context = "objectmode"
-    bl_label = "Closet 2D Setup"
+    bl_label = "2D Setup"
     bl_options = {'DEFAULT_CLOSED'}
     bl_order = 5
 

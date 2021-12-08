@@ -659,14 +659,15 @@ class Assembly:
             return 0
 
     def is_closet_wall_mounted(self, assy):
-        is_clt_wall_mounted = True
-        opening_qty = assy.get_prompt("Opening Quantity").get_value()
+        if 'IS_BP_CLOSET' in assy.obj_bp:
+            is_clt_wall_mounted = True
+            opening_qty = assy.get_prompt("Opening Quantity").get_value()
 
-        for i in range(1, opening_qty + 1):
-            is_wall_mounted = not assy.get_prompt("Opening " + str(i) + " Floor Mounted").get_value()
-            is_clt_wall_mounted = is_clt_wall_mounted and is_wall_mounted
+            for i in range(1, opening_qty + 1):
+                is_wall_mounted = not assy.get_prompt("Opening " + str(i) + " Floor Mounted").get_value()
+                is_clt_wall_mounted = is_clt_wall_mounted and is_wall_mounted
 
-        return is_clt_wall_mounted
+            return is_clt_wall_mounted
 
     def get_adjacent_assembly(self, direction='LEFT'):
         """
@@ -1077,21 +1078,16 @@ class Wall(Assembly):
         return list_obj_bp
 
     def get_connected_wall(self, direction):
+        all_walls = [obj for obj in bpy.data.objects if obj.get('IS_BP_WALL') is not None]
+        all_walls.sort(key=lambda a: a.name)
+        current_index = all_walls.index(self.obj_bp)
         if direction == 'LEFT':
-            for con in self.obj_bp.constraints:
-                if con.type == 'COPY_LOCATION':
-                    if con.target:
-                        return Wall(obj_bp=con.target.parent)
+            obj_bp = all_walls[current_index - 1]
+            return Wall(obj_bp=obj_bp)
 
         if direction == 'RIGHT':
-            for obj in bpy.data.objects:
-                if obj.get('IS_BP_WALL'):
-                    next_wall = Wall(obj_bp=obj)
-                    for con in next_wall.obj_bp.constraints:
-                        if con.type == 'COPY_LOCATION':
-                            if con.target == self.obj_x:
-                                return next_wall
-
+            obj_bp = all_walls[(current_index + 1) % (len(all_walls) - 1)]
+            return Wall(obj_bp=obj_bp)
 
 class Dimension():
     anchor = None

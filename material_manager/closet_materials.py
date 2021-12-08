@@ -45,6 +45,7 @@ def update_material_and_edgeband_colors(self, context):
     mat_color_name = self.materials.get_mat_color().name
     mat_type = self.materials.get_mat_type()
     stain_colors = self.get_stain_colors()
+    moderno_colors = self.get_moderno_colors()
 
     if not self.use_custom_color_scheme:
         self.set_all_material_colors()
@@ -58,6 +59,10 @@ def update_material_and_edgeband_colors(self, context):
             return
         else:
             self.stain_color_index = self.stain_colors.find("Oxford White")
+    elif mat_type.name == 'Textured Melamine':
+        if mat_color_name in moderno_colors:
+            self.moderno_color_index = self.moderno_colors.find(mat_color_name)
+            return
 
     try:
         bpy.ops.closet_materials.poll_assign_materials()
@@ -106,7 +111,7 @@ def enum_kd_fitting(self, context):
 
 class SN_MAT_PT_Closet_Materials_Interface(Panel):
     """Panel to Store all of the Material Options"""
-    bl_label = "Closet Materials"
+    bl_label = "Room Materials"
     bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
     bl_context = "objectmode"
@@ -136,8 +141,8 @@ class SnapMaterialSceneProps(PropertyGroup):
         items=[('MATERIAL', "Material", ""),
                ('COUNTERTOP', "Countertop", ""),
                ('HARDWARE', "Hardware", ""),
-               ('STAIN', "Stain", ""),
-               ('MODERNODOOR', "Moderno Doors", ""),
+               ('DOORS_AND_DRAWER_FACES', "Upgraded Door & Drawer Faces", ""),
+               ('MOLDING',"Molding",'Show the molding options.'),
                ('GLASS', "Glass", "")],
         default='MATERIAL',
         update=update_stain_color)
@@ -581,6 +586,9 @@ class SnapMaterialSceneProps(PropertyGroup):
     def get_stain_colors(self):
         return [color.name for color in self.stain_colors]
 
+    def get_moderno_colors(self):
+        return [color.name for color in self.moderno_colors]
+
     def get_glaze_color(self):
         return self.glaze_colors[self.glaze_color_index]
 
@@ -613,6 +621,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         self.set_all_edge_colors(material_color)
 
     def draw(self, layout):
+        options = bpy.context.scene.sn_closets.closet_options
         c_box = layout.box()
         tab_col = c_box.column(align=True)
         row = tab_col.row(align=True)
@@ -620,9 +629,10 @@ class SnapMaterialSceneProps(PropertyGroup):
         row.prop_enum(self, "main_tabs", 'COUNTERTOP')
         row.prop_enum(self, "main_tabs", 'HARDWARE')
         row = tab_col.row(align=True)
-        row.prop_enum(self, "main_tabs", 'STAIN')
-        row.prop_enum(self, "main_tabs", 'MODERNODOOR')
+        row.prop_enum(self, "main_tabs", 'MOLDING')
         row.prop_enum(self, "main_tabs", 'GLASS')
+        row = tab_col.row(align=True)
+        row.prop_enum(self, "main_tabs", 'DOORS_AND_DRAWER_FACES')
 
         if self.main_tabs == 'MATERIAL':
             if self.use_custom_color_scheme:
@@ -633,62 +643,60 @@ class SnapMaterialSceneProps(PropertyGroup):
                 box.label(text="Doors/Drawer Faces:")
                 self.door_drawer_edges.draw(box)
                 self.door_drawer_materials.draw(box)
+
+                box = c_box.box()
+                box.label(text="Stain Color Selection:")
+
+                if len(self.stain_colors) > 0:
+                    active_stain_color = self.get_stain_color()
+                    row = box.row(align=True)
+                    split = row.split(factor=0.25)
+                    split.label(text="Color:")
+                    split.menu(
+                        'SNAP_MATERIAL_MT_Stain_Colors',
+                        text=active_stain_color.name, icon='RADIOBUT_ON')
+
+                    if active_stain_color.name != "None":
+                        active_glaze_color = self.get_glaze_color()
+                        row = box.row(align=True)
+                        split = row.split(factor=0.25)
+                        split.label(text="Glaze Color:")
+                        split.menu(
+                            'SNAP_MATERIAL_MT_Glaze_Colors',
+                            text=active_glaze_color.name, icon='RADIOBUT_ON')
+
+                        if active_glaze_color.name != "None":
+                            active_glaze_style = self.get_glaze_style()
+                            row = box.row(align=True)
+                            split = row.split(factor=0.25)
+                            split.label(text="Glaze Style:")
+                            split.menu(
+                                'SNAP_MATERIAL_MT_Glaze_Styles',
+                                text=active_glaze_style.name, icon='RADIOBUT_ON')
+                else:
+                    row = box.row()
+                    row.label(text="None", icon='ERROR')
+
+                box = c_box.box()
+                box.label(text="Moderno Door Color Selection:")
+
+                if len(self.moderno_colors) > 0:
+                    active_door_color = self.moderno_colors[self.moderno_color_index]
+                    row = box.row(align=True)
+                    split = row.split(factor=0.25)
+                    split.label(text="Color:")
+                    split.menu(
+                        'SNAP_MATERIAL_MT_Door_Colors',
+                        text=active_door_color.name, icon='RADIOBUT_ON')
+                else:
+                    row = box.row()
+                    row.label(text="None", icon='ERROR')
             else:
                 self.materials.draw(c_box)
             c_box.prop(self, "use_custom_color_scheme")
 
         if self.main_tabs == 'COUNTERTOP':
             self.countertops.draw(c_box)
-
-        if self.main_tabs == 'STAIN':
-            box = c_box.box()
-            box.label(text="Stain Color Selection:")
-
-            if len(self.stain_colors) > 0:
-                active_stain_color = self.get_stain_color()
-                row = box.row(align=True)
-                split = row.split(factor=0.25)
-                split.label(text="Color:")
-                split.menu(
-                    'SNAP_MATERIAL_MT_Stain_Colors',
-                    text=active_stain_color.name, icon='RADIOBUT_ON')
-
-                if active_stain_color.name != "None":
-                    active_glaze_color = self.get_glaze_color()
-                    row = box.row(align=True)
-                    split = row.split(factor=0.25)
-                    split.label(text="Glaze Color:")
-                    split.menu(
-                        'SNAP_MATERIAL_MT_Glaze_Colors',
-                        text=active_glaze_color.name, icon='RADIOBUT_ON')
-
-                    if active_glaze_color.name != "None":
-                        active_glaze_style = self.get_glaze_style()
-                        row = box.row(align=True)
-                        split = row.split(factor=0.25)
-                        split.label(text="Glaze Style:")
-                        split.menu(
-                            'SNAP_MATERIAL_MT_Glaze_Styles',
-                            text=active_glaze_style.name, icon='RADIOBUT_ON')
-            else:
-                row = box.row()
-                row.label(text="None", icon='ERROR')
-
-        if self.main_tabs == 'MODERNODOOR':
-            box = c_box.box()
-            box.label(text="Moderno Door Color Selection:")
-
-            if len(self.moderno_colors) > 0:
-                active_door_color = self.moderno_colors[self.moderno_color_index]
-                row = box.row(align=True)
-                split = row.split(factor=0.25)
-                split.label(text="Color:")
-                split.menu(
-                    'SNAP_MATERIAL_MT_Door_Colors',
-                    text=active_door_color.name, icon='RADIOBUT_ON')
-            else:
-                row = box.row()
-                row.label(text="None", icon='ERROR')
 
         if self.main_tabs == 'GLASS':
             box = c_box.box()
@@ -706,9 +714,16 @@ class SnapMaterialSceneProps(PropertyGroup):
                 row = box.row()
                 row.label(text="None", icon='ERROR')
 
+        if self.main_tabs == 'MOLDING':
+            options.draw_molding_options(c_box)
+
+        if self.main_tabs == 'DOORS_AND_DRAWER_FACES':
+            options.draw_door_options(c_box)
+
         if self.main_tabs == 'HARDWARE':
             box = c_box.box()
             box.label(text="Hardware:")
+            options.draw_hardware_options(box)
             col = box.column()
             row = col.row(align=True)
             split = row.split(factor=0.40)
@@ -720,6 +735,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             split.prop(self, "kd_fitting_color", text="")
             row = c_box.row()
             row.scale_y = 1.5
+            
 
         c_box.operator(
             "closet_materials.poll_assign_materials",

@@ -24,7 +24,7 @@ class Doors(sn_types.Assembly):
     drop_id = "sn_closets.insert_doors_drop"
     placement_type = "EXTERIOR"
     show_in_library = True
-    category_name = "Closet Products - Basic"
+    category_name = "Products - Basic"
     mirror_y = False
 
     door_type = ""  # {Base, Tall, Upper, Sink, Suspended}
@@ -472,10 +472,10 @@ class Doors(sn_types.Assembly):
         is_locked_shelf.set_value(True)
         
         opening = common_parts.add_opening(self)
-        opening.loc_z('IF(Door_Type==2,0,Insert_Height+ST)', [Door_Type, Insert_Height, ST])
-        opening.dim_x('IF(Fill_Opening,0,Width)', [Fill_Opening, Width])
-        opening.dim_y('IF(Fill_Opening,0,Depth)', [Fill_Opening, Depth])
-        opening.dim_z('IF(Fill_Opening,0,Height-Insert_Height-ST)', [Fill_Opening, Height, Insert_Height, ST])
+        opening.loc_z('IF(Fill_Opening,0,IF(Door_Type==2,0,Insert_Height+ST))', [Door_Type, Insert_Height, ST, Fill_Opening])
+        opening.dim_x('Width', [Width])
+        opening.dim_y('Depth', [Depth])
+        opening.dim_z('IF(Fill_Opening,Insert_Height,Height-Insert_Height-ST)', [Fill_Opening, Height, Insert_Height, ST])
 
         # LOCK
         door_lock = common_parts.add_lock(self)
@@ -1278,6 +1278,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
 class OPS_Doors_Drop(Operator, PlaceClosetInsert):
     bl_idname = "sn_closets.insert_doors_drop"
     bl_label = "Custom drag and drop for doors insert"
+    adjacent_cant_be_deeper = True
 
     def execute(self, context):
         return super().execute(context)    

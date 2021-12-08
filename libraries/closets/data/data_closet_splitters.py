@@ -19,7 +19,7 @@ class Shelf_Stack(sn_types.Assembly):
     drop_id = "sn_closets.insert_vertical_splitters_drop"
     placement_type = "SPLITTER"
     show_in_library = True
-    category_name = "Closet Products - Shelves"
+    category_name = "Products - Shelves"
     mirror_y = False
     calculator = None
 
@@ -192,7 +192,7 @@ class Horizontal_Splitters(sn_types.Assembly):
     drop_id = "sn_closets.drop_insert"
     placement_type = "SPLITTER"
     show_in_library = True
-    category_name = "Closet Products - Shelves"
+    category_name = "Products - Shelves"
     mirror_y = False
     calculator = None
 
