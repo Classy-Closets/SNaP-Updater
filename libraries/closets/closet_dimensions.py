@@ -2234,7 +2234,13 @@ class SNAP_OT_Auto_Dimension(Operator):
             material += context_material
         material += " "
         for spec_group in context.scene.snap.spec_groups:
-            material += spec_group.materials["Countertop_Surface"].item_name
+            if material_str == "Melamine":
+                material += spec_group.materials["Countertop_Surface"].item_name
+            if material_str == "HPL":
+                material += spec_group.materials["Countertop_HPL_Surface"].item_name
+            if material_str == "Granite":
+                material += spec_group.materials["Countertop_Granite_Surface"].item_name
+
         x_offset = width / 2
         z_offset = counter_top_height
         hashmark = sn_types.Line(sn_unit.inch(3), (0, 45, 0))
