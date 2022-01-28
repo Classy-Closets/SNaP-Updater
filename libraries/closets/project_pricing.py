@@ -1494,7 +1494,7 @@ def calculate_project_price(xml_file):
                                 pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                 SPECIAL_ORDER_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1]])
             eb_counter = 1
-            EDGEBANDING.append(label_id, S_COUNT.count(), L_COUNT.count())
+            EDGEBANDING.append((label_id, len(S_COUNT), len(L_COUNT)))
             S_COUNT.clear()
             L_COUNT.clear()
 
@@ -1649,7 +1649,7 @@ def calculate_project_price(xml_file):
                                     pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                     SPECIAL_ORDER_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1]])
                 eb_counter = 1
-                EDGEBANDING.append(label_id, S_COUNT.count(), L_COUNT.count())
+                EDGEBANDING.append((label_id, len(S_COUNT), len(L_COUNT)))
                 S_COUNT.clear()
                 L_COUNT.clear()
 
@@ -1804,7 +1804,7 @@ def calculate_project_price(xml_file):
                                         pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                         SPECIAL_ORDER_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1]])
                     eb_counter = 1
-                    EDGEBANDING.append(label_id, S_COUNT.count(), L_COUNT.count())
+                    EDGEBANDING.append((label_id, len(S_COUNT), len(L_COUNT)))
                     S_COUNT.clear()
                     L_COUNT.clear()
 
