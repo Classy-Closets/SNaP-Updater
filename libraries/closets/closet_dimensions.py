@@ -1693,7 +1693,7 @@ class SNAP_OT_Auto_Dimension(Operator):
 
         insert_type_ppt = drawer_stack.get_prompt(f'Jewelry Insert Type {drawer_num}')
 
-        if insert_type_ppt:
+        if insert_type_ppt and insert_width > 0:
             insert_type = insert_type_ppt.get_value()
             # Double Jewelry
             if insert_type == 0:
