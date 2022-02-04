@@ -678,8 +678,9 @@ def generate_retail_parts_list():
                 if 'SF' in MATERIAL_PARTS_LIST[i][13]:
                     sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9]))
                     sheet1["P" + str((i + 1) + 1)] = (((float(MATERIAL_PARTS_LIST[i][11]) * int(MATERIAL_PARTS_LIST[i][7])) * get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])))  + float(MATERIAL_PARTS_LIST[i][12]))   #CALCULATED_PRICE
-                    if MATERIAL_PARTS_LIST[i][4] == EDGEBANDING[i][0]:
-                        sheet1["Q" + str((i + 1) + 1)] = EDGEBANDING[i][1] + " " + EDGEBANDING[i][2]
+                    if len(EDGEBANDING) > 0 and i < len(EDGEBANDING):
+                        if MATERIAL_PARTS_LIST[i][4] == EDGEBANDING[i][0]:
+                            sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[i][1]) + " " + str(EDGEBANDING[i][2])
                 if 'LF' in MATERIAL_PARTS_LIST[i][13]:
                     if MATERIAL_PARTS_LIST[i][14] is not None:
                         eb_length = get_eb_measurements(MATERIAL_PARTS_LIST[i][14], float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9]))
