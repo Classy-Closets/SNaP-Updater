@@ -473,6 +473,7 @@ class accordion_view(PropertyGroup):
                                   default=2,
                                   min=1,
                                   max=26)
+    
 
 class opengl_dim(PropertyGroup):
 
@@ -1548,6 +1549,28 @@ class SnapObjectProps(PropertyGroup):
         del bpy.types.Object.snap
 
 
+class SnapCollectionProps(PropertyGroup):
+
+    type: EnumProperty(name="Collection Type",
+                            items=[('NONE', "None", "None"),
+                                   ('WALL', "Wall", "Wall"),
+                                   ('BP', "Base Point", "Base Point")],
+                            description="Colection Type.",
+                            default='NONE')
+
+    @classmethod
+    def register(cls):
+        bpy.types.Collection.snap = PointerProperty(
+            name="SNaP Collection",
+            description="SNaP Collections Properties",
+            type=cls
+        )
+
+    @classmethod
+    def unregister(cls):
+        del bpy.types.Collection.snap
+
+
 class library_items(PropertyGroup):
     is_selected: BoolProperty(name="Is Selected")
     name: StringProperty(name="Library Item Name")
@@ -1577,6 +1600,10 @@ class sn_image(PropertyGroup):
     is_island_view: BoolProperty(name="Is Island View",
                                  default=False,
                                  description="This determines if the image is a 2D Island View")
+    
+    island_index: IntProperty(name="Island Index",
+                                 default=0,
+                                 description="This determines in which order the island will be added on PDF")
 
     is_virtual_view: BoolProperty(name="Is Virtual View",
                                   default=False,
@@ -1629,6 +1656,12 @@ class SnapWindowManagerProps(PropertyGroup):
 
     image_view_index: IntProperty(name="Image View Index",
                                   default=0)
+    
+    main_scene_wall_qty: IntProperty(name="Main Scene Walls Quantity",
+                                     description="",
+                                     default=0,
+                                     min=0,
+                                     max=26)
 
     def get_library_assets(self):
         library_path = sn_paths.CLOSET_THUMB_DIR
@@ -1785,6 +1818,8 @@ class SnapSceneProps(PropertyGroup):
         default='NONE'
     )
 
+    island_index: IntProperty(name="Island Index", default=0)
+
     plan_view_scene: BoolProperty(
         name="Plan View Scene",
         description="Scene used for rendering project plan view",
@@ -1888,6 +1923,10 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         name="Projects Directory",
         subtype='DIR_PATH',
         default=os.path.join(os.path.expanduser("~"), "Documents", "SNaP Projects v2"))
+    archive_dir: StringProperty(
+        name="Archived Projects Directory",
+        subtype='DIR_PATH',
+        default=os.path.join(os.path.expanduser("~"), "Documents", "SNaP Archived Projects"))
     assets_filepath: StringProperty(
         name="Assets Filepath",
         subtype='FILE_PATH')
@@ -1952,7 +1991,7 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
     updater_interval_days: bpy.props.IntProperty(
         name='Days',
         description="Number of days between checking for updates",
-        default=0,
+        default=7,
         min=0,
         max=31)
 
@@ -1983,6 +2022,7 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         row.label(text="Designer ID:")
         row.prop(self, "designer_id", text="")
         box.prop(self, "project_dir", text="Projects Directory")
+        box.prop(self, "archive_dir", text="Archived Projects Directory")
 
         box = layout.box()
         box.label(text="Franchise Materials Locations")
@@ -2038,6 +2078,7 @@ classes = (
     SnapObjectProps,
     SnapWindowManagerProps,
     SnapSceneProps,
+    SnapCollectionProps,
     SnapAddonPreferences,
 )
 

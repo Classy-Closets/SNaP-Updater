@@ -3,6 +3,7 @@ from numpy.core.fromnumeric import cumsum
 import psutil
 import time
 import os
+import subprocess
 import math
 import mathutils
 from bpy.types import Operator
@@ -18,12 +19,17 @@ import bpy
 from snap import sn_unit as unit, sn_utils
 from snap import sn_utils as utils
 from snap import sn_types
+from snap import sn_paths
+from snap import sn_xml
 from . import opengl_dim
 from . import freestyle_exclusion_types as fet
 from . import view_icons
 from snap.libraries.closets import closet_props
+from snap.libraries.closets.data import data_drawers
 import numpy as np
 import re
+import xml.etree.ElementTree as ET
+
 
 """
 Spread a nested list into a single list
@@ -58,6 +64,17 @@ def hide_dim_handles():
         if obj.get('IS_VISDIM_A') or obj.get('IS_VISDIM_B'):
             obj.hide_viewport = True
 
+def fetch_attach_walls(self, context):
+    walls = [('', '', '')]
+    snap = context.window_manager.snap
+    wall_qty = snap.main_scene_wall_qty
+    if wall_qty > 0:
+        walls = []
+        for i in range(wall_qty):
+            current_letter = chr(65+i)
+            wall_str = f'Wall {current_letter}'
+            walls.append((wall_str, wall_str, wall_str))
+    return walls
 
 class VIEW_OT_move_image_list_item(Operator):
     bl_idname = "sn_2d_views.move_2d_image_item"
@@ -246,6 +263,8 @@ class VIEW_OT_generate_2d_views(Operator):
     HIDDEN_LINE_DASH_PX = 5
     HIDDEN_LINE_GAP_PX = 5
 
+    current_ctx = None
+
     ev_pad: FloatProperty(name="Elevation View Padding",
                           default=0.75)
 
@@ -398,7 +417,7 @@ class VIEW_OT_generate_2d_views(Operator):
             name=scene.name, object_data=camera_data)
         scene.collection.objects.link(camera_obj)
         scene.camera = camera_obj
-        camera_obj.data.type = 'ORTHO'
+        camera_obj.data.type = 'PERSP'
         scene.render.resolution_y = 1280
         scene.snap.ui.render_type_tabs = 'NPR'
         scene.world = self.get_world()
@@ -463,6 +482,50 @@ class VIEW_OT_generate_2d_views(Operator):
                 if len(child.children) > 0:
                     self.link_desired_dims_to_scene(scene, child)
 
+    def get_obj_mesh(self, obj):
+        children = obj.children
+        for child in children:
+            if "mesh" in child.name.lower():
+                return child
+
+    def door_has_style(self, obj):
+        door_mesh = self.get_obj_mesh(obj)
+        for slot in door_mesh.snap.material_slots:
+            if "Wood_Door_Surface" == slot.pointer_name:
+                return True
+            elif "Door_Surface" == slot.pointer_name:
+                return False
+            elif "Moderno_Door" == slot.pointer_name:
+                return True
+
+    def create_replaced_mesh(self, obj, styled=False):
+        thick = 2.25
+        cover_dim_x, cover_dim_y, cover_dim_z, y_loc_offset = 0, 0, 0, 0
+        skipped_name = f"skipped_{obj.name}"
+        cover_mesh_name = f"skipped_{obj.name}_cover"
+        obj_assy = sn_types.Assembly(obj)
+        obj_loc = obj.location
+        dim_x = obj_assy.obj_x.location.x # actually Z
+        dim_y = obj_assy.obj_y.location.y # actually X
+        dim_z = obj_assy.obj_z.location.z # actually Y
+        cover_dim_x = abs(obj_assy.obj_x.location.x) - (unit.inch(thick) * 2)
+        cover_dim_y = abs(obj_assy.obj_y.location.y) - (unit.inch(thick) * 2)
+        cover_dim_z = obj_assy.obj_z.location.z
+        y_loc_offset = unit.inch(thick)
+        if dim_y < 0:
+            cover_dim_y = cover_dim_y * -1
+            y_loc_offset = y_loc_offset * -1
+        skipped_mesh = utils.create_cube_mesh(skipped_name, 
+                                    (dim_x, dim_y, dim_z))
+        utils.copy_world_loc(obj, skipped_mesh)
+        utils.copy_world_rot(obj, skipped_mesh)
+        if styled:
+            cover_dims = (cover_dim_x, cover_dim_y, cover_dim_z)
+            cover_location = (unit.inch(thick), y_loc_offset, abs(dim_z))
+            cover_mesh = utils.create_cube_mesh(cover_mesh_name, cover_dims)
+            utils.copy_world_loc(obj, cover_mesh, cover_location)
+            utils.copy_world_rot(obj, cover_mesh)
+
     def group_children(self, grp, obj):
         not_cage = not bool(obj.get('IS_CAGE'))
         ignore = self.ignore_obj_list
@@ -471,12 +534,23 @@ class VIEW_OT_generate_2d_views(Operator):
         if not_cage and obj not in ignore and not_empty_group and obj not in group_list:
             grp.objects.link(obj)
         for child in obj.children:
+            shown = any(
+                [True for c in child.children \
+                    if c.type == 'MESH' and not c.hide_viewport])
+            is_door = child.sn_closets.is_door_bp
+            is_hamper_door = child.sn_closets.is_hamper_front_bp
+            is_drawer_door = child.sn_closets.is_drawer_front_bp
+            skippable = (is_door or is_hamper_door or is_drawer_door) and shown
             if len(child.children) > 0:
                 if child.get('IS_OBSTACLE'):
                     for cc in child.children:
                         if cc.get('IS_CAGE'):
                             cc.hide_render = False
                             grp.objects.link(cc)
+                elif skippable:
+                    has_style = self.door_has_style(child)
+                    self.create_replaced_mesh(child, has_style)
+                    continue
                 else:
                     self.group_children(grp, child)
             else:
@@ -485,17 +559,53 @@ class VIEW_OT_generate_2d_views(Operator):
                         if not grp.objects.get(child.name):
                             grp.objects.link(child)
         return grp
-
-    def group_every_children(self, grp, obj):
+    
+    def group_every_children_on_acc(self, grp, obj):
         ignore = self.ignore_obj_list
         group_list = [item for item in grp.objects]
         not_empty_group = len(group_list) > 0
-        if obj not in ignore and not_empty_group and obj not in group_list:
+        is_door = obj.sn_closets.is_door_bp
+        shown = any(
+                [True for c in obj.children \
+                    if c.type == 'MESH' and not c.hide_viewport])
+        is_hamper_door = obj.sn_closets.is_hamper_front_bp
+        is_drawer_door = obj.sn_closets.is_drawer_front_bp
+        not_acc_cross_sec =  'left' not in grp.name and 'right' not in grp.name
+        skippable = (is_door or is_hamper_door or is_drawer_door) and not_acc_cross_sec and shown
+        if skippable:
+            has_style = self.door_has_style(obj)
+            self.create_replaced_mesh(obj, has_style)
+        if obj not in ignore and not_empty_group and obj not in group_list and not skippable:
             grp.objects.link(obj)
         if hasattr(obj, 'children'):
             for child in obj.children:
                 if len(child.children) > 0:
-                    self.group_every_children(grp, child)
+                    self.group_every_children_on_acc(grp, child)
+                else:
+                    if not grp.objects.get(child.name) and not skippable:
+                        grp.objects.link(child)
+        return grp
+
+    def group_every_children_elv_cross_sections(self, grp, obj):
+        ignore = self.ignore_obj_list
+        group_list = [item for item in grp.objects]
+        not_empty_group = len(group_list) > 0
+        is_door = obj.sn_closets.is_door_bp
+        is_hamper_door = obj.sn_closets.is_hamper_front_bp
+        is_drawer_door = obj.sn_closets.is_drawer_front_bp
+        shown = any(
+                [True for c in obj.children \
+                    if c.type == 'MESH' and not c.hide_viewport])
+        skippable = (is_door or is_hamper_door or is_drawer_door) and shown
+        if skippable:
+            has_style = self.door_has_style(obj)
+            self.create_replaced_mesh(obj, has_style)
+        if obj not in ignore and not_empty_group and obj not in group_list and not skippable:
+            grp.objects.link(obj)
+        if hasattr(obj, 'children'):
+            for child in obj.children:
+                if len(child.children) > 0:
+                    self.group_every_children_elv_cross_sections(grp, child)
                 else:
                     if not grp.objects.get(child.name):
                         grp.objects.link(child)
@@ -508,6 +618,7 @@ class VIEW_OT_generate_2d_views(Operator):
         new_scene.snap.name_scene = name
         new_scene.snap.elevation_img_name = island.name
         new_scene.snap.scene_type = 'ISLAND'
+        new_scene.snap.island_index = int(island.get("ISLAND_INDEX", 0))
         self.create_linesets(new_scene)
 
         return new_scene
@@ -550,6 +661,7 @@ class VIEW_OT_generate_2d_views(Operator):
         l_shelves = 0
         accessories = 0
         wall_cleat = 0
+        wall_beds = 0
         for item in wall.children:
             if 'section' in item.name.lower():
                 sections += 1
@@ -563,12 +675,15 @@ class VIEW_OT_generate_2d_views(Operator):
                 l_shelves += 1
             elif item.sn_closets.is_accessory_bp:
                 accessories += 1
+            elif item.get("IS_BP_WALL_BED"):
+                wall_beds += 1
         no_sections = sections == 0
         no_csh = corner_shelves == 0
         no_lsh = l_shelves == 0
         no_accessories = accessories == 0
         no_wall_cleat = wall_cleat == 0
-        if no_sections and no_csh and no_lsh and no_accessories:
+        no_beds = wall_beds == 0
+        if no_sections and no_csh and no_lsh and no_accessories and no_beds:
             return True
         return False
 
@@ -836,8 +951,27 @@ class VIEW_OT_generate_2d_views(Operator):
         return str(sh_qty)
 
     def get_sss_count(self, assembly):
+        sh_qty = 0
         sss_assembly = sn_types.Assembly(assembly)
-        sh_qty = sss_assembly.get_prompt("Adj Shelf Qty").get_value()
+        sh_pmpt_new = sss_assembly.get_prompt("Shelf Quantity")
+        sh_pmpt_old = sss_assembly.get_prompt("Adj Shelf Qty")
+        if sh_pmpt_new:
+            sh_qty = sh_pmpt_new.get_value()
+        elif sh_pmpt_old:
+            sh_qty = sh_pmpt_old.get_value()
+        sss_version = assembly.get("SNAP_VERSION")
+        if sss_version is None:
+            return str(sh_qty)
+        elif sss_version is not None:
+            sss_version = sss_version.replace(".", "")
+            version_number = int(sss_version)
+            if version_number >= 214:
+                bottom_pmpt = sn_types.Assembly(assembly).get_prompt(
+                    "Remove Bottom Shelf")
+                if bottom_pmpt:
+                    if bottom_pmpt.get_value():
+                        sh_qty -= 1
+                    return str(sh_qty)
         return str(sh_qty)
 
     def get_shelf_stack_count(self, assembly):
@@ -887,6 +1021,9 @@ class VIEW_OT_generate_2d_views(Operator):
             gloc_height = assembly.matrix_world.translation.z
             gloc_inches = self.to_inch(abs(gloc_height))
             # Hangs
+            sss_name_one = 'shoe shelf stack' in name
+            sss_name_two = 'slanted shoe shelves' in name
+            sss_name_three = 'slanted shoe shelf' in name
             if 'vertical' in name and 'splitters' in name:
                 shelf_count += self.shelf_count_vertical_splitters(assembly)
             if 'hang' in name and 'hanging rod' not in name:
@@ -915,13 +1052,15 @@ class VIEW_OT_generate_2d_views(Operator):
                 qty = self.get_glass_shelves_count(assembly)
                 tag = qty + ' Glass Shlvs'
                 tags.append((tag, gloc_inches))
-            elif 'shelf' in name and 'slanted' not in name:
+            elif 'shelf' in name and 'shoe' not in name and 'slanted' not in name:
                 qty = self.get_shelf_stack_count(assembly)
-                shelf_count += qty
-                saw_shelf_stack = True
                 rmvd_bottom_shelf = sn_types.Assembly(assembly).get_prompt(
                     'Remove Bottom Shelf').get_value()
-            elif 'slanted' and 'shoe' and 'shelf' in name:
+                if rmvd_bottom_shelf:
+                    shelf_count += (qty - 1)
+                elif not rmvd_bottom_shelf:
+                    shelf_count += qty
+            elif sss_name_one or sss_name_two or sss_name_three:
                 qty = self.get_sss_count(assembly)
                 tag = qty + ' SSS'
                 tags.append((tag, gloc_inches))
@@ -979,7 +1118,6 @@ class VIEW_OT_generate_2d_views(Operator):
             tags.insert(0, (shelf_tag, 0.0))
         return tags
 
-    # TODO refactor to not use context
     def find_matching_inserts(self, hanging_opening, location):
         def is_insert(obj):
             return hasattr(obj, 'snap') and obj.snap.type_group == 'INSERT'
@@ -1686,7 +1824,7 @@ class VIEW_OT_generate_2d_views(Operator):
         walls_info = []
         grp = bpy.data.collections.new("Plan View")
         walls = []
-        for obj in self.main_scene.collection.objects:
+        for obj in self.main_scene.objects:
             # Add Floor and Ceiling Obstacles to Plan View
             if obj.get('IS_OBSTACLE'):
                 pv_scene.collection.objects.link(obj)
@@ -1789,18 +1927,24 @@ class VIEW_OT_generate_2d_views(Operator):
                 self.add_pulls_to_plan_view(obj, pv_scene)
                 self.add_island_to_plan_view(obj)
 
-        scene_collection = self.main_scene.collection.children['Collection']
-        for obj in scene_collection.objects:
+        for obj in self.main_scene.collection.objects:
             self.link_tagged_dims_to_plan_view(obj, pv_scene)
 
         self.plan_view_hashmarks(context, walls_info)
-
+        floor = [o for o in bpy.data.objects if o.sn_roombuilder.is_floor][0]
+        x_axis_len = floor.dimensions[0]
+        floor_length = unit.meter_to_inch(x_axis_len)
         camera = self.create_camera(pv_scene)
         bpy.ops.object.select_all(action="SELECT")
         bpy.ops.view3d.camera_to_view_selected()
+        camera.data.type = 'ORTHO'
         camera.data.ortho_scale += self.pv_pad
         if room_type == 'USHAPE':
             camera.data.ortho_scale += 1
+        elif room_type == 'CUSTOM' and floor_length > 230:
+            ratio = self.planview_orthoscale_ratio(x_axis_len)
+            camera.data.ortho_scale = ratio
+
 
 
     def add_pulls_to_plan_view(self, obj, pv_scene):
@@ -2088,8 +2232,9 @@ class VIEW_OT_generate_2d_views(Operator):
     def get_walls_assys_arrangement(self, walls_groups):
         assemblies = {}
         for wall_name in walls_groups.keys():
-            if wall_name in bpy.data.objects:
-                wall_obj = bpy.data.objects[wall_name]
+            real_wall_name = wall_name.replace("CSwall-", "")
+            if real_wall_name in bpy.data.objects:
+                wall_obj = bpy.data.objects[real_wall_name]
                 wall_assemblies = self.get_wall_assemblies(wall_obj)
                 wall_width = sn_types.Assembly(wall_obj).obj_x.location.x
                 min_assy, max_assy = self.get_assy_min_max_loc(wall_assemblies)
@@ -2145,26 +2290,27 @@ class VIEW_OT_generate_2d_views(Operator):
         for collection, datum in joint_parts_dict.items():
             for data in datum:
                 position, parts = data
-                target_name = collection.name
+                target_name = collection.name.replace("CSwall-", "")
                 joint_name = f'SN-CS-Joint-{counter}'
                 instance_name = f'{joint_name}-instance'
                 parent_name = f'{target_name} Instance'
                 grp = bpy.data.collections.new(joint_name)
                 for part in parts:
-                    self.group_every_children(grp, part)
+                    self.group_every_children_elv_cross_sections(grp, part)
                     # NOTE For some reason I have to expicitly add the
                     # partition at the right of the corner shelf assy
                     # It's not needed for the Left Panel
                     if 'corner shelves' in part.name.lower():
                         for csh_children in part.children:
                             if csh_children.sn_closets.is_panel_bp:
-                                self.group_every_children(grp, csh_children)
+                                self.group_every_children_elv_cross_sections(
+                                    grp, csh_children)
                 for item in grp.objects:
                     csh_msh = 'csh_msh' in item.name.lower()
                     lsh_msh = 'lsh_msh' in item.name.lower()
                     if csh_msh or lsh_msh:
                         grp.objects.unlink(item)
-                target_scene = bpy.data.scenes[target_name]
+                target_scene = bpy.data.scenes[f"CSwall-{target_name}"]
                 target_parent = bpy.data.objects[parent_name]
                 target_position = (0, 0, 0)
                 instance = bpy.data.objects.new(instance_name, None)
@@ -2268,6 +2414,28 @@ class VIEW_OT_generate_2d_views(Operator):
                         "x_offset": x_offset
                     }
                     parts_destiny.append(dest_data)
+    
+    def add_remaining_space_dims(self, assemblies_dict, wall_groups):
+        for wall, assemblies_data in assemblies_dict.items():
+            wall_length = self.to_inch(
+                sn_types.Assembly(wall).obj_x.location.x)
+            start_data = assemblies_data.get('min_loc_data')
+            end_data = assemblies_data.get('max_loc_data')
+            if start_data:
+                assys_start = start_data.get('start', 0)
+                if assys_start > 0:
+                    wall_grp = wall_groups[wall.name]
+                    dim = self.add_remaining_space_lbl_elv(
+                        wall_grp, wall, assys_start, "left")
+                    wall_grp.objects.link(dim.anchor)
+            if end_data:
+                assys_end = end_data.get('end', wall_length)
+                rem_space = wall_length - assys_end
+                if rem_space > 0:
+                    wall_grp = wall_groups[wall.name]
+                    dim = self.add_remaining_space_lbl_elv(
+                        wall_grp, wall, rem_space, "right")
+                    wall_grp.objects.link(dim.anchor)
 
     def add_cross_sections(self, walls, wall_groups):
         joints = self.get_walls_joints(walls)
@@ -2300,7 +2468,8 @@ class VIEW_OT_generate_2d_views(Operator):
                     self.place_cross_sections_instances(joint_parts_dict)
                     self.process_virtual_objects(virtual_parts,
                                                  joint_parts_dict)
-                    
+                return assemblies_dict
+
     def create_acordion_scene(self, context, grp):
         bpy.ops.scene.new('INVOKE_DEFAULT', type='EMPTY')
         new_scene = context.scene
@@ -2500,12 +2669,7 @@ class VIEW_OT_generate_2d_views(Operator):
 
 
     def fetch_accordions_walls_data(self, scene, walls):
-        main_acc_walls = []
-        for obj in scene.objects:
-            is_wall = 'wall' in obj.name.lower()
-            not_mesh = obj.type != 'MESH'
-            if is_wall and not_mesh:
-                main_acc_walls.append(obj)
+        main_acc_walls = [o for o in scene.objects if o.get("IS_BP_WALL")]
         acc_props = bpy.context.scene.snap.accordion_view
         break_width = acc_props.break_width
         enable_intermediate = acc_props.enable_intermediate_walls
@@ -2547,7 +2711,7 @@ class VIEW_OT_generate_2d_views(Operator):
         bpy.ops.scene.new("INVOKE_DEFAULT", type="FULL_COPY")
         new_scene = context.scene
         # Get the new scene walls
-        for obj in new_scene.collection.objects:
+        for obj in new_scene.objects:
             if obj.get("IS_BP_WALL"):
                 wall = sn_types.Wall(obj_bp=obj)
                 new_walls.append(wall)
@@ -2587,6 +2751,7 @@ class VIEW_OT_generate_2d_views(Operator):
         new_scene.render.resolution_percentage = 100
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.view3d.camera_to_view_selected()
+        camera.data.type = 'ORTHO'
         max_height = max(walls_heights)
         proportion = round((walls_length / max_height), 2)
         camera.data.ortho_scale += proportion
@@ -2600,6 +2765,7 @@ class VIEW_OT_generate_2d_views(Operator):
         slots = {}
         slots["left"] = False
         slots["right"] = False
+        left_space, right_space = 0.0, 0.0
         curr_wall_width = sn_types.Assembly(current_wall).obj_x.location.x
         curr_wall_width_inches = self.to_inch(curr_wall_width)
         prvs_wall_width = sn_types.Assembly(previous_wall).obj_x.location.x
@@ -2625,7 +2791,10 @@ class VIEW_OT_generate_2d_views(Operator):
             end_situation = (curr_wall_width_inches - end_curr) <= offset
             start_situation = (prvs_wall_width_inches - end_prvs) <= offset
             if depth_prvs <= start_curr and (start_situation or end_situation):
+                # NOTE Issue #1197 - start_curr is the value we want!
+                #      when a left slot is True
                 slots["left"] = True
+                left_space = start_curr
             elif depth_prvs > start_curr:
                 slots["left"] = False
         elif start_curr is None and depth_prvs is not None:
@@ -2634,19 +2803,26 @@ class VIEW_OT_generate_2d_views(Operator):
             slots["left"] = False
         # RIGHT check
         if end_curr is not None and depth_next is not None:
-            if (curr_wall_width_inches - end_curr) >= depth_next and start_next <= offset:
+            remaining_space = curr_wall_width_inches - end_curr
+            if remaining_space >= depth_next and start_next <= offset:
+                # NOTE Issue #1197 - remaining_space is the value we want!
+                #      when a right slot is True
                 slots["right"] = True
-            elif (curr_wall_width_inches - end_curr) < depth_next:
+                right_space = remaining_space
+            elif remaining_space < depth_next:
                 slots["right"] = False
         elif end_curr is None and depth_next is not None:
             slots["right"] = True
         elif end_curr is None and depth_next is None:
             slots["right"] = False
-        return slots
+        spaces = left_space, right_space
+        section_slots = (slots, spaces)
+        return section_slots
 
     def accordion_instances_arragement(self, walls, accordions, 
                                        assemblies_dict, extra_dims):
         targets = {}
+        walls_rem_spaces = {}
         walls_sum = 0
         for wall in walls:
             walls_sum += wall.obj_x.location.x
@@ -2658,11 +2834,12 @@ class VIEW_OT_generate_2d_views(Operator):
             prvs_wall_key = walls[walls.index(key) - 1]
             curr_wall_key = walls[walls.index(key)]
             next_wall_key = walls[walls.index(key) - (len(walls) - 1)]
-            slots = self.accordion_cross_section_slot(curr_wall_key,
+            slots, spaces = self.accordion_cross_section_slot(curr_wall_key,
                                                       prvs_wall_key,
                                                       next_wall_key,
                                                       assemblies_dict)
             extra_dims[curr_wall_key] = []
+            walls_rem_spaces[curr_wall_key] = spaces
             left_slot = slots.get("left") 
             right_slot = slots.get("right")
             curr_wall_ch = curr_wall_key.children
@@ -2720,7 +2897,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     right_instance.location = (offset, (offset * -1), 0)
                 right_instance.rotation_euler = (0, 0, math.radians(-90))
             targets[curr_wall_key] = (left_instance, right_instance)
-        return targets
+        return (targets, walls_rem_spaces)
 
     def add_ch_accordion_parts(self, extra_dims, curr_wall_key,
                                parts_data, grp):
@@ -2742,7 +2919,7 @@ class VIEW_OT_generate_2d_views(Operator):
                         toe_kick_height = tk_assy.obj_z.location.z
                         extra_dims[curr_wall_key].append(toe_kick_height)
             if part.name not in grp.objects:
-                self.group_every_children(grp, part)
+                self.group_every_children_on_acc(grp, part)
 
     def add_accordion_virtual_parts(self, parts_data, group):
         v_parts = parts_data.get("virtual_parts")
@@ -2957,9 +3134,14 @@ class VIEW_OT_generate_2d_views(Operator):
     
     def accordion_building_height_ceiling_height(self, context, 
                                                  accordion, walls_list,
-                                                 extra_dims):
+                                                 extra_dims, wall_rem_spaces):
         offsets = []
         for wall in accordion:
+            left_space, right_space = wall_rem_spaces.get(wall, (0, 0))
+            if left_space > 0:
+                self.add_remaining_space_lbl(wall, left_space, "left")
+            elif right_space > 0:
+                self.add_remaining_space_lbl(wall, right_space, "right")
             self.wall_width(walls_list, wall)
             offset = self.accordion_build_hight_n_ceiling_dimensions(context, 
                                                                      accordion, 
@@ -2968,6 +3150,17 @@ class VIEW_OT_generate_2d_views(Operator):
         return max(offsets)
 
     def make_flat_crown_label(self, labels, item):
+        flat_crown_layers = 0
+        for ch in item.children:
+            is_layered = ch.get('IS_BP_LAYERED_CROWN')
+            snap_attr = hasattr(ch, 'snap')
+            not_ext_left = 'left' not in ch.name.lower()
+            not_ext_right = 'right' not in ch.name.lower()
+            if is_layered and snap_attr and not_ext_left and not_ext_right:
+                hidden = sn_types.Assembly(ch).get_prompt('Hide').get_value()
+                if not hidden:
+                    flat_crown_layers += 1
+        lay_crown = flat_crown_layers > 0
         tkh_str = ''
         parent_assy = sn_types.Assembly(item.parent)
         assy = sn_types.Assembly(item)
@@ -2976,16 +3169,25 @@ class VIEW_OT_generate_2d_views(Operator):
         fc_prod = sn_types.Assembly(item)
         ext_ceil = fc_prod.get_prompt('Extend To Ceiling')
         tkh = fc_prod.get_prompt('Top KD Holes Down')
-        if ext_ceil and ext_ceil.get_value() and tkh:
+        if ext_ceil and ext_ceil.get_value() and tkh and not lay_crown:
             if tkh.get_value() == 1:
                 tkh_str = 'Top KD|Down 1 Hole'
             elif tkh.get_value() == 2:
                 tkh_str = 'Top KD|Down 2 Holes'
         for a in item.children:
-            if a.get("IS_BP_ASSEMBLY") and 'Flat Crown' in a.name:
+            if a.get("IS_BP_ASSEMBLY") and 'Flat Crown' in a.name and not lay_crown:
                 fc_assy = sn_types.Assembly(a)
                 fc_h = fc_assy.obj_y.location.y
-                fc_str = 'Flat Crown %s' % self.to_inch_lbl(fc_h)
+                fc_str = f'Flat Crown {self.to_inch_lbl(fc_h)}'
+                labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
+            elif a.get("IS_BP_ASSEMBLY") and 'Flat Crown' in a.name and lay_crown:
+                fc_assy = sn_types.Assembly(a)
+                fc_h = fc_assy.obj_y.location.y
+                fc_str = f'Layered Crown'
+                if flat_crown_layers == 1:
+                    fc_str += ' (1 layer)'
+                elif flat_crown_layers == 2:
+                    fc_str += ' (2 layers)'
                 labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
         labels.append(
             (tkh_str, (hang_h + fc_assy.obj_y.location.y) + unit.inch(-6)))
@@ -3013,6 +3215,9 @@ class VIEW_OT_generate_2d_views(Operator):
             wall_offset_x += offset
             for label, height in flat_crowns_labels:
                 if label not in drawn_labels:
+                    x_offset = unit.inch(-20)
+                    if 'layered' in label.lower():
+                        x_offset = unit.inch(-28)
                     lbl_offset = height + (len(drawn_labels) * unit.inch(2))
                     dim = sn_types.Dimension()
                     dim.parent = first_wall
@@ -3195,13 +3400,22 @@ class VIEW_OT_generate_2d_views(Operator):
                 return True
         return False
 
-    def orthoscale_ratio(self, width):
+    def accordion_orthoscale_ratio(self, width):
         # NOTE don't touch those numbers unless you do an ab-exponential
         #      regression X-> walls width sum / Y -> good ortho scale
         #      still you see I added a padding while using it.
         a = 7.84889826
         b = 1.04456527
         result = (a * math.pow(b, width)) + self.ac_pad
+        return result
+
+    def planview_orthoscale_ratio(self, width):
+        # NOTE don't touch those numbers unless you do an ab-exponential
+        #      regression X-> walls width sum / Y -> good ortho scale
+        #      still you see I added a padding while using it.
+        a = 3.78424377
+        b = 1.099096036
+        result = (a * math.pow(b, width)) + 2
         return result
 
     def adjust_accordion_dims(self, insert):
@@ -3234,7 +3448,46 @@ class VIEW_OT_generate_2d_views(Operator):
                     loc_off = (0, depth, dim_loc_z)
                     utils.copy_world_loc(insert, d, loc_off)
 
-    def add_accordion_views(self, context):
+    def add_remaining_space_lbl(self, wall, value, position):
+        x_loc = 0
+        wall_length = self.to_inch(sn_types.Assembly(wall).obj_x.location.x)
+        if position == "left":
+            x_loc = unit.inch(value / 2)
+        elif position == "right":
+            x_loc = unit.inch(wall_length - (value / 2))
+        label = str(value) + "\""
+        spdim = sn_types.Dimension()
+        spdim.parent(wall)
+        spdim.start_x(value=x_loc)
+        spdim.start_y(value=0)
+        spdim.start_z(value=unit.inch(-3))
+        spdim.set_label(label)
+        self.ignore_obj_list.append(spdim)
+        return spdim
+
+    def add_remaining_space_lbl_elv(self, wall_grp, wall, value, position):
+        x_loc = 0
+        scene_name = f'{wall_grp.name}'
+        floor_name = f'{wall_grp.name} Floor'
+        floor_obj = bpy.data.objects[floor_name]
+        bpy.context.window.scene = bpy.data.scenes[scene_name]
+        wall_length = self.to_inch(sn_types.Assembly(wall).obj_x.location.x)
+        if position == "left":
+            x_loc = unit.inch(value / 2)
+        elif position == "right":
+            x_loc = unit.inch(wall_length - (value / 2))
+        label = str(round(value, 2)) + "\""
+        spdim = sn_types.Dimension()
+        spdim.parent(floor_obj)
+        utils.copy_world_loc(
+            floor_obj, spdim.anchor, (x_loc, 0, unit.inch(-3)))
+        utils.copy_world_rot(floor_obj, spdim.anchor)
+        spdim.set_label(label)
+        self.ignore_obj_list.append(spdim)
+        return spdim
+
+    def add_accordion_views(self, context):        
+        main_sc_objs = bpy.data.scenes["_Main"].objects
         dimprops = get_dimension_props()
         any_csh_lsh = [o for o in bpy.data.objects if 'cshlsh' in o.name.lower()]
         has_csh_lsh = len(any_csh_lsh) > 0
@@ -3244,6 +3497,7 @@ class VIEW_OT_generate_2d_views(Operator):
         main_scene, new_walls = self.main_accordion_scene(context)
         data_dict = self.fetch_accordions_walls_data(main_scene, new_walls)
         accordions = self.divide_walls_to_acordions(main_scene, data_dict)
+        main_sc_objs = [o for o in bpy.data.scenes["Z_Main Accordion"].objects]
         for wall in new_walls:
             wall_name = wall.obj_bp.name
             wall_obj = context.view_layer.objects[wall.obj_bp.name]
@@ -3251,7 +3505,7 @@ class VIEW_OT_generate_2d_views(Operator):
         walls_list = list(wall_groups.keys())
         assemblies_dict = self.get_walls_assys_arrangement(wall_groups)
         # Getting the accordion cross-sections displacement
-        targets = self.accordion_instances_arragement(new_walls,
+        targets, walls_rem_spaces = self.accordion_instances_arragement(new_walls,
                                                       accordions,
                                                       assemblies_dict,
                                                       extra_dims)
@@ -3278,11 +3532,13 @@ class VIEW_OT_generate_2d_views(Operator):
                 just_door = self.is_just_door_wall(wall)
                 empty = self.empty_wall(wall)
                 has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
-                walls_length_sum += sn_types.Assembly(wall).obj_x.location.x
+                current_wall_width = sn_types.Assembly(wall).obj_x.location.x
+                walls_length_sum += current_wall_width
                 walls_heights.append(sn_types.Assembly(wall).obj_z.location.z)
+                # Making copies of existing annotations
                 if (just_door or empty) and not has_lsh_csh:
                     continue
-                self.group_every_children(grp, wall)
+                self.group_every_children_on_acc(grp, wall)
                 # wall height / building height need to be added just at the
                 # first wall of each accordion. So we remove the existing ones
                 # and apply as desired
@@ -3294,6 +3550,7 @@ class VIEW_OT_generate_2d_views(Operator):
                         grp.objects.link(wall_mesh)
                         grp.objects.unlink(obj)
                 new_scene.collection.objects.link(wall)
+                # left_space, right_space = walls_rem_spaces.get(wall, (0, 0))
                 self.link_tagged_dims_to_scene(new_scene, wall)
                 target = targets.get(wall)
                 has_target = target is not None
@@ -3326,7 +3583,8 @@ class VIEW_OT_generate_2d_views(Operator):
             offset = self.accordion_building_height_ceiling_height(context, 
                                                                    accordion,
                                                                    walls_list,
-                                                                   extra_dims)                
+                                                                   extra_dims,
+                                                                   walls_rem_spaces)                
             self.add_flat_crowns(context, accordion, offset)
             proportion = round((walls_length_sum / max(walls_heights)), 2)
             instance_name = "Accordion Instance " + str(i + 1)
@@ -3343,9 +3601,10 @@ class VIEW_OT_generate_2d_views(Operator):
             camera.rotation_euler.z = 0
             bpy.ops.object.select_all(action='SELECT')
             bpy.ops.view3d.camera_to_view_selected()
+            camera.data.type = 'ORTHO'
             # Ratio done by ab-exponential regression 
             # Walls length X good ortho prop.
-            ratio = self.orthoscale_ratio(walls_length_sum)
+            ratio = self.accordion_orthoscale_ratio(walls_length_sum)
             camera.data.ortho_scale = ratio
             instance.hide_select = True
             bpy.ops.object.select_all(action='DESELECT')
@@ -3381,9 +3640,13 @@ class VIEW_OT_generate_2d_views(Operator):
 
         elv_floor_size = (elv_floor_width, elv_floor_depth)
         elv_floor_name = f'{scene.name} Floor'
+        elv_top_name = f'{scene.name} Top'
         elv_floor = utils.create_floor_mesh(elv_floor_name, elv_floor_size)
+        elv_top = utils.create_floor_mesh(elv_top_name,elv_floor_size)
         utils.copy_world_loc(wall.obj_bp, elv_floor)
         utils.copy_world_rot(wall.obj_bp, elv_floor)
+        utils.copy_world_loc(wall.obj_bp, elv_top, (0, 0, wall_mesh.dimensions.z))
+        utils.copy_world_rot(wall.obj_bp, elv_top)
         return elv_floor
 
     def create_elevation_wall(self, wall_assy, prefix):
@@ -3409,8 +3672,19 @@ class VIEW_OT_generate_2d_views(Operator):
                     entry_mod.object = bool_mesh
 
         return elv_wall
+    
+    def add_annotation_label(self, wall, annotation):
+        annotation_assy = sn_types.Assembly(annotation)
+        annotation_label = annotation_assy.get_prompt("Label").get_value()
+        an_x, an_y, an_z = annotation.location
+        an_dim = sn_types.Dimension()
+        utils.copy_world_loc(annotation, an_dim.anchor)
+        utils.copy_world_rot(annotation, an_dim.anchor)
+        an_dim.set_label(annotation_label)
+        self.ignore_obj_list.append(an_dim)
 
     def create_elv_view_scene(self, context, assembly, grp):
+        main_sc_objs = [o for o in bpy.data.scenes["_Main"].objects]
         if assembly.obj_bp and assembly.obj_x and assembly.obj_y and assembly.obj_z:
             new_scene = self.create_new_scene(context, grp, assembly.obj_bp)
 
@@ -3424,7 +3698,6 @@ class VIEW_OT_generate_2d_views(Operator):
             new_scene.collection.objects.link(instance)
             instance.instance_type = 'COLLECTION'
             instance.instance_collection = grp
-
             # Add partitions to the dimension ignore list so
             # it won't be linked to the scene "automatically"
             #
@@ -3433,7 +3706,7 @@ class VIEW_OT_generate_2d_views(Operator):
             for item in assembly.obj_bp.children:
                 if item.get("IS_BP_ASSEMBLY"):
                     for n_item in item.children:
-                        if n_item.sn_closets.is_panel_bp:
+                        if n_item.sn_closets.is_panel_bp: 
                             self.ignore_obj_list.append(n_item)
 
                 if any('Door Frame' in c.name for c in item.children):
@@ -3441,6 +3714,7 @@ class VIEW_OT_generate_2d_views(Operator):
 
                 if item.get("IS_VISDIM_A"):
                     self.ignore_obj_list.append(item)
+
 
             x_offset = assembly.obj_x.location.x / 2
             text_loc = (x_offset, 0, -unit.inch(10))
@@ -3453,6 +3727,7 @@ class VIEW_OT_generate_2d_views(Operator):
             camera.rotation_euler.z = assembly.obj_bp.rotation_euler.z
             bpy.ops.object.select_all(action='SELECT')
             bpy.ops.view3d.camera_to_view_selected()
+            camera.data.type = 'ORTHO'
             camera.data.ortho_scale += self.pv_pad
             instance.hide_select = True
             bpy.ops.object.select_all(action='DESELECT')
@@ -3495,6 +3770,7 @@ class VIEW_OT_generate_2d_views(Operator):
         
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.view3d.camera_to_view_selected()
+        camera.data.type = 'ORTHO'
         camera.data.ortho_scale += self.pv_pad
         #bpy.data.objects[grp.name + ' Instance'].hide_select = True
 
@@ -3803,6 +4079,120 @@ class VIEW_OT_generate_2d_views(Operator):
                 drawer_label.set_label(label)
                 z_loc += drawer_height
 
+    def query_velvet_liner(self, drawer_stack, drawer_num):
+        width_in = round(unit.meter_to_inch(drawer_stack.obj_x.location.x))
+        insert_width = 0
+        vl18 = [3,4,5]
+        vl21 = [4,5,6]
+        vl24 = [4,5,6]
+        if 18 <= width_in < 21:
+            insert_width = 18
+        elif 21 <= width_in < 24:
+            insert_width = 21
+        elif 24 <= width_in:
+            insert_width = 24
+
+        insert_type_ppt = drawer_stack.get_prompt(f'Jewelry Insert Type {drawer_num}')
+
+        if insert_type_ppt and insert_width > 0:
+            insert_type = insert_type_ppt.get_value()
+            # Double Jewelry
+            if insert_type == 0:
+                upper = f'Upper Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                u_choice = drawer_stack.get_prompt(upper).get_value()
+                l_choice = drawer_stack.get_prompt(lower).get_value()
+                if insert_width == 18 and (u_choice in vl18 or l_choice in vl18):
+                    return True
+                elif insert_width == 21 and (u_choice in vl21 or l_choice in vl21):
+                    return True
+                elif insert_width == 24 and (u_choice in vl24 or l_choice in vl24):
+                    return True
+            # STD Insert
+            elif insert_type == 1:
+                jwl_ins = f'Jewelry Insert {insert_width}in {drawer_num}'
+                sld_ins = f'Sliding Insert {insert_width}in {drawer_num}'
+                j_choice = drawer_stack.get_prompt(jwl_ins).get_value()
+                s_choice = drawer_stack.get_prompt(sld_ins).get_value()
+                drawer_stack.get_prompt(sld_ins)
+                if insert_width == 18 and (j_choice in vl18 or s_choice in vl18):
+                    return True
+                elif insert_width == 21 and (j_choice in vl21 or s_choice in vl21):
+                    return True
+                elif insert_width == 24 and (j_choice in vl24 or s_choice in vl24):
+                    return True
+            # Non-STD Insert GT 16
+            elif insert_type == 2:
+                lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                l_choice = drawer_stack.get_prompt(lower).get_value()
+                if insert_width == 18 and l_choice in vl18:
+                    return True
+                elif insert_width == 21 and l_choice in vl21:
+                    return True
+                elif insert_width == 24 and l_choice in vl24:
+                    return True
+            # Non-STD Insert LT 16
+            elif insert_type == 3:
+                return True
+        return False
+    
+    def get_jewelry_insert_info(self, drw_stack, drw_idx):
+        drawer_stack = data_drawers.Drawer_Stack(drw_stack)
+
+        has_velvet_liner = False
+        use_dbl_drawer = drawer_stack.get_prompt("Use Double Drawer " + str(drw_idx))
+        is_dbl_drawer = use_dbl_drawer.get_value()
+        has_jwl_insert_pmpt = drawer_stack.get_prompt(f"Has Jewelry Insert {drw_idx}")
+        has_sld_insert_pmpt = drawer_stack.get_prompt(f"Has Sliding Insert {drw_idx}")
+        has_velvet_liner = self.query_velvet_liner(drawer_stack, drw_idx)
+
+        if has_jwl_insert_pmpt and has_sld_insert_pmpt:
+            has_jwl_insert = has_jwl_insert_pmpt.get_value()
+            has_sld_insert = has_sld_insert_pmpt.get_value()
+            if is_dbl_drawer and not has_velvet_liner:
+                return "Db Jwlry"
+            elif not is_dbl_drawer and not has_velvet_liner:
+                if has_jwl_insert and not has_sld_insert:
+                    return "Jwlry"
+                elif not has_jwl_insert and has_sld_insert:
+                    return "SLD"
+                elif has_jwl_insert and has_sld_insert:
+                    return "Jwlry + SLD"
+            elif has_velvet_liner:
+                return "VL"
+        return ""
+    
+    def write_jewelry_insert(self, obj, x_loc, z_loc):
+        hsh_len = unit.inch(6)
+        obj_assembly = sn_types.Assembly(obj_bp=obj)
+        obj_z = obj.location.z
+        width = obj_assembly.obj_x.location.x
+        drawer_quantity = obj_assembly.get_prompt("Drawer Quantity")
+        for child in obj.children:
+            if "OBJ_PROMPTS_Drawer_Fronts" in child.name:
+                drawer_front_ppt_obj = child
+        if drawer_quantity:
+            z_loc = z_loc + obj_z
+            for i in range(drawer_quantity.get_value()-1, 0, -1):
+                drawer_height =\
+                    drawer_front_ppt_obj.snap.get_prompt(
+                        "Drawer " + str(i) + " Height").get_value()
+                label = self.get_jewelry_insert_info(obj, i)
+                if label != "":
+                    z_offset = (drawer_height / 2) + unit.inch(0.3)
+                    hashmark = sn_types.Line(length=hsh_len, axis='X')
+                    hashmark.anchor.name = 'Hashmark_JewelryInsert'
+                    hashmark.anchor.location.x = x_loc + width
+                    hashmark.anchor.location.z = z_loc + z_offset
+                    hashmark.anchor.rotation_euler.y = np.deg2rad(45)
+                    drawer_label = sn_types.Dimension()
+                    drawer_label.start_x(
+                        value=x_loc + width + unit.inch(5.25))
+                    drawer_label.start_z(
+                        value=z_loc + (0.5 * drawer_height) - unit.inch(5.25))
+                    drawer_label.set_label(label)
+                z_loc += drawer_height
+
     def write_hamper(self, obj, x_loc, z_loc):
         obj_assembly = sn_types.Assembly(obj_bp=obj)
         obj_z = obj.location.z
@@ -3838,10 +4228,48 @@ class VIEW_OT_generate_2d_views(Operator):
                 x_child = x_0 + factor*child_x_loc
                 if "Drawer" in name:
                     self.write_drawer(child, x_child, z_loc)
-                elif "Hamper" in name:
-                    self.write_hamper(child, x_child, z_loc)
                 child_z_loc = child.location.z
                 self.write_obj_drawers(
+                    child, x_child, z_loc + child_z_loc,
+                    obj_rot + rot_z, drawer_rot)
+    
+    def write_obj_jewelry_inserts(self, obj, x_0, z_loc, obj_rot, drawer_rot):
+        children = obj.children
+        for child in children:
+            name = child.name
+            child_assembly = sn_types.Assembly(obj_bp=child)
+            child_x = child_assembly.obj_x
+            rot_z = child.rotation_euler.z
+            is_front =\
+                round(obj_rot + rot_z, 2) == round(drawer_rot, 2)
+            child_x_loc = child.location.x
+            factor = 1 if round(child.rotation_euler.z, 2) == 0 else -1
+            if is_front and child_x is not None:
+                x_child = x_0 + factor*child_x_loc
+                if "Drawer" in name:
+                    self.write_jewelry_insert(child, x_child, z_loc)
+                child_z_loc = child.location.z
+                self.write_obj_jewelry_inserts(
+                    child, x_child, z_loc + child_z_loc,
+                    obj_rot + rot_z, drawer_rot)
+    
+    def write_obj_hampers(self, obj, x_0, z_loc, obj_rot, drawer_rot):
+        children = obj.children
+        for child in children:
+            name = child.name
+            child_assembly = sn_types.Assembly(obj_bp=child)
+            child_x = child_assembly.obj_x
+            rot_z = child.rotation_euler.z
+            is_front =\
+                round(obj_rot + rot_z, 2) == round(drawer_rot, 2)
+            child_x_loc = child.location.x
+            factor = 1 if round(child.rotation_euler.z, 2) == 0 else -1
+            if is_front and child_x is not None:
+                x_child = x_0 + factor*child_x_loc
+                if "Hamper" in name:
+                    self.write_hamper(child, x_child, z_loc)
+                child_z_loc = child.location.z
+                self.write_obj_hampers(
                     child, x_child, z_loc + child_z_loc,
                     obj_rot + rot_z, drawer_rot)
 
@@ -3970,43 +4398,83 @@ class VIEW_OT_generate_2d_views(Operator):
         label.start_z(value=z_loc)
         label.set_label(txt)
 
-    def write_view_A(self, island):
+    def write_view_A(self, island, dimprops):
+        island_index = island.get("ISLAND_INDEX")
+        label = "I-1"
+        if island_index:
+            label = f"I-{str(((int(island_index) * 4) + 1) - 4)}"        
         x_loc = -self.get_island_view_x_loc(island)
         island_assembly = sn_types.Assembly(obj_bp=island)
         dim_x = island_assembly.obj_x.location.x
-        self.write_island_height(island, x_loc)
-        self.write_island_tk_height(island, x_loc)
-        self.write_island_opening_width(island, x_loc)
-        self.write_island_countertop(island, x_loc)
-        self.write_island_pards(island, x_loc)
-        self.write_island_shelfs(island, x_loc, 0, 0)
-        self.write_obj_drawers(island, x_loc - dim_x/2, 0, 0, 0)
-        self.write_front_back_depth(island, x_loc, "Front")
-        self.write_elv_label("I-1", x_loc, -unit.inch(8))
+        if dimprops.framing_height:
+            self.write_island_height(island, x_loc)
+        if dimprops.toe_kicks:
+            self.write_island_tk_height(island, x_loc)
+        if dimprops.section_widths:
+            self.write_island_opening_width(island, x_loc)
+        if dimprops.countertop:
+            self.write_island_countertop(island, x_loc)
+        if dimprops.partition_height:
+            self.write_island_pards(island, x_loc)
+        if dimprops.kds:
+            self.write_island_shelfs(island, x_loc, 0, 0)
+        if dimprops.label_drawer_front_height:
+            self.write_obj_drawers(island, x_loc - dim_x/2, 0, 0, 0)
+        if dimprops.double_jewelry:
+            self.write_obj_jewelry_inserts(island, x_loc - dim_x/2, 0, 0, 0)
+        if dimprops.label_hamper_type:
+            self.write_obj_hampers(island, x_loc - dim_x/2, 0, 0, 0)
+        if dimprops.section_depths:
+            self.write_front_back_depth(island, x_loc, "Front")
+        self.write_elv_label(label, x_loc, -unit.inch(8))
 
-    def write_view_B(self, island):
+    def write_view_B(self, island, dimprops):
+        island_index = island.get("ISLAND_INDEX")
+        label = "I-2"
+        if island_index:
+            label = f"I-{str(((int(island_index) * 4) + 2) - 4)}"        
         x_loc = -self.get_island_view_x_loc(island)/3
-        self.write_island_depths(island, x_loc, "B")
-        self.write_island_overhang(
-            island, x_loc, -unit.inch(1), "Deck Overhang", "y")
-        self.write_elv_label("I-2", x_loc, -unit.inch(8))
+        if dimprops.section_depths:
+            self.write_island_depths(island, x_loc, "B")
+        if dimprops.ct_overhang:
+            self.write_island_overhang(
+                island, x_loc, -unit.inch(1), "Deck Overhang", "y")
+        self.write_elv_label(label, x_loc, -unit.inch(8))
 
-    def write_view_C(self, island):
+    def write_view_C(self, island, dimprops):
+        island_index = island.get("ISLAND_INDEX")
+        label = "I-3"
+        if island_index:
+            label = f"I-{str(((int(island_index) * 4) + 3) - 4)}"        
         x_loc = self.get_island_view_x_loc(island)/3
         island_assembly = sn_types.Assembly(obj_bp=island)
         dim_x = island_assembly.obj_x.location.x
-        self.write_island_opening_width(island, x_loc)
-        self.write_island_overhang(
-            island, x_loc, -unit.inch(8), "Side Deck Overhang", "x")
-        self.write_obj_drawers(island, x_loc + dim_x/2, 0, 0, np.pi)
-        self.write_island_shelfs(island, x_loc, 0, np.pi)
-        self.write_front_back_depth(island, x_loc, "Back")
-        self.write_elv_label("I-3", x_loc, -unit.inch(8))
+        if dimprops.section_widths:
+            self.write_island_opening_width(island, x_loc)
+        if dimprops.ct_overhang: 
+            self.write_island_overhang(
+                island, x_loc, -unit.inch(8), "Side Deck Overhang", "x")
+        if dimprops.label_drawer_front_height:
+            self.write_obj_drawers(island, x_loc + dim_x/2, 0, 0, np.pi)
+        if dimprops.double_jewelry:
+            self.write_obj_jewelry_inserts(island, x_loc + dim_x/2, 0, 0, np.pi)
+        if dimprops.label_hamper_type:
+            self.write_obj_hampers(island, x_loc + dim_x/2, 0, 0, np.pi)
+        if dimprops.kds:
+            self.write_island_shelfs(island, x_loc, 0, np.pi)
+        if dimprops.section_depths:
+            self.write_front_back_depth(island, x_loc, "Back")
+        self.write_elv_label(label, x_loc, -unit.inch(8))
 
-    def write_view_D(self, island):
+    def write_view_D(self, island, dimprops):
+        island_index = island.get("ISLAND_INDEX")
+        label = "I-4"
+        if island_index:
+            label = f"I-{str(((int(island_index) * 4) + 4) - 4)}"        
         x_loc = self.get_island_view_x_loc(island)
-        self.write_island_depths(island, x_loc, "D")
-        self.write_elv_label("I-4", x_loc, -unit.inch(8))
+        if dimprops.section_depths:
+            self.write_island_depths(island, x_loc, "D")
+        self.write_elv_label(label, x_loc, -unit.inch(8))
 
     def get_island_type(self, island):
         name = island.name
@@ -4021,6 +4489,7 @@ class VIEW_OT_generate_2d_views(Operator):
         camera.location = location
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.view3d.camera_to_view_selected()
+        camera.data.type = 'ORTHO'
         camera.data.ortho_scale += self.pv_pad
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -4075,6 +4544,7 @@ class VIEW_OT_generate_2d_views(Operator):
         return instance
 
     def create_island_elv_view_scene(self, context, island):
+        dimprops = get_dimension_props()
         scene_name = "View - " + island.name
         grp = bpy.data.collections.new(scene_name)
         new_scene =\
@@ -4090,26 +4560,32 @@ class VIEW_OT_generate_2d_views(Operator):
             new_scene.collection.objects.link(instance)
             view = chr(ord(view) + 1)
         self.add_camera_to_scene(new_scene, (np.pi/2, 0, 0))
-        self.write_view_A(island)
-        self.write_view_B(island)
-        self.write_view_C(island)
-        self.write_view_D(island)
+        self.write_view_A(island, dimprops)
+        self.write_view_B(island, dimprops)
+        self.write_view_C(island, dimprops)
+        self.write_view_D(island, dimprops)
         return grp
+
+    def hide_annotation_objects(self):
+        for o in bpy.data.scenes["_Main"].objects:
+            if o.get("IS_BP_ANNOTATION"):
+                lbl = sn_types.Assembly(o).get_prompt("Label").get_value()
+                anno_dim = sn_types.Dimension()
+                anno_dim.parent(o)
+                anno_dim.start_x(value=0)
+                anno_dim.start_y(value=0)
+                anno_dim.start_z(value=0)
+                anno_dim.set_label(lbl)
+                for m in o.children:
+                    if m.type == 'MESH':
+                        m.hide_viewport = True
+                        m.hide_render = True
 
     def unhide_wall(self, obj):
         wall_bp = utils.get_wall_bp(obj)
-        children = utils.get_child_objects(wall_bp)
-        for child in children:
-            if child.get('IS_CAGE'):
-                continue
-            if child.type == 'EMPTY':
-                if child.get('obj_prompts'):
-                    prompt = child.snap.get_prompt('Hide')
-                    if prompt:
-                        prompt.set_value(False)
-                continue
-            child.hide_viewport = False
-        obj.hide_viewport = False
+        if bpy.context.view_layer.objects.get(wall_bp.name):
+            bpy.ops.sn_roombuilder.hide_show_wall(
+                wall_bp_name=f"{wall_bp.name}", hide=False)
 
     def enable_all_elvs(self):
         all_scenes = bpy.data.scenes
@@ -4119,10 +4595,20 @@ class VIEW_OT_generate_2d_views(Operator):
             sc.snap.elevation_selected = True
 
     def invoke(self, context, event):
+        main_sc_objects = []
+        existing_scenes = [sc.name for sc in bpy.data.scenes]
+        if "_Main" in existing_scenes:
+            main_sc_objects = [o for o in bpy.data.scenes["_Main"].objects\
+                if o.get("IS_BP_ISLAND")]
+        main_islands = [o for o in main_sc_objects if o.get("IS_BP_ISLAND")]
+        if len(main_islands) > 4:
+            message = f"SNaP projects are limited to 4 (four) islands"
+            return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message)
         bpy.ops.snap_closet_dimensions.auto_dimension()
         return self.execute(context)
 
     def execute(self, context):
+        self.current_ctx = context
         self.pre_2d_cleanup(context)
         dimprops = get_dimension_props()
         room_type = context.scene.sn_roombuilder.room_type
@@ -4141,6 +4627,7 @@ class VIEW_OT_generate_2d_views(Operator):
         context.scene.name = "_Main"
         mesh_data_dict = {}
         joint_parts = None
+        self.hide_annotation_objects()
 
         if self.use_single_scene:
             self.create_single_elv_view(context)
@@ -4177,7 +4664,7 @@ class VIEW_OT_generate_2d_views(Operator):
             # NOTE this is a bit uggly, but is the safest way of removing
             #      these collections before generating them again
             for col in bpy.data.collections:
-                if 'wall' in col.name.lower():
+                if 'cswall' in col.name.lower():
                     bpy.data.collections.remove(col)
             for col in bpy.data.collections:
                 if 'sn-cs-joint' in col.name.lower():
@@ -4186,10 +4673,13 @@ class VIEW_OT_generate_2d_views(Operator):
                 if 'accordion' in col.name.lower():
                     bpy.data.collections.remove(col)
             for col in bpy.data.collections:
-                if 'left-grp' in col.name.lower():
+                if 'left_grp' in col.name.lower():
                     bpy.data.collections.remove(col)
             for col in bpy.data.collections:
-                if 'right-grp' in col.name.lower():
+                if 'right_grp' in col.name.lower():
+                    bpy.data.collections.remove(col)
+            for col in bpy.data.collections:
+                if 'plan view' in col.name.lower():
                     bpy.data.collections.remove(col)
 
 
@@ -4201,7 +4691,13 @@ class VIEW_OT_generate_2d_views(Operator):
                 if obj.data is not None:
                     mesh_data = obj.data.name
                     mesh_data_dict[obj.name] = mesh_data
-            for obj in self.main_scene.collection.objects:
+            # [[o for o in s.objects] for s in bpy.data.scenes if s.name == "_Main" or "Scene"]
+            scene_objects = []
+            for sc in bpy.data.scenes:
+                if sc.name == "_Main" or "Scene":
+                    for obj in sc.objects:
+                        scene_objects.append(obj)
+            for obj in scene_objects:
                 if obj.get("IS_BP_WALL"):
                     self.unhide_wall(obj)
                     wall = sn_types.Wall(obj_bp=obj)
@@ -4216,7 +4712,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     if door_toggle and len(wall_groups_list) == 1:
                         wall_door_only = True
                     if len(wall_groups_list) > 0 and not wall_door_only:
-                        grp_name = wall.obj_bp.snap.name_object
+                        grp_name = f"CSwall-{wall.obj_bp.snap.name_object}"
                         grp = bpy.data.collections.new(grp_name)
                         if elevations_only:
                             self.create_elv_view_scene(context, wall, grp)
@@ -4227,14 +4723,15 @@ class VIEW_OT_generate_2d_views(Operator):
                 name = obj.name
                 if "Island" in name and obj.parent is None:
                     island = obj
-                    self.create_island_elv_view_scene(context, island)
 
+                    self.create_island_elv_view_scene(context, island)
             self.create_plan_view_scene(context)
 
             virtual = self.create_virtual_scene()
             if len(walls) > 0:
                 if elevations_only:
-                    self.add_cross_sections(walls, wall_groups)
+                    assy_dict = self.add_cross_sections(walls, wall_groups)
+                    self.add_remaining_space_dims(assy_dict, wall_groups)
                 elif accordions_only:
                     self.add_accordion_views(context)
 
@@ -4281,6 +4778,8 @@ class VIEW_OT_render_2d_views(Operator):
     b = 0
     a = 0
 
+    PDF_TEMP_XML = "pdf_temp.xml"
+
     def check_file(self, path):
 
         while not os.path.exists(path + ".jpg"):
@@ -4322,7 +4821,8 @@ class VIEW_OT_render_2d_views(Operator):
         rd = scene.render
         rl = scene.view_layers[0]
         rd.filepath = bpy.app.tempdir
-        rd.filepath += scene.name
+        fixed_scene_name = scene.name.replace("CSwall-", "")
+        rd.filepath += fixed_scene_name
 
         freestyle_settings = rl.freestyle_settings
         rd.use_freestyle = True
@@ -4392,6 +4892,7 @@ class VIEW_OT_render_2d_views(Operator):
             image_view.is_acc_view = True
         elif scene.snap.scene_type == 'ISLAND':
             image_view.is_island_view = True
+            image_view.island_index = scene.snap.island_index
         elif scene.snap.scene_type == 'VIRTUAL':
             image_view.is_virtual_view = True
 
@@ -4401,7 +4902,65 @@ class VIEW_OT_render_2d_views(Operator):
         scene.use_nodes = False
         self.reset_dim_color(context)
 
+    def get_project_xml(self):
+        props = bpy.context.window_manager.sn_project
+        proj = props.get_project()
+        cleaned_name = proj.get_clean_name(proj.name)
+        project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+        selected_project = os.path.join(project_dir, cleaned_name)
+        xml_file = os.path.join(selected_project, self.PDF_TEMP_XML)
+        global PROJECT_NAME
+        PROJECT_NAME = cleaned_name
+
+        if not os.path.exists(project_dir):
+            print("Projects Directory does not exist")
+        if not os.path.exists(xml_file):
+            print("The 'snap_job.xml' file is not found. Please select desired rooms and perform an export.")   
+        else:
+            return xml_file
+
+    def create_prep_script(self):
+        tmp_filename = "export_temp.py"
+        proj_props = bpy.context.window_manager.sn_project
+        proj_name = proj_props.projects[proj_props.project_index].name
+        proj_dir = os.path.join(sn_xml.get_project_dir(), proj_name)
+        proj_dir = proj_dir.replace("\\", "/")
+        self.remove_pdf_xml_file()
+        file = open(os.path.join(bpy.app.tempdir, tmp_filename), 'w')
+        file.write("import bpy\n")
+        file.write("from snap import sn_xml\n")
+        file.write(f"sn_xml.Snap_XML.filename = \"{self.PDF_TEMP_XML}\"\n")
+        file.write(f"bpy.ops.sn_export.export_xml('INVOKE_DEFAULT', xml_path='{proj_dir}')\n")
+        file.close()
+        return os.path.join(bpy.app.tempdir, tmp_filename)
+
+    def remove_pdf_xml_file(self):
+        proj_props = bpy.context.window_manager.sn_project
+        proj_name = proj_props.projects[proj_props.project_index].name
+        proj_dir = os.path.join(sn_xml.get_project_dir(), proj_name)
+        proj_dir = proj_dir.replace("\\", "/")
+        xml_4_pdf = f"{proj_dir}/{self.PDF_TEMP_XML}"
+        if os.path.exists(xml_4_pdf):
+            os.remove(xml_4_pdf)
+
+    def create_pdf_xml(self, context):
+        room_file = None
+        # Save main file to run XML generation
+        bpy.ops.wm.save_mainfile()
+        pm_props = context.window_manager.sn_project
+        proj = pm_props.projects[pm_props.project_index]
+        for room in proj.rooms:
+            if room.name == pm_props.current_file_room:
+                room_file = room.file_path
+        if room_file:
+            script_path = self.create_prep_script()
+            subprocess.call(bpy.app.binary_path + ' "' + room_file + '" -b --python "' + script_path + '"')
+            xml_file = self.get_project_xml()
+            return xml_file
+        return None
+
     def execute(self, context):
+        self.create_pdf_xml(context)
         # file_path = bpy.app.tempdir if bpy.data.filepath == "" else os.path.dirname(
         #     bpy.data.filepath)
         for item in context.window_manager.snap.image_views:
@@ -4595,28 +5154,7 @@ class VIEW_OT_add_annotation(Operator):
     bl_idname = "sn_2d_views.add_annotation"
     bl_label = "Add Annotation"
 
-    annotation_text: StringProperty(name="Annotation Text",
-                                    description="Enter in the name of the annoation")
-
     header_text = "Place Annotation"
-
-    annotation = None
-    drawing_plane = None
-
-    def place_annotation(self, context, event):
-        selected_point, selected_obj, _ = utils.get_selection_point(context, event, floor=self.drawing_plane)
-        self.annotation.anchor.location = selected_point
-        if event.type == 'LEFTMOUSE':
-            return self.finish_drop(context, event)
-
-        return {'RUNNING_MODAL'}
-
-    def create_drawing_plane(self, context):
-        bpy.ops.mesh.primitive_plane_add()
-        self.drawing_plane = context.active_object
-        self.drawing_plane.location = (0, 0, 0)
-        self.drawing_plane.display_type = 'WIRE'
-        self.drawing_plane.dimensions = (100, 100, 1)
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -4624,49 +5162,21 @@ class VIEW_OT_add_annotation(Operator):
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, 'annotation_text')
+        box = layout.box()
+        row = box.row()
+        row.label(text="Annotations were moved as a drop object to: Products - Basic")
 
     def execute(self, context):
         bpy.ops.object.select_all(action='DESELECT')
-        self.create_drawing_plane(context)
-
-        self.annotation = sn_types.Dimension()
-        self.annotation.anchor["IS_ANNOTATION"] = True
-        self.annotation.end_point["IS_ANNOTATION"] = True
-        self.annotation.end_x(value=unit.inch(0))
-        self.annotation.anchor.select_set(True)
-        self.annotation.set_label(self.annotation_text)
-
-        context.view_layer.objects.active = self.annotation.anchor
-        bpy.ops.sn_2d_views.toggle_dimension_handles(turn_on=True)
-        context.window_manager.snap.use_opengl_dimensions = True
-
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
+        return {'FINISHED'}
 
     def modal(self, context, event):
         context.area.tag_redraw()
         context.area.header_text_set(text=self.header_text)
 
-        if event.type in {'MIDDLEMOUSE', 'WHEELUPMOUSE', 'WHEELDOWNMOUSE'}:
-            return {'PASS_THROUGH'}
-
         if event.type in {'ESC'}:
-            self.cancel_drop(context, event)
             return {'FINISHED'}
 
-        return self.place_annotation(context, event)
-
-    def cancel_drop(self, context, event):
-        utils.delete_object_and_children(self.annotation.anchor)
-        utils.delete_object_and_children(self.drawing_plane)
-        bpy.context.window.cursor_set('DEFAULT')
-        return {'CANCELLED'}
-
-    def finish_drop(self, context, event):
-        utils.delete_object_and_children(self.drawing_plane)
-        bpy.context.window.cursor_set('DEFAULT')
-        context.area.header_text_set(None)
         return {'FINISHED'}
 
 
@@ -5239,13 +5749,17 @@ class VIEW_OT_walk_space_dimension(Operator):
         walls = []
         islands = []
         scene = context.scene
-        for obj in scene.collection.objects:
+        for obj in scene.objects:
             if obj.get("IS_BP_WALL"):
                 wall = sn_types.Wall(obj_bp=obj)
                 walls.append(wall)
             name = obj.name
             if "Island" in name:
                 islands.append(obj)
+        islands = sorted(islands, 
+                key=lambda i: i.location[0])
+        for idx, island in enumerate(islands):
+            island["ISLAND_INDEX"] = str(idx + 1)
         return walls, islands
 
     def get_walls_coordinates(self, walls):
@@ -5316,7 +5830,12 @@ class VIEW_OT_walk_space_dimension(Operator):
         }
         for i in range(4):
             label_location = label_locations[i+1]
-            self.label_island_side("I-" + str(i+1), label_location)
+            island_index = island.get("ISLAND_INDEX")
+            if island_index:
+                counter = f"{str(((int(island_index) * 4) + (i + 1)) - 4)}"
+                self.label_island_side("I-" + counter, label_location)
+            elif not island_index:
+                self.label_island_side("I-" + str(i+1), label_location)
 
     def write_space_dim(self, island, target_wall, side):
         side_vector = self.get_side_vector(island, side)

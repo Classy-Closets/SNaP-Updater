@@ -143,6 +143,21 @@ class PlaceClosetAsset():
     def position_asset(self, context):
         pass
 
+    def add_to_wall_collection(self, context):
+        collections = bpy.data.collections
+        scene_coll = context.scene.collection
+        wall_name = ""
+
+        if self.current_wall:
+            wall_name = self.current_wall.obj_bp.snap.name_object
+        elif self.asset and sn_utils.get_wall_bp(self.asset.obj_bp):
+            wall_name = sn_utils.get_wall_bp(self.asset.obj_bp).snap.name_object
+        if wall_name:
+            if wall_name in collections:
+                wall_coll = collections[wall_name]
+                sn_utils.add_assembly_to_collection(self.asset.obj_bp, wall_coll, recursive=True)
+                sn_utils.remove_assembly_from_collection(self.asset.obj_bp, scene_coll, recursive=True)
+
     def confirm_placement(self, context):
         pass
 
@@ -216,6 +231,8 @@ class PlaceClosetAsset():
         self.asset.obj_z.empty_display_size = .001
 
     def finish(self, context):
+        self.add_to_wall_collection(context)
+
         self.set_screen_defaults(context)
         if self.drawing_plane:
             sn_utils.delete_obj_list([self.drawing_plane])
@@ -312,7 +329,16 @@ class PlaceClosetInsert(PlaceClosetAsset):
                     if not op_inserts:
                         obj.snap.interior_open = True
                         obj.snap.exterior_open = True
-                if wall and sn_utils.get_wall_bp(obj) and wall.get_wall_mesh().hide_viewport:
+
+                wall_hidden = False
+                collections = bpy.data.collections
+                wall_bp = sn_utils.get_wall_bp(obj)
+                if wall_bp:
+                    wall_name = wall_bp.snap.name_object
+                    if wall_name in collections:
+                        wall_coll = collections[wall_name]
+                        wall_hidden = wall_coll.hide_viewport
+                if wall and sn_utils.get_wall_bp(obj) and wall_hidden:
                     continue
                 if insert_type in ('INTERIOR', 'SPLITTER'):
                     opening = sn_types.Assembly(obj) if obj.snap.interior_open else None

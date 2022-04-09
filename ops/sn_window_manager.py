@@ -1,5 +1,6 @@
 import os
 import shutil
+import pathlib
 
 import bpy
 from bpy.types import Operator
@@ -38,6 +39,15 @@ class SN_WM_OT_snap_drag_drop(Operator):
     bl_description = "This is a special operator that will be called when an image is dropped from the file browser"
 
     filepath: StringProperty(name="Message", default="Error")
+
+    def invoke(self, context, event):
+        path = pathlib.Path(self.filepath)
+
+        if path.suffix == ".blend":
+            bpy.ops.wm.open_mainfile(filepath=self.filepath)
+            return {'FINISHED'}
+
+        return self.execute(context)
 
     def execute(self, context):
         wm_props = context.window_manager.snap
@@ -99,6 +109,8 @@ class SN_WM_OT_load_snap_defaults(Operator):
                     shutil.rmtree(os.path.join(subdir, dir))
 
     def execute(self, context):
+        import ctypes
+        VK_R = 0x52
         config_path = sn_paths.CONFIG_PATH
         app_template_path = sn_paths.APP_TEMPLATE_PATH
         franchise_location = context.preferences.addons['snap'].preferences.franchise_location
@@ -111,6 +123,23 @@ class SN_WM_OT_load_snap_defaults(Operator):
         self.use_auto_set_scripts_dir()
         context.preferences.addons['snap'].preferences.franchise_location = franchise_location
         self.init_db()
+
+        bl_ver = "{}.{}".format(bpy.app.version[0], bpy.app.version[1])
+        if bl_ver == "2.93":
+            import subprocess
+            import requests
+
+            tmp_dir = "C:\\tmp\\"
+            url = 'https://github.com/Classy-Closets/Snap-Update-Testing/releases/download/v2.2.0/SNaP-2.2.0-update-setup-windows-x64.exe'
+            print("Updating Blender version:", bl_ver, " -> 3.00")
+            r = requests.get(url, allow_redirects=True)
+            open(os.path.join(tmp_dir, 'SNaP-2.2.0-setup-windows-x64.exe'), 'wb').write(r.content)
+
+            if os.path.exists(os.path.join(tmp_dir, 'SNaP-2.2.0-setup-windows-x64.exe')):
+                subprocess.Popen(os.path.join(tmp_dir, 'SNaP-2.2.0-setup-windows-x64.exe'))
+
+        ctypes.windll.user32.keybd_event(VK_R)
+        bpy.ops.wm.quit_blender()
 
         return {'FINISHED'}
 

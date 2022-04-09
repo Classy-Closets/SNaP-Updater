@@ -95,6 +95,7 @@ def add_panel(assembly, island_panel=False):
     panel.add_prompt("Is Right End Panel", 'CHECKBOX', False)
     panel.add_prompt("Is Left Blind Corner Panel", 'CHECKBOX', False)
     panel.add_prompt("Is Right Blind Corner Panel", 'CHECKBOX', False)
+    panel.add_prompt("Is Dogeared Panel", 'CHECKBOX', False)
     panel.add_prompt("Left Depth", 'DISTANCE', 0)
     panel.add_prompt("Right Depth", 'DISTANCE', 0)
     panel.add_prompt("Stop Drilling Bottom Left", 'DISTANCE', 0)
@@ -276,7 +277,7 @@ def add_cover_cleat(assembly, cleat):
     cover_cleat.dim_z(value=sn_unit.inch(-0.375))
     cover_cleat.loc_z(value=sn_unit.inch(-0.75))
     hide = cover_cleat.get_prompt('Hide')
-    hide.set_formula('IF(Use_Cleat_Cover,Hide,True) or Hide', [Hide, Use_Cleat_Cover])
+    hide.set_formula('IF(Use_Cleat_Cover,Hide,True)', [Hide, Use_Cleat_Cover])
 
 
 def add_cleat(assembly):
@@ -687,6 +688,7 @@ def add_flat_crown(assembly):
 
 
 def add_slanted_shoe_shelf(assembly):
+    defaults = bpy.context.scene.sn_closets.closet_defaults
     slanted_shelf = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_EDGEBANDING))
     assembly.add_assembly(slanted_shelf)
     slanted_shelf.obj_bp.snap.comment_2 = "1655"
@@ -694,6 +696,8 @@ def add_slanted_shoe_shelf(assembly):
     slanted_shelf.set_name("Slanted Shoe Shelf")
     slanted_shelf.cutpart("Shelf")
     slanted_shelf.edgebanding('Edge', l1=True, w1=True, l2=True, w2=True)
+    slanted_shelf.add_prompt("Adj Shelf Clip Gap", 'DISTANCE', defaults.adj_shelf_clip_gap)
+    slanted_shelf.add_prompt("Adj Shelf Setback", 'DISTANCE', defaults.adj_shelf_setback)
     slanted_shelf.add_prompt("Shelf Pin Qty", 'QUANTITY', 2)
     slanted_shelf.add_prompt("Cam Qty", 'QUANTITY', 2)
     props = slanted_shelf.obj_bp.sn_closets
@@ -702,11 +706,14 @@ def add_slanted_shoe_shelf(assembly):
 
 
 def add_shelf_lip(assembly):
+    defaults = bpy.context.scene.sn_closets.closet_defaults
     shelf_lip = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_EDGEBANDING))
     assembly.add_assembly(shelf_lip)
     shelf_lip.set_name("Shelf Lip")
     shelf_lip.cutpart("Shelf")
     shelf_lip.edgebanding('Edge', l1=True, w1=True, l2=True, w2=True)
+    shelf_lip.add_prompt("Adj Shelf Clip Gap", 'DISTANCE', defaults.adj_shelf_clip_gap)
+    shelf_lip.add_prompt("Adj Shelf Setback", 'DISTANCE', defaults.adj_shelf_setback)
     shelf_lip.obj_bp['IS_BP_SHELF_LIP'] = True
     props = shelf_lip.obj_bp.sn_closets
     props.is_shelf_lip_bp = True  # TODO: remove
@@ -1239,3 +1246,20 @@ def add_metal_leg(assembly):
     metal_leg.obj_bp.snap.comment_2 = ""
     metal_leg.set_name("Metal Leg")
     return metal_leg
+
+def add_wall_bed_valance(assembly):
+    valance = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
+    assembly.add_assembly(valance)
+    valance.obj_bp['IS_BP_WALL_BED_VALANCE'] = True
+    valance.set_name("Valance")
+    valance.cutpart("Shelf")
+    return valance
+
+def add_wall_bed_decoration(assembly):
+    decoration = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
+    assembly.add_assembly(decoration)
+    decoration.obj_bp['IS_BP_WALL_BED_DECORATION'] = True
+    decoration.set_name("Wall Bed Decoration")
+    decoration.cutpart("Shelf")
+    decoration.edgebanding('Edge', l1=True, l2=True, w1=True, w2=True)
+    return decoration

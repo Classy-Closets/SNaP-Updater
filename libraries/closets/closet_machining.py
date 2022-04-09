@@ -403,6 +403,18 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             sdtl = assembly.get_prompt('Stop Drilling Top Left').get_value()
             sdbr = assembly.get_prompt('Stop Drilling Bottom Right').get_value()
             sdtr = assembly.get_prompt('Stop Drilling Top Right').get_value()
+            no_drill = assembly.get_prompt('No Drilling')
+
+            if no_drill:
+                if no_drill.get_value():
+                    print("NO DRILLING found for:",assembly)
+                    return
+
+            carcass = sn_types.Assembly(sn_utils.get_closet_bp(assembly.obj_bp))
+            extend_left = carcass.get_prompt("Extend Left End Pard Down")
+            extend_right = carcass.get_prompt("Extend Right End Pard Down")
+            extend_left_amt = carcass.get_prompt("Height Left Side")
+            extend_right_amt = carcass.get_prompt("Height Right Side")
 
             single_sided = False if right_depth.get_value() and left_depth.get_value() else True
 
@@ -514,12 +526,20 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             token.face_bore_dia = macp.system_hole_dia
             token.distance_between_holes = macp.dim_between_holes
 
-            if corbeled_partition:
-                if single_sided and right_depth.get_value():
-                        token.dim_in_x -= corbel_height_ppt.get_value()
-                else:
-                    if left_depth.get_value():
-                        token.end_dim_in_x += corbel_height_ppt.get_value()                    
+            if single_sided:
+                if extend_left and assembly.obj_z.location.z < 0:
+                    token.dim_in_x -= extend_left_amt.get_value()
+                    token.end_dim_in_x -= extend_left_amt.get_value()
+
+                if extend_right and assembly.obj_z.location.z > 0:
+                    token.end_dim_in_x += extend_right_amt.get_value()
+
+                if corbeled_partition:
+                    if single_sided and right_depth.get_value():
+                            token.dim_in_x -= corbel_height_ppt.get_value()
+                    else:
+                        if left_depth.get_value():
+                            token.end_dim_in_x += corbel_height_ppt.get_value()                    
 
 
     def add_panel_drilling_for_middle_hanging_rods(self, hanging_rod):

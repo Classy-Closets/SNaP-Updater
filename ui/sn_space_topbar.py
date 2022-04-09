@@ -123,9 +123,9 @@ class TOPBAR_MT_editor_menus(Menu):
 
         # Allow calling this menu directly (this might not be a header area).
         if getattr(context.area, "show_menus", False):
-            layout.menu("TOPBAR_MT_app", text="", icon='EVENT_S')
+            layout.menu("TOPBAR_MT_blender", text="", icon='EVENT_S')
         else:
-            layout.menu("TOPBAR_MT_app", text="SNaP")
+            layout.menu("TOPBAR_MT_blender", text="SNaP")
 
         layout.menu("TOPBAR_MT_file")
         layout.menu("TOPBAR_MT_edit")

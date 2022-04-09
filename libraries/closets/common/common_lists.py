@@ -545,7 +545,7 @@ JEWELRY_INSERTS_18IN_LIST = [
 JEWELRY_INSERTS_21IN_LIST = [
     'Jewelry Insert Black',
     'Jewelry Insert Clear',
-    'Jewelry Insert Maroon'
+    'Jewelry Insert Maroon',
     'Jewelry Insert Sterling Grey',
     'Velvet Liner Black',
     'Velvet Liner Maroon',
@@ -555,7 +555,7 @@ JEWELRY_INSERTS_21IN_LIST = [
 JEWELRY_INSERTS_24IN_LIST = [
     'Jewelry Insert Black',
     'Jewelry Insert Clear',
-    'Jewelry Insert Maroon'
+    'Jewelry Insert Maroon',
     'Jewelry Insert Sterling Grey',
     'Velvet Liner Black',
     'Velvet Liner Maroon',

@@ -19,6 +19,15 @@ def get_project_dir():
     return project_dir
 
 
+def get_archive_dir():
+    archive_dir = bpy.context.preferences.addons[__name__.split(".")[0]].preferences.archive_dir
+
+    if not os.path.exists(archive_dir):
+        os.makedirs(archive_dir)
+
+    return archive_dir
+
+
 def load_project_info():
     print("Loading project info...")
 
@@ -136,10 +145,11 @@ def load_projects():
                 if room.file_path == bpy.data.filepath:
                     current_project.room_index = index
                     wm.current_file_room = room.name
-                    print("Found Room:", room.name, current_bfile_name)
 
         else:
             wm.project_index = 0
+
+        wm.projects_loaded = True
 
 class CCP():
 
