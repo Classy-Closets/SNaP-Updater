@@ -567,37 +567,38 @@ class SNAP_OT_Auto_Dimension(Operator):
             and 'shoe' not in o.name.lower()]
 
         for stack in stacks:
-            assy = data_closet_splitters.Shelf_Stack(stack)
-            default_depth = assy.obj_y.location.y
-            assy_width = assy.obj_x.location.x
-            indv_shelf_setbacks = assy.get_prompt("Individual Shelf Setbacks")
-            adj_shelf_setback = assy.get_prompt("Adj Shelf Setback")
+            if stack.get("IS_BP_ASSEMBLY"):
+                assy = data_closet_splitters.Shelf_Stack(stack)
+                default_depth = assy.obj_y.location.y
+                assy_width = assy.obj_x.location.x
+                indv_shelf_setbacks = assy.get_prompt("Individual Shelf Setbacks")
+                adj_shelf_setback = assy.get_prompt("Adj Shelf Setback")
 
-            for i, shelf in enumerate(assy.splitters):
-                setback = assy.get_prompt(f'Shelf {i+1} Setback').get_value()
-                is_locked_shelf = shelf.get_prompt("Is Locked Shelf").get_value()
-                if indv_shelf_setbacks and adj_shelf_setback:
-                    if not indv_shelf_setbacks.get_value():
-                        setback = adj_shelf_setback.get_value()
+                for i, shelf in enumerate(assy.splitters):
+                    setback = assy.get_prompt(f'Shelf {i+1} Setback').get_value()
+                    is_locked_shelf = shelf.get_prompt("Is Locked Shelf").get_value()
+                    if indv_shelf_setbacks and adj_shelf_setback:
+                        if not indv_shelf_setbacks.get_value():
+                            setback = adj_shelf_setback.get_value()
 
-                # Only add set back label if shelf is not locked and setback is greater then 0.25"
-                if not is_locked_shelf and sn_unit.meter_to_inch(setback) > 0.25:
-                    pos_z = shelf.obj_bp.location.z
-                    setback_lbl = self.to_inch_lbl(default_depth - setback)
-                    hashmark = sn_types.Line(sn_unit.inch(6), (-45, 0, 90))
-                    hashmark.parent(stack)
-                    hashmark.anchor.location = (
-                        assy_width / 2,
-                        default_depth,
-                        pos_z)
-                    hashmark.anchor.rotation_euler = (
-                        math.radians(-45),
-                        0,
-                        math.radians(-90))
-                    setback_dim = sn_types.Dimension()
-                    setback_dim.parent(hashmark.end_point)
-                    setback_dim.start_z(value=sn_unit.inch(2))
-                    setback_dim.set_label(setback_lbl)
+                    # Only add set back label if shelf is not locked and setback is greater then 0.25"
+                    if not is_locked_shelf and sn_unit.meter_to_inch(setback) > 0.25:
+                        pos_z = shelf.obj_bp.location.z
+                        setback_lbl = self.to_inch_lbl(default_depth - setback)
+                        hashmark = sn_types.Line(sn_unit.inch(6), (-45, 0, 90))
+                        hashmark.parent(stack)
+                        hashmark.anchor.location = (
+                            assy_width / 2,
+                            default_depth,
+                            pos_z)
+                        hashmark.anchor.rotation_euler = (
+                            math.radians(-45),
+                            0,
+                            math.radians(-90))
+                        setback_dim = sn_types.Dimension()
+                        setback_dim.parent(hashmark.end_point)
+                        setback_dim.start_z(value=sn_unit.inch(2))
+                        setback_dim.set_label(setback_lbl)
 
     def place_setbacks(self, hang_data):
         related_shelf = hang_data['related_shelf']
@@ -2732,10 +2733,12 @@ class SNAP_OT_Auto_Dimension(Operator):
         door_parent_pointers = []
         for door_obj in door_parent.children:
             if door_obj.sn_closets.is_door_bp:
-                door_mesh = [d for d in door_obj.children if d.type == 'MESH'][0]
-                pointers = [s.pointer_name for s in door_mesh.snap.material_slots]
-                pointers = [p for p in pointers if p != '']
-                door_parent_pointers += pointers
+                door_meshes = [d for d in door_obj.children if d.type == 'MESH']
+                if len(door_meshes) > 0:
+                    door_mesh = door_meshes[0]
+                    pointers = [s.pointer_name for s in door_mesh.snap.material_slots]
+                    pointers = [p for p in pointers if p != '']
+                    door_parent_pointers += pointers
         pointers_qty = len(list(set(door_parent_pointers)))
         if pointers_qty > 0:
             return True

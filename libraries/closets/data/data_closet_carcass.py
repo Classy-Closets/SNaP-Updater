@@ -1772,9 +1772,15 @@ class OPERATOR_Closet_Standard_Draw_Plan(Operator):
             if assembly.obj_bp.snap.type_group == 'OPENING':
                 opening_num = assembly.obj_bp.sn_closets.opening_name
                 opening_width = self.product.get_prompt("Opening " + opening_num + " Width")
+                if opening_width:
+                    width = opening_width.get_value()
+                else:
+                    width = assembly.obj_x.location.x
                 opening_depth = self.product.get_prompt("Opening " + opening_num + " Depth")
-                width = opening_width.get_value() 
-                depth = opening_depth.get_value() 
+                if opening_depth:
+                    depth = opening_depth.get_value()
+                else:
+                    depth = assembly.obj_y.location.y
             else:
                 width = assembly.obj_x.location.x
                 depth = assembly.obj_y.location.y                

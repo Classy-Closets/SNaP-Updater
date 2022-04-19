@@ -490,13 +490,14 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def door_has_style(self, obj):
         door_mesh = self.get_obj_mesh(obj)
-        for slot in door_mesh.snap.material_slots:
-            if "Wood_Door_Surface" == slot.pointer_name:
-                return True
-            elif "Door_Surface" == slot.pointer_name:
-                return False
-            elif "Moderno_Door" == slot.pointer_name:
-                return True
+        if door_mesh:
+            for slot in door_mesh.snap.material_slots:
+                if "Wood_Door_Surface" == slot.pointer_name:
+                    return True
+                elif "Door_Surface" == slot.pointer_name:
+                    return False
+                elif "Moderno_Door" == slot.pointer_name:
+                    return True
 
     def create_replaced_mesh(self, obj, styled=False):
         thick = 2.25
@@ -543,7 +544,7 @@ class VIEW_OT_generate_2d_views(Operator):
             skippable = (is_door or is_hamper_door or is_drawer_door) and shown
             if len(child.children) > 0:
                 if child.get('IS_OBSTACLE'):
-                    for cc in child.children:
+                    for cc in child.children: 
                         if cc.get('IS_CAGE'):
                             cc.hide_render = False
                             grp.objects.link(cc)
@@ -553,6 +554,32 @@ class VIEW_OT_generate_2d_views(Operator):
                     continue
                 else:
                     self.group_children(grp, child)
+            else:
+                if not child.snap.is_wall_mesh:
+                    if not child.get('IS_CAGE') and obj not in self.ignore_obj_list:
+                        if not grp.objects.get(child.name):
+                            grp.objects.link(child)
+        return grp
+
+    def group_children_island(self, grp, obj):
+        not_cage = not bool(obj.get('IS_CAGE'))
+        ignore = self.ignore_obj_list
+        group_list = [item for item in grp.objects]
+        not_empty_group = len(group_list) > 0
+        if not_cage and obj not in ignore and not_empty_group and obj not in group_list:
+            grp.objects.link(obj)
+        for child in obj.children:
+            shown = any(
+                [True for c in child.children \
+                    if c.type == 'MESH' and not c.hide_viewport])
+            if len(child.children) > 0:
+                if child.get('IS_OBSTACLE'):
+                    for cc in child.children:
+                        if cc.get('IS_CAGE'):
+                            cc.hide_render = False
+                            grp.objects.link(cc)
+                else:
+                    self.group_children_island(grp, child)
             else:
                 if not child.snap.is_wall_mesh:
                     if not child.get('IS_CAGE') and obj not in self.ignore_obj_list:
@@ -662,6 +689,7 @@ class VIEW_OT_generate_2d_views(Operator):
         accessories = 0
         wall_cleat = 0
         wall_beds = 0
+        wall_islands = 0
         for item in wall.children:
             if 'section' in item.name.lower():
                 sections += 1
@@ -677,13 +705,16 @@ class VIEW_OT_generate_2d_views(Operator):
                 accessories += 1
             elif item.get("IS_BP_WALL_BED"):
                 wall_beds += 1
+            elif item.get("IS_BP_ISLAND"):
+                wall_islands += 1
         no_sections = sections == 0
         no_csh = corner_shelves == 0
         no_lsh = l_shelves == 0
-        no_accessories = accessories == 0
+        no_acc = accessories == 0
         no_wall_cleat = wall_cleat == 0
         no_beds = wall_beds == 0
-        if no_sections and no_csh and no_lsh and no_accessories and no_beds:
+        no_isl = wall_islands == 0
+        if no_sections and no_csh and no_lsh and no_acc and no_beds and no_isl:
             return True
         return False
 
@@ -1390,6 +1421,9 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def is_closet_floor_mounted(self, closet):
         closet_assembly = sn_types.Assembly(obj_bp=closet)
+        if closet_assembly.obj_bp.get("IS_BP_ISLAND"):
+            return True
+
         is_clt_floor_mounted = True
         opening_qty =\
             closet_assembly.get_prompt("Opening Quantity").get_value()
@@ -1814,6 +1848,7 @@ class VIEW_OT_generate_2d_views(Operator):
             scene.collection.objects.link(topshelf)
 
     def create_plan_view_scene(self, context):
+        WIDE_ROOM_THRES = 200 # 200 inches
         room_type = context.scene.sn_roombuilder.room_type
         bpy.ops.scene.new('INVOKE_DEFAULT', type='EMPTY')
         pv_scene = context.scene
@@ -1933,7 +1968,10 @@ class VIEW_OT_generate_2d_views(Operator):
         self.plan_view_hashmarks(context, walls_info)
         floor = [o for o in bpy.data.objects if o.sn_roombuilder.is_floor][0]
         x_axis_len = floor.dimensions[0]
+        y_axis_len = floor.dimensions[1]
         floor_length = unit.meter_to_inch(x_axis_len)
+        floor_height = unit.meter_to_inch(y_axis_len)
+        wide_room = floor_length > WIDE_ROOM_THRES or floor_height > WIDE_ROOM_THRES
         camera = self.create_camera(pv_scene)
         bpy.ops.object.select_all(action="SELECT")
         bpy.ops.view3d.camera_to_view_selected()
@@ -1941,8 +1979,15 @@ class VIEW_OT_generate_2d_views(Operator):
         camera.data.ortho_scale += self.pv_pad
         if room_type == 'USHAPE':
             camera.data.ortho_scale += 1
-        elif room_type == 'CUSTOM' and floor_length > 230:
-            ratio = self.planview_orthoscale_ratio(x_axis_len)
+        elif room_type == 'CUSTOM' and wide_room:
+            width_ratio = 1
+            wider_measure = max([x_axis_len, y_axis_len])
+            if wider_measure == y_axis_len:
+                x_resolution = pv_scene.render.resolution_x
+                y_resolution = pv_scene.render.resolution_y
+                width_ratio = x_resolution / y_resolution
+            scene_width = width_ratio * wider_measure
+            ratio = self.planview_orthoscale_ratio(scene_width)
             camera.data.ortho_scale = ratio
 
 
@@ -4549,7 +4594,10 @@ class VIEW_OT_generate_2d_views(Operator):
         grp = bpy.data.collections.new(scene_name)
         new_scene =\
             self.create_island_new_scene(context, grp, scene_name, island)
-        self.group_children(grp, island)
+        # NOTE As the Islands are rotated instances of the original islands
+        #      the code that replaces door/drawer/hamper meshes won't work
+        #      properly.
+        self.group_children_island(grp, island)
         view = 'A'
         for i in range(4):
             instance_name = scene_name + "Instance " + view
@@ -4988,21 +5036,21 @@ class VIEW_OT_render_2d_views(Operator):
                     area.tag_redraw()
                 screen.update_tag()
 
-        
         bpy.context.window.scene = current_scene
         
         win = bpy.context.window
         scr = win.screen
         areas3d = [area for area in scr.areas if area.type == 'VIEW_3D']
-        region = [region for region in areas3d[0].regions if region.type == 'WINDOW']
+        if areas3d:
+            region = [region for region in areas3d[0].regions if region.type == 'WINDOW']
 
-        override = {'window':win,
-                    'screen':scr,
-                    'area'  :areas3d[0],
-                    'region':region[0],
-                    'scene' :current_scene,
-                    }
-        bpy.ops.view3d.dolly(override, mx=1, my=1, delta=0, use_cursor_init=False)
+            override = {'window':win,
+                        'screen':scr,
+                        'area'  :areas3d[0],
+                        'region':region[0],
+                        'scene' :current_scene,
+                        }
+            bpy.ops.view3d.dolly(override, mx=1, my=1, delta=0, use_cursor_init=False)
         return {'FINISHED'}
 
 class VIEW_OT_accordion_interface(Operator):
@@ -5755,7 +5803,9 @@ class VIEW_OT_walk_space_dimension(Operator):
                 walls.append(wall)
             name = obj.name
             if "Island" in name:
-                islands.append(obj)
+                wall_bp = sn_utils.get_wall_bp(obj)
+                if not wall_bp:
+                    islands.append(obj)
         islands = sorted(islands, 
                 key=lambda i: i.location[0])
         for idx, island in enumerate(islands):
