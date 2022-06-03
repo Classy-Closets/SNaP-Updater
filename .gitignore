@@ -112,3 +112,4 @@ snap_db_updater/
 # Allow .pyd in python_lib
 !python_lib/**/*.pyd
 python_lib/pandas/**/*.pyd
+*.blend1
