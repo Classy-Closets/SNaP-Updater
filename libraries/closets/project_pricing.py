@@ -370,9 +370,9 @@ def generate_retail_pricing_summary(parts_file):
     pricing_sheet["A" + str(row_start + 13)].font = openpyxl.styles.Font(bold=True)
     pricing_sheet["C" + str(row_start + 13)] = "=" + "C" + str(row_start + 9) + "+C" + str(row_start + 10) + "+C" + str(row_start + 11) + "+C" + str(row_start + 12) + "+C" + str(row_start + 3)
     pricing_sheet["C" + str(row_start + 13)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-    pricing_sheet["A" + str(row_start + 14)] = "Delivery Charge (10%)"
+    pricing_sheet["A" + str(row_start + 14)] = "Delivery Charge (12.5%)"
     pricing_sheet["A" + str(row_start + 14)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 14)] = "=(" + str((sum(map(float, R_PROJECT_TOTAL_MATERIAL)) + sum(map(float, R_PROJECT_TOTAL_HARDWARE)) + sum(map(float, R_PROJECT_TOTAL_ACCESSORIES)) + sum(map(float, R_PROJECT_TOTAL_WOOD_PANEL)))) + ")*.10"
+    pricing_sheet["C" + str(row_start + 14)] = "=(" + str((sum(map(float, R_PROJECT_TOTAL_MATERIAL)) + sum(map(float, R_PROJECT_TOTAL_HARDWARE)) + sum(map(float, R_PROJECT_TOTAL_ACCESSORIES)) + sum(map(float, R_PROJECT_TOTAL_WOOD_PANEL)))) + ")*.125"
     pricing_sheet["C" + str(row_start + 14)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
     pricing_sheet["A" + str(row_start + 15)] = "Adjusted Project Subtotal"
     pricing_sheet["A" + str(row_start + 15)].font = openpyxl.styles.Font(bold=True)
@@ -552,11 +552,11 @@ def generate_franchise_pricing_summary(parts_file):
     pricing_sheet["C" + str(row_start + 13)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
     pricing_sheet["D" + str(row_start + 13)] = sum(map(float, R_PROJECT_TOTAL_PRICE)) + "+D" + str(row_start + 3)
     pricing_sheet["D" + str(row_start + 13)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-    pricing_sheet["A" + str(row_start + 14)] = "Delivery Charge (10%)"
+    pricing_sheet["A" + str(row_start + 14)] = "Delivery Charge (12.5%)"
     pricing_sheet["A" + str(row_start + 14)].font = openpyxl.styles.Font(bold=True)
     pricing_sheet["C" + str(row_start + 14)] = 0
     pricing_sheet["C" + str(row_start + 14)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-    pricing_sheet["D" + str(row_start + 14)] = "=(" + str((sum(map(float, R_PROJECT_TOTAL_MATERIAL)) + sum(map(float, R_PROJECT_TOTAL_HARDWARE)) + sum(map(float, R_PROJECT_TOTAL_ACCESSORIES)) + sum(map(float, R_PROJECT_TOTAL_WOOD_PANEL)))) + ")*.10"
+    pricing_sheet["D" + str(row_start + 14)] = "=(" + str((sum(map(float, R_PROJECT_TOTAL_MATERIAL)) + sum(map(float, R_PROJECT_TOTAL_HARDWARE)) + sum(map(float, R_PROJECT_TOTAL_ACCESSORIES)) + sum(map(float, R_PROJECT_TOTAL_WOOD_PANEL)))) + ")*.125"
     pricing_sheet["D" + str(row_start + 14)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
     pricing_sheet["A" + str(row_start + 15)] = "Adjusted Project Subtotal"
     pricing_sheet["A" + str(row_start + 15)].font = openpyxl.styles.Font(bold=True)
