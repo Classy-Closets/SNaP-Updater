@@ -1103,8 +1103,11 @@ class SNAP_OT_update_door_selection(Operator):
             door_bp = self.get_door_assembly(obj)
             if door_bp and door_bp not in door_bps:
                 door_bps.append(door_bp)
-                door_match_bp = self.get_door_match(context, door_bp)
-                door_bps.append(door_match_bp)
+                insert_bp = sn_utils.get_bp(door_bp, 'INSERT')
+
+                if insert_bp and insert_bp.get('IS_BP_DOOR_INSERT'):
+                    door_match_bp = self.get_door_match(context, door_bp)
+                    door_bps.append(door_match_bp)
 
         for obj_bp in door_bps:
             door_assembly = sn_types.Assembly(obj_bp)
