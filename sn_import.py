@@ -210,7 +210,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                     ProductType IN ('PM','VN') AND\
                     TypeCode IN ('{type_code}') AND\
                     Thickness = 0.75 AND\
-                    DisplayName != 'Graphite Spectrum'\
+                    DisplayName NOt IN ('Graphite Spectrum', 'Dura White Fog Grey')\
                 ORDER BY\
                     DisplayName ASC\
                         ;\
@@ -271,6 +271,11 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             color.name = "None"
             color.color_code = 0
             color.description = "None"
+
+        # Insert "Dura White Fog Grey" after "Duraply Almond" to maintain index of older "Fog Grey" display name
+        idx_1 = rows.index(rows[0])
+        idx_2 = rows.index(rows[1])
+        rows[idx_1], rows[idx_2] = rows[idx_2], rows[idx_1]
 
         for row in rows:
             type_code = int(row[0])
