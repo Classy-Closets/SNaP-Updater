@@ -18,6 +18,7 @@ from snap import sn_types
 from snap import sn_paths
 from snap import sn_unit
 from snap import bl_info
+from snap import sn_utils
 
 
 def get_version_str():
@@ -93,9 +94,7 @@ def get_material(category, material_name):
                     break
 
         if len(data_to.materials) == 0:
-            bpy.ops.snap.message_box(
-                'INVOKE_DEFAULT',
-                message="'{}' not found in library file: '{}'".format(material_name, material_name + ".blend"))
+            print("'{}' not found in library file: '{}'".format(material_name, material_name + ".blend"))
             return
 
         for mat in data_to.materials:
@@ -103,9 +102,9 @@ def get_material(category, material_name):
 
     except OSError as os_err:
         print(os_err)
-        bpy.ops.snap.message_box(
-            'INVOKE_DEFAULT',
-            message="Material file not found for: {}".format(material_name))
+        # bpy.ops.snap.message_box(
+        #     'INVOKE_DEFAULT',
+        #     message="Material file not found for: {}".format(material_name))
 
 
 def get_part_thickness(obj):
@@ -143,7 +142,7 @@ def get_part_thickness(obj):
             closet_materials = bpy.context.scene.closet_materials
             mat_sku = closet_materials.get_mat_sku(obj.parent, cover_cleat)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
-            mat_names = ["Oxford White (Frost)", "Cabinet Almond (Cafe Au Lait)", "Duraply Almond", "Duraply White"]
+            mat_names = ["Winter White (Oxford White)", "Cafe Au Lait (Cabinet Almond)", "Duraply Almond", "Duraply White"]
 
             if mat_inventory_name in mat_names:
                 return math.fabs(sn_unit.inch(0.38))
@@ -164,6 +163,13 @@ def get_part_thickness(obj):
             assembly = sn_types.Assembly(obj_bp=obj)
             part_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.name
             if 'Shelf Lip' in part_name:
+                return math.fabs(sn_unit.inch(0.75))
+
+
+        # Set thickness for Shoe Shelf Lip    
+        if obj.get('IS_BP_ASSEMBLY'):
+            assembly = sn_types.Assembly(obj_bp=obj)
+            if assembly.obj_bp.get("IS_SHOE_SHELF_LIP"):
                 return math.fabs(sn_unit.inch(0.75))
 
 
@@ -245,9 +251,18 @@ def get_carcass_bp(obj):
         return None
     if "IS_CARCASS_BP" in obj:
         return obj
+    elif "IS_BP_CARCASS" in obj:
+        return obj
     elif obj.parent:
         return get_carcass_bp(obj.parent)
 
+def get_countertop_bp(obj):
+    if not obj:
+        return None
+    if "IS_BP_CABINET_COUNTERTOP" in obj:
+        return obj
+    elif obj.parent:
+        return get_countertop_bp(obj.parent)
 
 def get_appliance_bp(obj):
     if not obj:
@@ -369,25 +384,104 @@ def assign_materials_from_pointers(obj):
     spec_group = library.spec_groups[obj.snap.spec_group_index]
 
     # ASSIGN POINTERS TO MESH BASED ON MESH TYPE
-    if obj.snap.type_mesh == 'CUTPART':
+    if obj.snap.type_mesh == 'BUYOUT':
+        part_bp = sn_utils.get_assembly_bp(obj)
+        bp_props = part_bp.sn_closets
+        unique_ct_color = False
+
+        if 'IS_BP_COUNTERTOP' in part_bp:
+            if part_bp.sn_closets.use_unique_material:
+                unique_ct_color = True
+                category_name = "Countertop Materials"
+
+                island_bp = sn_utils.get_island_bp(obj)
+                island_assy = sn_types.Assembly(island_bp)
+                countertop_type = island_assy.get_prompt("Countertop Type")
+
+                if countertop_type:
+                    ct_types = {
+                        '0': 'Melamine',
+                        '1': 'Custom',
+                        '2': 'Granite',
+                        '3': 'HPL',
+                        "4": "Quartz",
+                        "5": "Wood"}
+
+                    ct_type = ct_types[str(countertop_type.get_value())]
+
+                    if ct_type == "Custom":
+                        pointer_name = "Countertop_HPL_Surface"
+                        unique_mat_name = bp_props.custom_countertop_color
+
+                    elif 'COUNTERTOP_HPL' in part_bp:
+                        pointer_name = "Countertop_HPL_Surface"
+                        unique_mat_name = bp_props.unique_countertop_hpl
+
+                if 'COUNTERTOP_GRANITE' in part_bp:
+                    pointer_name = "Countertop_Granite_Surface"
+                    unique_mat_name = bp_props.unique_countertop_granite
+
+                if 'COUNTERTOP_QUARTZ' in part_bp:
+                    pointer_name = "Countertop_Quartz_Surface"
+                    unique_mat_name = bp_props.unique_countertop_quartz
+
+                if 'COUNTERTOP_WOOD' in part_bp:
+                    category_name = "Closet Materials"
+                    if bp_props.wood_countertop_types == 'Butcher Block':
+                        pointer_name = "Countertop_Butcher_Block_Surface"
+                        unique_mat_name = "Craft Oak"
+                    else:
+                        pointer_name = "Countertop_Wood_Stained_Surface"
+                        unique_mat_name = bp_props.unique_countertop_wood
+
+                for slot in obj.snap.material_slots:
+                    slot.pointer_name = pointer_name
+                    slot.category_name = category_name
+                    slot.item_name = unique_mat_name
+
+        if spec_group and not unique_ct_color:
+            for index, slot in enumerate(obj.snap.material_slots):
+                if slot.pointer_name in spec_group.materials:
+                    material_pointer = spec_group.materials[slot.pointer_name]
+                    slot.category_name = material_pointer.category_name
+                    slot.item_name = material_pointer.item_name
+
+    elif obj.snap.type_mesh == 'CUTPART':
+        part_bp = sn_utils.get_assembly_bp(obj)
+        bp_props = part_bp.sn_closets
+        unique_mel_ct = False
+
+        if 'IS_BP_COUNTERTOP' in part_bp and part_bp.sn_closets.use_unique_material:
+            unique_mel_ct = True
+
+            # W
+            unique_mat_name = bp_props.unique_mat
+
+            # if bp_props.unique_mat_types == 'MELAMINE':
+            #     unique_mat_name = bp_props.unique_mat_mel
+            # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
+            #     unique_mat_name = bp_props.unique_mat_tex_mel
+
+            for slot in obj.snap.material_slots:
+                slot.category_name = "Closet Materials"
+                slot.item_name = unique_mat_name
 
         if obj.snap.cutpart_name == 'Back':
-            back_bp = obj.parent
-            bp_props = back_bp.sn_closets
-
             if bp_props.use_unique_material:
-                if bp_props.unique_mat_types == 'MELAMINE':
-                    unique_mat_name = bp_props.unique_mat_mel
-                if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
-                    unique_mat_name = bp_props.unique_mat_tex_mel
-                if bp_props.unique_mat_types == 'VENEER':
-                    unique_mat_name = bp_props.unique_mat_veneer
+                # if bp_props.unique_mat_types == 'MELAMINE':
+                #     unique_mat_name = bp_props.unique_mat_mel
+                # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
+                #     unique_mat_name = bp_props.unique_mat_tex_mel
+                # if bp_props.unique_mat_types == 'VENEER':
+                #     unique_mat_name = bp_props.unique_mat_veneer
+
+                unique_mat_name = bp_props.unique_mat
 
                 for slot in obj.snap.material_slots:
                     slot.category_name = "Closet Materials"
                     slot.item_name = unique_mat_name
 
-        if spec_group:
+        if spec_group and not unique_mel_ct:
             if obj.snap.cutpart_name in spec_group.cutparts:
                 cutpart = spec_group.cutparts[obj.snap.cutpart_name]
                 for index, slot in enumerate(obj.snap.material_slots):
@@ -450,7 +544,7 @@ def assign_materials_from_pointers(obj):
                             mode_input = node_group.inputs.get("Mode (Object=1; UV=0)")
                             mode_input.default_value = 0
                         material.name += "_uv"
-                        # pass
+                        bpy.ops.closet_materials.assign_materials()
                 obj.material_slots[index].material = material
 
     obj.display_type = 'TEXTURED'
@@ -1467,7 +1561,16 @@ def get_parent_assembly_bp(obj):
             if 'IS_BP_ASSEMBLY' in obj:
                 return obj
 
+def get_assembly_bp_list(obj_bp, insert_list):
+    for child in obj_bp.children:
+        if child.get('IS_BP_ASSEMBLY'):
+            insert_list.append(child)
+            get_assembly_bp_list(child, insert_list)
 
+    if len(insert_list) > 0:
+        insert_list.sort(key=lambda obj: obj.location.z, reverse=True)
+    return insert_list
+    
 def run_calculators(obj_bp):
     """ Runs all calculators for an assembly and all it's children assemblies
     """

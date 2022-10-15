@@ -379,15 +379,16 @@ class Query_PDF_Form_Data:
         if not door:
             return
         door_mesh = self.__get_obj_mesh(door)
-        for slot in door_mesh.snap.material_slots:
-            if "Wood_Door_Surface" == slot.pointer_name:
-                return "wood"
-            elif "Five_Piece_Melamine_Door_Surface" == slot.pointer_name:
-                return "slab"
-            elif "Door_Surface" == slot.pointer_name:
-                return "slab"
-            elif "Moderno_Door" == slot.pointer_name:
-                return "slab"
+        if door_mesh:
+            for slot in door_mesh.snap.material_slots:
+                if "Wood_Door_Surface" == slot.pointer_name:
+                    return "wood"
+                elif "Five_Piece_Melamine_Door_Surface" == slot.pointer_name:
+                    return "slab"
+                elif "Door_Surface" == slot.pointer_name:
+                    return "slab"
+                elif "Moderno_Door" == slot.pointer_name:
+                    return "slab"
 
     def __get_ext_wall_color(self, context, wall):
         ext_colors = []
@@ -454,7 +455,7 @@ class Query_PDF_Form_Data:
         type_index = scene_props.mat_type_index
         material_type = mat_types[type_index]
         colors = material_type.colors
-        color_index = scene_props.mat_color_index
+        color_index = scene_props.get_mat_color_index(material_type.name)
         color = colors[color_index]
         if material_type.name.lower() == "veneer":
             data_dict["veneer"] = color.name
@@ -465,7 +466,7 @@ class Query_PDF_Form_Data:
             data_dict["int_almond"] = True
         if material_type.name == 'Garage Material':
             data_dict["int_white"] = True
-            data_dict["int_color"] = "Oxford White (Frost)"
+            data_dict["int_color"] = "Winter White (Oxford White)"
             self.ext_colors = color.name
         return data_dict
 
@@ -611,6 +612,12 @@ class Query_PDF_Form_Data:
             for k, v in results.items():
                 hmp_bags_results[k] = v
         rod_result = self.etl_object.part_walls_query("hanging rod", walls)
+        # Alt name/round hang rods TODO: Refactor for a better way to handle hang rods
+        closet_props = bpy.context.scene.sn_closets
+        rod_type = closet_props.closet_options.rods_name
+        rod_type_name = re.split(r'(^[^\d]+)', rod_type)[1:][-1]
+        alt_rod_result = self.etl_object.part_walls_query("hang rod", walls)
+        rrod_result = self.etl_object.part_walls_query("round 8", walls)
         vrod_result = self.etl_object.part_walls_query("valet rod", walls)
         tie_result = self.etl_object.part_walls_query("tie", walls)
         hooks_qty = self.__get_hooks_counting(walls)
@@ -681,7 +688,21 @@ class Query_PDF_Form_Data:
                 self.data_dict[page]["rod_qty"] += ' / '
                 self.data_dict[page]["rod_style"] += ' / '
             self.data_dict[page]["rod_qty"] += qty
-            self.data_dict[page]["rod_style"] += key
+            self.data_dict[page]["rod_style"] = rod_type_name
+        for key, value in alt_rod_result.items():
+            qty = str(value.get("qty", 0))
+            if self.data_dict[page]["rod_qty"] != '':
+                self.data_dict[page]["rod_qty"] += ' / '
+                self.data_dict[page]["rod_style"] += ' / '
+            self.data_dict[page]["rod_qty"] += qty
+            self.data_dict[page]["rod_style"] = rod_type_name
+        for key, value in rrod_result.items():
+            qty = str(value.get("qty", 0))
+            if self.data_dict[page]["rod_qty"] != '':
+                self.data_dict[page]["rod_qty"] += ' / '
+                self.data_dict[page]["rod_style"] += ' / '
+            self.data_dict[page]["rod_qty"] += qty
+            self.data_dict[page]["rod_style"] = rod_type_name
         for key, value in vrod_result.items():
             qty = str(value.get("qty", 0))
             if self.data_dict[page]["valet_qty"] != '':
@@ -1139,8 +1160,10 @@ class Query_PDF_Form_Data:
             self.data_dict[page]["hinge"] += key
 
     def __write_countertop_info(self, page, walls):
+        ct_mat_props = bpy.context.scene.closet_materials.countertops
         mel = self.etl_object.part_walls_query("melamine countertop", walls)
         gnt = self.etl_object.part_walls_query("granite countertop", walls)
+        wood = self.etl_object.part_walls_query("wood countertop", walls)
         self.data_dict[page]["ct_type"] = ''
         self.data_dict[page]["ct_color"] = ''
         self.data_dict[page]["ct_chip"] = ''
@@ -1159,6 +1182,15 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["ct_color"] += ' / '
                 self.data_dict[page]["ct_type"] += 'Granite'
                 self.data_dict[page]["ct_color"] += key
+        if len(wood) > 0:
+            for key, _ in wood.items():
+                if self.data_dict[page]["ct_type"] != '':
+                    self.data_dict[page]["ct_type"] += ' / '
+                    self.data_dict[page]["ct_color"] += ' / '
+                mfg = ct_mat_props.get_type().get_mfg()
+                color = mfg.get_color()
+                self.data_dict[page]["ct_type"] += mfg.name
+                self.data_dict[page]["ct_color"] += color.name
 
     def __write_install_info(self, page, walls):
         self.data_dict[page]["tear_out"] = False

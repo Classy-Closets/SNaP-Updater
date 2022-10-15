@@ -566,7 +566,9 @@ class VIEW_OT_generate_2d_views(Operator):
             is_door = child.sn_closets.is_door_bp
             is_hamper_door = child.sn_closets.is_hamper_front_bp
             is_drawer_door = child.sn_closets.is_drawer_front_bp
-            skippable = (is_door or is_hamper_door or is_drawer_door) and shown
+            is_kb_door = "IS_BP_DOOR_INSERT" in obj
+            is_kb_drawer = "IS_DRAWERS_BP" in obj
+            skippable = (is_door or is_hamper_door or is_drawer_door or is_kb_door or is_kb_drawer) and shown
             wallbed_bp = sn_utils.get_wallbed_bp(child)
             if len(child.children) > 0:
                 if child.get('IS_OBSTACLE') and child.get('SHOW_ON_ELEVATIONS', True):
@@ -850,14 +852,16 @@ class VIEW_OT_generate_2d_views(Operator):
         return (actual_start, opng_end)
 
     def get_opening_width(self, opening):
+        width = 0
         opening_number = opening.sn_closets.opening_name
         bp = sn_utils.get_closet_bp(opening)
-        closet = data_closet_carcass.Closet_Carcass(bp)
-        calculator = closet.get_calculator('Opening Widths Calculator')
-        width_calc = eval(
-            "calculator.get_calculator_prompt('Opening {} Width')".format(
-                str(opening_number)))
-        width = width_calc.get_value()
+        if not "IS_BP_CABINET" in bp:
+            closet = data_closet_carcass.Closet_Carcass(bp)
+            calculator = closet.get_calculator('Opening Widths Calculator')
+            width_calc = eval(
+                "calculator.get_calculator_prompt('Opening {} Width')".format(
+                    str(opening_number)))
+            width = width_calc.get_value()
         return width
 
     def has_occluding_opening(self, opening, opng_data):
@@ -1067,10 +1071,13 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def get_drawer_count(self, assembly):
         drawers_assembly = sn_types.Assembly(assembly)
-        drawers_qty = drawers_assembly.get_prompt("Drawer Quantity").get_value()
+        drawers_qty = 0
+        drawers_ppt = drawers_assembly.get_prompt("Drawer Quantity")
+        if drawers_ppt:
+            drawers_qty = drawers_assembly.get_prompt("Drawer Quantity").get_value()
         # It's needed to count minus one drawer to get the correct
         # drawers count over it's prompt.
-        drawers_qty -= 1
+            drawers_qty -= 1
         return str(drawers_qty)
 
     def check_sibling_shelf_stack_bottom_shelf(self, assembly, assemblies):
@@ -1515,13 +1522,14 @@ class VIEW_OT_generate_2d_views(Operator):
             return True
 
         is_clt_floor_mounted = True
-        opening_qty =\
-            closet_assembly.get_prompt("Opening Quantity").get_value()
-        for i in range(1, opening_qty + 1):
-            is_floor_mounted =\
-                closet_assembly.get_prompt(
-                    "Opening " + str(i) + " Floor Mounted").get_value()
-            is_clt_floor_mounted = is_clt_floor_mounted and is_floor_mounted
+        if not closet_assembly.obj_bp.get("IS_BP_CABINET"):
+            opening_qty =\
+                closet_assembly.get_prompt("Opening Quantity").get_value()
+            for i in range(1, opening_qty + 1):
+                is_floor_mounted =\
+                    closet_assembly.get_prompt(
+                        "Opening " + str(i) + " Floor Mounted").get_value()
+                is_clt_floor_mounted = is_clt_floor_mounted and is_floor_mounted
         return is_clt_floor_mounted
 
     def is_closet_wall_mounted(self, closet):
@@ -1636,7 +1644,10 @@ class VIEW_OT_generate_2d_views(Operator):
                     vec_next = vec_wall
 
                 if vec_next.length > 0:
-                    vec_angle = vec_next.angle_signed(vec_wall)
+                    try:
+                        vec_angle = vec_next.angle_signed(vec_wall)
+                    except ValueError:
+                        vec_angle = 0
                     turn_angle = round(math.degrees(vec_angle))
 
                     if turn_angle > 0:
@@ -1993,6 +2004,7 @@ class VIEW_OT_generate_2d_views(Operator):
         pv_scene.snap.scene_type = 'PLAN_VIEW'
         self.create_linesets(pv_scene)
         walls_info = []
+        has_bp_cabinet = False
         grp = bpy.data.collections.new("Plan View")
         walls = []
         for obj in self.main_scene.objects:
@@ -2011,6 +2023,8 @@ class VIEW_OT_generate_2d_views(Operator):
                 pv_scene.collection.objects.link(obj)
                 # Only link all of the wall meshes
                 for child in obj.children:
+                    if "IS_BP_CABINET" in child:
+                        has_bp_cabinet = True
                     if child.snap.is_wall_mesh:
                         walls_info.append({'wall': obj,
                                            'obj_x': wall.obj_x,
@@ -2030,9 +2044,10 @@ class VIEW_OT_generate_2d_views(Operator):
                             child.select_set(True)
 
                 walls.append(wall)
-
-                self.plan_view_products_labels(context, wall)
-                self.plan_view_add_switches(context, wall)
+                
+                if not has_bp_cabinet:
+                    self.plan_view_products_labels(context, wall)
+                    self.plan_view_add_switches(context, wall)
 
                 # Add countertop cutparts to plan view
                 for child in obj.children:
@@ -2202,6 +2217,10 @@ class VIEW_OT_generate_2d_views(Operator):
                 assemblies.append(candidate)
             if 'l shelves' in candidate.name.lower():
                 assemblies.append(candidate)
+            # if "IS_CORNER" in candidate:
+            #     print("candidate.name=" + candidate.name + ": IS_CORNER=True")
+            #     assemblies.append(candidate)
+            
         if len(assemblies) > 0:
             return assemblies
         if len(assemblies) == 0:
@@ -3291,9 +3310,12 @@ class VIEW_OT_generate_2d_views(Operator):
         #      for accordions are added after the ones for sections
         for wall in walls:
             corner_result = self.get_lsh_csh_assemblies(wall)
+            print("wall.name=" + wall.name)
+            print("corner_result=" + str(corner_result))
             if corner_result:
                 previous_wall = walls[walls.index(wall) - 1]
                 previous_wall_name = previous_wall.name
+                print("previous_wall_name=" + previous_wall_name)
                 right_name = f'{previous_wall_name}_right_grp'
                 all_collections = bpy.data.collections
                 present_collections = [col.name for col in all_collections]
@@ -3963,7 +3985,8 @@ class VIEW_OT_generate_2d_views(Operator):
             for obj in next_wall_obj.children:
                 lsh = 'l shelves' in obj.name.lower()
                 csh = 'corner shelves' in obj.name.lower()
-                if lsh or csh:
+                kbc = "IS_CORNER" in obj
+                if lsh or csh or kbc:
                     csh_lsh_count += 1
             if csh_lsh_count > 0:
                 return True
@@ -4183,7 +4206,7 @@ class VIEW_OT_generate_2d_views(Operator):
         dim_x = obs_assy.obj_x.location.x
         dim_z = obs_assy.obj_z.location.z
         loc_x, _, loc_z = item.location
-        [wall_mesh] = [m for m in wall.children if m.type == "MESH"]
+        [wall_mesh] = [m for m in wall.children if m.type == "MESH" and "Wall" in m.name]
         obs_mesh = utils.create_cube_mesh(
                         "obstacle_mesh", (dim_x, unit.inch(2), dim_z))
         obs_mesh.parent = wall_mesh
@@ -4555,10 +4578,14 @@ class VIEW_OT_generate_2d_views(Operator):
                         for e in c.children)
         if has_entry:
             for child in wall_bp.children:
-                if child.snap.is_wall_mesh:
-                    bool_mesh = bpy.data.objects['MESH.Door Frame.Bool Obj']
-                    entry_mod = elv_wall.modifiers.new('Elv_Entry', 'BOOLEAN')
-                    entry_mod.object = bool_mesh
+                if "IS_BP_ENTRY_DOOR" in child:
+                    for nchild in child.children:
+                        if "Door Frame" in nchild.name:
+                            for nnchild in nchild.children:
+                                if "Bool Obj" in nnchild.name:
+                                    bool_mesh = nnchild
+                                    entry_mod = elv_wall.modifiers.new('Elv_Entry', 'BOOLEAN')
+                                    entry_mod.object = bool_mesh
 
         return elv_wall
     
@@ -4866,30 +4893,36 @@ class VIEW_OT_generate_2d_views(Operator):
         return obj_x, obj_y
 
     def write_island_countertop(self, island, x_loc):
+        ct_mat_props = bpy.context.scene.closet_materials.countertops
         island_assembly = sn_types.Assembly(obj_bp=island)
         tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
         dim_z = abs(island_assembly.obj_z.location.z)
-        # height = tk_height + dim_z + 2*top_thickness
         height = tk_height + dim_z
         CT_label = sn_types.Dimension()
         CT_label.start_x(value=x_loc)
         CT_label.start_z(value=height + unit.inch(6))
-        no_CT =\
-            island_assembly.get_prompt("No Countertop").get_value()
+        no_CT = island_assembly.get_prompt("No Countertop").get_value()
+
         if no_CT:
             label = "No Countertop"
         else:
-            CT_types =\
-                island_assembly.get_prompt("Countertop Type").combobox_items
-            CT_value =\
-                island_assembly.get_prompt("Countertop Type").get_value()
+            CT_types = island_assembly.get_prompt("Countertop Type").combobox_items
+            CT_value = island_assembly.get_prompt("Countertop Type").get_value()
             CT_type = CT_types[CT_value].name
             CT_color = self.get_mat_color(island)
             CT_x, CT_y = self.get_countertop_dim(island)
-            CT_info = CT_type + " " + CT_color
+
+            if CT_type == 'Wood':
+                mfg = ct_mat_props.get_type().get_mfg()
+                CT_info = mfg.name
+            elif CT_type == 'Granite':
+                CT_info = CT_type
+            else:
+                CT_info = CT_type + " " + CT_color
+
             CT_dim = self.to_inch_lbl(CT_x) + "x" + self.to_inch_lbl(CT_y)
             label = CT_info + " CT - " + CT_dim
+
         CT_label.set_label(label)
         hsh_len = unit.inch(6)
         hashmark = sn_types.Line(length=hsh_len, axis='X')
@@ -5248,8 +5281,11 @@ class VIEW_OT_generate_2d_views(Operator):
         island_assembly = sn_types.Assembly(obj_bp=island)
         tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
         top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
-        deck_overhang =\
-            island_assembly.get_prompt(type).get_value()
+        deck_overhang_ppt = island_assembly.get_prompt(type)
+        if not deck_overhang_ppt:
+            return
+        else:
+            deck_overhang = deck_overhang_ppt.get_value()
         overhang_val = self.to_inch_lbl(deck_overhang)
         label = f"{overhang_val}|overhang"
         dim_z = abs(island_assembly.obj_z.location.z)
@@ -5806,7 +5842,7 @@ class VIEW_OT_render_2d_views(Operator):
         if revert:
             print(f"Reverted Colors back - Scene :{scene.name}")
         elif not revert:
-            print(f"Changing to Oxford White (Frost) for Rendering - Scene: {scene.name}")
+            print(f"Changing to Winter White (Oxford White) for Rendering - Scene: {scene.name}")
         return True
 
     def render_scene(self, context, scene):

@@ -418,7 +418,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     #Rod Cup
     if "Pole Cup" in item_name:
-        name = bpy.context.scene.sn_closets.closet_options.pole_cup_name
+        hw_sku = bpy.context.scene.sn_closets.closet_options.pole_cup_name
         cursor.execute(
             "SELECT\
                 sku\
@@ -426,8 +426,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 {CCItems}\
             WHERE\
                 ProductType IN ('AC', 'HW') AND\
-                Name LIKE'%{}%'\
-            ;".format(name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                SKU LIKE'%{}%'\
+            ;".format(hw_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
         rows = cursor.fetchall()
 
@@ -446,7 +446,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
     #KD Fitting
     if "KD Fitting" in item_name:
         mat_props = bpy.context.scene.closet_materials
-        name = mat_props.kd_fitting_color
+        hw_sku = mat_props.kd_fitting_color
         cursor.execute(
             "SELECT\
                 sku\
@@ -454,8 +454,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 {CCItems}\
             WHERE\
                 ProductType == 'HW' AND\
-                Name LIKE'%{}%'\
-            ;".format(name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                SKU LIKE'%{}%'\
+            ;".format(hw_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
         rows = cursor.fetchall()
 
@@ -601,6 +601,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 metal_color_name = 'ORB'
             elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
+            elif metal_color.get_value() == 6:
+                metal_color_name = 'Matte Black'
 
             if valet_category.get_value() == 1:
                 valet_category_name = 'ELITE'
@@ -615,12 +617,13 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     {CCItems}\
                 WHERE\
                     ProductType == 'AC' AND\
-                    Name IN ('{category} Valet Rail {color} {length}', '{category} VALET ROD {color} {length}')\
+                    Name IN ('{category} Valet Rail {color} {length}', '{category} VALET ROD {color} {length}', '{category} VALET ROD {color} {length_number}IN')\
                 ;".format(
                     CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
                     category=valet_category_name,
                     color=metal_color_name,
-                    length=valet_length.combobox_items[valet_length.get_value()].name)
+                    length=valet_length.combobox_items[valet_length.get_value()].name,
+                    length_number=valet_length.combobox_items[valet_length.get_value()].name.replace('"', ''))
             )
             rows = cursor.fetchall()
 
@@ -677,6 +680,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 metal_color_name = 'ORB'
             elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
+            elif metal_color.get_value() == 6:
+                metal_color_name = 'Matte Black'
 
             if tie_rack_category.get_value() == 1:
                 tie_rack_category_name = 'ELITE'
@@ -692,12 +697,13 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     {CCItems}\
                 WHERE\
                     ProductType == 'AC' AND\
-                    Name IN ('{category} Tie {color} {length}', '{category} TIE RACK {color} {length}')\
+                    Name IN ('{category} Tie {color} {length}', '{category} TIE RACK {color} {length}', '{category} TIE RACK {color} {length_number}IN')\
                 ;".format(
                     CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
                     category=tie_rack_category_name,
                     color=metal_color_name,
-                    length=tie_rack_length.combobox_items[tie_rack_length.get_value()].name)
+                    length=tie_rack_length.combobox_items[tie_rack_length.get_value()].name,
+                    length_number=tie_rack_length.combobox_items[tie_rack_length.get_value()].name.replace('"', ''))
             )
             rows = cursor.fetchall()
 
@@ -740,6 +746,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 metal_color_name = 'ORB'
             elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
+            elif metal_color.get_value() == 6:
+                metal_color_name = 'Matte Black'
 
             if belt_rack_category.get_value() == 1:
                 belt_rack_category_name = 'ELITE'
@@ -755,12 +763,13 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     {CCItems}\
                 WHERE\
                     ProductType == 'AC' AND\
-                    Name IN ('{category} Belt {color} {length}', '{category} BELT RACK {color} {length}')\
+                    Name IN ('{category} Belt {color} {length}', '{category} BELT RACK {color} {length}', '{category} BELT RACK {color} {length_number}IN')\
                 ;".format(
                     CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
                     category=belt_rack_category_name,
                     color=metal_color_name,
-                    length=belt_rack_length.combobox_items[belt_rack_length.get_value()].name)
+                    length=belt_rack_length.combobox_items[belt_rack_length.get_value()].name,
+                    length_number=belt_rack_length.combobox_items[belt_rack_length.get_value()].name.replace('"', ''))
             )
             rows = cursor.fetchall()
 
@@ -1245,6 +1254,8 @@ class OPS_Export_XML(Operator):
         if obj.get("IS_BP_PANEL"):
             if obj.parent.get("IS_BP_ISLAND"):
                 category_number = material_number + "33"
+            elif obj.parent.get("IS_BP_L_SHELVES") or obj.parent.get("IS_BP_CORNER_SHELVES"):
+                category_number = material_number + "31"
             else:
                 catnum = assembly.get_prompt("CatNum")
                 if catnum:
@@ -1309,6 +1320,8 @@ class OPS_Export_XML(Operator):
         if obj.get("IS_BP_CROWN_MOLDING"):
             if "Valance" in part_name:
                 category_number = material_number + "62"
+            elif obj.get('IS_BP_FLAT_CROWN'):
+                category_number = material_number + "78"
             else:
                 if mat_sku != None:
                     if "PL" in mat_sku:
@@ -1374,7 +1387,9 @@ class OPS_Export_XML(Operator):
             door_style_ppt = assembly.get_prompt("Door Style")
             if door_style_ppt:
                 door_style = door_style_ppt.get_value()
-                if (door_style != "Slab Door") and ("Traviso" not in door_style):
+                if door_style == "Melamine Door Glass":
+                    category_number = "1053"
+                elif (door_style != "Slab Door") and ("Traviso" not in door_style):
                     # print("Current Door Style: ", door_style)
                     assembly_number = "None"
                     material_number = "None"
@@ -1399,13 +1414,12 @@ class OPS_Export_XML(Operator):
 
                     raised_styles = [
                         "Aviano", "Colina", "Florence", 
-                        "Pisa", "Bergamo", "Capri", 
-                        "Venice", "Sienna", "Napoli", 
-                        "Molino Vechio"]
+                        "Pisa", "Bergamo",  "Palermo",
+                        "Molino Vechio", "Rome", "Verona"]
                     recessed_styles = [
                         "Volterra", "Portofino", "Carrera", 
-                        "Milano", "Merano", "Palermo", 
-                        "Verona", "Rome", "San Marino"]
+                        "Milano", "Merano", "Capri", "Sienna",
+                        "San Marino", "Napoli", "Venice"]
                     for style in raised_styles:
                         if style in door_style:
                             is_raised = True
@@ -1531,6 +1545,29 @@ class OPS_Export_XML(Operator):
 
                     category_number = assembly_number + material_number + part_number
 
+                if (door_style != "Slab Door") and ("Traviso" in door_style):
+                    assembly_number = "None"
+                    material_number = "None"
+                    part_number = "None"
+
+                    # Determine Assembly
+                    if obj.get("IS_BP_DRAWER_FRONT"):
+                        assembly_number = "4"
+                    else:
+                        assembly_number = "3"
+
+                    if "Glass" in door_style:
+                        material_number = "03"
+                    else:
+                        material_number = "00"
+
+                    
+                    # Determine Part Number
+                    # Currently, we only have entire assemblies, we will break 5 Piece doors into the seperate parts in the future, which we will need to change part_number when we do
+                    part_number = "0"
+
+                    category_number = assembly_number + material_number + part_number
+                    
         # Wall Beds
         if obj.get("IS_BP_WALL_BED") or obj.parent.get("IS_BP_WALL_BED"):
             if obj.get("IS_BP_WALL_BED"):
@@ -1624,26 +1661,12 @@ class OPS_Export_XML(Operator):
                     else:
                         category_number = material_number + "0"
 
+        if len(category_number) != 4:
+            print("{} has an incorrect category number of {}. Setting Category Number to Default Panel",
+            part_name, category_number)
+            category_number = "1033"
 
-        # print(category_number)
         return category_number
-                    
-                
-                    
-                    
-                    
-
-        
-        # MISC.
-        if obj.sn_closets.is_divider_bp:
-            category_number = material_number + "67"
-        # Firout = material_number + 66
-        # File Rail Support = material_number + 68
-        # Follow Strip = material_number + 69
-        # Corble = material_number + 71
-
-        
-
 
     def get_part_base_point(self,assembly):
         mx = False
@@ -2270,7 +2293,6 @@ class OPS_Export_XML(Operator):
                     'OpID': "IDOP-{}".format(self.op_count)
                 }
             )
-
             
             self.xml.add_element_with_text(elm_part, 'Name', part_name + " Shelf")
             self.xml.add_element_with_text(elm_part,'Quantity', self.get_part_qty(assembly))
@@ -2565,6 +2587,15 @@ class OPS_Export_XML(Operator):
             elm_var = self.xml.add_element(elm_product, 'Var')
             self.xml.add_element_with_text(elm_var, 'Name', f[0])
             self.xml.add_element_with_text(elm_var, 'Value', f[1])
+    
+        closet_materials = bpy.context.scene.closet_materials
+        mat_type = closet_materials.materials.get_mat_type()
+        type_code = mat_type.type_code
+        color_name = closet_materials.materials.get_mat_color().name
+
+        if type_code == 10:  # Upgrade Options
+            mat_sku = closet_materials.get_mat_sku()
+            self.write_material(color_name, mat_sku)
 
         self.item_count += 1
 
@@ -2582,7 +2613,7 @@ class OPS_Export_XML(Operator):
                 needed_full_lengths = 1
             else:
                 needed_full_lengths = (total_cover_cleat/96)/2 #96
-                if(mat_inventory_name == "Oxford White (Frost)" or mat_inventory_name =="Cabinet Almond (Cafe Au Lait)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
+                if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
                     needed_full_lengths = needed_full_lengths * 2
                 needed_full_lengths = math.ceil(needed_full_lengths)
                 if(needed_full_lengths < 3):
@@ -2613,7 +2644,7 @@ class OPS_Export_XML(Operator):
 
             for height in different_heights:
                 total_flat_crown = 0
-                for i in range(len(self.flat_crown_lengths)):
+                for i in range(len(self.flat_crown_lengths) - 1):
                     if(float(self.flat_crown_heights[i]) == float(height)):
                         total_flat_crown += float(self.flat_crown_lengths[i])
 
@@ -2766,7 +2797,7 @@ class OPS_Export_XML(Operator):
 
             mat_sku = closet_materials.get_mat_sku(cleat_assembly.obj_bp, cleat_assembly)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
-            if(mat_inventory_name == "Oxford White (Frost)" or mat_inventory_name =="Cabinet Almond (Cafe Au Lait)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
+            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
                 if self.is_wrap_around:
                     for child in cleat_assembly.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
@@ -3196,7 +3227,7 @@ class OPS_Export_XML(Operator):
                                                 flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
                                                 if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
                                                     self.flat_crown_bp = flat_crown_assembly.obj_bp
-                                                number_of_lengths = math.ceil(length/96)
+                                                number_of_lengths = math.ceil(float(length)/96)
                                                 if(number_of_lengths == 2):
                                                     self.single_exposed_flat_crown.append(True)
                                                     self.single_exposed_flat_crown.append(True)
@@ -3891,6 +3922,9 @@ class OPS_Export_XML(Operator):
                 if not self.hang_rods_collected:
                     return
 
+        if assembly.obj_bp.get("IS_SHOE_SHELF_LIP"):
+            part_length = self.get_part_length(assembly)
+
         elm_hdw_part = self.xml.add_element(elm_product,
                                         'Part',
                                         {'ID': "IDP-{}".format(self.part_count),
@@ -3939,7 +3973,7 @@ class OPS_Export_XML(Operator):
         if(obj_props.is_door_bp or obj_props.is_drawer_front_bp or obj_props.is_hamper_front_bp or obj.get('IS_DOOR') or obj.get('IS_BP_DRAWER_FRONT')):
             if(assembly.get_prompt("Door Style")):
                 door_style = assembly.get_prompt("Door Style").get_value()
-                if (door_style != "Slab Door") and (door_style != "Melamine Glass Door") and ("Traviso" not in door_style):
+                if (door_style != "Slab Door") and (door_style != "Melamine Door Glass"):
                     return True
         for cur_mat in wooden_materials:
             if cur_mat in mat_inventory_name:
@@ -4002,13 +4036,29 @@ class OPS_Export_XML(Operator):
             else:
                 part_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.name
 
-                is_locked_shelf = assembly.get_prompt("Is Locked Shelf")                
+                # False Panels
+                if 'Door' in part_name:
+                    door_styles_list = [
+                        "Aviano", "Colina", "Florence", "Pisa", 
+                        "Bergamo", "Capri", "Venice", "Sienna",
+                        "Napoli", "Molino Vechio", "Volterra", 
+                        "Portofino", "Carrera", "Milano", "Merano", 
+                        "Palermo", "Verona", "Rome", "San Marino"
+                    ]
+                    for door_style in door_styles_list:
+                        if door_style in part_name:
+                            assembly.add_prompt('Door Style','TEXT', part_name)
+                            assembly.obj_bp['IS_DOOR'] = True
+                            assembly.obj_bp.sn_closets.is_door_bp = True
+                            part_name = 'False Panel'
+
 
                 #TODO: This is for old lib data, correct part names now set on assembly creation
                 if part_name == "Panel":
                     part_name = "Partition"
                 if part_name == "Top":
                     part_name = "Top Shelf"
+                is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
                 if is_locked_shelf and is_locked_shelf.get_value() == True:
                     if assembly.obj_bp.parent.get("IS_BP_L_SHELVES"):
                         part_name = "L KD Shelf"
@@ -4028,10 +4078,10 @@ class OPS_Export_XML(Operator):
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
             
             if part_name == "Cover Cleat":
-                if mat_inventory_name == "Oxford White (Frost)" or  mat_inventory_name =="Duraply White":
+                if mat_inventory_name == "Winter White (Oxford White)" or  mat_inventory_name =="Duraply White":
                     mat_inventory_name = "White Paper 11300"
                     mat_sku = "PM-0000002"
-                elif mat_inventory_name == "Cabinet Almond (Cafe Au Lait)" or mat_inventory_name =="Duraply Almond":
+                elif mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond":
                     mat_inventory_name = "Almond Paper 11300"
                     mat_sku = "PM-0000001"
 
@@ -4053,11 +4103,16 @@ class OPS_Export_XML(Operator):
                 mat_inventory_name = "BASE ALDER 3 1/4X1/2 WM633"
                 mat_sku = "MD-0000025"
 
-            # Melamine shoe shelf lip
+            # Shoe Shelf Lip
             if assembly.obj_bp.get("IS_SHOE_SHELF"):
                 for child in assembly.obj_bp.children:
                     if child.get("IS_BP_MEL_SHELF_LIP"):
                         self.write_part_node(node, child, spec_group)
+                    if child.get("IS_SHOE_SHELF_LIP") and 'Fence' not in child.name:
+                        self.write_part_node(node, child, spec_group)
+                    if child.get("IS_SHOE_SHELF_LIP") and 'Fence' in child.name:
+                        self.write_hardware_node(node, child, name=child.name, qty=1)
+
 
             ppt_dogear = assembly.get_prompt("Is Dogeared Panel")
             ppt_dogear_depth = assembly.get_prompt("Dog Ear Depth")
@@ -4161,7 +4216,7 @@ class OPS_Export_XML(Operator):
                 door_style_ppt = assembly.get_prompt("Door Style")
                 if door_style_ppt:
                     door_style = door_style_ppt.get_value()
-                if (door_style == "Slab Door"):
+                if (door_style == "Slab Door" or door_style == "Melamine Door Glass"):
                     if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
                         edge_1 = "L1"
                         edge_2 = "S1"
@@ -4311,9 +4366,9 @@ class OPS_Export_XML(Operator):
                         edge_2 = "L1"
                     else:
                         edge_2 = "S1"
-                    if(mat_inventory_name == "Oxford White (Frost)" or mat_inventory_name =="Duraply White" or mat_inventory_name =="White Paper 11300"):
+                    if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Duraply White" or mat_inventory_name =="White Paper 11300"):
                         edge_2_sku = "EB-0000316"
-                    elif(mat_inventory_name == "Cabinet Almond (Cafe Au Lait)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Almond Paper 11300"):
+                    elif(mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Almond Paper 11300"):
                         edge_2_sku = "EB-0000315"
                     else:
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
@@ -4847,9 +4902,15 @@ class OPS_Export_XML(Operator):
             glaze_style = closet_materials.get_glaze_style().name
             has_center_rail = "No"
             center_rail_distance_from_center = 0
+
+            if obj_props.is_glass_shelf_bp:
+                glass_color = "Clear"
+
             if(obj_props.is_door_bp or obj_props.is_drawer_front_bp or obj_props.is_hamper_front_bp or obj.get('IS_DOOR') or obj.get('IS_BP_DRAWER_FRONT') or obj_props.is_glass_shelf_bp):     
                 if(assembly.get_prompt("Door Style")):
                     door_style = assembly.get_prompt("Door Style").get_value()
+                    if 'Glass' not in door_style:   # Sets glass color to None for doors that do not have inset glass
+                        glass_color = 'None'
                     parent_assembly = sn_types.Assembly(obj.parent.parent)
                     has_center_rail_ppt = parent_assembly.get_prompt("Has Center Rail")
                     center_rail_distance_from_center_ppt = parent_assembly.get_prompt("Center Rail Distance From Center")                

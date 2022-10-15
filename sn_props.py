@@ -18,15 +18,19 @@ from snap.sn_unit import inch
 
 from snap import sn_paths, sn_utils, sn_unit, sn_types
 from snap.libraries.closets import closet_library
-from snap.libraries.kitchen_bath import kitchen_bath_library
+from snap.libraries.kitchen_bath import cabinet_interiors, frameless_exteriors, frameless_splitters, kitchen_bath_library
 from snap.libraries.doors_and_windows import doors_and_windows_library
 from snap.libraries.appliances import appliance_library
 from . import addon_updater_ops
 
-LIBRARIES = (closet_library,
-             doors_and_windows_library,
-             appliance_library,
-             kitchen_bath_library)
+ASSET_LIBRARIES = (
+    (closet_library, "Product Library"),
+    (doors_and_windows_library, "Window and Door Library"),
+    (appliance_library, "Appliance Library"),
+    (kitchen_bath_library, "Kitchen Bath Library"),
+    (frameless_splitters, "Kitchen Bath Library"),
+    (frameless_exteriors, "Kitchen Bath Library"),
+    (cabinet_interiors, "Kitchen Bath Library"))
 
 DEV_TOOLS_AVAILABLE = False
 
@@ -252,6 +256,12 @@ class Prompt(PropertyGroup):
             return self.combobox_index
         if self.prompt_type == 'TEXT':
             return self.text_value
+
+    def get_combobox_str(self):
+        if self.prompt_type == 'COMBOBOX':
+            return self.combobox_items[self.combobox_index].name
+        else:
+            return self.get_value()
 
     def set_value(self, value):
         self.id_data.hide_viewport = False
@@ -1674,7 +1684,8 @@ class SnapWindowManagerProps(PropertyGroup):
         for asset in self.assets:
             self.assets.remove(0)
 
-        for lib in LIBRARIES:
+        for lib in ASSET_LIBRARIES:
+            lib, lib_name = lib
             for name, obj in inspect.getmembers(lib):
                 if hasattr(obj, 'show_in_library') and name != 'ops' and obj.show_in_library:
                     asset = self.assets.add()
@@ -1690,15 +1701,18 @@ class SnapWindowManagerProps(PropertyGroup):
         directory, file = os.path.split(filepath)
         filename, ext = os.path.splitext(file)
         obj = None
+        active_library_name = bpy.context.scene.snap.active_library_name
 
-        for lib in LIBRARIES:
-            for asset in self.assets:
-                item_name = asset.name.replace("PRODUCT ", "").replace("INSERT ", "")
-                if filename == item_name:
-                    if hasattr(lib, asset.class_name):
-                        asset_cls = getattr(lib, asset.class_name)
-                        obj = asset_cls()
-                        break
+        for lib in ASSET_LIBRARIES:
+            lib, lib_name = lib
+            if lib_name == active_library_name:
+                for asset in self.assets:
+                    item_name = asset.name.replace("PRODUCT ", "").replace("INSERT ", "")
+                    if filename == item_name:
+                        if hasattr(lib, asset.class_name):
+                            asset_cls = getattr(lib, asset.class_name)
+                            obj = asset_cls()
+                            break
         if obj:
             return obj
         else:

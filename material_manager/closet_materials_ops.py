@@ -23,6 +23,14 @@ class SN_MAT_OT_Poll_Assign_Materials(Operator):
         return context.scene.closet_materials.check_render_mats()
 
     def execute(self, context):
+        mat_props = context.scene.closet_materials
+        mat_props.discontinued_color = ""
+        mat_props.edge_discontinued_color = ""
+        mat_props.cleat_edge_discontinued_color = ""
+        mat_props.dd_mat_discontinued_color = ""
+        mat_props.dd_edge_discontinued_color = ""
+        mat_props.stain_discontinued_color = ""
+
         bpy.ops.closet_materials.assign_materials()
 
         return {'FINISHED'}
@@ -109,7 +117,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
                 if mat_type.name == "Garage Material" and not custom_colors:
                     door_part.cutpart("Garage_Slab_Door")
-                    if mat_color_name == "Graphite Spectrum":
+                    if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
                         door_part.edgebanding("Black_Edge", l1=True, w1=True, l2=True, w2=True)
                         door_part.set_material_pointers("Black", "TopBottomEdge")
                         door_part.set_material_pointers("Black", "LeftRightEdge")
@@ -147,11 +155,11 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 box_type = self.closet_props.closet_options.box_type
 
                 if box_type == 'MEL':
-                    obj.snap.cutpart_material_name = "Oxford White (Frost) 12200"
+                    obj.snap.cutpart_material_name = "Winter White (Oxford White) 12200"
                 else:
                     obj.snap.cutpart_material_name = "Baltic Birch 32200"
 
-                obj.snap.edgeband_material_name_l1 = "Oxford White (Frost) 1030"
+                obj.snap.edgeband_material_name_l1 = "Winter White (Oxford White) 1030"
                 obj.snap.edgeband_material_name_l2 = ""
                 obj.snap.edgeband_material_name_w1 = ""
                 obj.snap.edgeband_material_name_w2 = ""
@@ -173,13 +181,17 @@ class SN_MAT_OT_Assign_Materials(Operator):
             five_piece_melamine_door_pointer = spec_group.materials["Five_Piece_Melamine_Door_Surface"]
             moderno_door_pointer = spec_group.materials["Moderno_Door"]
             glass_panel_pointer = spec_group.materials["Glass"]
+
             countertop_pointer = spec_group.materials["Countertop_Surface"]
             countertop_hpl_pointer = spec_group.materials["Countertop_HPL_Surface"]
             countertop_granite_pointer = spec_group.materials["Countertop_Granite_Surface"]
+            countertop_quartz_pointer = spec_group.materials["Countertop_Quartz_Surface"]
+
             garage_exterior_surface_pointer = spec_group.materials["Garage_Exterior_Surface"]
             garage_panel_edge_pointer = spec_group.materials["Garage_Panel_Edges"]
             garage_interior_edge_pointer = spec_group.materials["Garage_Interior_Edges"]
             cabinet_countertop_pointer = spec_group.materials["Cabinet_Countertop_Surface"]
+            countertop_wood_pointer = spec_group.materials["Countertop_Butcher_Block_Surface"]
 
             # Set garage pointers
             garage_exterior_surface_pointer.category_name = "Closet Materials"
@@ -189,13 +201,12 @@ class SN_MAT_OT_Assign_Materials(Operator):
             garage_panel_edge_pointer.item_name = mat_props.edges.get_edge_color().name
 
             garage_interior_edge_pointer.category_name = "Closet Materials"
-            garage_interior_edge_pointer.item_name = "Oxford White (Frost)"
-
+            garage_interior_edge_pointer.item_name = "Winter White (Oxford White)"
 
             # Construction Defaults
             if default_props.box_type == 'MEL':
                 drawer_surface.category_name = "Closet Materials"
-                drawer_surface.item_name = "Oxford White (Frost)"
+                drawer_surface.item_name = "Winter White (Oxford White)"
             else:
                 drawer_surface.category_name = "Closet Materials"
                 drawer_surface.item_name = "Birch"
@@ -205,48 +216,90 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
             garage_interior_pointer.category_name = "Closet Materials"
             if mat_props.materials.get_mat_type().name == "Garage Material":
-                garage_interior_pointer.item_name = "Oxford White (Frost)"
+                garage_interior_pointer.item_name = "Winter White (Oxford White)"
             else:
                 garage_interior_pointer.item_name = mat_props.materials.get_mat_color().name
 
             molding_pointer.category_name = "Closet Materials"
-            molding_pointer.item_name = mat_props.stain_colors[mat_props.stain_color_index].name
-
-            edge_pointer.category_name = "Closet Materials"
-            edge_pointer.item_name = mat_props.edges.get_edge_color().name
-
-            edge_pointer_2.category_name = "Closet Materials"
-            edge_pointer_2.item_name = mat_props.secondary_edges.get_edge_color().name
+            stain_color = surface_pointer.item_name in mat_props.get_stain_colors()
+            paint_color = surface_pointer.item_name in mat_props.get_paint_colors()
+            if stain_color or paint_color:
+                molding_pointer.item_name = surface_pointer.item_name
 
             door_pointer.category_name = "Closet Materials"
             door_pointer.item_name = mat_props.door_drawer_materials.get_mat_color().name
 
+            edge_pointer.category_name = "Closet Materials"
+            edge_pointer_2.category_name = "Closet Materials"
             door_edge_pointer.category_name = "Closet Materials"
-            door_edge_pointer.item_name = mat_props.door_drawer_edges.get_edge_color().name
+
+            if mat_props.materials.get_mat_type().name == "Oversized Material":
+                edge_pointer.item_name = mat_props.default_edge_color
+                edge_pointer_2.item_name = mat_props.default_edge_color
+                door_edge_pointer.item_name = mat_props.default_edge_color
+            elif mat_props.materials.get_mat_type().name == "Upgrade Options":
+                edge_pointer.item_name = mat_props.upgrade_options.get_type().get_color().name
+                edge_pointer_2.item_name = mat_props.upgrade_options.get_type().get_color().name
+                door_edge_pointer.item_name = mat_props.upgrade_options.get_type().get_color().name
+            else:
+                edge_pointer.item_name = mat_props.edges.get_edge_color().name
+                edge_pointer_2.item_name = mat_props.secondary_edges.get_edge_color().name
+                door_edge_pointer.item_name = mat_props.door_drawer_edges.get_edge_color().name
 
             wood_door_pointer.category_name = "Closet Materials"
-            wood_door_pointer.item_name = mat_props.stain_colors[mat_props.stain_color_index].name
+            mat_color_name = mat_props.materials.get_mat_color().name
+            has_paint = mat_color_name in mat_props.get_paint_colors()
+            has_stain = mat_color_name in mat_props.get_stain_colors()
+            custom_colors = mat_props.use_custom_color_scheme
+
+            if not custom_colors:
+                if has_paint:
+                    wood_door_pointer.item_name = mat_props.materials.get_mat_color().name
+                elif has_stain:
+                    wood_door_pointer.item_name = mat_props.materials.get_mat_color().name
+
+            elif mat_props.upgrade_options.get_type().name == "Stain":
+                wood_door_pointer.item_name = mat_props.stain_colors[mat_props.stain_color_index].name
+            elif mat_props.upgrade_options.get_type().name == "Paint":
+                wood_door_pointer.item_name = mat_props.paint_colors[mat_props.paint_color_index].name
+            else:
+                wood_door_pointer.item_name = mat_props.materials.get_mat_color().name
 
             five_piece_melamine_door_pointer.category_name = "Closet Materials"
-            five_piece_melamine_door_pointer.item_name = mat_props.five_piece_melamine_door_colors[mat_props.five_piece_melamine_door_mat_color_index].name
+            door_color = mat_props.five_piece_melamine_door_colors[mat_props.five_piece_melamine_door_mat_color_index]
+            five_piece_melamine_door_pointer.item_name = door_color.name
 
             moderno_door_pointer.category_name = "Closet Materials"
-            moderno_door_pointer.item_name = mat_props.moderno_colors[
-                mat_props.moderno_color_index].name
+            mat_has_moderno_color = mat_color_name in mat_props.moderno_colors
+
+            if custom_colors:
+                moderno_door_pointer.item_name = mat_props.moderno_colors[mat_props.moderno_color_index].name
+            elif mat_has_moderno_color:
+                moderno_door_pointer.item_name = mat_color_name
 
             glass_panel_pointer.category_name = "Glass"
             glass_panel_pointer.item_name = "Glass"
 
+            # Countertops
             if "Melamine" in mat_props.countertops.get_type().name:
                 countertop_pointer.category_name = "Closet Materials"
                 cabinet_countertop_pointer.category_name = "Closet Materials"
                 countertop_pointer.item_name = mat_props.countertops.get_color_name()
+            elif "Wood" in mat_props.countertops.get_type().name:
+                countertop_wood_pointer.category_name = "Closet Materials"
+                color_name = mat_props.countertops.get_color_name()
+                if color_name == "Other/Custom":
+                    color_name = "Winter White (Oxford White)"
+                countertop_wood_pointer.item_name = color_name
             else:
                 countertop_hpl_pointer.category_name = "Countertop Materials"
                 countertop_granite_pointer.category_name = "Countertop Materials"
                 cabinet_countertop_pointer.category_name = "Countertop Materials"
+                countertop_quartz_pointer.category_name = "Countertop Materials"
+
                 countertop_hpl_pointer.item_name = mat_props.countertops.get_color_name()
                 countertop_granite_pointer.item_name = mat_props.countertops.get_color_name()
+                countertop_quartz_pointer.item_name = mat_props.countertops.get_color_name()
 
             cabinet_countertop_pointer.item_name = mat_props.countertops.get_color_name()
 
@@ -271,19 +324,15 @@ class SN_MAT_OT_Assign_Materials(Operator):
         mat_type = cab_mat_props.materials.get_mat_type()
         mat_color_name = cab_mat_props.materials.get_mat_color().name
         panel_part = sn_types.Part(assembly.obj_bp)
-        section_product = sn_types.Assembly(
-            sn_utils.get_closet_bp(assembly.obj_bp))
+        section_product = sn_types.Assembly(sn_utils.get_closet_bp(assembly.obj_bp))
         opening_qty = 0
         left_end_condition = 'WP'
         right_end_condition = 'WP'
 
         if section_product and section_product.get_prompt("Opening Quantity"):
-            opening_qty = section_product.get_prompt(
-                "Opening Quantity").get_value()
-            left_end_condition = section_product.get_prompt(
-                "Left End Condition").get_value()
-            right_end_condition = section_product.get_prompt(
-                "Right End Condition").get_value()
+            opening_qty = section_product.get_prompt("Opening Quantity").get_value()
+            left_end_condition = section_product.get_prompt("Left End Condition").get_value()
+            right_end_condition = section_product.get_prompt("Right End Condition").get_value()
 
         if mat_type.name == "Garage Material":
             # Check left end panel condition
@@ -301,11 +350,9 @@ class SN_MAT_OT_Assign_Materials(Operator):
             else:
                 panel_part.cutpart("Garage_Mid_Panel")
 
-            if mat_color_name == "Graphite Spectrum":
-                panel_part.set_material_pointers(
-                "Black", "FrontBackEdge")
-                panel_part.set_material_pointers(
-                "Black", "TopBottomEdge")
+            if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
+                panel_part.set_material_pointers("Black", "FrontBackEdge")
+                panel_part.set_material_pointers("Black", "TopBottomEdge")
             else:
                 panel_part.set_material_pointers(
                 "Garage_Panel_Edges", "FrontBackEdge")
@@ -328,7 +375,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                     for child in assembly.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
                             if mat_type.name == "Garage Material":
-                                if mat_color_name == "Graphite Spectrum":
+                                if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
                                     child.snap.edge_w1 = 'Black_Edge'
                                     child.snap.edge_w2 = 'Black_Edge'
                                     for mat_slot in child.snap.material_slots:
@@ -366,7 +413,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
             for child in assembly.obj_bp.children:
                 if child.snap.type_mesh == 'CUTPART':
                     if mat_type.name == "Garage Material":
-                        if mat_color_name == "Graphite Spectrum":
+                        if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
                             child.snap.edge_w1 = 'Black_Edge'
                             child.snap.edge_w2 = 'Black_Edge'
                             for mat_slot in child.snap.material_slots:
@@ -390,9 +437,6 @@ class SN_MAT_OT_Assign_Materials(Operator):
         mat_type = cab_mat_props.materials.get_mat_type()
         mat_color_name = cab_mat_props.materials.get_mat_color().name
         shelf_part = sn_types.Part(assembly.obj_bp)
-        is_raised_bottom_KD = False
-        parent_obj = assembly.obj_bp.parent
-        parent_assembly = sn_types.Assembly(parent_obj)
 
         is_KD = False
         is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
@@ -420,7 +464,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                     shelf_part.cutpart("Garage_Interior_Shelf")
                     shelf_part.edgebanding("Interior_Edge", l2=True)
                     shelf_part.set_material_pointers("Garage_Interior_Edges", "Edgebanding")
-                elif mat_color_name == "Graphite Spectrum":
+                elif mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
                     shelf_part.edgebanding("Black_Edge", l2=True)
                     shelf_part.set_material_pointers("Black", "Edgebanding")
                 else:
@@ -509,10 +553,10 @@ class SN_MAT_OT_Assign_Materials(Operator):
         mat_color_name = cab_mat_props.materials.get_mat_color().name
         drawer_front_part = sn_types.Part(assembly.obj_bp)
         custom_colors = cab_mat_props.use_custom_color_scheme
-        
+
         if mat_type.name == "Garage Material" and not custom_colors:
             drawer_front_part.cutpart("Garage_Slab_Drawer_Front")
-            if mat_color_name == "Graphite Spectrum":
+            if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
                 drawer_front_part.edgebanding("Black_Edge", l1=True, w1=True, l2=True, w2=True)
                 drawer_front_part.set_material_pointers("Black", "TopBottomEdge")
                 drawer_front_part.set_material_pointers("Black", "LeftRightEdge")
@@ -532,105 +576,106 @@ class SN_MAT_OT_Assign_Materials(Operator):
         mat_color_name = cab_mat_props.materials.get_mat_color().name
         countertop_part = sn_types.Part(assembly.obj_bp)
 
-        if mat_type.name == "Garage Material":
-            if mat_color_name == "Graphite Spectrum":
-                countertop_part.edgebanding('Black_Edge', l1=True, l2=True, w1=True, w2=True)
-                countertop_part.set_material_pointers("Black", "Edgebanding")
+        if not assembly.obj_bp.sn_closets.use_unique_material:
+            if mat_type.name == "Garage Material":
+                if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
+                    countertop_part.edgebanding('Black_Edge', l1=True, l2=True, w1=True, w2=True)
+                    countertop_part.set_material_pointers("Black", "Edgebanding")
+                else:
+                    countertop_part.edgebanding('Exterior_Edge', l1=True, l2=True, w1=True, w2=True)
+                    countertop_part.set_material_pointers("Garage_Panel_Edges", "Edgebanding")
             else:
-                countertop_part.edgebanding('Exterior_Edge', l1=True, l2=True, w1=True, w2=True)
-                countertop_part.set_material_pointers("Garage_Panel_Edges", "Edgebanding")
-        else:
-            countertop_part.edgebanding('Edge', l1=True, l2=True, w1=True, w2=True)
-            if assembly.obj_bp.sn_closets.is_hpl_top_bp:
-                countertop_part.set_material_pointers("Countertop_HPL_Surface", "Edgebanding")
-            else:
-                countertop_part.set_material_pointers("Closet_Part_Edges", "Edgebanding")
+                countertop_part.edgebanding('Edge', l1=True, l2=True, w1=True, w2=True)
+                if assembly.obj_bp.sn_closets.is_hpl_top_bp:
+                    countertop_part.set_material_pointers("Countertop_HPL_Surface", "Edgebanding")
+                else:
+                    countertop_part.set_material_pointers("Closet_Part_Edges", "Edgebanding")
 
-        exposed_left = assembly.get_prompt("Exposed Left")
-        exposed_right = assembly.get_prompt("Exposed Right")
-        exposed_back = assembly.get_prompt("Exposed Back")
-        if exposed_left:
-            if exposed_left.get_value():
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        if mat_type.name == "Garage Material":
-                            if mat_color_name == "Graphite Spectrum":
-                                child.snap.edge_w1 = 'Black_Edge'
-                                for mat_slot in child.snap.material_slots:
-                                    if mat_slot.name == 'LeftEdge':
-                                        mat_slot.pointer_name = "Black"
+            exposed_left = assembly.get_prompt("Exposed Left")
+            exposed_right = assembly.get_prompt("Exposed Right")
+            exposed_back = assembly.get_prompt("Exposed Back")
+            if exposed_left:
+                if exposed_left.get_value():
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            if mat_type.name == "Garage Material":
+                                if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
+                                    child.snap.edge_w1 = 'Black_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'LeftEdge':
+                                            mat_slot.pointer_name = "Black"
+                                else:
+                                    child.snap.edge_w1 = 'Exterior_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'LeftEdge':
+                                            mat_slot.pointer_name = "Garage_Panel_Edges"
                             else:
-                                child.snap.edge_w1 = 'Exterior_Edge'
+                                child.snap.edge_w1 = 'Edge'
                                 for mat_slot in child.snap.material_slots:
                                     if mat_slot.name == 'LeftEdge':
-                                        mat_slot.pointer_name = "Garage_Panel_Edges"
-                        else:
-                            child.snap.edge_w1 = 'Edge'
+                                        mat_slot.pointer_name = "Closet_Part_Edges"
+                else:
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            child.snap.edge_w1 = ''
                             for mat_slot in child.snap.material_slots:
                                 if mat_slot.name == 'LeftEdge':
-                                    mat_slot.pointer_name = "Closet_Part_Edges"
-            else:
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        child.snap.edge_w1 = ''
-                        for mat_slot in child.snap.material_slots:
-                            if mat_slot.name == 'LeftEdge':
-                                mat_slot.pointer_name = "Core"
-        if exposed_right:
-            if exposed_right.get_value():
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        if mat_type.name == "Garage Material":
-                            if mat_color_name == "Graphite Spectrum":
-                                child.snap.edge_w2 = 'Black_Edge'
-                                for mat_slot in child.snap.material_slots:
-                                    if mat_slot.name == 'RightEdge':
-                                        mat_slot.pointer_name = "Black"
+                                    mat_slot.pointer_name = "Core"
+            if exposed_right:
+                if exposed_right.get_value():
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            if mat_type.name == "Garage Material":
+                                if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
+                                    child.snap.edge_w2 = 'Black_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'RightEdge':
+                                            mat_slot.pointer_name = "Black"
+                                else:
+                                    child.snap.edge_w2 = 'Exterior_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'RightEdge':
+                                            mat_slot.pointer_name = "Garage_Panel_Edges"
                             else:
-                                child.snap.edge_w2 = 'Exterior_Edge'
+                                child.snap.edge_w2 = 'Edge'
                                 for mat_slot in child.snap.material_slots:
                                     if mat_slot.name == 'RightEdge':
-                                        mat_slot.pointer_name = "Garage_Panel_Edges"
-                        else:
-                            child.snap.edge_w2 = 'Edge'
+                                        mat_slot.pointer_name = "Closet_Part_Edges"
+                else:
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            child.snap.edge_w2 = ''
                             for mat_slot in child.snap.material_slots:
                                 if mat_slot.name == 'RightEdge':
-                                    mat_slot.pointer_name = "Closet_Part_Edges"
-            else:
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        child.snap.edge_w2 = ''
-                        for mat_slot in child.snap.material_slots:
-                            if mat_slot.name == 'RightEdge':
-                                mat_slot.pointer_name = "Core"
+                                    mat_slot.pointer_name = "Core"
 
-        if exposed_back:
-            if exposed_back.get_value():
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        if mat_type.name == "Garage Material":
-                            if mat_color_name == "Graphite Spectrum":
-                                child.snap.edge_l2 = 'Black_Edge'
-                                for mat_slot in child.snap.material_slots:
-                                    if mat_slot.name == 'BackEdge':
-                                        mat_slot.pointer_name = "Black"
+            if exposed_back:
+                if exposed_back.get_value():
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            if mat_type.name == "Garage Material":
+                                if mat_color_name == "Cosmic Dust (Graphite Spectrum)" or self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)":
+                                    child.snap.edge_l2 = 'Black_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'BackEdge':
+                                            mat_slot.pointer_name = "Black"
+                                else:
+                                    child.snap.edge_l2 = 'Exterior_Edge'
+                                    for mat_slot in child.snap.material_slots:
+                                        if mat_slot.name == 'BackEdge':
+                                            mat_slot.pointer_name = "Garage_Panel_Edges"
                             else:
-                                child.snap.edge_l2 = 'Exterior_Edge'
+                                child.snap.edge_l2 = 'Edge'
                                 for mat_slot in child.snap.material_slots:
                                     if mat_slot.name == 'BackEdge':
-                                        mat_slot.pointer_name = "Garage_Panel_Edges"
-                        else:
-                            child.snap.edge_l2 = 'Edge'
+                                        mat_slot.pointer_name = "Closet_Part_Edges"
+                else:
+                    for child in assembly.obj_bp.children:
+                        if child.snap.type_mesh == 'CUTPART':
+                            child.snap.edge_l2 = ''
                             for mat_slot in child.snap.material_slots:
                                 if mat_slot.name == 'BackEdge':
-                                    mat_slot.pointer_name = "Closet_Part_Edges"
-            else:
-                for child in assembly.obj_bp.children:
-                    if child.snap.type_mesh == 'CUTPART':
-                        child.snap.edge_l2 = ''
-                        for mat_slot in child.snap.material_slots:
-                            if mat_slot.name == 'BackEdge':
-                                mat_slot.pointer_name = "Core"
+                                    mat_slot.pointer_name = "Core"
 
     def update_closet_defaults(self, context):
         """
@@ -650,11 +695,13 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
             closet_defaults.temp_mat_type_name = mat_type.name
 
-
     def execute(self, context):
         self.closet_props = context.scene.sn_closets
         self.props_closet_materials = context.scene.closet_materials
-        material_color = bpy.context.scene.closet_materials.materials.get_mat_color()
+        self.use_black_edge = self.props_closet_materials.use_black_edge
+        cab_mat_props = self.props_closet_materials
+        mat_color_name = cab_mat_props.materials.get_mat_color().name
+        use_black_edge = self.use_black_edge and mat_color_name == "Steel Grey (Fog Grey)" or mat_color_name == "Cosmic Dust (Graphite Spectrum)"
 
         if self.only_update_pointers:
             self.update_material_pointers(context)
@@ -830,9 +877,11 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                         elif metal_color.get_value() == 3:
                                             mat_slot.pointer_name = "Gold"
                                         elif metal_color.get_value() == 4:
-                                            mat_slot.pointer_name = "Black"
+                                            mat_slot.pointer_name = "Bronze"
                                         elif metal_color.get_value() == 5:
                                             mat_slot.pointer_name = "Slate"
+                                        elif metal_color.get_value() == 6:
+                                            mat_slot.pointer_name = "Black"
 
                 if "IS_BP_BELT_RACK" in assembly.obj_bp:
                     metal_color = assembly.get_prompt("Metal Color")
@@ -849,9 +898,11 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     elif metal_color.get_value() == 3:
                                         mat_slot.pointer_name = "Gold"
                                     elif metal_color.get_value() == 4:
-                                        mat_slot.pointer_name = "Black"
+                                        mat_slot.pointer_name = "Bronze"
                                     elif metal_color.get_value() == 5:
                                         mat_slot.pointer_name = "Slate"
+                                    elif metal_color.get_value() == 6:
+                                        mat_slot.pointer_name = "Black"
 
                 if "IS_BP_TIE_RACK" in assembly.obj_bp:
                     metal_color = assembly.get_prompt("Metal Color")
@@ -868,9 +919,11 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     elif metal_color.get_value() == 3:
                                         mat_slot.pointer_name = "Gold"
                                     elif metal_color.get_value() == 4:
-                                        mat_slot.pointer_name = "Black"
+                                        mat_slot.pointer_name = "Bronze"
                                     elif metal_color.get_value() == 5:
                                         mat_slot.pointer_name = "Slate"
+                                    elif metal_color.get_value() == 6:
+                                        mat_slot.pointer_name = "Black"
 
                 if "IS_FILLER" in assembly.obj_bp:
                     exposed_left = assembly.get_prompt("Exposed Left")
@@ -929,9 +982,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                     exposed_right = assembly.get_prompt("Exposed Right")
                     exposed_top = assembly.get_prompt("Exposed Top")
                     exposed_bottom = assembly.get_prompt("Exposed Bottom")
-                    cab_mat_props = self.props_closet_materials
                     mat_type = cab_mat_props.materials.get_mat_type()
-                    mat_color_name = cab_mat_props.materials.get_mat_color().name
 
                     if exposed_left:
                         if exposed_left.get_value():
@@ -940,7 +991,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     child.snap.edge_w1 = 'Edge'
                                     for mat_slot in child.snap.material_slots:
                                         if mat_slot.name == 'LeftEdge':
-                                            if mat_type.name == 'Garage Material' and mat_color_name == "Graphite Spectrum":
+                                            if mat_type.name == 'Garage Material' and use_black_edge:
                                                 mat_slot.pointer_name = "Black"
                                             else:
                                                 mat_slot.pointer_name = "Closet_Part_Edges"
@@ -958,7 +1009,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     child.snap.edge_w2 = 'Edge'
                                     for mat_slot in child.snap.material_slots:
                                         if mat_slot.name == 'RightEdge':
-                                            if mat_type.name == 'Garage Material' and mat_color_name == "Graphite Spectrum":
+                                            if mat_type.name == 'Garage Material' and use_black_edge:
                                                 mat_slot.pointer_name = "Black"
                                             else:
                                                 mat_slot.pointer_name = "Closet_Part_Edges"
@@ -977,7 +1028,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     child.snap.edge_l2 = 'Edge'
                                     for mat_slot in child.snap.material_slots:
                                         if mat_slot.name == 'Edgebanding':
-                                            if mat_type.name == 'Garage Material' and mat_color_name == "Graphite Spectrum":
+                                            if mat_type.name == 'Garage Material' and use_black_edge:
                                                 mat_slot.pointer_name = "Black"
                                             else:
                                                 mat_slot.pointer_name = "Closet_Part_Edges"
@@ -996,7 +1047,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     child.snap.edge_l2 = 'Edge'
                                 for mat_slot in child.snap.material_slots:
                                     if mat_slot.name == 'BackEdge':
-                                        if mat_type.name == 'Garage Material' and mat_color_name == "Graphite Spectrum":
+                                        if mat_type.name == 'Garage Material' and use_black_edge:
                                             mat_slot.pointer_name = "Black"
                                         else:
                                             mat_slot.pointer_name = "Closet_Part_Edges"
@@ -1030,10 +1081,10 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
                 elif props.is_drawer_back_bp or props.is_drawer_side_bp or props.is_drawer_sub_front_bp:
                     self.set_drawer_part_material(assembly)
-                
+
                 elif assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
                     self.set_drawer_front_material(assembly)
-                
+
                 elif assembly.obj_bp.get("IS_BP_COUNTERTOP"):
                     self.set_countertop_material(assembly)
 

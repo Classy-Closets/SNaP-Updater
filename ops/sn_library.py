@@ -7,7 +7,7 @@ from bpy.types import Operator
 from bpy.props import StringProperty
 import mathutils
 
-from snap import sn_types
+from snap import sn_props, sn_types, sn_paths
 from snap import sn_utils
 
 
@@ -60,6 +60,9 @@ class SN_LIB_OT_set_active_library(Operator):
             if library.lib_type == 'SNAP':
                 root_dir = library.thumbnail_dir
                 dirs = os.listdir(root_dir)
+                if self.library_name == "Kitchen Bath Library":
+                    wm = context.window_manager.lm_cabinets
+                    wm.cabinet_type = sn_paths.DEFAULT_KITCHEN_BATH_CABINET_TYPE
             else:
                 root_dir = library.root_dir
                 dirs = os.listdir(root_dir)
@@ -89,9 +92,15 @@ class SN_LIB_OT_change_library_category(bpy.types.Operator):
         scene_props = context.scene.snap
         active_library = wm_props.libraries[scene_props.active_library_name]
         scene_props.active_category = self.category
+        cabinet_wm_props = context.window_manager.lm_cabinets
+        insert_dir = os.path.join(active_library.root_dir, "inserts")
 
         if active_library.lib_type == 'SNAP':
             root_dir = active_library.thumbnail_dir
+
+            if os.path.exists(insert_dir):
+                if cabinet_wm_props.cabinet_type == 'STARTER':
+                    root_dir = insert_dir
         else:
             root_dir = active_library.root_dir
 

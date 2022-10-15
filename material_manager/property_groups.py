@@ -9,6 +9,7 @@ from bpy.props import (
     CollectionProperty,
     PointerProperty,
     FloatProperty,
+    EnumProperty
 )
 
 from snap import sn_paths
@@ -17,14 +18,21 @@ from snap import sn_paths
 def render_material_exists(material_name):
     materials_dir = sn_paths.CLOSET_MATERIAL_DIR
     search_directory = os.path.join(materials_dir, "Closet Materials")
+    search_directory_v2 = os.path.join(materials_dir, "Closet Materials V2")
+    mat_exists = False
 
-    if os.path.isdir(search_directory):
-        files = os.listdir(search_directory)
-
+    if os.path.isdir(search_directory_v2):
+        files = os.listdir(search_directory_v2)
         if material_name + ".blend" in files:
-            return True
-        else:
-            return False
+            mat_exists = True
+
+    if mat_exists:
+        if os.path.isdir(search_directory):
+            files = os.listdir(search_directory)
+            if material_name + ".blend" in files:
+                mat_exists = True
+
+    return mat_exists
 
 
 class ColorMixIn:
@@ -34,7 +42,7 @@ class ColorMixIn:
     def render_material_exists(self, material_name):
         cls_type = self.bl_rna.name
 
-        if cls_type in ("EdgeColor", "MaterialColor"):
+        if cls_type in ("EdgeColor", "MaterialColor", "StainColor", "PaintColor"):
             snap_db_mat_dir = sn_paths.CLOSET_MATERIAL_DIR
             search_directory = snap_db_mat_dir
 
@@ -46,9 +54,14 @@ class ColorMixIn:
 
         if os.path.isdir(search_directory):
             files = os.listdir(search_directory)
-
             if material_name + ".blend" in files:
                 mat_exists = True
+
+        if not mat_exists:
+            if os.path.isdir(sn_paths.CLOSET_MATERIAL_LEGACY_DIR):
+                files = os.listdir(sn_paths.CLOSET_MATERIAL_LEGACY_DIR)
+                if material_name + ".blend" in files:
+                    mat_exists = True
 
         return mat_exists
 
@@ -84,7 +97,7 @@ class EdgeType(PropertyGroup):
 
     def get_edge_color(self):
         scene_props = bpy.context.scene.closet_materials
-        return self.colors[scene_props.edge_color_index]          
+        return self.colors[scene_props.edge_color_index]
 
     def get_inventory_edge_name(self):
         return "EB {} {}".format(self.name, self.type_code)    
@@ -122,11 +135,17 @@ class Edges(PropertyGroup):
         return self.edge_types[scene_props.edge_type_index]
 
     def get_edge_color(self):
-        return self.get_edge_type().get_edge_color()        
+        return self.get_edge_type().get_edge_color()
 
     def draw(self, layout):
         box = layout.box()
         box.label(text="Edge Selection:")
+        scene_props = bpy.context.scene.closet_materials
+
+        if scene_props.edge_discontinued_color:
+            warning_box = box.box()
+            msg = '"{}" is no longer available to order!'.format(scene_props.edge_discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
 
         if len(self.edge_types) > 0:
             row = box.row()
@@ -197,6 +216,12 @@ class DoorDrawerEdges(PropertyGroup):
     def draw(self, layout):
         box = layout.box()
         box.label(text="Edge Selection:")
+        scene_props = bpy.context.scene.closet_materials
+
+        if scene_props.dd_edge_discontinued_color:
+            warning_box = box.box()
+            msg = '"{}" is no longer available to order!'.format(scene_props.dd_edge_discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
 
         if len(self.edge_types) > 0:
             row = box.row()
@@ -259,7 +284,7 @@ class SecondaryEdges(PropertyGroup):
         return self.edge_types[scene_props.secondary_edge_type_index]
 
     def get_edge_color(self):
-        return self.get_edge_type().get_edge_color()         
+        return self.get_edge_type().get_edge_color()
 
     def has_render_mat(self):
         return self.get_edge_type().has_render_mat
@@ -267,6 +292,12 @@ class SecondaryEdges(PropertyGroup):
     def draw(self, layout):
         box = layout.box()
         box.label(text="Cleat Edge Selection:")
+        scene_props = bpy.context.scene.closet_materials
+
+        if scene_props.cleat_edge_discontinued_color:
+            warning_box = box.box()
+            msg = '"{}" is no longer available to order!'.format(scene_props.cleat_edge_discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
 
         if len(self.edge_types) > 0:
             row = box.row()
@@ -283,6 +314,7 @@ class SecondaryEdges(PropertyGroup):
 class MaterialColor(PropertyGroup, ColorMixIn):
     description: StringProperty()
     color_code: IntProperty()
+    two_sided_display_name: StringProperty()
 
     def draw(self, layout):
         pass
@@ -295,27 +327,77 @@ class MaterialType(PropertyGroup):
 
     def set_color_index(self, index):
         scene_props = bpy.context.scene.closet_materials
-        scene_props.mat_color_index = index
+        mat_type = scene_props.materials.get_mat_type()
+
+        if mat_type.name == "Solid Color Smooth Finish":
+            scene_props.solid_color_index = index
+        if mat_type.name == "Grain Pattern Smooth Finish":
+            scene_props.grain_color_index = index
+        if mat_type.name == "Solid Color Textured Finish":
+            scene_props.solid_tex_color_index = index
+        if mat_type.name == "Grain Pattern Textured Finish":
+            scene_props.grain_tex_color_index = index
+        if mat_type.name == "Linen Pattern Linen Finish":
+            scene_props.linen_color_index = index
+        if mat_type.name == "Solid Color Matte Finish":
+            scene_props.matte_color_index = index
+        if mat_type.name == "Garage Material":
+            scene_props.garage_color_index = index
+        if mat_type.name == "Oversized Material":
+            try:
+                bpy.ops.closet_materials.poll_assign_materials()
+            except Exception:
+                pass
 
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
-        return self.colors[scene_props.mat_color_index] 
+        if self.name == "Upgrade Options":
+            upgrade_type = scene_props.upgrade_options.get_type()
+            if upgrade_type.name == "Paint":
+                return scene_props.paint_colors[scene_props.paint_color_index]
+            else:
+                return scene_props.stain_colors[scene_props.stain_color_index]
+
+        if self.name == "Solid Color Smooth Finish":
+            return self.colors[scene_props.solid_color_index]
+        if self.name == "Grain Pattern Smooth Finish":
+            return self.colors[scene_props.grain_color_index]
+        if self.name == "Solid Color Textured Finish":
+            return self.colors[scene_props.solid_tex_color_index]
+        if self.name == "Grain Pattern Textured Finish":
+            return self.colors[scene_props.grain_tex_color_index]
+        if self.name == "Linen Pattern Linen Finish":
+            return self.colors[scene_props.linen_color_index]
+        if self.name == "Solid Color Matte Finish":
+            return self.colors[scene_props.matte_color_index]
+        if self.name == "Garage Material":
+            return self.colors[scene_props.garage_color_index]
+        if self.name == "Oversized Material":
+            return self.colors[0]
 
     def get_inventory_material_name(self):
         return "{} {}".format(self.name, self.type_code)
 
     def draw(self, layout):
-        color = self.get_mat_color()
+        scene_props = bpy.context.scene.closet_materials
+        if self.name == "Upgrade Options":
+            scene_props.upgrade_options.draw(layout)
+            return
 
         row = layout.row()
         split = row.split(factor=0.25)
+        color = self.get_mat_color()
+
         if self.name == "Garage Material":
-            split.label(text="Exterior Color:")   
+            split.label(text="Exterior Color:")
+            color_name = color.two_sided_display_name
         else:
-            split.label(text="Color:")            
+            split.label(text="Color:")
+            color_name = color.name
+
         split.menu(
             "SNAP_MATERIAL_MT_Mat_Colors",
-            text=color.name,
+            text=color_name,
             icon='RADIOBUT_ON' if color.has_render_mat else 'ERROR')
 
         # NOTE dealing with the situation it's needed to show exactly
@@ -327,7 +409,7 @@ class MaterialType(PropertyGroup):
 
             max_len_inch = round(color.oversize_max_len / 25.4, 2)
             max_len_str = 'Max Length: {}"'.format(max_len_inch)
-            split.label(text=max_len_str, icon='INFO')      
+            split.label(text=max_len_str, icon='INFO')
         elif color.oversize_max_len > 0 and color.oversize_max_len == 2768:
             row = layout.row()
             split = row.split(factor=0.25)
@@ -335,15 +417,15 @@ class MaterialType(PropertyGroup):
 
             max_len_inch = 109
             max_len_str = 'Max Length: {}"'.format(max_len_inch)
-            split.label(text=max_len_str, icon='INFO')      
+            split.label(text=max_len_str, icon='INFO')
 
         if not color.has_render_mat:
             row = layout.row()
             split = row.split(factor=0.25)
-            split.label(text="")             
+            split.label(text="")
             box = split.box()
             row = box.row()
-            row.label(text="Missing render material.", icon='ERROR') 
+            row.label(text="Missing render material.", icon='ERROR')
 
 
 class Materials(PropertyGroup):
@@ -397,6 +479,18 @@ class Materials(PropertyGroup):
         scene_props = bpy.context.scene.closet_materials
         return self.mat_types[scene_props.mat_type_index]
 
+    def get_type_list(self):
+        items = []
+        for i, type in enumerate(self.mat_types):
+            items.append((type.name, type.name, type.name))
+        return items
+
+    def get_mat_color_list(self, type_name):
+        colors = []
+        for color in self.mat_types[type_name].colors:
+            colors.append((color.name, color.name, color.name))
+        return colors
+
     def get_mat_color(self):
         return self.get_mat_type().get_mat_color()
 
@@ -406,6 +500,12 @@ class Materials(PropertyGroup):
     def draw(self, layout):
         box = layout.box()
         box.label(text="Material Selection:")
+        scene_props = bpy.context.scene.closet_materials
+
+        if scene_props.discontinued_color:
+            warning_box = box.box()
+            msg = '"{}" is no longer available to order!'.format(scene_props.discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
 
         if len(self.mat_types) > 0:
             row = box.row()
@@ -415,11 +515,11 @@ class Materials(PropertyGroup):
             self.get_mat_type().draw(box)
             row = box.row()
             if self.get_mat_type().name == "Garage Material":
-                row.label(text="Garage Color Schemes Come With White Interiors")
+                row.label(text="Two Sided Color Schemes Come With White Interiors")
 
         else:
             row = box.row()
-            row.label(text="None", icon='ERROR')               
+            row.label(text="None", icon='ERROR')
 
 
 class DoorDrawerMaterialType(PropertyGroup):
@@ -433,7 +533,14 @@ class DoorDrawerMaterialType(PropertyGroup):
 
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
-        return self.colors[scene_props.door_drawer_mat_color_index]
+        if self.name == "Upgrade Options":
+            upgrade_type = scene_props.upgrade_options.get_type()
+            if upgrade_type.name == 'Paint':
+                return scene_props.paint_colors[scene_props.paint_color_index]
+            else:
+                return scene_props.stain_colors[scene_props.stain_color_index]
+        else:
+            return self.colors[scene_props.door_drawer_mat_color_index]
 
     def get_inventory_material_name(self):
         return "{} {}".format(self.name, self.type_code)
@@ -492,7 +599,14 @@ class DoorDrawerMaterials(PropertyGroup):
         return self.mat_types[scene_props.door_drawer_mat_type_index]
 
     def get_mat_color(self):
-        return self.get_mat_type().get_mat_color()
+        scene_props = bpy.context.scene.closet_materials
+        if self.name == "Upgrade Options":
+            if self.upgrade_options == 'PAINT':
+                return scene_props.paint_colors[scene_props.paint_color_index]
+            else:
+                return scene_props.stain_colors[scene_props.stain_color_index]
+        else:        
+            return self.get_mat_type().get_mat_color()
 
     def has_render_mat(self):
         return self.get_mat_type().has_render_mat
@@ -500,6 +614,12 @@ class DoorDrawerMaterials(PropertyGroup):
     def draw(self, layout):
         box = layout.box()
         box.label(text="Material Selection:")
+        scene_props = bpy.context.scene.closet_materials
+
+        if scene_props.dd_mat_discontinued_color:
+            warning_box = box.box()
+            msg = '"{}" is no longer available to order!'.format(scene_props.dd_mat_discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
 
         if len(self.mat_types) > 0:
             row = box.row()
@@ -529,7 +649,27 @@ class CountertopManufactuer(PropertyGroup):
 
     def get_color(self):
         scene_props = bpy.context.scene.closet_materials
-        return self.colors[scene_props.ct_color_index]
+        if self.name == "Wood Painted MDF":
+            return scene_props.get_ct_paint_color()
+        if self.name == "Wood Stained Veneer":
+            return scene_props.get_ct_stain_color()
+        elif self.colors:
+            return self.colors[scene_props.ct_color_index]
+
+    def get_color_list(self):
+        scene_props = bpy.context.scene.closet_materials
+        colors = []
+        if self.name == 'Butcher Block':
+            return [("Craft Oak", "Craft Oak", "Craft Oak")]
+
+        if self.name == "Wood Stained Veneer":
+            return [(color.name, color.name, color.name) for color in scene_props.ct_stain_colors]
+        if self.name == "Wood Painted MDF":
+            return [(color.name, color.name, color.name) for color in scene_props.ct_paint_colors]
+
+        for color in self.colors:
+            colors.append((color.name, color.name, color.name))
+        return colors
 
 
 class CountertopType(PropertyGroup):
@@ -545,7 +685,7 @@ class CountertopType(PropertyGroup):
     def set_mfg_index(self, index):
         scene_props = bpy.context.scene.closet_materials
         scene_props.ct_mfg_index = index
-        scene_props.ct_color_index = 0     
+        scene_props.ct_color_index = 0
 
     def get_mfg(self):
         scene_props = bpy.context.scene.closet_materials
@@ -566,7 +706,7 @@ class CountertopType(PropertyGroup):
 
             row = layout.row()
             split = row.split(factor=0.25)
-            split.label(text="Color:")            
+            split.label(text="Color:")
             split.menu(
                 "SNAP_MATERIAL_MT_Countertop_Colors",
                 text=color.name,
@@ -575,35 +715,52 @@ class CountertopType(PropertyGroup):
             if not color.has_render_mat:
                 row = layout.row()
                 split = row.split(factor=0.25)
-                split.label(text="")             
+                split.label(text="")
                 box = split.box()
                 row = box.row()
-                row.label(text="Missing render material.", icon='ERROR')         
+                row.label(text="Missing render material.", icon='ERROR')
 
         elif len(self.manufactuers) > 0:
             mfg = self.get_mfg()
             color = mfg.get_color()
+            wood_ct = self.name == "Wood"
+            butcher_block = mfg.name == "Butcher Block"
 
             row = layout.row()
             split = row.split(factor=0.25)
-            split.label(text="Manufactuer:")             
+            if wood_ct:
+                split.label(text="Style:")
+            else:
+                split.label(text="Manufactuer:")
             split.menu("SNAP_MATERIAL_MT_Countertop_Mfgs", text=mfg.name, icon='RADIOBUT_ON')
 
-            row = layout.row()
-            split = row.split(factor=0.25)
-            split.label(text="Color:")   
-            split.menu(
-                "SNAP_MATERIAL_MT_Countertop_Colors",
-                text=mfg.get_color().name,
-                icon='RADIOBUT_ON' if color.has_render_mat else 'ERROR')
+            if wood_ct and not butcher_block:
+                if mfg.name == "Wood Painted MDF":
+                    row = layout.row()
+                    split = row.split(factor=0.25)
+                    split.label(text="Color:")
+                    split.menu(
+                        "SNAP_MATERIAL_MT_Ct_Paint_Colors",
+                        text=color.name,
+                        icon='RADIOBUT_ON')
 
-            if not color.has_render_mat:
+                elif mfg.name == "Wood Stained Veneer":
+                    row = layout.row()
+                    split = row.split(factor=0.25)
+                    split.label(text="Color:")
+                    split.menu(
+                        "SNAP_MATERIAL_MT_Ct_Stain_Colors",
+                        text=color.name,
+                        icon='RADIOBUT_ON')
+
+            elif not butcher_block:
                 row = layout.row()
                 split = row.split(factor=0.25)
-                split.label(text="")             
-                box = split.box()
-                row = box.row()
-                row.label(text="Missing render material.", icon='ERROR') 
+                split.label(text="Color:")
+                split.menu(
+                    "SNAP_MATERIAL_MT_Countertop_Colors",
+                    text=mfg.get_color().name,
+                    icon='RADIOBUT_ON')
 
 
 class CustomCountertops(PropertyGroup):
@@ -623,8 +780,32 @@ class CustomCountertops(PropertyGroup):
 
 
 class Countertops(PropertyGroup):
-    countertop_types: CollectionProperty(type=CountertopType) 
+    countertop_types: CollectionProperty(type=CountertopType)
     custom_countertop: PointerProperty(type=CustomCountertops)
+
+    def get_granite_color_list(self):
+        granite_color_list = []
+        for mat_type in self.countertop_types:
+            if mat_type.name == 'Granite':
+                for color in mat_type.colors:
+                    granite_color_list.append((color.name, color.name, color.name))
+        return granite_color_list
+
+    def get_hpl_mfg_list(self):
+        mfgs = []
+        for mat_type in self.countertop_types:
+            if mat_type.name == 'HPL':
+                for mfg in mat_type.manufactuers:
+                    mfgs.append((mfg.name, mfg.name, mfg.name))
+        return mfgs
+
+    def get_quartz_mfg_list(self):
+        mfgs = []
+        for mat_type in self.countertop_types:
+            if mat_type.name == 'Quartz':
+                for mfg in mat_type.manufactuers:
+                    mfgs.append((mfg.name, mfg.name, mfg.name))
+        return mfgs
 
     def set_ct_type_index(self, index):
         scene_props = bpy.context.scene.closet_materials
@@ -637,18 +818,47 @@ class Countertops(PropertyGroup):
         return self.countertop_types[scene_props.ct_type_index]
 
     def get_color(self):
-        return self.get_type().get_color()
+        scene_props = bpy.context.scene.closet_materials
+        ct_type = self.get_type()
+        mfg = None
+
+        if len(ct_type.manufactuers) > 0:
+            mfg = ct_type.get_mfg()
+
+        if "Wood" in ct_type.name:
+            if mfg.name == "Wood Painted MDF":
+                return mfg.colors[scene_props.ct_paint_color_index]
+            if mfg.name == "Wood Stained Veneer":
+                return mfg.colors[scene_props.ct_stain_color_index]
+        else:
+            return self.get_type().get_color()
 
     def get_color_name(self):
-        if "Melamine" in self.get_type().name:
+        ct_type = self.get_type()
+        mfg = None
+
+        if len(ct_type.manufactuers) > 0:
+            mfg = ct_type.get_mfg()
+
+        if "Melamine" in ct_type.name:
             materials = bpy.context.scene.closet_materials.materials
             return materials.get_mat_color().name
-        
+
+        if "Wood" in ct_type.name and mfg:
+            if mfg.name == "Butcher Block":
+                return "Craft Oak"
+            else:
+                color = self.get_color()
+                return color.name
+
         else:
             color = self.get_color()
             return color.name
 
     def color_has_render_mat(self):
+        if self.get_type().name == "Wood":
+            return True
+
         color = self.get_color()
 
         if color:
@@ -663,10 +873,10 @@ class Countertops(PropertyGroup):
         ct_type = self.get_type()
         ct_color = self.get_color()
         ct_mfg = ct_type.get_mfg()
-        
+
         if len(ct_type.colors) > 0:
             return "{} {}".format(ct_type.name, ct_color.name)
-        
+
         elif len(ct_type.manufactuers) > 0:
             return "{} {} {}".format(ct_type.name, ct_mfg.name, ct_color.name)
 
@@ -686,12 +896,94 @@ class Countertops(PropertyGroup):
 
         else:
             row = box.row()
-            row.label(text="None", icon='ERROR')            
+            row.label(text="None", icon='ERROR')
 
 
-class StainColor(PropertyGroup):
+class StainColor(PropertyGroup, ColorMixIn):
     description: StringProperty()
     sku: StringProperty()
+
+
+class PaintColor(PropertyGroup, ColorMixIn):
+    description: StringProperty()
+    sku: StringProperty()
+
+
+class UpgradeType(PropertyGroup):
+
+    def get_color(self):
+        scene_props = bpy.context.scene.closet_materials
+        if self.name == "Paint":
+            return scene_props.paint_colors[scene_props.paint_color_index]
+        elif self.name == "Stain":
+            return scene_props.stain_colors[scene_props.stain_color_index]
+
+    def draw(self, layout):
+        scene_props = bpy.context.scene.closet_materials
+        if self.name == "None":
+            return
+
+        row = layout.row()
+        split = row.split(factor=0.25)
+        split.label(text="Color:")
+
+        if self.name == "Paint":
+            split.menu('SNAP_MATERIAL_MT_Paint_Colors', text=scene_props.get_paint_color().name, icon='RADIOBUT_ON')
+        elif self.name == "Stain":
+            split.menu('SNAP_MATERIAL_MT_Stain_Colors', text=scene_props.get_stain_color().name, icon='RADIOBUT_ON')
+
+
+class UpgradeOptions(PropertyGroup):
+    types: CollectionProperty(type=UpgradeType)
+
+    def get_type(self):
+        scene_props = bpy.context.scene.closet_materials
+        return self.types[scene_props.upgrade_type_index]
+
+    def set_type_index(self, index):
+        scene_props = bpy.context.scene.closet_materials
+        scene_props.upgrade_type_index = index
+
+    def draw(self, layout):
+        custom_colors = bpy.context.scene.closet_materials.use_custom_color_scheme
+        scene_props = bpy.context.scene.closet_materials
+
+        if len(self.types) > 0:
+            if custom_colors:
+                layout = layout.box()
+                layout.label(text="Paint/Stain Options:")
+                if scene_props.dd_mat_discontinued_color:
+                    warning_box = layout.box()
+                    msg = '"{}" is no longer available to order!'.format(scene_props.dd_mat_discontinued_color)
+                    warning_box.label(text=msg, icon='ERROR')
+
+            row = layout.row()
+            split = row.split(factor=0.25)
+            split.label(text="Option:")
+            split.menu('SNAP_MATERIAL_MT_Upgrade_Types', text=self.get_type().name, icon='RADIOBUT_ON')
+            self.get_type().draw(layout)
+
+            if custom_colors and scene_props.upgrade_options.get_type().name != "None":
+                active_glaze_color = scene_props.get_glaze_color()
+                row = layout.row(align=True)
+                split = row.split(factor=0.25)
+                split.label(text="Glaze Color:")
+                split.menu(
+                    'SNAP_MATERIAL_MT_Glaze_Colors',
+                    text=active_glaze_color.name, icon='RADIOBUT_ON')
+
+                if active_glaze_color.name != "None":
+                    active_glaze_style = scene_props.get_glaze_style()
+                    row = layout.row(align=True)
+                    split = row.split(factor=0.25)
+                    split.label(text="Glaze Style:")
+                    split.menu(
+                        'SNAP_MATERIAL_MT_Glaze_Styles',
+                        text=active_glaze_style.name, icon='RADIOBUT_ON')
+
+        else:
+            row = layout.row()
+            row.label(text="None", icon='ERROR')
 
 
 class FivePieceMelamineDoorColor(PropertyGroup):
@@ -724,6 +1016,11 @@ class BackingVeneerColor(PropertyGroup):
     sku: StringProperty()
 
 
+class ColorConversions(PropertyGroup):
+    name: StringProperty()
+    new_name: StringProperty()
+
+
 class DrawerSlideSize(PropertyGroup):
     slide_length_inch: FloatProperty()
     front_hole_dim_mm: IntProperty()
@@ -754,6 +1051,9 @@ classes = (
     CustomCountertops,
     Countertops,
     StainColor,
+    PaintColor,
+    UpgradeType,
+    UpgradeOptions,
     FivePieceMelamineDoorColor,
     GlazeColor,
     GlazeStyle,
@@ -761,7 +1061,8 @@ classes = (
     GlassColor,
     BackingVeneerColor,
     DrawerSlideSize,
-    DrawerSlide
+    DrawerSlide,
+    ColorConversions
 )
 
 register, unregister = bpy.utils.register_classes_factory(classes)

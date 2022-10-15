@@ -39,13 +39,50 @@ def load_materials_from_db(scene=None):
 #     snap_pointers.update_pointer_properties()
 
 
+
+
 @persistent
 def assign_material_pointers(scene=None):
+
+    def get_material_indexes(mat_props, mat_types, room_mat_color, is_garage_material):
+        if is_garage_material:
+            if room_mat_color == "Winter White (Oxford White)":
+                return 6, 4
+            mat_type = mat_props.materials.mat_types["Garage Material"]
+            for i, color in enumerate(mat_type.colors):
+                if room_mat_color in color.name:
+                    return 6, i
+        else:
+            for mat_idx, mat_type in enumerate(mat_types):
+                for color_idx, color in enumerate(mat_type.colors):
+                    if room_mat_color in color.name:
+                        return mat_idx, color_idx
+
+        return None, None
 
     def get_part_mesh(obj_bp, mesh_type):
         for obj in obj_bp.children:
             if obj.type == 'MESH' and obj.snap.type_mesh == mesh_type:
                 return obj
+
+    def get_mat_slot_item_name(obj, slot_name, type):
+        part_mesh = get_part_mesh(obj, type)
+        mat_slot = part_mesh.snap.material_slots[slot_name]
+        if mat_slot:
+            item_name = mat_slot.item_name
+            return item_name
+
+    def get_converted_name(name):
+        new_name = ""
+        if name in mat_props.color_conversions:
+            converted_name = mat_props.color_conversions[name].new_name
+            new_name = converted_name
+        return new_name if new_name else name
+
+    def message_box(type_name, color_name):
+        bpy.ops.snap.message_box(
+            'INVOKE_DEFAULT',
+            message="\"{}\"\nThis {} color is no longer available to order!".format(color_name, type_name))
 
     if bpy.data.is_saved:
         # If 2Ds generated
@@ -57,55 +94,183 @@ def assign_material_pointers(scene=None):
         mat_props = scene.closet_materials
         custom_colors = mat_props.use_custom_color_scheme
         mat_type = mat_props.materials.get_mat_type()
+        edge_type = mat_props.edges.get_edge_type()
+        cleat_edge_type = mat_props.secondary_edges.get_edge_type()
+        door_drawer_mat_type = mat_props.door_drawer_materials.get_mat_type()
+        door_drawer_edge_type = mat_props.door_drawer_edges.get_edge_type()
 
         if mat_props.mat_color_index >= len(mat_type.colors):
             mat_props.mat_color_index = len(mat_type.colors) - 1
 
-        if not custom_colors:
-            for obj in scene.objects:
-                part_mesh = None
-                room_mat_color = None
-                if mat_type.type_code == 1:
-                    if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
-                        part_mesh = get_part_mesh(obj, 'CUTPART')
+        if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
+            mat_props.door_drawer_mat_color_index = len(door_drawer_mat_type.colors) - 1
 
-                else:
-                    if "IS_BP_PANEL" in obj:
-                        part_mesh = get_part_mesh(obj, 'CUTPART')
+        # if not custom_colors:
+        for obj in scene.objects:
+            part_mesh = None
+            room_mat_color = None
+            is_garage_material = False
 
-                if part_mesh:
-                    use_unique_material = part_mesh.sn_closets.use_unique_material
-                    if not use_unique_material:
-                        room_mat_color = part_mesh.snap.material_slots["Top"].item_name
-                        break
-
-            if room_mat_color:
-                if mat_type.get_mat_color().name != room_mat_color:
-                    for i, color in enumerate(mat_type.colors):
-                        if room_mat_color in color.name:
-                            mat_type.set_color_index(i)
-        else:
-            for obj in scene.objects:
-                part_mesh = None
-                room_stain_color = None
-                color_exists = False
-                # Stain Color
+            if mat_type.type_code == 1 or mat_type.type_code == 4:
                 if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
-                    part_mesh = get_part_mesh(obj, 'BUYOUT')
+                    part_mesh = get_part_mesh(obj, 'CUTPART')
 
-                if part_mesh:
-                    room_stain_color = part_mesh.material_slots[0].material.name
+            else:
+                if "IS_BP_PANEL" in obj:
+                    part_mesh = get_part_mesh(obj, 'CUTPART')
+
+            if part_mesh:
+                use_unique_material = part_mesh.sn_closets.use_unique_material
+                if not use_unique_material:
+                    bottom_mat_ptr = part_mesh.snap.material_slots["Bottom"].pointer_name
+                    if bottom_mat_ptr == "Garage_Interior_Surface":
+                        is_garage_material = True
+                    room_mat_color = part_mesh.snap.material_slots["Top"].item_name
                     break
 
+        if room_mat_color:
+            current_mat_color = mat_type.get_mat_color().name
+
+            if room_mat_color in mat_props.color_conversions:
+                converted_name = mat_props.color_conversions[room_mat_color].new_name
+                room_mat_color = converted_name
+
+            if current_mat_color != room_mat_color:
+                mat_types = mat_props.materials.mat_types
+                new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_types, room_mat_color, is_garage_material)
+                if new_type_idx is not None and new_color_idx is not None:
+                    mat_props.mat_type_index = new_type_idx
+                    mat_type.set_color_index(new_color_idx)
+                else:
+                    mat_props.discontinued_color = room_mat_color
+                    message_box("Material", room_mat_color)
+
+        if custom_colors:
+            edge = None
+            garage_room_edge = None
+            cleat_edge = None
+            door_drawer_mat = None
+            door_drawer_edge = None
+            room_stain_color = None
+
+            for obj in scene.objects:
+                part_mesh = None
+                color_exists = False
+
+                # Edge
+                if not edge and "IS_BP_PANEL" in obj:
+                    item_name = get_mat_slot_item_name(obj, "FrontBackEdge", 'CUTPART')
+                    if item_name:
+                        edge = item_name
+                        continue
+
+                # Cleat Edge
+                if not cleat_edge and "IS_CLEAT" in obj:
+                    item_name = get_mat_slot_item_name(obj, "Edgebanding", 'CUTPART')
+                    if item_name:
+                        cleat_edge = item_name
+                        continue
+
+                # Door/drawer mat
+                if not room_stain_color and "IS_DOOR" in obj:
+                    # Wood door
+                    part_mesh = get_part_mesh(obj, 'BUYOUT')
+                    if part_mesh and not room_stain_color:
+                        mat_slot = part_mesh.material_slots[0]
+                        if mat_slot:
+                            room_stain_color = mat_slot.material.name
+                            continue
+
+                # Melamine door
+                if not door_drawer_mat and "IS_DOOR" in obj:
+                    part_mesh = get_part_mesh(obj, 'CUTPART')
+                    if part_mesh:
+                        mat_name = get_mat_slot_item_name(obj, "Top", 'CUTPART')
+                        if mat_name:
+                            door_drawer_mat = mat_name
+                        edge_name = get_mat_slot_item_name(obj, "TopBottomEdge", 'CUTPART')
+                        if edge_name:
+                            door_drawer_edge = edge_name
+                        continue
+
+                # Garage material custom edge
+                if "IS_BP_PLANT_ON_TOP" in obj:
+                    part_mesh = get_part_mesh(obj, 'CUTPART')
+                    garage_room_edge = part_mesh.snap.material_slots["Edgebanding"].pointer_name
+
+            # Set custom edge
+            if edge:
+                edge = get_converted_name(edge)
+                if edge_type.get_edge_color().name != edge:
+                    new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.edges.edge_types, edge, is_garage_material)
+                    if new_type_idx is not None and new_color_idx is not None:
+                        mat_props.edge_type_index = new_type_idx
+                        edge_type.set_color_index(new_color_idx)
+                    else:
+                        mat_props.edge_discontinued_color = edge
+                        message_box("Edge", edge)
+
+            if garage_room_edge:
+                # if garage material
+                print("Garage", mat_type.name)
+
+            # Set custom cleat edge
+            if cleat_edge:
+                cleat_edge = get_converted_name(cleat_edge)
+                if cleat_edge_type.get_edge_color().name != cleat_edge:
+                    new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.secondary_edges.edge_types, cleat_edge, is_garage_material)
+                    if new_type_idx is not None and new_color_idx is not None:
+                        mat_props.secondary_edge_type_index = new_type_idx
+                        cleat_edge_type.set_color_index(new_color_idx)
+                    else:
+                        mat_props.cleat_edge_discontinued_color = cleat_edge
+                        message_box("Edge", cleat_edge)
+
+            # Set custom door/drawer mat
+            if door_drawer_mat:
+                door_drawer_mat = get_converted_name(door_drawer_mat)
+                if door_drawer_mat_type.get_mat_color().name != door_drawer_mat:
+                    new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.door_drawer_materials.mat_types, door_drawer_mat, is_garage_material)
+                    if new_type_idx is not None and new_color_idx is not None:
+                        mat_props.door_drawer_mat_type_index = new_type_idx
+                        door_drawer_mat_type.set_color_index(new_color_idx)
+                    else:
+                        mat_props.dd_mat_discontinued_color = door_drawer_mat
+                        message_box("Material", door_drawer_mat)
+
+            # Set custom door/drawer edge
+            if door_drawer_edge:
+                door_drawer_edge = get_converted_name(door_drawer_edge)
+                if door_drawer_edge_type.get_edge_color().name != door_drawer_edge:
+                    new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.door_drawer_edges.edge_types, door_drawer_edge, is_garage_material)
+                    if new_type_idx is not None and new_color_idx is not None:
+                        mat_props.door_drawer_edge_type_index = new_type_idx
+                        door_drawer_edge_type.set_color_index(new_color_idx)
+                    else:
+                        mat_props.dd_edge_discontinued_color = door_drawer_edge
+                        message_box("Edge", door_drawer_edge)
+
+            # Set custom stain color
             if room_stain_color:
-                if mat_props.get_stain_color().name != room_stain_color:
-                    for i, color in enumerate(mat_props.stain_colors):
+                room_stain_color = get_converted_name(room_stain_color)
+                color_found = False
+
+                for i, color in enumerate(mat_props.stain_colors):
+                    if color.name == room_stain_color:
+                        mat_props.stain_color_index = i
+                        mat_props.upgrade_type_index = 2
+                        color_found = True
+
+                if not color_found:
+                    for i, color in enumerate(mat_props.paint_colors):
                         if color.name == room_stain_color:
-                            mat_props.stain_color_index = i
-                            color_exists = True
-                # If stain color no longer exists, set to "None"
-                if not color_exists:
-                    mat_props.stain_color_index = 0
+                            mat_props.paint_color_index = i
+                            mat_props.upgrade_type_index = 1
+                            color_found = True
+
+                if not color_found:
+                    mat_props.stain_discontinued_color = room_stain_color
+                    message_box("Stain/Paint", room_stain_color)
 
     bpy.ops.closet_materials.assign_materials(only_update_pointers=True)
 

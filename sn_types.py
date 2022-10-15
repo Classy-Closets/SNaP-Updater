@@ -565,7 +565,7 @@ class Assembly:
         # Need to calculate z1 and z2 for Hanging openings because their self.obj_z.matrix_world[2][3] is their location rather than their dimension point
         # and self.obj_bp.matrix_world[2][3] is always 0, causing height collision to always calculate to true
 
-        if self.obj_bp.get("IS_BP_CLOSET") and not self.obj_bp.get("IS_BP_CABINET"):
+        if self.obj_bp.get("IS_BP_CLOSET") and not self.obj_bp.get("IS_BP_CABINET") and not self.obj_bp.get("IS_WALL_CLEAT"):
             # If it is a haning opening, calculate the height and greatest opening height, then z1 is going to be the height and z2 is the height minus
             # The greatest opening height
             opening_qty = self.get_prompt("Opening Quantity")
@@ -597,7 +597,7 @@ class Assembly:
             grp1_z_loc = self.obj_bp.matrix_world[2][3]
             grp1_z_dim = self.obj_z.matrix_world[2][3]
 
-        if assembly.obj_bp.get("IS_BP_CLOSET") and not self.obj_bp.get("IS_BP_CABINET"):
+        if assembly.obj_bp.get("IS_BP_CLOSET") and not self.obj_bp.get("IS_BP_CABINET") and not assembly.obj_bp.get("IS_WALL_CLEAT"):
             # If it is a haning opening, calculate the height and greatest opening height, then z1 is going to be the height and z2 is the height minus
             # The greatest opening height
             opening_qty = assembly.get_prompt("Opening Quantity")
@@ -711,7 +711,9 @@ class Assembly:
                             if corner_product:
                                 prev_group_depth += right_filler_amt.get_value()
 
-                        return obj_bp.location.x + prev_group_depth
+                        matrix_world = obj_bp.matrix_world.translation
+
+                        return matrix_world.x + prev_group_depth
 
                 # CHECK NEXT WALL
                 left_wall = wall.get_connected_wall('LEFT')

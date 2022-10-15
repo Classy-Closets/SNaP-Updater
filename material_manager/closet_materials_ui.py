@@ -48,15 +48,15 @@ class SNAP_MATERIALS_OT_change_active_index(Operator):
                         G.collection.data.set_color_index(index)
                         return {'FINISHED'}
 
-                if collection_name in ('Materials', 'MaterialType', 'DoorDrawerMaterials','DoorDrawerMaterialType'):
+                if collection_name in ('Materials', 'MaterialType', 'DoorDrawerMaterials', 'DoorDrawerMaterialType', 'UpgradeOptions', 'OversizedMaterial'):
                     if self.i_type == 'TYPE':
                         G.collection.data.set_type_index(index)
 
                     elif self.i_type == 'COLOR':
+                        context.scene.closet_materials.color_change = True
                         G.collection.data.set_color_index(index)
 
                     return {'FINISHED'}
-
 
                 if self.i_type == 'TYPE':
                     countertops.set_ct_type_index(index)
@@ -241,7 +241,6 @@ class SNAP_MATERIAL_MT_Mat_Colors(bpy.types.Menu):
         G.collection = colors
 
         for index, item in enumerate(colors):
-
             if index % MAX_COL_LEN == 0:
                 col = row.column()
 
@@ -255,13 +254,15 @@ class SNAP_MATERIAL_MT_Mat_Colors(bpy.types.Menu):
                 max_len_inch = 109
                 max_len_str = ' - (Max Length: {}")'.format(max_len_inch)
                 label = item.name + max_len_str
+            elif item.two_sided_display_name:
+                label = item.two_sided_display_name
             else:
-                label = item.name                
+                label = item.name
 
             op = col.operator(
                 'closet_materials.change_active_index',
                 text=label,
-                icon='RADIOBUT_ON' if index == cab_mat_props.mat_color_index else item.get_icon()
+                icon='RADIOBUT_ON' if index == cab_mat_props.get_mat_color_index(mat_type.name) else item.get_icon()
             )
 
             op.name = item.name
@@ -276,12 +277,15 @@ class SNAP_MATERIAL_MT_Mat_Types(bpy.types.Menu):
         types = cab_mat_props.materials.mat_types
         layout = self.layout
         row = layout.row()
-        G.collection = types                
+        G.collection = types
 
         for index, item in enumerate(types):
+            if cab_mat_props.use_custom_color_scheme:
+                if item.name == "Upgrade Options":
+                    continue
 
             if index % MAX_COL_LEN == 0:
-                col = row.column()    
+                col = row.column()
 
             op = col.operator(
                 'closet_materials.change_active_index',
@@ -292,7 +296,7 @@ class SNAP_MATERIAL_MT_Mat_Types(bpy.types.Menu):
             op.name = item.name
             op.i_type = 'TYPE'
 
-                                
+
 class SNAP_MATERIAL_MT_Door_Drawer_Mat_Colors(bpy.types.Menu):
     bl_label = "Custom Material Colors"
 
@@ -327,12 +331,15 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Types(bpy.types.Menu):
         types = cab_mat_props.door_drawer_materials.mat_types
         layout = self.layout
         row = layout.row()
-        G.collection = types                
+        G.collection = types
 
         for index, item in enumerate(types):
+            if cab_mat_props.use_custom_color_scheme:
+                if item.name in ("Upgrade Options", "Garage Material"):
+                    continue
 
             if index % MAX_COL_LEN == 0:
-                col = row.column()    
+                col = row.column()
 
             op = col.operator(
                 'closet_materials.change_active_index',
@@ -341,7 +348,7 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Types(bpy.types.Menu):
             )
 
             op.name = item.name
-            op.i_type = 'TYPE'                                
+            op.i_type = 'TYPE'
 
 
 class SNAP_MATERIAL_MT_Countertop_Types(bpy.types.Menu):
@@ -431,6 +438,34 @@ class SNAP_MATERIAL_MT_Countertop_Colors(bpy.types.Menu):
             op.i_type = 'COLOR'
 
 
+class SNAP_MATERIAL_MT_Upgrade_Types(bpy.types.Menu):
+    bl_label = "Countertop Types"
+
+    def draw(self, context):
+        props = context.scene.closet_materials
+        types = props.upgrade_options.types
+        layout = self.layout
+        row = layout.row()
+        G.collection = types
+
+        for index, item in enumerate(types):
+
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            if not props.use_custom_color_scheme and item.name == "None":
+                continue
+
+            op = col.operator(
+                'closet_materials.change_active_index',
+                text=item.name,
+                icon='RADIOBUT_ON' if index == props.upgrade_type_index else 'RADIOBUT_OFF'
+            )
+
+            op.name = item.name
+            op.i_type = 'TYPE'
+
+
 class SNAP_MATERIAL_MT_Stain_Colors(bpy.types.Menu):
     bl_label = "Stain Colors"
 
@@ -445,13 +480,9 @@ class SNAP_MATERIAL_MT_Stain_Colors(bpy.types.Menu):
             if index % MAX_COL_LEN == 0:
                 col = row.column()
 
-            if index == cab_mat_props.stain_color_index:
-                props = col.operator('closet_materials.change_active_stain_color', text=stain_color.name, icon='RADIOBUT_ON')
-                props.stain_color_name = stain_color.name
-
-            else:
-                props = col.operator('closet_materials.change_active_stain_color', text=stain_color.name, icon='RADIOBUT_OFF')
-                props.stain_color_name = stain_color.name
+            icon = 'RADIOBUT_ON' if index == cab_mat_props.stain_color_index else 'RADIOBUT_OFF'
+            props = col.operator('closet_materials.change_active_stain_color', text=stain_color.name, icon=icon)
+            props.stain_color_name = stain_color.name
 
 
 class OPS_Change_Active_Stain_Color(Operator):
@@ -469,6 +500,132 @@ class OPS_Change_Active_Stain_Color(Operator):
         for index, stain_color in enumerate(stain_colors):
             if stain_color.name == self.stain_color_name:
                 context.scene.closet_materials.stain_color_index = index
+
+        return {'FINISHED'}
+
+
+class SNAP_MATERIAL_MT_Paint_Colors(bpy.types.Menu):
+    bl_label = "Paint Colors"
+
+    def draw(self, context):
+        cab_mat_props = context.scene.closet_materials
+        colors = cab_mat_props.paint_colors
+        layout = self.layout
+        row = layout.row()
+
+        for index, paint_color in enumerate(colors):
+
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            icon = 'RADIOBUT_ON' if index == cab_mat_props.paint_color_index else 'RADIOBUT_OFF'
+            props = col.operator('closet_materials.change_active_paint_color', text=paint_color.name, icon=icon)
+            props.paint_color_name = paint_color.name
+
+
+class OPS_Change_Active_Paint_Color(Operator):
+    bl_idname = "closet_materials.change_active_paint_color"
+    bl_label = "Change Paint Color"
+    bl_description = "This changes the active paint color"
+    bl_options = {'UNDO'}
+
+    paint_color_name: StringProperty(name="Paint Color Name")
+
+    def execute(self, context):
+        props = context.scene.closet_materials
+        colors = props.paint_colors
+
+        for index, color in enumerate(colors):
+            if color.name == self.paint_color_name:
+                props.color_change = True
+                context.scene.closet_materials.paint_color_index = index
+
+        return {'FINISHED'}
+
+
+class SNAP_MATERIAL_MT_Ct_Stain_Colors(bpy.types.Menu):
+    bl_label = "Stain Colors"
+
+    def draw(self, context):
+        mat_props = context.scene.closet_materials
+        ct_type = mat_props.countertops.get_type()
+        mfg = ct_type.get_mfg()
+        colors = mfg.colors
+        layout = self.layout
+        row = layout.row()
+
+        for index, stain_color in enumerate(colors):
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            icon = 'RADIOBUT_ON' if index == mat_props.ct_stain_color_index else 'RADIOBUT_OFF'
+
+            props = col.operator(
+                'closet_materials.change_ct_active_stain_color',
+                text=stain_color.name,
+                icon=icon)
+            props.stain_color_name = stain_color.name
+
+
+
+class OPS_Change_Active_Ct_Stain_Color(Operator):
+    bl_idname = "closet_materials.change_ct_active_stain_color"
+    bl_label = "Change Stain Color"
+    bl_description = "This changes the active stain color"
+    bl_options = {'UNDO'}
+
+    stain_color_name: StringProperty(name="Stain Color Name")
+
+    def execute(self, context):
+        props = context.scene.closet_materials
+        stain_colors = props.countertops.get_type().get_mfg().colors
+
+        for index, stain_color in enumerate(stain_colors):
+            if stain_color.name == self.stain_color_name:
+                context.scene.closet_materials.ct_stain_color_index = index
+
+        return {'FINISHED'}
+
+
+class SNAP_MATERIAL_MT_Ct_Paint_Colors(bpy.types.Menu):
+    bl_label = "Countertop Paint Colors"
+
+    def draw(self, context):
+        mat_props = context.scene.closet_materials
+        ct_type = mat_props.countertops.get_type()
+        mfg = ct_type.get_mfg()
+        colors = mfg.colors
+        layout = self.layout
+        row = layout.row()
+
+        for index, color in enumerate(colors):
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            icon = 'RADIOBUT_ON' if index == mat_props.ct_paint_color_index else 'RADIOBUT_OFF'
+
+            props = col.operator(
+                'closet_materials.change_ct_active_paint_color',
+                text=color.name,
+                icon=icon)
+            props.color_name = color.name
+
+
+class OPS_Change_Active_Ct_Paint_Color(Operator):
+    bl_idname = "closet_materials.change_ct_active_paint_color"
+    bl_label = "Change Paint Color"
+    bl_description = "This changes the active paint color"
+    bl_options = {'UNDO'}
+
+    color_name: StringProperty(name="Color Name")
+
+    def execute(self, context):
+        props = context.scene.closet_materials
+        colors = props.countertops.get_type().get_mfg().colors
+
+        for index, color in enumerate(colors):
+            if color.name == self.color_name:
+                context.scene.closet_materials.ct_paint_color_index = index
 
         return {'FINISHED'}
 
@@ -739,7 +896,11 @@ classes = (
     SNAP_MATERIAL_MT_Countertop_Types,
     SNAP_MATERIAL_MT_Countertop_Mfgs,
     SNAP_MATERIAL_MT_Countertop_Colors,
+    SNAP_MATERIAL_MT_Upgrade_Types,
     SNAP_MATERIAL_MT_Stain_Colors,
+    SNAP_MATERIAL_MT_Paint_Colors,
+    SNAP_MATERIAL_MT_Ct_Stain_Colors,
+    SNAP_MATERIAL_MT_Ct_Paint_Colors,
     SNAP_MATERIAL_MT_Five_Piece_Melamine_Door_Colors,
     SNAP_MATERIAL_MT_Glaze_Colors,
     SNAP_MATERIAL_MT_Glaze_Styles,
@@ -747,6 +908,9 @@ classes = (
     SNAP_MATERIAL_MT_Glass_Colors,
     SNAP_MATERIAL_MT_Drawer_Slides,
     OPS_Change_Active_Stain_Color,
+    OPS_Change_Active_Paint_Color,
+    OPS_Change_Active_Ct_Stain_Color,
+    OPS_Change_Active_Ct_Paint_Color,
     OPS_Change_Active_Five_Piece_Melamine_Door_Color,
     OPS_Change_Active_Glaze_Color,
     OPS_Change_Active_Glaze_Style,

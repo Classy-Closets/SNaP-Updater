@@ -40,15 +40,28 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
 
     def render_material_exists(self, material_name):
         closet_mat_dir = sn_paths.CLOSET_MATERIAL_DIR
+        closet_mat_dir_legacy = sn_paths.CLOSET_MATERIAL_LEGACY_DIR
         mat_exists = False
 
         if os.path.isdir(closet_mat_dir):
             files = os.listdir(closet_mat_dir)
-
             if material_name + ".blend" in files:
                 mat_exists = True
 
+        if not mat_exists:
+            if os.path.isdir(closet_mat_dir_legacy):
+                files = os.listdir(closet_mat_dir_legacy)
+                if material_name + ".blend" in files:
+                    mat_exists = True
+
         return mat_exists
+
+    def add_placeholder_color(self, name, color_coll):
+        color = color_coll.add()
+        color.name = name
+        color.color_code = 0
+        color.description = name
+        color.has_render_mat = True
 
     def create_edge_color_collection(self, edge_type):
         rows = sn_db.query_db(
@@ -157,6 +170,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 {CCItems}\
             WHERE\
                 ProductType IN ('PM','VN') AND\
+                TypeCode = 9 AND\
                 Thickness = 0.75\
             ORDER BY\
                 DisplayName ASC\
@@ -186,15 +200,6 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                         color.check_render_material()
 
     def create_mat_color_collection(self, mat_type):
-        os_colors = {}
-
-        with open(sn_paths.OS_MAT_COLORS_CSV_PATH) as os_mat_colors_file:
-            reader = csv.reader(os_mat_colors_file, delimiter=',')
-            next(reader)
-
-            for row in reader:
-                os_colors[row[0]] = row[1]
-
         # Garage Material Import
         if mat_type.type_code == 1:
             self.create_garage_material_color_collection(mat_type)
@@ -240,15 +245,6 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                         self.missing_render_mats.append(display_name)
 
     def create_garage_material_color_collection(self, mat_type):
-        os_colors = {}
-
-        with open(sn_paths.OS_MAT_COLORS_CSV_PATH) as os_mat_colors_file:
-            reader = csv.reader(os_mat_colors_file, delimiter=',')
-            next(reader)
-
-            for row in reader:
-                os_colors[row[0]] = row[1]
-
         rows = sn_db.query_db(
             "SELECT\
                 ColorCode,\
@@ -258,53 +254,8 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 {CCItems}\
             WHERE\
                 ProductType IN ('PM') AND\
-                Description LIKE 'DURA WHT%' AND\
-                Thickness = 0.75\
-            ORDER BY\
-                DisplayName ASC\
-                    ;\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-        )
-
-        if len(rows) == 0:
-            color = mat_type.colors.add()
-            color.name = "None"
-            color.color_code = 0
-            color.description = "None"
-
-        # Insert "Dura White Fog Grey" after "Duraply Almond" to maintain index of older "Fog Grey" display name
-        idx_1 = rows.index(rows[0])
-        idx_2 = rows.index(rows[1])
-        rows[idx_1], rows[idx_2] = rows[idx_2], rows[idx_1]
-
-        for row in rows:
-            type_code = int(row[0])
-            display_name = row[1]
-            description = row[2]
-
-            if display_name not in mat_type.colors:
-                if self.render_material_exists(display_name):
-                    color = mat_type.colors.add()
-                    color.name = display_name
-                    color.color_code = int(type_code)
-                    color.description = description
-                    color.check_render_material()
-
-                elif display_name not in self.missing_render_mats:
-                    self.missing_render_mats.append(display_name)
-
-        rows = sn_db.query_db(
-            "SELECT\
-                ColorCode,\
-                DisplayName,\
-                Description\
-            FROM\
-                {CCItems}\
-            WHERE\
-                ProductType IN ('PM') AND\
-                DisplayName LIKE 'Oxford White (Frost)' AND\
                 Thickness = 0.75 AND\
-                TypeCode = 15200\
+                TypeCode = 8\
             ORDER BY\
                 DisplayName ASC\
                     ;\
@@ -313,12 +264,14 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
         for row in rows:
             type_code = int(row[0])
             display_name = row[1]
+            color_name = display_name.replace(" / Winter White", "").replace("/Ox White", "")
             description = row[2]
 
             if display_name not in mat_type.colors:
-                if self.render_material_exists(display_name):
+                if self.render_material_exists(color_name):
                     color = mat_type.colors.add()
-                    color.name = display_name
+                    color.name = color_name
+                    color.two_sided_display_name = display_name
                     color.color_code = int(type_code)
                     color.description = description
                     color.check_render_material()
@@ -357,19 +310,20 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             custom_mat_type.description = description
 
         for i, mat_type in enumerate(self.props.materials.mat_types):
-            if mat_type.type_code == 15225:
+            if mat_type.type_code == 9:
                 self.create_oversize_mat_color_collection(mat_type)
                 continue
             self.create_mat_color_collection(mat_type)
 
         for mat_type in self.props.door_drawer_materials.mat_types:
-            if mat_type.type_code == 15225:
+            if mat_type.type_code == 9:
                 self.create_oversize_mat_color_collection(mat_type)
                 continue
             self.create_mat_color_collection(mat_type)
 
     def create_coutertop_collection(self):
         items = []
+        props = bpy.context.scene.closet_materials
         countertops = bpy.context.scene.closet_materials.countertops
         countertops.countertop_types.clear()
         melamine = countertops.countertop_types.add()
@@ -381,6 +335,25 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             if os.path.isdir(type_path):
                 ct_type = countertops.countertop_types.add()
                 ct_type.name = fname
+
+                if fname == "Wood":
+                    for fname in os.listdir(type_path):
+                        n_path = os.path.join(type_path, fname)
+                        if os.path.isdir(n_path):
+                            ct_mfg = ct_type.manufactuers.add()
+                            ct_mfg.name = fname
+
+                            if ct_mfg.name == "Wood Painted MDF":
+                                for ct_color in props.ct_paint_colors:
+                                    color = ct_mfg.colors.add()
+                                    color.name = ct_color.name
+                                    color.check_render_material()
+                            if ct_mfg.name == "Wood Stained Veneer":
+                                for ct_color in props.ct_stain_colors:
+                                    color = ct_mfg.colors.add()
+                                    color.name = ct_color.name
+                                    color.check_render_material()
+                    continue
 
                 for fname in os.listdir(type_path):
                     n_path = os.path.join(type_path, fname)
@@ -444,10 +417,30 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
 
                                 items.clear()
 
-    def create_stain_color_collection(self):
+    def create_upgrade_color_collections(self):
         props = bpy.context.scene.closet_materials
-        props.stain_colors.clear()
-        exclude = ["Absolute Acajou"]
+        upgrade_types = ("None", "Paint", "Stain")
+        props.upgrade_options.types.clear()
+
+        for type_name in upgrade_types:
+            type = props.upgrade_options.types.add()
+            type.name = type_name
+
+        self.create_upgrade_color_collection(sn_paths.PAINT_COLORS_CSV_PATH, props.paint_colors)
+        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.stain_colors)
+        self.create_upgrade_color_collection(sn_paths.PAINT_COLORS_CSV_PATH, props.ct_paint_colors)
+        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.ct_stain_colors)
+
+    def create_upgrade_color_collection(self, csv_path, colors):
+        colors.clear()
+        items = {}
+
+        with open(csv_path) as colors_file:
+            reader = csv.reader(colors_file, delimiter=',')
+            next(reader)
+
+            for row in reader:
+                items[row[0]] = row[1]
 
         rows = sn_db.query_db(
             "SELECT\
@@ -457,34 +450,31 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             FROM\
                 {CCItems}\
             WHERE\
-                ProductType = 'S'\
+                ProductType in ('S', 'PL')\
             ORDER BY\
                 DisplayName ASC\
                     ;\
             ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
 
-        color = props.stain_colors.add()
-        color.name = "None"
-        color.color_code = 0
-        color.description = "None"
-        #if len(rows) == 0:
-           #sku=0  
         for row in rows:
             sku = row[0]
             display_name = row[1]
             description = row[2]
 
-            if display_name not in exclude:
-                if display_name not in props.stain_colors:
-                    if self.render_material_exists(display_name):
-                        color = props.stain_colors.add()
+            if display_name not in colors:
+                if self.render_material_exists(display_name):
+                    if display_name in items:
+                        color = colors.add()
                         color.name = display_name.strip()
                         color.sku = sku
                         color.description = description
+                        color.check_render_material()
 
-                    elif display_name not in self.missing_render_mats:
-                        self.missing_render_mats.append(display_name)
+                elif display_name not in self.missing_render_mats:
+                    self.missing_render_mats.append(display_name)
+
+        self.add_placeholder_color("Other/Custom", colors)
 
     def create_five_piece_melamine_door_color_collection(self):
         props = bpy.context.scene.closet_materials
@@ -499,14 +489,16 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 {CCItems}\
             WHERE\
                 ProductType = 'PM' AND\
-                TypeCode IN (15200, 15150) AND\
+                TypeCode IN (2, 3, 4, 5, 6, 7,9) AND\
                 Thickness = 0.75 AND\
                 DisplayName IN {Five_Piece_Melamine_Door_Color_List}\
                 \
             ORDER BY\
                 DisplayName ASC\
                     ;\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, Five_Piece_Melamine_Door_Color_List=sn_db.FIVE_PIECE_DOOR_COLORS_TABLE_NAME)
+            ".format(
+                CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                Five_Piece_Melamine_Door_Color_List=sn_db.FIVE_PIECE_DOOR_COLORS_TABLE_NAME)
         )
 
         for row in rows:
@@ -619,11 +611,6 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
 
         items.sort(key=operator.itemgetter(1))
 
-        color = props.glass_colors.add()
-        color.name = "None"
-        color.sku = "0"
-        color.description = "None"
-
         for i in items:
             type_code = i[0]
             display_name = i[1]
@@ -695,13 +682,32 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             color.name = display_name
             color.description = description
 
+    def create_mat_conversion_collection(self):
+        props = bpy.context.scene.closet_materials
+        props.color_conversions.clear()
+        items = []
+
+        with open(sn_paths.COLOR_CONVERSION_CSV_DIR) as file:
+            reader = csv.reader(file, delimiter=',')
+            next(reader)
+
+            for row in reader:
+                items.append((row[0], row[1]))
+
+        for i in items:
+            name = i[0]
+            new_name = i[1]
+            color = props.color_conversions.add()
+            color.name = name
+            color.new_name = new_name
+
     def create_collections(self):
         props = bpy.context.scene.closet_materials
 
         self.create_edge_type_collection()
         self.create_mat_type_collection()
+        self.create_upgrade_color_collections()
         self.create_coutertop_collection()
-        self.create_stain_color_collection()
         self.create_five_piece_melamine_door_color_collection()
         self.create_glaze_color_collection()
         self.create_glaze_style_collection()
@@ -709,6 +715,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
         self.create_glass_color_collection()
         self.create_drawer_slide_collection()
         self.create_backing_veneer_color_collection()
+        self.create_mat_conversion_collection()
         self.props.collections_loaded = True
         props.materials.create_color_lists()
 
@@ -853,32 +860,10 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                     Description\
                     );".format(sn_db.MAT_TYPE_TABLE_NAME))
 
-        # READ MAT TYPES FROM DB
-        rows = sn_db.query_db(
-            "SELECT\
-                TypeCode\
-            FROM\
-                {CCItems}\
-            WHERE\
-                ProductType IN ('PM', 'WD', 'VN') AND\
-                Thickness = 0.75\
-            GROUP BY\
-                TypeCode\
-            ;".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-        )
-
         mat_types = []
 
-        for row in rows:
-            type_code_str = str(row[0])
-            if type_code_str in mat_type_names:
-                name = mat_type_names[type_code_str]
-                display_name = name.replace("3/4", "").strip()
-                mat_types.append((type_code_str, display_name, display_name))
-            else:
-                if self.debug_mode:
-                    print("Debug:{} - DISPLAY NAME FOR MATERIAL TYPE CODE NOT FOUND: {}".format(
-                        self.bl_idname, str(row[0])))
+        for type_code, display_name in mat_type_names.items():
+            mat_types.append((str(type_code), display_name, display_name))
 
         default_in_list = None
 
@@ -888,11 +873,6 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 mat_types.remove(mat_type)
 
         mat_types.insert(0, default_in_list)
-
-        # Oversize material type
-        if '1' in mat_type_names:
-            mat_types.insert(-1, (str(1),
-                                  mat_type_names['1'], mat_type_names['1']))
 
         for row in mat_types:
             cur.execute("INSERT INTO {table} (\

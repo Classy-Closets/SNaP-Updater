@@ -65,7 +65,7 @@ class SN_FILEBROWSER_PT_product_lib_header(Panel):
     def draw(self, context):
         layout = self.layout
         scene_props = context.scene.snap
-        library_name = ""
+        library_name = scene_props.active_library_name
 
         col = layout.column()
         row = col.row()
@@ -73,10 +73,15 @@ class SN_FILEBROWSER_PT_product_lib_header(Panel):
         row.label(text=library_name)
         row.separator()
         row.menu('SN_FILEBROWSER_MT_library_commands', text="", icon='COLLAPSEMENU')
+
+        if library_name == "Kitchen Bath Library":
+            wm = context.window_manager.lm_cabinets
+            row = col.row(align=True)
+            row.prop(wm, "cabinet_type", expand=True)
+
         row = col.row()
         row.scale_y = 1.25
-        row.menu('SN_FILEBROWSER_MT_category_menu',
-                 text=scene_props.active_category, icon='FILEBROWSER')
+        row.menu('SN_FILEBROWSER_MT_category_menu', text=scene_props.active_category, icon='FILEBROWSER')
 
 
 class SN_FILEBROWSER_MT_category_menu(Menu):
@@ -86,11 +91,20 @@ class SN_FILEBROWSER_MT_category_menu(Menu):
         layout = self.layout
         scene_props = context.scene.snap
         wm_props = context.window_manager.snap
+        cabinet_wm_props = context.window_manager.lm_cabinets
         active_library = wm_props.libraries[scene_props.active_library_name]
 
         if active_library.lib_type == 'SNAP':
-            root_dir = active_library.thumbnail_dir
-            dirs = os.listdir(root_dir)
+            thumbnail_dir = active_library.thumbnail_dir
+            dirs = os.listdir(thumbnail_dir)
+            root_dir = thumbnail_dir
+
+            insert_dir = os.path.join(active_library.root_dir, "inserts")
+
+            if os.path.exists(insert_dir):
+                if cabinet_wm_props.cabinet_type == 'STARTER':
+                    dirs = os.listdir(insert_dir)
+                    root_dir = insert_dir
 
         if active_library.lib_type == 'STANDARD':
             root_dir = active_library.root_dir
@@ -99,8 +113,7 @@ class SN_FILEBROWSER_MT_category_menu(Menu):
         for d in dirs:
             path = os.path.join(root_dir, d)
             if os.path.isdir(path):
-                layout.operator('sn_library.change_library_category',
-                                text=d, icon='FILEBROWSER').category = d
+                layout.operator('sn_library.change_library_category', text=d, icon='FILEBROWSER').category = d
 
 
 class SN_FILEBROWSER_PT_library_settings(Panel):
