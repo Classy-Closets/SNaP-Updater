@@ -5323,6 +5323,7 @@ class OPS_Export_XML(Operator):
         self.xml.add_element_with_text(lbl_node, "Value", item[2])
 
     def execute(self, context):
+        bpy.ops.closet_machining.prepare_closet_for_export()
         bpy.ops.sn_closets.update_drawer_boxes(add=True)
         debug_mode = context.preferences.addons["snap"].preferences.debug_mode
         debug_machining = context.preferences.addons["snap"].preferences.debug_mac

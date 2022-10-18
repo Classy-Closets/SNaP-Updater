@@ -1746,7 +1746,6 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         #         panel_bp.snap.comment_2 = str(i + 1)
                 
         for assembly in closet_utils.scene_parts(context):
-            
             props = assembly.obj_bp.sn_closets
             cabinet_product = sn_utils.get_cabinet_bp(assembly.obj_bp)
             
@@ -2393,14 +2392,3 @@ bpy.utils.register_class(OPERATOR_Prepare_Closet_For_Export)
 bpy.utils.register_class(SN_PT_Closet_Machining_Setup)
 bpy.utils.register_class(SN_UL_Mac_Scenes)
 exec("bpy.types.Scene." + MACHINING_PROPERTY_NAMESPACE + "= PointerProperty(type = PROPS_Machining_Defaults)")
-
-
-# AUTO CALL OPERATOR ON SAVE
-@bpy.app.handlers.persistent
-def assign_machining(scene=None):
-    if not bpy.app.background:
-        props = get_machining_props()
-        if props.auto_machine_on_save:
-            exec("bpy.ops." + MACHINING_PROPERTY_NAMESPACE + ".prepare_closet_for_export()")
-            
-bpy.app.handlers.save_pre.append(assign_machining)

@@ -238,10 +238,8 @@ class VIEW_OT_append_to_view(Operator):
         for product in self.products:
             self.link_children_to_scene(scene, product)
 
-        print("OBJS", self.objects)
 
         for obj in self.objects:
-            print('LINK', obj, scene)
             self.link_children_to_scene(scene, obj)
 
         return {'FINISHED'}
@@ -3310,12 +3308,9 @@ class VIEW_OT_generate_2d_views(Operator):
         #      for accordions are added after the ones for sections
         for wall in walls:
             corner_result = self.get_lsh_csh_assemblies(wall)
-            print("wall.name=" + wall.name)
-            print("corner_result=" + str(corner_result))
             if corner_result:
                 previous_wall = walls[walls.index(wall) - 1]
                 previous_wall_name = previous_wall.name
-                print("previous_wall_name=" + previous_wall_name)
                 right_name = f'{previous_wall_name}_right_grp'
                 all_collections = bpy.data.collections
                 present_collections = [col.name for col in all_collections]
@@ -5595,6 +5590,9 @@ class VIEW_OT_generate_2d_views(Operator):
                 is_locked_pmpt.set_value(1)
 
     def invoke(self, context, event):
+        import time
+        start_time = time.time()
+        
         main_sc_objects = []
         existing_scenes = [sc.name for sc in bpy.data.scenes]
         if "_Main" in existing_scenes:
@@ -5605,6 +5603,9 @@ class VIEW_OT_generate_2d_views(Operator):
             message = f"SNaP projects are limited to 4 (four) islands"
             return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message)
         bpy.ops.snap_closet_dimensions.auto_dimension()
+
+        print("generate_2d_views INVOKE --- %s seconds ---" % (time.time() - start_time))
+
         return self.execute(context)
 
     def unhide_cabinet_drawer_boxes(self, boxes):
@@ -5613,6 +5614,9 @@ class VIEW_OT_generate_2d_views(Operator):
             hide.set_value(False)
 
     def execute(self, context):
+        import time
+        start_time = time.time()
+        
         self.current_ctx = context
         self.pre_2d_cleanup(context)
         dimprops = get_dimension_props()
@@ -5768,7 +5772,11 @@ class VIEW_OT_generate_2d_views(Operator):
         self.switch_on_kds(switched_off_kds)
         self.unhide_cabinet_drawer_boxes(cabinet_drawer_boxes)
         hide_dim_handles()
+        context.window_manager.snap.use_opengl_dimensions = False
         self.enable_all_elvs()
+
+        print("generate_2d_views EXECUTE --- %s seconds ---" % (time.time() - start_time))
+
         return {'FINISHED'}
 
     def pre_2d_cleanup(self, context):
@@ -5817,9 +5825,6 @@ class VIEW_OT_render_2d_views(Operator):
             open_files.append(p.path)
 
         if path in open_files:
-            print(path, "is in", open_files)
-            print("File is still open!")
-
             self.check_file(path)
 
         else:
@@ -6030,12 +6035,20 @@ class VIEW_OT_render_2d_views(Operator):
         return None
 
     def execute(self, context):
+        import time
+        start_time = time.time()
+        
         add_on_save_switched_on = []
         for scene in bpy.data.scenes:
             if scene.snap_closet_dimensions.auto_add_on_save:
                 add_on_save_switched_on.append(scene) 
                 scene.snap_closet_dimensions.auto_add_on_save = False
+
+        print("render_2d_views get auto save scenes --- %s seconds ---" % (time.time() - start_time))
+
         self.create_pdf_xml(context)
+
+        print("render_2d_views create_pdf_xml --- %s seconds ---" % (time.time() - start_time))
         # file_path = bpy.app.tempdir if bpy.data.filepath == "" else os.path.dirname(
         #     bpy.data.filepath)
         for item in context.window_manager.snap.image_views:
@@ -6053,6 +6066,7 @@ class VIEW_OT_render_2d_views(Operator):
             scene.render.use_lock_interface = False
             if scene.snap.elevation_selected:
                 self.render_scene(context, scene)
+                print("render_2d_views render_scene "+ scene.name +" --- %s seconds ---" % (time.time() - start_time))
 
         # we need to force a redraw or the screen will be black
         
@@ -6080,6 +6094,9 @@ class VIEW_OT_render_2d_views(Operator):
             bpy.ops.view3d.dolly(override, mx=1, my=1, delta=0, use_cursor_init=False)
         for scene in add_on_save_switched_on:
             scene.snap_closet_dimensions.auto_add_on_save = True
+
+        print("render_2d_views EXECUTE --- %s seconds ---" % (time.time() - start_time))
+
         return {'FINISHED'}
 
 class VIEW_OT_accordion_interface(Operator):
