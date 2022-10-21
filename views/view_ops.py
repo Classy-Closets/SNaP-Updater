@@ -3308,9 +3308,12 @@ class VIEW_OT_generate_2d_views(Operator):
         #      for accordions are added after the ones for sections
         for wall in walls:
             corner_result = self.get_lsh_csh_assemblies(wall)
+            print("wall.name=" + wall.name)
+            print("corner_result=" + str(corner_result))
             if corner_result:
                 previous_wall = walls[walls.index(wall) - 1]
                 previous_wall_name = previous_wall.name
+                print("previous_wall_name=" + previous_wall_name)
                 right_name = f'{previous_wall_name}_right_grp'
                 all_collections = bpy.data.collections
                 present_collections = [col.name for col in all_collections]
@@ -3336,7 +3339,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     offset = curr_wall_glb_x_pos + prvs_wall_width
                     right_instance = bpy.data.objects.new(
                         f'{previous_wall_name}_right_ins', None)
-                    right_instance.location = (offset, (offset * -1), 0)
+                    right_instance.location = (offset, offset, 0)
                     right_instance.rotation_euler = (0, 0, math.radians(-90))
                     right_instance.instance_type = 'COLLECTION'
                     right_instance.instance_collection = grp

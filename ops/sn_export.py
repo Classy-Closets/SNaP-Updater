@@ -4896,6 +4896,15 @@ class OPS_Export_XML(Operator):
                 ("catnum", "text", self.get_part_category_number(assembly, assembly.obj_bp, mat_sku, part_name)),#Part Comments2
             ]
             # Ken Needs anything new added to the label section to be added before SKU
+
+            mat_type = closet_materials.materials.get_mat_type()
+
+            if mat_type.name == "Upgrade Options":
+                upgrade_option_lbl = [
+                    ("upgradeoption", "text", mat_type.get_mat_color().name)
+                ]
+                lbl.extend(upgrade_option_lbl)
+
             door_style = ""
             glass_color = closet_materials.get_glass_color().name
             glaze_color = closet_materials.get_glaze_color().name

@@ -616,17 +616,20 @@ class SnapMaterialSceneProps(PropertyGroup):
                     print(sku)
                     return "Unknown"
 
-            if part_thickness == 0.75 or part_thickness == 0:
-                if self.upgrade_options.get_type().name == "Stain":
-                    return "VN-0000014"
-                else:
-                    return "WD-0000010"
+            is_wood_door = obj.snap.type_mesh == 'BUYOUT'
 
-            elif part_thickness == 0.25:
-                if self.upgrade_options.get_type().name == "Stain":
-                    return "VN-0000004"
-                else:
-                    return "WD-0000007"
+            if not is_wood_door:
+                if part_thickness == 0.75 or part_thickness == 0:
+                    if self.upgrade_options.get_type().name == "Stain":
+                        return "VN-0000014"
+                    else:
+                        return "WD-0000010"
+
+                elif part_thickness == 0.25:
+                    if self.upgrade_options.get_type().name == "Stain":
+                        return "VN-0000004"
+                    else:
+                        return "WD-0000007"
 
         else:
             color_code = self.materials.get_mat_color().color_code
@@ -670,14 +673,15 @@ class SnapMaterialSceneProps(PropertyGroup):
                             return self.get_five_piece_melamine_door_color().sku
 
                     elif door_style.get_value() != "Slab Door" and door_style.get_value() != "Melamine Door Glass":
-                        door_color = obj.snap.material_slots[0].item_name
-                        if door_color:
-                            has_paint = door_color in self.get_paint_colors()
-                            has_stain = door_color in self.get_stain_colors()
-                            if has_paint:
-                                return self.paint_colors[door_color].sku
-                            elif has_stain:
-                                return self.stain_colors[door_color].sku
+                        if obj.snap.material_slots:
+                            door_color = obj.snap.material_slots[0].item_name
+                            if door_color:
+                                has_paint = door_color in self.get_paint_colors()
+                                has_stain = door_color in self.get_stain_colors()
+                                if has_paint:
+                                    return self.paint_colors[door_color].sku
+                                elif has_stain:
+                                    return self.stain_colors[door_color].sku
 
                 mat_type = self.door_drawer_materials.get_mat_type()
                 type_code = mat_type.type_code

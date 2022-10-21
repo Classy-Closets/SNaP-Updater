@@ -215,23 +215,25 @@ def set_column_width(sheet):
 
 def protect_pricing(parts_file):
     wb = openpyxl.load_workbook(parts_file)
-    ws = wb["Retail Pricing Summary"]
-    ws.protection.sheet = True
-    ws1 = wb["ERP Pricing Summary"]
-    ws2 = wb["Materials"]
-    ws3 = wb["Hardware"]
-    ws4 = wb["Accessories"]
-    ws5 = wb["Wood_Upgraded Panels"]
-    ws1.sheet_state = 'hidden'
-    ws2.sheet_state = 'hidden'
-    ws3.sheet_state = 'hidden'
-    ws4.sheet_state = 'hidden'
-    ws5.sheet_state = 'hidden'
+
+    if "Retail Pricing Summary" in wb.sheetnames:
+        ws = wb["Retail Pricing Summary"]
+        ws.protection.sheet = True
+        ws1 = wb["ERP Pricing Summary"]
+        ws2 = wb["Materials"]
+        ws3 = wb["Hardware"]
+        ws4 = wb["Accessories"]
+        ws5 = wb["Wood_Upgraded Panels"]
+        ws1.sheet_state = 'hidden'
+        ws2.sheet_state = 'hidden'
+        ws3.sheet_state = 'hidden'
+        ws4.sheet_state = 'hidden'
+        ws5.sheet_state = 'hidden'
 
     if not COS_FLAG:
         wb.security.workbookPassword = 'Cla$$y123'
         wb.security.lockStructure = True
-        
+            
     wb.save(filename=parts_file)
 
     
@@ -734,11 +736,11 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
     with pandas.ExcelWriter(parts_file, mode='a') as writer:
         if materials_sheet is not None:
-            df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('"GL" <= SKU_NUMBER <= "VN~" \
+            df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('"GL" <= SKU_NUMBER <= "WD~" \
                                                                                         and SKU_NUMBER.str.contains("BB")==False \
-                                                                                        and (PART_NAME != "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                        and (PART_NAME != "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                        and (PART_NAME != "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES") \
+                                                                                        and (PART_NAME != "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                        and (PART_NAME != "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                        and (PART_NAME != "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
                                                                                         and (PART_NAME != "Drawer Bottom")', engine='python')
 
             materials_summary = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING'], values=['QUANTITY'], aggfunc=numpy.sum)
@@ -749,9 +751,9 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
             set_column_width(writer.sheets['Materials Summary'])
 
 
-            df_drawers = pandas.read_excel(parts_file, sheet_name='Materials').query(' (PART_NAME == "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                    or (PART_NAME == "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                    or (PART_NAME == "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES") \
+            df_drawers = pandas.read_excel(parts_file, sheet_name='Materials').query(' (PART_NAME == "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                    or (PART_NAME == "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                    or (PART_NAME == "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
                                                                                     or (PART_NAME == "Drawer Bottom")', engine='python')
 
             if not df_drawers.empty:
@@ -856,6 +858,8 @@ def generate_retail_parts_list():
             if MATERIAL_PARTS_LIST[i][4] == MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][4]:
                 if 'PM' in MATERIAL_PARTS_LIST[i][1][:2] or 'BB' in MATERIAL_PARTS_LIST[i][1][:2] and MATERIAL_PARTS_LIST[i][5] not in MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5]:
                     sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5] + " (" + MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5] + ")"
+                elif 'VN' in MATERIAL_PARTS_LIST[i][1][:2] or 'WD' in MATERIAL_PARTS_LIST[i][1][:2] and MATERIAL_PARTS_LIST[i][5] not in MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5]:
+                    sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5] + " (" + MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5] + ")"
                 else:
                     sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5]                                  #MATERIAL
             else:
@@ -870,7 +874,10 @@ def generate_retail_parts_list():
             if MATERIAL_PARTS_LIST[i][1][:2] in material_types:
                 if 'SF' in MATERIAL_PARTS_LIST[i][13]:
                     sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])) * int(MATERIAL_PARTS_LIST[i][7])
-                    sheet1["P" + str((i + 1) + 1)] = (((float(MATERIAL_PARTS_LIST[i][11]) * int(MATERIAL_PARTS_LIST[i][7])) * get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])))  + float(MATERIAL_PARTS_LIST[i][12]))   #CALCULATED_PRICE
+                    if 'VN' in MATERIAL_PARTS_LIST[i][1][:2] or 'WD' in MATERIAL_PARTS_LIST[i][1][:2]:
+                        sheet1["P" + str((i + 1) + 1)] = (float(MATERIAL_PARTS_LIST[i][11]) * int(MATERIAL_PARTS_LIST[i][7]))
+                    else:
+                        sheet1["P" + str((i + 1) + 1)] = (((float(MATERIAL_PARTS_LIST[i][11]) * int(MATERIAL_PARTS_LIST[i][7])) * get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])))  + float(MATERIAL_PARTS_LIST[i][12]))   #CALCULATED_PRICE
                     if len(EDGEBANDING) > 0:
                         for index, sublist in enumerate(EDGEBANDING):
                             if sublist[0] == MATERIAL_PARTS_LIST[i][4]:
@@ -1188,9 +1195,9 @@ def generate_retail_parts_list():
         return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
     
     df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('SKU_NUMBER.str.contains("EB")==False \
-                                                                                and (PART_NAME != "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                and (PART_NAME != "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES") \
-                                                                                and (PART_NAME != "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES")', engine='python')
+                                                                                and (PART_NAME != "Drawer Side" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                and (PART_NAME != "Drawer Sub Front" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES") \
+                                                                                and (PART_NAME != "Drawer Back" and VENDOR_NAME != "EDGBANDING SERVICES" and VENDOR_NAME != "EDGEBANDING SERVICES")', engine='python')
     sf_summary = pandas.pivot_table(df_materials, index=['MATERIAL', 'SKU_NUMBER'], values=['SQUARE_FT'], aggfunc=numpy.sum)
 
     thin_border = openpyxl.styles.borders.Border(left=openpyxl.styles.borders.Side(style='thin'), 
@@ -1273,7 +1280,9 @@ def generate_franchise_parts_list():
             sheet1["E" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][3]                                          #VENDOR_ITEM
             sheet1["F" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][4]                                          #PART LABELID
             if MATERIAL_PARTS_LIST[i][4] == MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][4]:
-                if 'PM' in MATERIAL_PARTS_LIST[i][1][:2] and MATERIAL_PARTS_LIST[i][5] not in MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5]:
+                if 'PM' in MATERIAL_PARTS_LIST[i][1][:2] or 'BB' in MATERIAL_PARTS_LIST[i][1][:2] and MATERIAL_PARTS_LIST[i][5] not in MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5]:
+                    sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5] + " (" + MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5] + ")"
+                elif 'VN' in MATERIAL_PARTS_LIST[i][1][:2] or 'WD' in MATERIAL_PARTS_LIST[i][1][:2] and MATERIAL_PARTS_LIST[i][5] not in MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5]:
                     sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5] + " (" + MATERIAL_PARTS_LIST[(i+1)%len(MATERIAL_PARTS_LIST)][5] + ")"
                 else:
                     sheet1["G" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][5]                                  #MATERIAL
@@ -1283,13 +1292,16 @@ def generate_franchise_parts_list():
             sheet1["I" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][7]                                          #QUANTITY
             sheet1["J" + str((i + 1) + 1)] = str(MATERIAL_PARTS_LIST[i][8]) + " x " + str(MATERIAL_PARTS_LIST[i][9])      #PART_DIMENSIONS           
             sheet1["K" + str((i + 1) + 1)] = MATERIAL_PARTS_LIST[i][10]                                         #THICKNESS
-            sheet1["N" + str((i + 1) + 1)] = float(MATERIAL_PARTS_LIST[i][16])                                  #RETAIL_PRICE
+            sheet1["N" + str((i + 1) + 1)] = float(MATERIAL_PARTS_LIST[i][16])                                  #FRANCHISE_PRICE
             sheet1["O" + str((i + 1) + 1)] = float(MATERIAL_PARTS_LIST[i][15])                                  #LABOR
             
             if MATERIAL_PARTS_LIST[i][1][:2] in material_types:
                 if 'SF' in MATERIAL_PARTS_LIST[i][13]:
                     sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])) * int(MATERIAL_PARTS_LIST[i][7])
-                    sheet1["P" + str((i + 1) + 1)] = (((float(MATERIAL_PARTS_LIST[i][16]) * int(MATERIAL_PARTS_LIST[i][7])) * get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])))  + float(MATERIAL_PARTS_LIST[i][15]))   #CALCULATED_PRICE
+                    if 'VN' in MATERIAL_PARTS_LIST[i][1][:2] or 'WD' in MATERIAL_PARTS_LIST[i][1][:2]:
+                        sheet1["P" + str((i + 1) + 1)] = (float(MATERIAL_PARTS_LIST[i][16]) * int(MATERIAL_PARTS_LIST[i][7]))
+                    else:
+                        sheet1["P" + str((i + 1) + 1)] = (((float(MATERIAL_PARTS_LIST[i][16]) * int(MATERIAL_PARTS_LIST[i][7])) * get_square_footage(float(MATERIAL_PARTS_LIST[i][8]), float(MATERIAL_PARTS_LIST[i][9])))  + float(MATERIAL_PARTS_LIST[i][15]))   #CALCULATED_PRICE
                     if len(EDGEBANDING) > 0:
                         for index, sublist in enumerate(EDGEBANDING):
                             if sublist[0] == MATERIAL_PARTS_LIST[i][4]:
@@ -1744,7 +1756,7 @@ def get_mat_sku(mat_name):
     return sku
 
 
-def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name=None, eb_orientation=None, center_rail=None):
+def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name=None, eb_orientation=None, center_rail=None, upgrade_color=None):
     length_inches = float(length_inches)
     width_inches = float(width_inches)
     wood_panel_pricing_file = os.path.join(sn_paths.ROOT_DIR, "db_init", "Wood_Panel_Pricing.xlsx")
@@ -1800,8 +1812,8 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
             r_labor_price = labor[0]
             f_labor_price = labor[1]
     if 'SF' in uom and not sku_num[:2] in hardware_types and not sku_num[:2] in accessory_types and 'PL' not in sku_num[:2] and 'SN' not in sku_num[:2]:
-        # 5PC Melamine Door pricing
-        if style_name is not None:
+        # Check if Melamine material contains a style_name that makes it a 5PC Melamine Door
+        if style_name is not None and 'VN' not in sku_num[:2] and 'WD' not in sku_num[:2]:
             door_labor_price = get_price_by_sku('LB-0000013')
             R_LABOR_PRICES.append(door_labor_price[0] * int(qty))
             F_LABOR_PRICES.append(door_labor_price[1] * int(qty))
@@ -1810,20 +1822,35 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                     sf_door_glass = get_square_footage(((length_inches-6.75)/2), width_inches-4.75)
                 else:
                     sf_door_glass = get_square_footage(length_inches-4.75, width_inches-4.75)
-                R_WOOD_PANEL_PRICES.append((((get_square_footage(length_inches, width_inches) - sf_door_glass) * retail_price) + door_labor_price[0]) * int(qty))
-                F_WOOD_PANEL_PRICES.append((((get_square_footage(length_inches, width_inches) - sf_door_glass) * franchise_price) + door_labor_price[1]) * int(qty))
-                retail_price = ((get_square_footage(length_inches, width_inches) - sf_door_glass) * retail_price) + door_labor_price[0]
-                franchise_price = ((get_square_footage(length_inches, width_inches) - sf_door_glass) * franchise_price) + door_labor_price[1]
+                retail_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * retail_price) + door_labor_price[0]) * int(qty))
+                franchise_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * franchise_price) + door_labor_price[1]) * int(qty))
+                R_WOOD_PANEL_PRICES.append(retail_price)
+                F_WOOD_PANEL_PRICES.append(franchise_price)   
             else:
-                R_WOOD_PANEL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + door_labor_price[0]) * int(qty))
-                F_WOOD_PANEL_PRICES.append((((get_square_footage(length_inches, width_inches)) * franchise_price) + door_labor_price[1]) * int(qty))
-                retail_price = (get_square_footage(length_inches, width_inches) * retail_price) + door_labor_price[0]
-                franchise_price = (get_square_footage(length_inches, width_inches) * franchise_price) + door_labor_price[1]
+                retail_price = (((get_square_footage(length_inches, width_inches) * retail_price) + door_labor_price[0]) * int(qty))
+                franchise_price = (((get_square_footage(length_inches, width_inches) * franchise_price) + door_labor_price[1]) * int(qty))
+                R_WOOD_PANEL_PRICES.append(retail_price)
+                F_WOOD_PANEL_PRICES.append(franchise_price)
         else:
-            R_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + r_labor_price) * int(qty))
-            R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
-            F_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * franchise_price) + f_labor_price) * int(qty))
-            F_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+            if 'VN' in sku_num[:2] and upgrade_color is not None or 'WD' in sku_num[:2] and upgrade_color is not None:
+                paint_stain_price = get_price_by_sku(get_mat_sku(upgrade_color))
+                paint_stain_labor = get_price_by_sku('LB-0000014')
+                sf_part = get_square_footage(length_inches, width_inches)
+                r_stain_total = (paint_stain_price[0] * sf_part) * 2
+                f_stain_total = (paint_stain_price[1] * sf_part) * 2
+                r_part_total = retail_price * sf_part
+                f_part_total = retail_price * sf_part
+                retail_price = r_part_total + r_stain_total + paint_stain_labor[0]
+                franchise_price = f_part_total + f_stain_total + paint_stain_labor[1]
+                R_MATERIAL_PRICES.append(retail_price * int(qty))
+                R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+                F_MATERIAL_PRICES.append(franchise_price * int(qty))
+                F_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+            else:
+                R_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + r_labor_price) * int(qty))
+                R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+                F_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * franchise_price) + f_labor_price) * int(qty))
+                F_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
     if 'LF' in uom and not sku_num[:2] in hardware_types and not sku_num[:2] in accessory_types:
         if eb_orientation is not None:
             eb_length = get_eb_measurements(eb_orientation, length_inches, width_inches)
@@ -1836,7 +1863,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
         r_door_total = 0
         f_stain_total = 0
         f_door_total = 0
-        veneer_price = get_price_by_sku('VN-0000002')
+        veneer_price = get_price_by_sku('VN-0000005')
         three_quarter_mdf_price = get_price_by_sku('WD-0000010')
         quarter_mdf_price = get_price_by_sku('WD-0000007')
         wood_labor_price = get_price_by_sku('LB-0000014')
@@ -2019,6 +2046,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                 center_rail = None
                 lenx = 0
                 leny = 0
+                upgrade_color = None
                 if PART_LABEL_ID == label_id:
                     print(PART_NAME + " :: " + PART_LABEL_ID)
                     # Use the iterator to deal with repeated children and still in order
@@ -2038,6 +2066,8 @@ def calculate_project_price(xml_file, cos_flag = False):
                             lenx = VALUE
                         if NAME == 'leny':
                             leny = VALUE
+                        if NAME == 'upgradeoption':
+                            upgrade_color = VALUE
                         if NAME == 'edgeband1':
                             eb1 = VALUE
                         if NAME == 'edgeband2':
@@ -2134,7 +2164,9 @@ def calculate_project_price(xml_file, cos_flag = False):
                                 else:
                                     if 'Glass' in PART_NAME or 'Glass' in style_name:
                                         PART_NAME = PART_NAME + " (" + glass_color + ")"
-                                    pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail)
+                                    if sku_value[:2] in 'WD' and upgrade_color is not None or sku_value[:2] in 'VN' and upgrade_color is not None:
+                                        PART_NAME = PART_NAME + " (" + upgrade_color + ")"
+                                    pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
                                     MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name])
                             if sku_value[:2] in hardware_types:
                                 SKU_NUMBER = sku_value
@@ -2218,6 +2250,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                     center_rail = None
                     lenx = 0
                     leny = 0
+                    upgrade_color = None
                     if PART_LABEL_ID == label_id:
                         print(PART_NAME + " :: " + PART_LABEL_ID)
                         # Use the iterator to deal with repeated children and still in order
@@ -2237,6 +2270,8 @@ def calculate_project_price(xml_file, cos_flag = False):
                                 lenx = VALUE
                             if NAME == 'leny':
                                 leny = VALUE
+                            if NAME == 'upgradeoption':
+                                upgrade_color = VALUE
                             if NAME == 'edgeband1':
                                 eb1 = VALUE
                             if NAME == 'edgeband2':
@@ -2336,7 +2371,9 @@ def calculate_project_price(xml_file, cos_flag = False):
                                     else:
                                         if 'Glass' in PART_NAME or 'Glass' in style_name:
                                             PART_NAME = PART_NAME + " (" + glass_color + ")"
-                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail)
+                                        if sku_value[:2] in 'WD' and upgrade_color is not None or sku_value[:2] in 'VN' and upgrade_color is not None:
+                                            PART_NAME = PART_NAME + " (" + upgrade_color + ")"
+                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
                                         MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name])
                                 if sku_value[:2] in hardware_types:
                                     SKU_NUMBER = sku_value
@@ -2422,6 +2459,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                         center_rail = None
                         lenx = 0
                         leny = 0
+                        upgrade_color = None
                         if PART_LABEL_ID == label_id:
                             print(PART_NAME + " :: " + PART_LABEL_ID)
                             # Use the iterator to deal with repeated children and still in order
@@ -2441,6 +2479,8 @@ def calculate_project_price(xml_file, cos_flag = False):
                                     lenx = VALUE
                                 if NAME == 'leny':
                                     leny = VALUE
+                                if NAME == 'upgradeoption':
+                                    upgrade_color = VALUE
                                 if NAME == 'edgeband1':
                                     eb1 = VALUE
                                 if NAME == 'edgeband2':
@@ -2537,7 +2577,9 @@ def calculate_project_price(xml_file, cos_flag = False):
                                         else:
                                             if 'Glass' in PART_NAME or 'Glass' in style_name:
                                                 PART_NAME = PART_NAME + " (" + glass_color + ")"
-                                            pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail)
+                                            if sku_value[:2] in 'WD' and upgrade_color is not None or sku_value[:2] in 'VN' and upgrade_color is not None:
+                                                PART_NAME = PART_NAME + " (" + upgrade_color + ")"
+                                            pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
                                             MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name])
                                     if sku_value[:2] in hardware_types:
                                         SKU_NUMBER = sku_value
