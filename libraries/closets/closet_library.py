@@ -1163,3 +1163,51 @@ class PRODUCT_Murphy_Queen_Wall_Bed(data_closet_wall_bed.Wall_Bed):
                         }
         self.bed_make = 2
         super().__init__()
+
+
+class PRODUCT_Nuvola_Twin_NoFace_Wall_Bed(data_closet_wall_bed.Wall_Bed):
+    def __init__(self):
+        self.library_name = LIBRARY_NAME
+        self.category_name = CLOSET_PRODUCTS_WALL_BED
+        self.width = sn_unit.inch(44.5)
+        self.height = sn_unit.inch(83.25)
+        self.depth = sn_unit.inch(16)
+        self.prompts = {"Bed Make": 3,
+                        "Bed Type": 0,
+                        "Wall Bed Height": sn_unit.inch(83.25),
+                        "Wall Bed Depth": sn_unit.inch(16)
+                        }
+        self.bed_make = 3
+        super().__init__()
+
+
+class PRODUCT_Nuvola_Double_NoFace_Wall_Bed(data_closet_wall_bed.Wall_Bed):
+    def __init__(self):
+        self.library_name = LIBRARY_NAME
+        self.category_name = CLOSET_PRODUCTS_WALL_BED
+        self.width = sn_unit.inch(59.5)
+        self.height = sn_unit.inch(83.25)
+        self.depth = sn_unit.inch(16)
+        self.prompts = {"Bed Make": 3,
+                        "Bed Type": 1,
+                        "Wall Bed Height": sn_unit.inch(83.25),
+                        "Wall Bed Depth": sn_unit.inch(16)
+                        }
+        self.bed_make = 3
+        super().__init__()
+
+
+class PRODUCT_Nuvola_Queen_NoFace_Wall_Bed(data_closet_wall_bed.Wall_Bed):
+    def __init__(self):
+        self.library_name = LIBRARY_NAME
+        self.category_name = CLOSET_PRODUCTS_WALL_BED
+        self.width = sn_unit.inch(65.5)
+        self.height = sn_unit.inch(88.25)
+        self.depth = sn_unit.inch(16)
+        self.prompts = {"Bed Make": 3,
+                        "Bed Type": 2,
+                        "Wall Bed Height": sn_unit.inch(88.25),
+                        "Wall Bed Depth": sn_unit.inch(16)
+                        }
+        self.bed_make = 3
+        super().__init__()

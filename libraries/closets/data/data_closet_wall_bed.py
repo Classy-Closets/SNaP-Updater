@@ -25,7 +25,7 @@ class Wall_Bed(sn_types.Assembly):
 
     def add_prompts(self):
         common_prompts.add_thickness_prompts(self)
-        self.add_prompt("Bed Make", "COMBOBOX", self.bed_make, ['Eurobed', '24/7', 'Murphy'])
+        self.add_prompt("Bed Make", "COMBOBOX", self.bed_make, ['Eurobed', '24/7', 'Murphy', 'Nuvola'])
         self.add_prompt("Bed Type", "COMBOBOX", 0, ['Twin', 'Double', 'Queen', 'Double XL'])
         self.add_prompt("Wall Bed Panel Thickness", 'DISTANCE', sn_unit.inch(1))
         #TODO Remove Extend Height and Depth, change to just Height and Depth
@@ -89,6 +89,8 @@ class Wall_Bed(sn_types.Assembly):
                 self.add_247_parts()
             elif bed_make.get_value() == 2:
                 self.add_murphy_parts()
+            elif bed_make.get_value() == 3:
+                self.add_nuvola_parts()
         self.update()
 
     def add_eurobed_parts(self):
@@ -402,6 +404,112 @@ class Wall_Bed(sn_types.Assembly):
         self.add_door_and_drawer_fronts(slab_door_panel)
         self.add_door_pulls(slab_door_panel)
 
+    def add_nuvola_parts(self):
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Wall_Bed_Depth = self.get_prompt("Wall Bed Depth").get_var()
+        Wall_Bed_Height = self.get_prompt("Wall Bed Height").get_var()
+        Bed_Type = self.get_prompt("Bed Type").get_var()
+        # PT = self.get_prompt("Shelf_Thickness").get_var('PT')
+        ST = self.get_prompt("Shelf Thickness").get_var('ST')
+        # Extend_Height = self.get_prompt("Extend Height").get_var()
+        # Extend_Depth = self.get_prompt("Extend Depth").get_var()
+        Open = self.get_prompt("Open").get_var()
+        Add_Doors_And_Drawers = self.get_prompt("Add Doors And Drawers").get_var()
+
+        left_panel = common_parts.add_panel(self)
+        left_panel.set_name("Wall Bed Partition")
+        left_panel.loc_x('ST', [ST])
+        left_panel.loc_y(value=0)
+        left_panel.loc_z(value=0)
+        left_panel.dim_x("Wall_Bed_Height", [Wall_Bed_Height])
+        left_panel.dim_y("-Wall_Bed_Depth", [Wall_Bed_Depth])
+        left_panel.dim_z("ST", [ST])
+        # left_panel.rot_x(value=math.radians(90))
+        left_panel.rot_y(value=math.radians(-90))
+        # left_panel.rot_z(value=math.radians(90))
+
+        right_panel = common_parts.add_panel(self)
+        right_panel.set_name("Wall Bed Partition")
+        right_panel.loc_x("Width", [Width])
+        right_panel.loc_y(value=0)
+        right_panel.loc_z(value=0)
+        right_panel.dim_x("Wall_Bed_Height", [Wall_Bed_Height])
+        right_panel.dim_y("-Wall_Bed_Depth", [Wall_Bed_Depth])
+        right_panel.dim_z("ST", [ST])
+        # right_panel.rot_x(value=math.radians(90))
+        right_panel.rot_y(value=math.radians(-90))
+        # right_panel.rot_z(value=math.radians(90))
+
+        bottom_support = common_parts.add_shelf(self)
+        bottom_support.obj_bp['IS_SHELF'] = False
+        props = bottom_support.obj_bp.sn_closets
+        props.is_shelf_bp = False
+        bottom_support.set_name("Bottom Support")
+        bottom_support.loc_x('ST', [ST])
+        bottom_support.loc_y(value=0)
+        bottom_support.loc_z(value=0)
+        bottom_support.dim_x("Width-(ST*2)", [Width, ST])
+        bottom_support.dim_y("-Wall_Bed_Depth+ST", [Wall_Bed_Depth, ST])
+        bottom_support.dim_z("ST", [ST])
+
+        top_support = common_parts.add_shelf(self)
+        top_support.set_name("Top Support")
+        top_support.obj_bp['IS_SHELF'] = False
+        props = top_support.obj_bp.sn_closets
+        props.is_shelf_bp = False
+        top_support.loc_x('ST', [ST])
+        top_support.loc_y(value=0)
+        top_support.loc_z("Wall_Bed_Height-ST", [Wall_Bed_Height, ST])
+        top_support.dim_x("Width-(ST*2)", [Width, ST])
+        top_support.dim_y("-Wall_Bed_Depth+(ST*2)", [Wall_Bed_Depth, ST])
+        top_support.dim_z("ST", [ST])
+
+        bottom_facia = common_parts.add_wall_bed_valance(self)
+        bottom_facia.set_name("Bottom Facia")
+        bottom_facia.loc_x('ST', [ST])
+        bottom_facia.loc_y("-Wall_Bed_Depth+ST", [Wall_Bed_Depth, ST])
+        bottom_facia.loc_z(value=0)
+        bottom_facia.dim_x("Width-(ST*2)", [Width, ST])
+        bottom_facia.dim_y(value=sn_unit.inch(4.38))
+        bottom_facia.dim_z("ST", [ST])
+        bottom_facia.rot_x(value=math.radians(90))
+
+        top_facia = common_parts.add_wall_bed_valance(self)
+        top_facia.set_name("Top Facia")
+        top_facia.loc_x('ST', [ST])
+        top_facia.loc_y("-Wall_Bed_Depth+(ST*2)", [Wall_Bed_Depth, ST])
+        top_facia.loc_z("Wall_Bed_Height", [Wall_Bed_Height, ST])
+        top_facia.dim_x("Width-(ST*2)", [Width, ST])
+        top_facia.dim_y("INCH(6)-Height+Wall_Bed_Height", [Height, Wall_Bed_Height])
+        top_facia.dim_z("-ST", [ST])
+        top_facia.rot_x(value=math.radians(-90))
+
+        head_board = common_parts.add_wall_bed_valance(self)
+        head_board.set_name("Head Board")
+        head_board.loc_x('ST + INCH(0.1)', [ST])
+        head_board.loc_y("-Wall_Bed_Depth", [Wall_Bed_Depth])
+        head_board.loc_z(value=sn_unit.inch(4.38))
+        head_board.dim_x("Width-INCH(0.2)-(ST*2)", [Width, ST])
+        head_board.dim_y("(-Wall_Bed_Depth-INCH(0.25))*-1", [Wall_Bed_Depth])
+        head_board.dim_z("ST", [ST])
+        head_board.rot_x("IF(Open,radians(90),radians(0))", [Open])
+
+        # backing = common_parts.add_back(self)
+        # What is the sizing for this? The width given is always really small so I am unsure where it fits in
+
+        slab_door_panel = common_parts.add_door(self)
+        slab_door_panel.set_name("Backing Panel")
+        slab_door_panel.loc_x('ST', [ST])
+        slab_door_panel.loc_y("-Wall_Bed_Depth+IF(Add_Doors_And_Drawers,ST,0)", [Wall_Bed_Depth, Add_Doors_And_Drawers, ST])
+        slab_door_panel.loc_z(value=sn_unit.inch(4.38))
+        slab_door_panel.dim_x("Width-(ST*2)", [Width, ST])
+        slab_door_panel.dim_y("Height-INCH(5.93)", [Height])
+        slab_door_panel.dim_z("-ST", [ST])
+        slab_door_panel.rot_x("IF(Open,radians(180),radians(90))", [Open])
+        self.add_door_and_drawer_fronts(slab_door_panel)
+        self.add_door_pulls(slab_door_panel)
     def add_door_and_drawer_fronts(self, assembly):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')

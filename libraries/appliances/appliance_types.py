@@ -95,7 +95,8 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
         self.left_offset = 0
         self.right_offset = 0
 
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        # return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400)) 
+        return wm.invoke_props_dialog(self, width=400) 
 
     def check(self, context):
         self.product.obj_x.location.x = self.width

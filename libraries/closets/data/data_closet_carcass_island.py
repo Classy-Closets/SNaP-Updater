@@ -344,6 +344,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
 
         countertop_type_ppt = self.get_prompt('Countertop Type')
         countertop_type = countertop_type_ppt.get_combobox_str()
+        Countertop_Type = countertop_type_ppt.get_var()
         no_countertop = self.get_prompt('No Countertop').get_value()
         ct_type_tag = "COUNTERTOP_{}".format(countertop_type.upper())
 
@@ -372,6 +373,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             self.countertop = common_parts.add_cc_countertop(self)
         if countertop_type in ('HPL', 'Custom'):
             self.countertop = common_parts.add_hpl_top(self)
+            self.countertop.dim_z("IF(Countertop_Type==1,INCH(0.75),INCH(1.5))", [Countertop_Type])
         if countertop_type == 'Granite':
             self.countertop = common_parts.add_granite_countertop(self)
         if countertop_type == 'Quartz':

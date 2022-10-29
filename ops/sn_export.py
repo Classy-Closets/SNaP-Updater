@@ -1288,8 +1288,8 @@ class OPS_Export_XML(Operator):
 
         # Melamine Drawer Face
         if obj.get("IS_BP_DRAWER_FRONT"):
-            category_number = material_number + "56"
-            # Slab Drawer Front with Insert = material_number + 57
+            category_number = material_number + "54"
+            # Slab Drawer Front with Insert = material_number + 55
 
         # Drawer Box
         use_dovetail_construction = False
@@ -1545,7 +1545,7 @@ class OPS_Export_XML(Operator):
 
                     category_number = assembly_number + material_number + part_number
 
-                if (door_style != "Slab Door") and ("Traviso" in door_style):
+                elif (door_style != "Slab Door") and ("Traviso" in door_style):
                     assembly_number = "None"
                     material_number = "None"
                     part_number = "None"
@@ -1627,13 +1627,47 @@ class OPS_Export_XML(Operator):
                     else:
                         category_number = material_number + "0"
                     
-                else:
+                elif bed_make.get_value() == 2:
                     if "PL" in mat_sku:
                         material_number += "1"
                     elif "SN" in mat_sku:
                         material_number += "2"
                     else:
                         material_number += "0"
+
+                    if add_door_and_drawers.get_value():
+                        material_number += "2"
+                    else:
+                        material_number += "1"
+                    
+                    if part_name == "Wall Bed Cleat":
+                        category_number = material_number + "4"
+                    elif part_name == "Wall Bed Block":
+                        category_number = material_number + "9"
+                    elif part_name == "Wall Bed Backing":
+                        category_number = material_number + "8"
+                    elif part_name == "Wall Bed Partition":
+                        category_number = material_number + "1"
+                    elif part_name == "Bottom Support":
+                        category_number = material_number + "3"
+                    elif part_name == "Top Support":
+                        category_number = material_number + "2"
+                    elif part_name == "Top Facia":
+                        category_number = material_number + "5"
+                    elif part_name == "Bottom Facia":
+                        category_number = material_number + "6"
+                    elif part_name == "Head Board":
+                        category_number = material_number + "7"
+                    else:
+                        category_number = material_number + "0"
+                else:
+                    material_number = "7"
+                    if "PL" in mat_sku:
+                        material_number += "6"
+                    elif "SN" in mat_sku:
+                        material_number += "7"
+                    else:
+                        material_number += "5"
 
                     if add_door_and_drawers.get_value():
                         material_number += "2"
@@ -3014,6 +3048,32 @@ class OPS_Export_XML(Operator):
                 self.write_hardware_node(elm_subassembly, obj_bp, name="Murphy WB Mechanism Queen", qty=1)
             else:
                 print("No Bed Type of: ", bed_type)
+        elif bed_make == 3:
+            width = full_width -sn_unit.inch(1.5)
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
+
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
+
+            self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele Piston Cover Cap", qty=1)
+
+            if bed_type == 0:
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
+            else:
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
+            if bed_type == 0:
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Bed Kit - Twin", qty=1)
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Slat System - Twin", qty=1)
+            elif bed_type == 1:
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Bed Kit - DBL", qty=1)
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Slat System - DBL", qty=1)
+            elif bed_type == 2:
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Bed Kit - Queen", qty=1)
+                self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Slat System - Queen", qty=1)
         else:
             print("No Bed Make")
     

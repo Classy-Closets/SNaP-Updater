@@ -2092,6 +2092,83 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
             addon_updater_ops.update_settings_ui(self, context)
 
 
+keys = {
+    "MENU": [
+        {
+            "label": "View 3D - View Selected",
+            "region_type": "WINDOW",
+            "map_type": "KEYBOARD",
+            "keymap": "Window",
+            "idname": "view3d.view_selected",
+            "type": "F",
+            "ctrl": False,
+            "alt": False,
+            "shift": False,
+            "oskey": False,
+            "value": "PRESS"},
+        {
+            "label": "Outliner - Show Active",
+            "region_type": "WINDOW",
+            "map_type": "KEYBOARD",
+            "keymap": "Window",
+            "idname": "outliner.show_active",
+            "type": "F",
+            "ctrl": False,
+            "alt": False,
+            "shift": False,
+            "oskey": False,
+            "value": "PRESS"}]}
+
+
+def get_keys():
+    keylists = []
+    keylists.append(keys["MENU"])
+    return keylists
+
+
+def register_keymaps(keylists):
+    wm = bpy.context.window_manager
+    kc = wm.keyconfigs.addon
+
+    keymaps = []
+
+    if kc:
+        for keylist in keylists:
+            for item in keylist:
+                keymap = item.get("keymap")
+                space_type = item.get("space_type", "EMPTY")
+                region_type = item.get("region_type", "WINDOW")
+
+                if keymap:
+                    km = kc.keymaps.new(name=keymap, space_type=space_type, region_type=region_type)
+
+                    if km:
+                        idname = item.get("idname")
+                        type = item.get("type")
+                        value = item.get("value")
+                        shift = item.get("shift", False)
+                        ctrl = item.get("ctrl", False)
+                        alt = item.get("alt", False)
+                        oskey = item.get("oskey", False)
+
+                        kmi = km.keymap_items.new(idname, type, value, shift=shift, ctrl=ctrl, alt=alt, oskey=oskey)
+
+                        if kmi:
+                            properties = item.get("properties")
+
+                            if properties:
+                                for name, value in properties:
+                                    setattr(kmi.properties, name, value)
+
+                            keymaps.append((km, kmi))
+        return keymaps
+
+
+def unregister_keymaps(keymaps):
+    for km, kmi in keymaps:
+        km.keymap_items.remove(kmi)
+
+
 classes = (
     SnapInterface,
     opengl_dim,  # TODO: tmp
@@ -2127,7 +2204,16 @@ def register():
     for cls in classes:
         register_class(cls)
 
+    global keymaps
+    keys = get_keys()
+    keymaps = register_keymaps(keys)
+
 
 def unregister():
-    for cls in reversed(classes):
-        unregister_class(cls)
+    global keymaps
+    if keymaps:
+        for km, kmi in keymaps:
+            km.keymap_items.remove(kmi)
+
+        for cls in reversed(classes):
+            unregister_class(cls)

@@ -49,17 +49,31 @@ class PRODUCT_Dishwasher(appliance_types.Parametric_Wall_Appliance):
         super().__init__()
 
 
-class PRODUCT_Range_Hood(appliance_types.Parametric_Wall_Appliance):
+class PRODUCT_Range_Hood_1(appliance_types.Parametric_Wall_Appliance):
 
     def __init__(self):
         self.category_name = "Appliances"
-        self.assembly_name = "Range Hood"
+        self.assembly_name = "Range Hood 1"
         self.width = sn_unit.inch(30)
         self.height = sn_unit.inch(14)
         self.depth = sn_unit.inch(12.5)
         self.appliance_path = os.path.join(WALL_APPLIANCE_PATH, "Wall Mounted Range Hood 01.blend")
         self.height_above_floor = sn_unit.inch(60)
         super().__init__()
+
+
+class PRODUCT_Range_Hood_2(appliance_types.Parametric_Wall_Appliance):
+
+    def __init__(self):
+        self.category_name = "Appliances"
+        self.assembly_name = "Range Hood 2"
+        self.width = sn_unit.inch(27.5)
+        self.height = sn_unit.inch(48)
+        self.depth = sn_unit.inch(12.5)
+        self.appliance_path = os.path.join(WALL_APPLIANCE_PATH, "Designer Range Hood.blend")
+        self.height_above_floor = sn_unit.inch(60)
+        super().__init__()
+
 
 
 class PRODUCT_Washer(appliance_types.Parametric_Wall_Appliance):

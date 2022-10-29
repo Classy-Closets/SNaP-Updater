@@ -66,12 +66,12 @@ class SNAP_MATERIALS_OT_change_active_index(Operator):
 
                 if self.i_type == 'COLOR':
                     ct_type = countertops.get_type()
-                    
                     if len(ct_type.colors) > 0:
                         ct_type.set_color_index(index)
-
                     else:
                         ct_type.get_mfg().set_color_index(index)
+
+                    context.scene.closet_materials.color_change = True
 
         return {'FINISHED'}
 

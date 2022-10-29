@@ -132,6 +132,8 @@ class Standard_Carcass(sn_types.Assembly):
         self.add_prompt("Toe Kick Height",'DISTANCE', props.toe_kick_height)
         self.add_prompt("Toe Kick Setback",'DISTANCE', props.toe_kick_setback)
         self.add_prompt("Toe Kick Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Left Toe Kick Filler", 'DISTANCE', 0.0)
+        self.add_prompt("Right Toe Kick Filler", 'DISTANCE', 0.0)
 
     def add_valance_prompts(self,add_bottom_valance):
         props = cabinet_properties.get_scene_props().carcass_defaults
@@ -233,6 +235,7 @@ class Standard_Carcass(sn_types.Assembly):
 
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
+        Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
@@ -246,7 +249,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             left_side.dim_x('Height',[Height])
             left_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             left_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -265,7 +268,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             right_side.dim_x('Height',[Height])
             right_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             right_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -283,7 +286,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             left_fe.dim_x('Height',[Height])
             left_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             left_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             left_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -301,7 +304,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             right_fe.dim_x('Height',[Height])
             right_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             right_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             right_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -328,6 +331,7 @@ class Standard_Carcass(sn_types.Assembly):
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
+        Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
@@ -344,7 +348,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             left_side.dim_x('Height+IF(Left_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness,Left_Side_Full_Height])
             left_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             left_side.dim_x('Height-Toe_Kick_Height+IF(Left_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Left_Side_Full_Height,Height,Toe_Kick_Height,Top_Thickness,Top_Inset])
@@ -362,7 +366,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             right_side.dim_x('Height+IF(Right_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness,Right_Side_Full_Height])
             right_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             right_side.dim_x('Height-Toe_Kick_Height+IF(Right_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Right_Side_Full_Height,Top_Thickness,Top_Inset,Height,Toe_Kick_Height])
@@ -378,7 +382,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             left_fe.dim_x('Height',[Height])
             left_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             left_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             left_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -395,7 +399,7 @@ class Standard_Carcass(sn_types.Assembly):
         if props.use_notched_sides:
             right_fe.dim_x('Height',[Height])
             right_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
         else:
             right_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
             right_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
@@ -676,16 +680,20 @@ class Standard_Carcass(sn_types.Assembly):
 
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
+        Left_Toe_Kick_Filler = self.get_prompt('Left Toe Kick Filler').get_var()
+        Right_Toe_Kick_Filler = self.get_prompt('Right Toe Kick Filler').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
         Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
         
         kick = add_part(self, PART_WITH_FRONT_EDGEBANDING)
         kick.set_name("Toe Kick")
-        kick.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+
+        kick.dim_x('Width+Left_Toe_Kick_Filler+Right_Toe_Kick_Filler',[Width,Left_Toe_Kick_Filler,Right_Toe_Kick_Filler])
         kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
         kick.dim_z(value=sn_unit.inch(-0.75))
-        kick.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+
+        kick.loc_x('-Left_Toe_Kick_Filler',[Left_Toe_Kick_Filler])
         kick.loc_y('Depth+Toe_Kick_Setback',[Depth,Toe_Kick_Setback])
         kick.rot_x(value=math.radians(90))
         kick.get_prompt('Hide').set_formula('Remove_Bottom', [Remove_Bottom])
@@ -911,7 +919,9 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         self.add_prompt("Toe Kick Height", 'DISTANCE', props.toe_kick_height)
         self.add_prompt("Toe Kick Setback", 'DISTANCE', props.toe_kick_setback)
         self.add_prompt("Toe Kick Thickness", 'DISTANCE', sn_unit.inch(.75))
-    
+        self.add_prompt("Left Toe Kick Filler", 'DISTANCE', 0.0)
+        self.add_prompt("Right Toe Kick Filler", 'DISTANCE', 0.0)
+
     def add_valance_prompts(self,add_bottom_valance):
         props = cabinet_properties.get_scene_props().carcass_defaults
         self.add_prompt("Valance Height Top", 'DISTANCE', props.valance_height_top)
@@ -987,6 +997,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         if self.carcass_type in {'Base','Tall'}:
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
+            Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
@@ -1060,7 +1071,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             # side.edgebanding('Cabinet_Body_Edges',l1=True)
             if self.carcass_type in {'Base','Tall'}:
                 side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-                side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback',[Toe_Kick_Setback])
+                side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
             if "Left Side" in side.obj_bp.snap.name_object:
                 side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
                 side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
@@ -1159,6 +1170,8 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
             Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
+            Left_Toe_Kick_Filler = self.get_prompt('Left Toe Kick Filler').get_var()
+            Right_Toe_Kick_Filler = self.get_prompt('Right Toe Kick Filler').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
         Bottom_Thickness = self.get_prompt('Bottom Thickness').get_var()
@@ -1191,17 +1204,19 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             left_kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
             left_kick.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
             left_kick.loc_x('Cabinet_Depth_Left-Toe_Kick_Setback',[Cabinet_Depth_Left,Toe_Kick_Setback])
-            left_kick.loc_y('Depth+Left_Side_Thickness',[Depth,Left_Side_Thickness])
+            left_kick.loc_y('Depth-Left_Toe_Kick_Filler',[Depth,Left_Toe_Kick_Filler])
             left_kick.rot_x(value=math.radians(90))
             left_kick.rot_z(value=math.radians(90))
             # left_kick.cutpart("Toe_Kick")
     
             if self.carcass_shape == 'Notched':
-                left_kick.dim_x('fabs(Depth)-Cabinet_Depth_Right+Toe_Kick_Setback',[Depth,Cabinet_Depth_Right,Toe_Kick_Setback])
-                
+                left_kick.dim_x('fabs(Depth)-Cabinet_Depth_Right+Toe_Kick_Setback+Toe_Kick_Thickness+Left_Toe_Kick_Filler',
+                    [Depth,Cabinet_Depth_Right,Toe_Kick_Setback,Toe_Kick_Thickness,Left_Toe_Kick_Filler])
+
                 right_kick = add_part(self, PART_WITH_NO_EDGEBANDING)
                 right_kick.set_name("Left Toe Kick")
-                right_kick.dim_x('fabs(Width)-Cabinet_Depth_Left+Toe_Kick_Setback-Right_Side_Thickness',[Width,Cabinet_Depth_Left,Toe_Kick_Setback,Right_Side_Thickness])
+                right_kick.dim_x('fabs(Width)-Cabinet_Depth_Left+Toe_Kick_Setback-Right_Side_Thickness+Toe_Kick_Thickness+Right_Toe_Kick_Filler',
+                    [Width,Cabinet_Depth_Left,Toe_Kick_Setback,Right_Side_Thickness,Toe_Kick_Thickness,Right_Toe_Kick_Filler])
                 right_kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
                 right_kick.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
                 right_kick.loc_x('Cabinet_Depth_Left-Toe_Kick_Setback',[Cabinet_Depth_Left,Toe_Kick_Setback,Toe_Kick_Thickness])

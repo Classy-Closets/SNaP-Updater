@@ -259,12 +259,10 @@ class PRODUCT_Refrigerator_Tall(cabinets.Refrigerator):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.carcass.prompts = {'Remove Bottom':True}
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.inch(10)
+        self.splitter.opening_1_height = sn_unit.inch(23)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
         self.splitter.exterior_1.prompts = {'Half Overlay Top':False}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
-        self.splitter.interior_1.shelf_qty = 0
-        
         
 class PRODUCT_1_Door_Tall(cabinets.Standard):
     
@@ -427,7 +425,7 @@ class PRODUCT_1_Double_Door_Upper(cabinets.Standard):
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Upper_Single_Door()
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
-        self.splitter.exterior_2 = cabinet_interiors.INSERT_Shelves()
+        self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
 
 class PRODUCT_2_Double_Door_Upper(cabinets.Standard):
     

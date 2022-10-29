@@ -61,10 +61,15 @@ def draw_carcass_options(carcass,layout):
     if toe_kick_height:
         col = layout.column(align=True)
         toe_kick_setback = carcass.get_prompt("Toe Kick Setback")
+        left_toe_kick_filler = carcass.get_prompt("Left Toe Kick Filler")
+        right_toe_kick_filler = carcass.get_prompt("Right Toe Kick Filler")
         col.label(text="Toe Kick Options:")
         row = col.row()
         row.prop(toe_kick_height,'distance_value',text="Toe Kick Height")
         row.prop(toe_kick_setback,'distance_value',text="Toe Kick Setback")
+        row = col.row()
+        row.prop(left_toe_kick_filler,'distance_value',text="Extend Left Amount")
+        row.prop(right_toe_kick_filler,'distance_value',text="Extend Right Amount")
         
     # VALANCE OPTIONS
     if valance_height_top:
@@ -98,6 +103,9 @@ def draw_countertop_options(ctop,product,layout):
     Add_Backsplash = ctop.get_prompt("Add Backsplash")
     Add_Left_Backsplash = ctop.get_prompt("Add Left Backsplash")
     Add_Right_Backsplash = ctop.get_prompt("Add Right Backsplash")
+    Add_Left_Rear_Backsplash = ctop.get_prompt("Add Left Rear Backsplash")
+    Add_Right_Rear_Backsplash = ctop.get_prompt("Add Right Rear Backsplash")
+
     Countertop_Overhang_Front = product.get_prompt("Countertop Overhang Front")
     Countertop_Overhang_Right_Front = product.get_prompt("Countertop Overhang Right Front")
     Countertop_Overhang_Left_Front = product.get_prompt("Countertop Overhang Left Front")
@@ -106,23 +114,17 @@ def draw_countertop_options(ctop,product,layout):
     Countertop_Overhang_Left_Back = product.get_prompt("Countertop Overhang Left Back")
     Countertop_Overhang_Left = product.get_prompt("Countertop Overhang Left")
     Countertop_Overhang_Right = product.get_prompt("Countertop Overhang Right")
-    
-    
-    Countertop_Overhang = product.get_prompt("Countertop Overhang")
-    Add_Left_Rear_Backsplash = ctop.get_prompt("Add Left Rear Backsplash")
-    Add_Right_Rear_Backsplash = ctop.get_prompt("Add Right Rear Backsplash")
-
+  
     box = layout.box()
     col = box.column(align=True)
     col.label(text="Countertop Options:")
+
+    if Add_Backsplash:
+        row = col.row(align=True)
+        row.prop(Add_Backsplash,'checkbox_value',text="")
+        row.label(text="Add Back Splash")
     
     if Add_Left_Backsplash and Add_Right_Backsplash:
-
-        if Add_Backsplash:
-            row = col.row(align=True)
-            row.prop(Add_Backsplash,'checkbox_value',text="")
-            row.label(text="Add Back Splash")
-
         if Add_Left_Backsplash:
             row = col.row(align=True)
             row.prop(Add_Left_Backsplash,'checkbox_value',text="")            
@@ -137,6 +139,8 @@ def draw_countertop_options(ctop,product,layout):
             row.prop(Add_Right_Rear_Backsplash,'checkbox_value',text="")   
             row.label(text="Add Right Rear Splash")
     
+
+
     if Countertop_Overhang_Left:
         col = box.column(align=False)
         col.label(text="Overhang:")
@@ -154,19 +158,10 @@ def draw_countertop_options(ctop,product,layout):
             row_2 = col.row(align=True)
             row_2.prop(Countertop_Overhang_Left_Back,'distance_value',text="Back Left")
             row_2.prop(Countertop_Overhang_Right_Back,'distance_value',text="Back Right")
-            
 
         row_3 = col.row(align=True)
         row_3.prop(Countertop_Overhang_Left,'distance_value',text="Left")
         row_3.prop(Countertop_Overhang_Right,'distance_value',text="Right")
-
-    # if Countertop_Overhang:
-    #     row = col.row(align=True)
-    #     split = row.split(factor=0.50)
-    #     row = split.row()
-    #     row.label(text="Overhang:")
-    #     row.prop(Countertop_Overhang,'distance_value',text="Front")
-
 
 def draw_door_options(door,layout):
     box = layout.box()
@@ -376,7 +371,7 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
         row.prop(self.props,'expand_light_rail_molding',text="",icon='TRIA_DOWN' if self.props.expand_light_rail_molding else 'TRIA_RIGHT',emboss=False)
         row.label(text="Light Rail:")
         row.prop(self.props,'light_rail_molding_category',text="",icon='FILE_FOLDER')
-        # row.prop(self.props,'light_rail_molding',text="")
+        row.prop(self.props,'light_rail_molding',text="")
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + ".auto_add_molding",text="",icon='PLUS').molding_type = 'Light'
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + '.delete_molding',text="",icon='X').molding_type = 'Light'
         if self.props.expand_light_rail_molding:
@@ -932,7 +927,8 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                     self.height = str(round(math.fabs(sn_unit.meter_to_millimeter(self.product.obj_z.location.z))))
 
             if "IS_BP_CABINET_COUNTERTOP" in insert:
-                self.counter_top = sn_types.Assembly(insert)
+                if not self.counter_top:
+                    self.counter_top = sn_types.Assembly(insert)
 
             if "IS_BP_DOOR_INSERT" in insert:
                 self.show_exterior_options = True
@@ -948,7 +944,6 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 if calculator:
                     self.calculators.append(calculator)
 
-            # if "IS_BP_SPLITTER" in insert and insert["IS_BP_SPLITTER"]:
             if self.check_insert_tags(insert, ["IS_BP_SPLITTER"]):
                 self.show_splitter_options = True
 

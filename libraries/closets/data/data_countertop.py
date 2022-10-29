@@ -124,7 +124,7 @@ class Countertop_Insert(sn_types.Assembly):
         hpltop.dim_x('Product_Width-IF(Extend_Left,0,Deck_Thickness/2)-IF(Extend_Right,0,Deck_Thickness/2)+IF(Add_Left_Corner,0,Extend_Left_Amount)+IF(Add_Right_Corner,0,Extend_Right_Amount)',
                   [Product_Width,Extend_Left,Extend_Right,Deck_Thickness,Extend_Right_Amount,Extend_Left_Amount,Add_Left_Corner,Add_Right_Corner])
         hpltop.dim_y("-Product_Depth-Deck_Overhang",[Product_Depth,Deck_Overhang])
-        hpltop.dim_z('Deck_Thickness',[Deck_Thickness])
+        hpltop.dim_z("IF(Countertop_Type==1,INCH(0.75),INCH(1.5))", [Countertop_Type])
         hpltop.get_prompt("Hide").set_formula("IF(OR(Countertop_Type==1,Countertop_Type==3),False,True)",[Countertop_Type])
 
         quartz_ctop = common_parts.add_quartz_countertop(self)

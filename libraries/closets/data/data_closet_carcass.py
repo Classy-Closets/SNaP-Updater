@@ -1676,7 +1676,7 @@ class OPERATOR_Closet_Standard_Draw_Plan(Operator):
         if 'wall bed' in obj.name.lower():
             self.add_wallbed_top(obj)
         
-        if 'wall bed' in obj.name.lower() and 'murphy' in obj.name.lower():
+        if 'wall bed' in obj.name.lower() and ('murphy' in obj.name.lower() or 'nuvola' in obj.name.lower()):
             for item in obj.children:
                 if 'top support' in item.name.lower():
                     self.add_wallbed_top(item)

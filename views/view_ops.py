@@ -2884,7 +2884,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     width = data_dict['data'][idx]['width_inches']
                     overlay = data_dict['data'][idx]['overlay']
                     left_overlay = data_dict['data'][idx]['left_overlay']
-                    if left_overlay:
+                    if left_overlay and i > 1:
                         prvs_over = data_dict['data'][idx - 1]['overlay_side'] 
                     overlay_side = data_dict['data'][idx]['overlay_side']
                     starting = overlay_side == "start"
@@ -2909,8 +2909,8 @@ class VIEW_OT_generate_2d_views(Operator):
                     width = data_dict['data'][idx]['width_inches']
                     overlay = data_dict['data'][idx]['overlay']
                     left_overlay = data_dict['data'][idx]['left_overlay']
-                    if left_overlay:
-                        prvs_over = data_dict['data'][idx - 1]['overlay_side'] 
+                    if left_overlay and i > 1:
+                        prvs_over = data_dict['data'][idx - 1]['overlay_side']
                     overlay_side = data_dict['data'][idx]['overlay_side']
                     starting = overlay_side == "start"
                     ending = prvs_over == "end"

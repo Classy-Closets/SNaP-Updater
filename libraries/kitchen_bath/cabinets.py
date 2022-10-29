@@ -180,7 +180,8 @@ def add_insert(product, insert):
     Left_Side_Wall_Filler = product.carcass.get_prompt('Left Side Wall Filler').get_var()
     Right_Side_Wall_Filler = product.carcass.get_prompt('Right Side Wall Filler').get_var()
 
-    insert.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+
+    insert.loc_x('Left_Side_Thickness+Left_Side_Wall_Filler',[Left_Side_Thickness,Left_Side_Wall_Filler])
 
     if product.carcass.carcass_shape == 'RECTANGLE':
         insert.loc_y('Depth',[Depth])
@@ -191,7 +192,8 @@ def add_insert(product, insert):
     if product.carcass.carcass_type in {"Upper","Suspended"}:
         product.mirror_z = True
         insert.loc_z('Height+Bottom_Inset',[Height,Bottom_Inset])
-    insert.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+
+    insert.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness+Left_Side_Wall_Filler+Right_Side_Wall_Filler)',[Width,Left_Side_Thickness,Right_Side_Thickness,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
 
     if product.carcass.carcass_shape == 'RECTANGLE':
         insert.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])

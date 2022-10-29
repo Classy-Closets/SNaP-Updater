@@ -393,6 +393,8 @@ def assign_materials_from_pointers(obj):
             if part_bp.sn_closets.use_unique_material:
                 unique_ct_color = True
                 category_name = "Countertop Materials"
+                pointer_name = ""
+                unique_mat_name = ""
 
                 island_bp = sn_utils.get_island_bp(obj)
                 island_assy = sn_types.Assembly(island_bp)

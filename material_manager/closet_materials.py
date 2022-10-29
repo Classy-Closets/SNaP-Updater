@@ -146,31 +146,47 @@ def enum_kd_fitting(self, context):
 
 def update_countertops(self, context):
     ct_type = self.countertops.get_type()
-
-    countertop_bp = [obj for obj in context.scene.objects if "IS_BP_COUNTERTOP" in obj]
+    visible_objects = [obj for obj in context.view_layer.objects if obj.visible_get()]
+    countertop_bp = [
+        obj.parent for obj in visible_objects
+        if obj.type == 'MESH' and obj.parent and "IS_BP_COUNTERTOP" in obj.parent]
 
     for obj in countertop_bp:
-        assy = sn_types.Assembly(obj.parent)
+        parent_assy = sn_types.Assembly(obj.parent)
+        assy = sn_types.Assembly(obj)
         ct_type_ppt = None
         island = False
 
-        if obj.sn_closets.use_unique_material:
+        if not assy and parent_assy:
             return
 
-        if "IS_BP_ISLAND" in assy.obj_bp:
-            carcass = data_closet_carcass_island.Closet_Island_Carcass(assy.obj_bp)
+        if "IS_BP_ISLAND" in parent_assy.obj_bp:
+            carcass = data_closet_carcass_island.Closet_Island_Carcass(parent_assy.obj_bp)
             ct_type_ppt = carcass.get_prompt("Countertop Type")
             island = True
 
         else:
-            countertop = sn_types.Assembly(assy.obj_bp)
+            countertop = sn_types.Assembly(parent_assy.obj_bp)
             ct_type_ppt = countertop.get_prompt("Countertop Type")
 
-        if ct_type_ppt:
+        room_type_hpl = ct_type.name in ("HPL", "Custom")
+        is_hpl_assy = "COUNTERTOP_HPL" in assy.obj_bp
+
+        # Enure HPL countertop thickness formula is correct
+        if room_type_hpl and is_hpl_assy:
+            if assy.obj_z.location.z != sn_unit.inch(1.5):
+                if ct_type_ppt:
+                    Countertop_Type = ct_type_ppt.get_var()
+                    assy.dim_z("IF(Countertop_Type==1,INCH(0.75),INCH(1.5))", [Countertop_Type])
+
+        if ct_type_ppt and not obj.sn_closets.use_unique_material:
             ct_type_ppt.set_value(context.scene.closet_materials.ct_type_index)
 
         if island:
             carcass.add_countertop()
+
+    self.color_change = True
+    update_render_materials(self, context)
 
 
 def set_color_index(self, context):
@@ -747,7 +763,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                         Thickness == '{thickness}' AND\
                         Name LIKE '%{glass_color}%'\
                     ;\
-                    ".format(glass_color=glass_color, thickness=part_thickness, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    ".format(glass_color=glass_color, thickness=part_thickness, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
                 )
 
                 if glass_color == 'None':

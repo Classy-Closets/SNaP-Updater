@@ -110,6 +110,7 @@ def assign_material_pointers(scene=None):
             part_mesh = None
             room_mat_color = None
             is_garage_material = False
+            current_mat_color = mat_type.get_mat_color()
 
             if mat_type.type_code == 1 or mat_type.type_code == 4:
                 if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
@@ -128,14 +129,12 @@ def assign_material_pointers(scene=None):
                     room_mat_color = part_mesh.snap.material_slots["Top"].item_name
                     break
 
-        if room_mat_color:
-            current_mat_color = mat_type.get_mat_color().name
-
+        if room_mat_color and current_mat_color:
             if room_mat_color in mat_props.color_conversions:
                 converted_name = mat_props.color_conversions[room_mat_color].new_name
                 room_mat_color = converted_name
 
-            if current_mat_color != room_mat_color:
+            if current_mat_color.name != room_mat_color:
                 mat_types = mat_props.materials.mat_types
                 new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_types, room_mat_color, is_garage_material)
                 if new_type_idx is not None and new_color_idx is not None:
@@ -155,7 +154,6 @@ def assign_material_pointers(scene=None):
 
             for obj in scene.objects:
                 part_mesh = None
-                color_exists = False
 
                 # Edge
                 if not edge and "IS_BP_PANEL" in obj:
@@ -378,6 +376,7 @@ def default_settings(scene=None):
     scene = bpy.context.scene
     prefs = bpy.context.preferences
     bg_mode = bpy.app.background
+    debug_mode = prefs.addons["snap"].preferences.debug_mode
     # Units
     scene.unit_settings.system = 'IMPERIAL'
     scene.unit_settings.length_unit = 'INCHES'
@@ -400,6 +399,10 @@ def default_settings(scene=None):
 
     defaults = cabinet_properties.get_scene_props().size_defaults
     defaults.load_default_heights()
+
+    # Dev tools
+    prefs.view.show_developer_ui = debug_mode
+    prefs.view.show_tooltips_python = debug_mode
 
 
 @persistent

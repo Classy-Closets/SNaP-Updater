@@ -653,11 +653,14 @@ class OPERATOR_Delete_Molding(bpy.types.Operator):
         objs = []
         for obj in context.scene.objects:
             obj_props = cabinet_properties.get_object_props(obj)
-            if is_crown:
+            if self.molding_type == 'Crown':
                 if obj_props.is_crown_molding == True:
                     objs.append(obj)
-            else:
+            elif self.molding_type == 'Base':
                 if obj_props.is_base_molding == True:
+                    objs.append(obj)
+            else:
+                if obj_props.is_light_rail_molding == True:
                     objs.append(obj)
         sn_utils.delete_obj_list(objs)
         return {'FINISHED'}
