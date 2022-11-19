@@ -92,6 +92,7 @@ class Vertical_Splitters(sn_types.Assembly):
         self.add_prompt("Bottom Thickness", 'DISTANCE', sn_unit.inch(.75))
         self.add_prompt("Extend Top Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Extend Bottom Amount", 'DISTANCE', sn_unit.inch(0))
+        self.add_prompt("Opening Quantity", 'QUANTITY', self.vertical_openings)
         
     def add_insert(self, insert, index, z_loc_vars=[], z_loc_expression=""):
         Width = self.obj_x.snap.get_var("location.x","Width")
@@ -293,9 +294,9 @@ class Horizontal_Splitters(sn_types.Assembly):
             self.add_prompt("Opening " + str(i) + " Width", 'DISTANCE', size, True if size == 0 else False)
     
         self.add_prompt("Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Opening Quantity", 'QUANTITY', self.horizontal_openings)
         
-        Thickness = self.get_prompts('Thickness').get_var()
-        
+        # Thickness = self.get_prompts('Thickness').get_var()
         # self.calculator_deduction("Thickness*(" + str(self.horizontal_openings) +"-1)",[Thickness])
         
     def add_insert(self,insert,index,x_loc_vars=[],x_loc_expression=""):

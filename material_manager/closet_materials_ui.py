@@ -849,18 +849,18 @@ class SNAP_MATERIAL_MT_Drawer_Slides(bpy.types.Menu):
         layout = self.layout
         row = layout.row()
 
-        for index, slide_type in enumerate(slide_types):
+        # for index, slide_type in enumerate(slide_types):
 
-            if index % MAX_COL_LEN == 0:
-                col = row.column()
+        #     if index % MAX_COL_LEN == 0:
+        #         col = row.column()
 
-            if index == cab_mat_props.drawer_slide_index:
-                props = col.operator('closet_materials.change_slide_type', text=slide_type.name, icon='RADIOBUT_ON')
-                props.slide_type_name = slide_type.name
+        #     if index == cab_mat_props.drawer_slide_index:
+        #         props = col.operator('closet_materials.change_slide_type', text=slide_type.name, icon='RADIOBUT_ON')
+        #         props.slide_type_name = slide_type.name
 
-            else:
-                props = col.operator('closet_materials.change_slide_type', text=slide_type.name, icon='RADIOBUT_OFF')
-                props.slide_type_name = slide_type.name
+        #     else:
+        #         props = col.operator('closet_materials.change_slide_type', text=slide_type.name, icon='RADIOBUT_OFF')
+        #         props.slide_type_name = slide_type.name
 
 
 class OPS_Change_Active_Slide_Type(Operator):

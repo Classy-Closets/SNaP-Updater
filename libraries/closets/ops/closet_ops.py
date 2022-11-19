@@ -1892,8 +1892,13 @@ class SNAP_OT_Update_Drawer_boxes(Operator):
             seven_hole = drawer_stack.get_prompt("Seven Hole")
 
             if self.add and not drawer_stack.drawer_boxes:
-                drawer_stack.add_drawer_boxes()
-                for i in range(1, drawer_qty_prompt.get_value()):
+                box_type = drawer_stack.get_prompt("Box Type")
+                if box_type:
+                    drawer_stack.add_drawer_boxes(box_type.get_value())
+                else:
+                    drawer_stack.add_drawer_boxes()
+
+                for i in range(1, int(drawer_qty_prompt.get_value())):
                     use_double_drawer = drawer_stack.get_prompt("Use Double Drawer " + str(i))
                     drawer_height = drawer_stack.get_prompt("Drawer " + str(i) + " Height")
                     if drawer_height is not None:

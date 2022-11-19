@@ -423,6 +423,12 @@ class SnapMaterialSceneProps(PropertyGroup):
                 else:
                     return "EB-0000338"
 
+        # Stain EB
+        if self.materials.get_mat_type().name == "Upgrade Options":
+            upgrade_type = self.upgrade_options.types[self.upgrade_type_index]
+            if upgrade_type.name == 'Stain':
+                return "EB-0000433"  # EB Alder Veneer 1MM
+
         door_drawer_parts = [
             obj_props.is_door_bp,
             obj_props.is_drawer_front_bp,
@@ -476,6 +482,12 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return "EB-0000333"
             else:
                 return "EB-0000338"
+
+        # Stain EB
+        if self.materials.get_mat_type().name == "Upgrade Options":
+            upgrade_type = self.upgrade_options.types[self.upgrade_type_index]
+            if upgrade_type.name == 'Stain':
+                return "EB-0000433"  # EB Alder Veneer 1MM
 
         sku = sn_db.query_db(
             "SELECT\
@@ -676,6 +688,11 @@ class SnapMaterialSceneProps(PropertyGroup):
                 obj_props.is_glass_shelf_bp
             ]
 
+            shelf_lip_parts = [
+                obj_props.is_shelf_lip_bp,
+                obj_props.is_deco_shelf_lip_bp
+            ]
+
             countertop_parts = [
                 obj_props.is_countertop_bp,
                 obj_props.is_hpl_top_bp
@@ -711,9 +728,13 @@ class SnapMaterialSceneProps(PropertyGroup):
                     color_code = mat_type.colors[mat_name].color_code
 
             if any(drawer_box_parts):
+                box_type_ppt = assembly.get_prompt("Box Type")
+                box_type = 0
+                if box_type_ppt:
+                    box_type = box_type_ppt.get_value()
                 use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction")
                 if use_dovetail_construction:
-                    if use_dovetail_construction.get_value():
+                    if use_dovetail_construction.get_value() or box_type == 2:
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'BB-0000004'  # WHITE PAPER 3/8 G1
                         else:
@@ -738,11 +759,35 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 print("Multiple SKUs found for: ", material_name)
                                 print(sku)
                                 return "Unknown"
+                    elif box_type == 1:
+                        if obj_props.is_drawer_bottom_bp:
+                            sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
+                        else:
+                            sku = sn_db.query_db(
+                                "SELECT\
+                                    SKU\
+                                FROM\
+                                    {CCItems}\
+                                WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
+                                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                            )
+
+                            if len(sku) == 0:
+                                print("No SKU found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
+                                return "Unknown"
+                            elif len(sku) == 1:
+                                print(sku[0][0])
+                                return sku[0][0]
+                            else:
+                                print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
+                                print(sku)
+                                return "Unknown"
                     else:
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
                         else:
                             sku = 'PM-0000004'  # WHITE  PAPER 1/2 G2
+
                 else:
                     if obj_props.is_drawer_bottom_bp:
                         sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
@@ -790,6 +835,43 @@ class SnapMaterialSceneProps(PropertyGroup):
             if any(countertop_parts):
                 if part_name is not None and 'Melamine' not in part_name:
                     return 'SO-0000001'
+
+            if any(shelf_lip_parts) and not assembly.obj_bp.get("IS_BP_MEL_SHELF_LIP"):
+                if assembly.obj_bp.get("IS_SHOE_SHELF_LIP") and "Shelf Lip" not in part_name:
+                    if 'Ogee' in part_name:
+                        part_name = "OGEE EDGING"
+                    sku = sn_db.query_db(
+                        "SELECT\
+                            SKU\
+                        FROM\
+                            {CCItems}\
+                        WHERE\
+                            ProductType IN ('MD') AND\
+                            DisplayName LIKE '%{lip_name}%'\
+                        ;\
+                        ".format(lip_name=part_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    )
+                    if len(sku) == 0:
+                        print(
+                            "No SKU found for - Shelf Lip: {}".format(part_name))
+                        return "Unknown"
+                    elif len(sku) == 1:
+                        return sku[0][0]
+                    else:
+                        print("Multiple SKUs found for - Shelf Lip: {} ".format(part_name))
+                        print(sku)
+                        return "Unknown"
+                else:
+                    if part_thickness == 0.75 or part_thickness == 0:
+                        if self.upgrade_options.get_type().name == "Stain":
+                            return "VN-0000014"
+                        else:
+                            return "WD-0000010"
+                    elif part_thickness == 0.25:
+                        if self.upgrade_options.get_type().name == "Stain":
+                            return "VN-0000004"
+                        else:
+                            return "WD-0000007"
 
             if obj_props.is_crown_molding and not obj.get('IS_BP_FLAT_CROWN') and not assembly.obj_bp.get('IS_BP_FLAT_CROWN'):
                 sku = sn_db.query_db(
@@ -883,10 +965,6 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return "Unknown"
 
         if part_thickness == 0.75 or part_thickness == 0:
-            if assembly:
-                if assembly.obj_bp.get("IS_SHOE_SHELF_LIP") and not assembly.obj_bp.get("IS_BP_MEL_SHELF_LIP"):
-                    return "Unknown"
-
             sku = sn_db.query_db(
                 "SELECT\
                     SKU\

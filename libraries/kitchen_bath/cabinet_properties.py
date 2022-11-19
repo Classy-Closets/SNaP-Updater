@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 import os
 from snap import sn_types, sn_unit, sn_utils
 from snap.libraries.closets.ui.closet_prompts_ui import get_panel_heights
+from snap.libraries.closets.common.common_lists import FRONT_HEIGHTS
 
 
 ROOT_DIR = os.path.dirname(__file__)
@@ -270,7 +271,7 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                                         default=True)
 
     top_drawer_front_height: bpy.props.EnumProperty(name="Top Drawer Front Height",
-                                                items=get_panel_heights,
+                                                items=FRONT_HEIGHTS,
                                                 description="Default top drawer front height")
 
     def load_default_heights(self):
@@ -280,7 +281,7 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
         self.upper_cabinet_height = '1011'   #31 H
         self.sink_cabinet_height = '787'
         self.suspended_cabinet_height = '211'
-        self.top_drawer_front_height = '147'
+        self.top_drawer_front_height = '123.952'  # 4H
 
 bpy.utils.register_class(PROPERTIES_Cabinet_Sizes)
 

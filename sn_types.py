@@ -923,9 +923,10 @@ class Assembly:
             if child.type == 'MESH':
                 self.lock_rot_and_scale(child)
             if "IS_VISDIM_A" in child:
-                child.hide_set(True)
-                child.hide_viewport = False
-                continue
+                if child.name in bpy.context.view_layer.objects:
+                    child.hide_set(True)
+                    child.hide_viewport = False
+                    continue
             if child.type == 'EMPTY':
                 child.hide_viewport = True
             if not child.snap.type_group == 'INSERT':

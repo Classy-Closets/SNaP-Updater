@@ -1861,7 +1861,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         insert_width = 0
         vl18 = [3,4,5]
         vl21 = [4,5,6]
-        vl24 = [4,5,6]
+        vl24 = [5,6,7]
         if 18 <= width_in < 21:
             insert_width = 18
         elif 21 <= width_in < 24:
@@ -1870,47 +1870,49 @@ class SNAP_OT_Auto_Dimension(Operator):
             insert_width = 24
 
         insert_type_ppt = drawer_stack.get_prompt(f'Jewelry Insert Type {drawer_num}')
+        has_jewlry_insert = drawer_stack.get_prompt(f'Has Jewelry Insert {drawer_num}').get_value()
 
-        if insert_type_ppt and insert_width > 0:
-            insert_type = insert_type_ppt.get_value()
-            # Double Jewelry
-            if insert_type == 0:
-                upper = f'Upper Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
-                lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
-                u_choice = drawer_stack.get_prompt(upper).get_value()
-                l_choice = drawer_stack.get_prompt(lower).get_value()
-                if insert_width == 18 and (u_choice in vl18 or l_choice in vl18):
+        if has_jewlry_insert:
+            if insert_type_ppt and insert_width > 0:
+                insert_type = insert_type_ppt.get_value()
+                # Double Jewelry
+                if insert_type == 0:
+                    upper = f'Upper Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                    lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                    u_choice = drawer_stack.get_prompt(upper).get_value()
+                    l_choice = drawer_stack.get_prompt(lower).get_value()
+                    if insert_width == 18 and (u_choice in vl18 or l_choice in vl18):
+                        return True
+                    elif insert_width == 21 and (u_choice in vl21 or l_choice in vl21):
+                        return True
+                    elif insert_width == 24 and (u_choice in vl24 or l_choice in vl24):
+                        return True
+                # STD Insert
+                elif insert_type == 1:
+                    jwl_ins = f'Jewelry Insert {insert_width}in {drawer_num}'
+                    sld_ins = f'Sliding Insert {insert_width}in {drawer_num}'
+                    j_choice = drawer_stack.get_prompt(jwl_ins).get_value()
+                    s_choice = drawer_stack.get_prompt(sld_ins).get_value()
+                    drawer_stack.get_prompt(sld_ins)
+                    if insert_width == 18 and (j_choice in vl18 or s_choice in vl18):
+                        return True
+                    elif insert_width == 21 and (j_choice in vl21 or s_choice in vl21):
+                        return True
+                    elif insert_width == 24 and (j_choice in vl24 or s_choice in vl24):
+                        return True
+                # Non-STD Insert GT 16
+                elif insert_type == 2:
+                    lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
+                    l_choice = drawer_stack.get_prompt(lower).get_value()
+                    if insert_width == 18 and l_choice in vl18:
+                        return True
+                    elif insert_width == 21 and l_choice in vl21:
+                        return True
+                    elif insert_width == 24 and l_choice in vl24:
+                        return True
+                # Non-STD Insert LT 16
+                elif insert_type == 3:
                     return True
-                elif insert_width == 21 and (u_choice in vl21 or l_choice in vl21):
-                    return True
-                elif insert_width == 24 and (u_choice in vl24 or l_choice in vl24):
-                    return True
-            # STD Insert
-            elif insert_type == 1:
-                jwl_ins = f'Jewelry Insert {insert_width}in {drawer_num}'
-                sld_ins = f'Sliding Insert {insert_width}in {drawer_num}'
-                j_choice = drawer_stack.get_prompt(jwl_ins).get_value()
-                s_choice = drawer_stack.get_prompt(sld_ins).get_value()
-                drawer_stack.get_prompt(sld_ins)
-                if insert_width == 18 and (j_choice in vl18 or s_choice in vl18):
-                    return True
-                elif insert_width == 21 and (j_choice in vl21 or s_choice in vl21):
-                    return True
-                elif insert_width == 24 and (j_choice in vl24 or s_choice in vl24):
-                    return True
-            # Non-STD Insert GT 16
-            elif insert_type == 2:
-                lower = f'Lower Jewelry Insert Velvet Liner {insert_width}in {drawer_num}'
-                l_choice = drawer_stack.get_prompt(lower).get_value()
-                if insert_width == 18 and l_choice in vl18:
-                    return True
-                elif insert_width == 21 and l_choice in vl21:
-                    return True
-                elif insert_width == 24 and l_choice in vl24:
-                    return True
-            # Non-STD Insert LT 16
-            elif insert_type == 3:
-                return True
         return False
 
     def jewelry_drawer_labeling(self, assembly):
@@ -2197,9 +2199,10 @@ class SNAP_OT_Auto_Dimension(Operator):
         opn = item.sn_closets.opening_name
         if opn:
             crcss_assy = sn_types.Assembly(item.parent)
-            var_sect = crcss_assy.get_prompt(f'CTF Opening {opn}').get_value()
-            if var_sect:
-                self.variable_sections_list.append(opn)
+            var_sect_ppt = crcss_assy.get_prompt(f'CTF Opening {opn}')
+            if var_sect_ppt:
+                if var_sect_ppt.get_value():
+                    self.variable_sections_list.append(opn)
             if len(item.children) > 0:
                 for i in item.children:
                     self.has_variable_descendants(i)

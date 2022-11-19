@@ -14,6 +14,7 @@ from snap.libraries.kitchen_bath.carcass_simple import Inside_Corner_Carcass, St
 from . import cabinet_properties
 from .frameless_exteriors import Doors, Vertical_Drawers, Horizontal_Drawers
 from snap.libraries.closets.ui.closet_prompts_ui import get_panel_heights
+from snap.libraries.closets.common.common_lists import FRONT_HEIGHTS
 
 def draw_carcass_options(carcass,layout):
     left_fin_end = carcass.get_prompt("Left Fin End")
@@ -201,7 +202,6 @@ def draw_door_options(door,layout):
 
 def draw_drawer_options(drawers,layout):
     open_prompt = drawers.get_prompt("Open Drawers")
-    inset_front = drawers.get_prompt("Inset Front")
     half_overlay_top = drawers.get_prompt("Half Overlay Top")
     half_overlay_bottom = drawers.get_prompt("Half Overlay Bottom")
     half_overlay_left = drawers.get_prompt("Half Overlay Left")
@@ -211,37 +211,29 @@ def draw_drawer_options(drawers,layout):
     row = box.row()
     row.label(text="Drawer Options:")
 
-    # if inset_front:
-    #     row.prop(inset_front,'checkbox_value',text="Inset Drawer Front")
-
     if open_prompt:
-        open_prompt.draw(row,allow_edit=False)
+        row = box.row()
+        open_prompt.draw(row, allow_edit=False)
 
-    if inset_front:
-        if not inset_front.get_value():
-            if half_overlay_top:
-                col = box.column(align=True)
-                row = col.row()
-                row.label(text="Half Overlays:")
-                row.prop(half_overlay_top,'checkbox_value',text="Top")
-                row.prop(half_overlay_bottom,'checkbox_value',text="Bottom")
-                row.prop(half_overlay_left,'checkbox_value',text="Left")
-                row.prop(half_overlay_right,'checkbox_value',text="Right")
+    if half_overlay_top:
+        col = box.column(align=True)
+        row = col.row()
+        row.label(text="Half Overlays:")
+        row.prop(half_overlay_top,'checkbox_value',text="Top")
+        row.prop(half_overlay_bottom,'checkbox_value',text="Bottom")
+        row.prop(half_overlay_left,'checkbox_value',text="Left")
+        row.prop(half_overlay_right,'checkbox_value',text="Right")
     
     df_2_height = drawers.get_prompt("Drawer Front 2 Height")
+    drawer_front_heights = get_drawer_front_heights()
 
     if df_2_height:
         for i in range(1,10):
             drawer_height = drawers.get_prompt("Drawer Front " + str(i) + " Height")
+            calculator = drawers.get_calculator('Vertical Drawers Calculator')
+            
             if drawer_height:
-                row = box.row()
-                row.label(text="Drawer Front " + str(i) + " Height:")
-                if drawer_height.equal:
-                    row.label(text=str(sn_unit.meter_to_active_unit(drawer_height.get_value())))
-                    row.prop(drawer_height,'equal',text="")
-                else:
-                    row.prop(drawer_height,'distance_value',text="")
-                    row.prop(drawer_height,'equal',text="")
+                draw_hole_size_height(i, box, drawer_height, drawer_front_heights, calculator, type="Drawer Front")
             else:
                 break
 
@@ -297,7 +289,45 @@ def draw_interior_options(assembly,layout):
         row = box.row()
         fixed_shelf_rows.draw(row,allow_edit=False)
 
+
+def draw_hole_size_height(i, box, calc_ppt, heights, calculator, type="Opening", child_name=""):
+    row = box.row()
+    row.label(text=type + " " + str(i) + ": " + child_name)
+    if not calc_ppt.equal:
+        row.prop(calc_ppt, 'equal', text="")
+    else:
+        if get_number_of_equal_heights(calculator, type) != 1:
+            row.prop(calc_ppt, 'equal', text="")
+        else:
+            row.label(text="", icon='BLANK1')
+
+    label = "No Even Hole Size"
+    for height in heights:
+        full_height = calc_ppt.distance_value
+
+        if type == "Opening":
+            full_height_mm = sn_unit.meter_to_millimeter(full_height + sn_unit.inch(0.75))
+        elif type == "Drawer Front":
+            full_height_mm = sn_unit.meter_to_millimeter(full_height) 
+
+        if int(height[0]) == round(full_height_mm):
+            label = height[1]
+            break
+    
+    if calc_ppt.equal:
+        row.label(text=label)
+    else:
+        row.menu("SNAP_MT_{}_{}_Heights".format(type.replace(" ","_"), str(i)), text=label)
+
+
 def draw_splitter_options(assembly,layout):
+    opening_heights = get_opening_heights()
+    inserts = []
+
+    for child in sn_utils.get_assembly_bp_list(assembly.obj_bp, []):
+         if child.get('IS_BP_ASSEMBLY') and not child.get("IS_BP_SHELVES") and child.snap.type_group == 'INSERT':
+            inserts.append(child)
+
     if assembly.get_prompt("Opening 1 Height"):
         name = "Height"
     else:
@@ -307,17 +337,76 @@ def draw_splitter_options(assembly,layout):
     
     for i in range(1,10):
         opening = assembly.get_prompt("Opening " + str(i) + " " + name)
+        calculator = assembly.get_calculator('Opening Heights Calculator')
+        child_label = ""
         if opening:
-            row = box.row()
-            row.label(text="Opening " + str(i) + " " + name  + ":")
-            if opening.equal:
-                row.label(text=str(sn_unit.meter_to_active_unit(opening.get_value())))
-                row.prop(opening,'equal',text="")
-            else:
-                row.prop(opening,'distance_value',text="")
-                row.prop(opening,'equal',text="")
+            if i <= len(inserts):
+                child_label = " (" + inserts[i-1].name.replace(".001","") + ")"
+            draw_hole_size_height(i, box, opening, opening_heights, calculator, "Opening", child_label)
         else:
             break
+
+
+def get_number_of_equal_heights(calculator, type="Opening"):
+    number_of_equal_heights = 0
+
+    for i in range(1, 10):
+        height = eval("calculator.get_calculator_prompt('{} {} Height')".format(type, str(i)))
+
+        if height:
+            number_of_equal_heights += 1 if height.equal else 0
+        else:
+            break
+
+    return number_of_equal_heights
+
+
+def get_drawer_front_heights(end_hole_amt=24):
+    start = 92
+    start_hole_amt = 3
+    df_heights = OpeningHeights(start, start_hole_amt, end_hole_amt, drawer_front=True)
+    heights_iter = iter(df_heights)
+    df_heights = list(heights_iter)
+
+    return df_heights
+
+
+def get_opening_heights(end_hole_amt=76):
+    start = 96
+    start_hole_amt = 3
+    opening_heights = OpeningHeights(start, start_hole_amt, end_hole_amt)
+    heights_iter = iter(opening_heights)
+    opening_heights = list(heights_iter)
+
+    return opening_heights
+
+
+class OpeningHeights:
+    def __init__(self, start, start_hole_amt, end_hole_amt, drawer_front=False):
+        self.start = start
+        self.end_hole_amt = end_hole_amt - 3
+        self.hole_amt = start_hole_amt
+        self.drawer_front = drawer_front
+
+    def __iter__(self):
+        self.num = self.start
+        return self
+
+    def __next__(self):
+        mm = self.num
+        height_deduction = 0 if self.drawer_front else 0.75
+        
+        inch = round(self.num / 25.4 - height_deduction, 2)
+        name = '{}H-{}"'.format(str(self.hole_amt), str(inch))
+        self.num += 32
+        self.hole_amt += 1
+
+        if(self.hole_amt > self.end_hole_amt):
+            raise StopIteration
+
+        return ((str(mm), name, ""))
+
+
 class SNAP_PT_Cabinet_Options(bpy.types.Panel):
     """Panel to Store all of the Cabinet Options"""
     bl_id = cabinet_properties.LIBRARY_NAME_SPACE + "_Advanced_Cabinet_Options"
@@ -733,6 +822,14 @@ class PROMPTS_Door_Prompts(bpy.types.Operator):
             if self.assembly.obj_bp.name in context.scene.objects:
                 draw_door_options(self.assembly,layout)
 
+def update_overall_width(self, context):
+    if hasattr(self, "default_width"):
+        if not self.placement_on_wall == 'FILL':
+            self.width = self.default_width
+            self.closet.obj_x.location.x = self.width
+        else:
+            self.width = self.closet.obj_x.location.x
+
 class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     bl_idname = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
     bl_label = "Frameless Cabinet Prompts" 
@@ -819,6 +916,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         else:
             self.product.obj_y.location.y = self.depth
 
+        
         if 'IS_MIRROR' in self.product.obj_z:
             self.product.obj_z.location.z = sn_unit.millimeter(-float(self.height))+toe_kick_offset
         else:
@@ -873,16 +971,101 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         self.last_placement = self.placement_on_wall
 
 
+    def update_opening_heights(self):
+        self.run_calculators(self.product.obj_bp)
+
+        if len(self.splitters) > 0:
+            splitter = self.splitters[0]  # TODO: Need to handle multiple splitters
+            op_calculator = None
+            op_num = 0
+
+            for calc in self.calculators:
+                if calc.name == "Opening Heights Calculator":
+                    op_calculator = calc
+                    op_num = len(calc.prompts)
+
+            for i in range(1, op_num + 1):
+                opening_height = splitter.get_prompt("Opening " + str(i) + " Height")
+                if opening_height:
+                    if not opening_height.equal:
+                        op_heights = [float(height[0]) for height in get_opening_heights()]
+                        height = opening_height.get_value()
+                        full_height_mm = round(sn_unit.meter_to_millimeter(height + sn_unit.inch(0.75)))
+
+                        if full_height_mm == round(sn_unit.meter_to_millimeter(height)):
+                            opening_height.set_value(sn_unit.millimeter(full_height_mm))
+
+    def update_holesize_split(self, inserts):
+        object_qty = 0
+        equal_qty = 0
+
+        if len(inserts) > 0 and "IS_DRAWERS_BP" in inserts[0].obj_bp:
+            type = "Drawer Front"
+            heights = get_drawer_front_heights()
+            calculator_name = "Vertical Drawers Calculator"
+        else:
+            type = "Opening"
+            heights = get_opening_heights()
+            calculator_name = "Opening Heights Calculator"
+
+        for insert in inserts:
+            test_height = insert.get_prompt(type + " 2 Height")
+
+            if test_height:
+                prompt_name = type.replace(" Front","") + " Quantity"
+                if insert.get_prompt(prompt_name):
+                    object_qty = insert.get_prompt(prompt_name).get_value()
+                else: # no prompt on old assembly, loop through calc prompts to count them...
+                    object_qty = 0
+                    for i in range(1,10):
+                        test_ppt = insert.get_prompt(type + " " + str(i) + " Height")
+                        if test_ppt: 
+                            object_qty += 1
+
+                calculator = insert.get_calculator(calculator_name)
+                equal_qty = get_number_of_equal_heights(calculator, type)
+
+                for i in range(object_qty):
+                    height_ppt = insert.get_prompt(type + " " + str(i+1) + " Height")
+                    boolEven = False
+                    intSize = 0
+                    
+                    if height_ppt:
+                        if height_ppt.equal and equal_qty > 1:
+                            print(type + " " + str(i+1) + " set to EQUAL.. process it!")
+                            for height in heights:
+                                full_height = height_ppt.distance_value
+                                
+                                if type == "Opening":
+                                    full_height_mm = sn_unit.meter_to_millimeter(full_height + sn_unit.inch(0.75))
+                                elif type == "Drawer Front":
+                                    full_height_mm = sn_unit.meter_to_millimeter(full_height) 
+                                
+                                if int(height[0]) == round(full_height_mm):
+                                    boolEven = True
+                                    break
+                                elif int(height[0]) < round(full_height_mm):
+                                    intSize = int(height[0])
+  
+                            if boolEven == False:
+                                height_ppt.equal = False
+                                height_ppt.distance_value = sn_unit.millimeter(intSize)
+                                equal_qty -= 1
+          
+
     def check(self, context):
         self.update_overall_width()
         self.update_product_size()
         self.update_placement(context)
+        self.update_opening_heights()
+        self.update_holesize_split(self.splitters)
+        self.update_holesize_split(self.drawers)
         self.run_calculators(self.product.obj_bp)
         context.view_layer.update()
         self.update_door_dimensions()
         self.update_drawer_dimensions()
         self.update_carcass_dimensions()
-        
+
         return True
 
     def execute(self, context):
@@ -946,13 +1129,13 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
 
             if self.check_insert_tags(insert, ["IS_BP_SPLITTER"]):
                 self.show_splitter_options = True
+                assy = sn_types.Assembly(insert)
 
                 if insert not in self.splitters:
-                    self.splitters.append(insert)                
+                    self.splitters.append(assy)                
 
-                assy = sn_types.Assembly(insert)
                 calculator = assy.get_calculator('Opening Heights Calculator')
-                if assy and insert not in self.splitters:
+                if assy not in self.splitters:
                     self.splitters.append(assy)
                 if calculator:
                     self.calculators.append(calculator)
@@ -1080,8 +1263,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             draw_interior_options(interior, layout)
 
     def draw_splitter_prompts(self,layout):
-        for splitter_bp in self.splitters:
-            splitter = sn_types.Assembly(splitter_bp)
+        for splitter in self.splitters:
             draw_splitter_options(splitter, layout)
 
     def draw(self, context):
@@ -1103,19 +1285,21 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                     row.prop_enum(self, "product_tabs", 'EXTERIOR') 
                 if self.show_interior_options:
                     row.prop_enum(self, "product_tabs", 'INTERIOR') 
-                if self.show_splitter_options:
-                    row.prop_enum(self, "product_tabs", 'SPLITTER') 
+                # if self.show_splitter_options:
+                #     row.prop_enum(self, "product_tabs", 'SPLITTER') 
 
                 if self.product_tabs == 'CARCASS':
                     self.draw_carcass_prompts(prompt_box)
                     self.draw_product_placment(prompt_box)
                 if self.product_tabs == 'EXTERIOR':
+                    if self.show_splitter_options:
+                        self.draw_splitter_prompts(prompt_box)
                     self.draw_door_prompts(prompt_box)
                     self.draw_drawer_prompts(prompt_box)
                 if self.product_tabs == 'INTERIOR':
                     self.draw_interior_prompts(prompt_box)
-                if self.product_tabs == 'SPLITTER':
-                    self.draw_splitter_prompts(prompt_box)
+                # if self.product_tabs == 'SPLITTER':
+                #     self.draw_splitter_prompts(prompt_box)
       
 
 bpy.utils.register_class(SNAP_PT_Cabinet_Options)

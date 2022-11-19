@@ -1261,6 +1261,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             # change box prompts
             drawer_box_depth = drawer_box.obj_y.location.y
             drawer_box_height = drawer_box.obj_z.location.z
+            box_type_ppt = drawer_box.get_prompt("Box Type")
             use_dovetail_construction = drawer_box.get_prompt("Use Dovetail Construction")
             override_depth = drawer_box.get_prompt("Override Depth")            
             override_height = drawer_box.get_prompt("Override Height")  
@@ -1272,13 +1273,19 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             #    override_height.set_value(sn_unit.inch(2))
             #else:
             #    override_height.set_value(0)
-            
-            if box_type == 'MEL':
-                override_depth.set_value(0)
-                use_dovetail_construction.set_value(False)
-            else:  
-                use_dovetail_construction.set_value(True)
-                if "Undermount" in options.dt_slide_name:
+            if box_type_ppt:
+                if box_type_ppt.get_value() == 0:
+                    override_depth.set_value(0)
+                elif box_type_ppt.get_value() == 1:
+                    if drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(21):
+                        override_depth.set_value(sn_unit.inch(21))
+                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(18):
+                        override_depth.set_value(sn_unit.inch(18))
+                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(15):
+                        override_depth.set_value(sn_unit.inch(15))
+                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(12):
+                        override_depth.set_value(sn_unit.inch(12))
+                else:
                     if drawer_box_depth >= sn_unit.inch(21):
                         override_depth.set_value(sn_unit.inch(21))
                     elif drawer_box_depth >= sn_unit.inch(18):
@@ -1288,110 +1295,127 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                     elif drawer_box_depth >= sn_unit.inch(12):
                         override_depth.set_value(sn_unit.inch(12))
                     elif drawer_box_depth >= sn_unit.inch(9):
-                        override_depth.set_value(sn_unit.inch(9))                        
-                else:
+                        override_depth.set_value(sn_unit.inch(9))
+            else:
+                if box_type == 'MEL':
                     override_depth.set_value(0)
+                    use_dovetail_construction.set_value(False)
+                else:  
+                    use_dovetail_construction.set_value(True)
+                    if "Undermount" in options.dt_slide_name:
+                        if drawer_box_depth >= sn_unit.inch(21):
+                            override_depth.set_value(sn_unit.inch(21))
+                        elif drawer_box_depth >= sn_unit.inch(18):
+                            override_depth.set_value(sn_unit.inch(18))
+                        elif drawer_box_depth >= sn_unit.inch(15):
+                            override_depth.set_value(sn_unit.inch(15))
+                        elif drawer_box_depth >= sn_unit.inch(12):
+                            override_depth.set_value(sn_unit.inch(12))
+                        elif drawer_box_depth >= sn_unit.inch(9):
+                            override_depth.set_value(sn_unit.inch(9))                        
+                    else:
+                        override_depth.set_value(0)
                     
-            slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()
+            # slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()
 
-            if options.box_type == 'DOVE':
-                slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()      
+            # if options.box_type == 'DOVE':
+            #     slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()      
                       
-                if slide_name == 'Mepla Partial Extension':
-                    if drawer_box_depth >= sn_unit.inch(22):
-                        self.add_hardware("Mepla PE 22",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(20):
-                        self.add_hardware("Mepla PE 20",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("Mepla PE 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(16):
-                        self.add_hardware("Mepla PE 16",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(14):
-                        self.add_hardware("Mepla PE 14",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("Mepla PE 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(10):
-                        self.add_hardware("Mepla PE 10",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box) 
+            #     if slide_name == 'Mepla Partial Extension':
+            #         if drawer_box_depth >= sn_unit.inch(22):
+            #             self.add_hardware("Mepla PE 22",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(20):
+            #             self.add_hardware("Mepla PE 20",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("Mepla PE 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(16):
+            #             self.add_hardware("Mepla PE 16",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(14):
+            #             self.add_hardware("Mepla PE 14",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("Mepla PE 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(10):
+            #             self.add_hardware("Mepla PE 10",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
 
-                if slide_name == 'Mepla Full Extension':
-                    if drawer_box_depth >= sn_unit.inch(22):
-                        self.add_hardware("Mepla FE 22",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(20):
-                        self.add_hardware("Mepla FE 20",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("Mepla FE 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(16):
-                        self.add_hardware("Mepla FE 16",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(14):
-                        self.add_hardware("Mepla FE 14",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("Mepla FE 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(10):
-                        self.add_hardware("Mepla FE 10",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box) 
+            #     if slide_name == 'Mepla Full Extension':
+            #         if drawer_box_depth >= sn_unit.inch(22):
+            #             self.add_hardware("Mepla FE 22",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(20):
+            #             self.add_hardware("Mepla FE 20",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("Mepla FE 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(16):
+            #             self.add_hardware("Mepla FE 16",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(14):
+            #             self.add_hardware("Mepla FE 14",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("Mepla FE 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(10):
+            #             self.add_hardware("Mepla FE 10",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
                         
-                if slide_name == 'HBB':
-                    if drawer_box_depth >= sn_unit.inch(22):
-                        self.add_hardware("HBB 22",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(20):
-                        self.add_hardware("HBB 20",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("HBB 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(16):
-                        self.add_hardware("HBB 16",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(14):
-                        self.add_hardware("HBB 14",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("HBB 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(10):
-                        self.add_hardware("HBB 10",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box)                                            
+            #     if slide_name == 'HBB':
+            #         if drawer_box_depth >= sn_unit.inch(22):
+            #             self.add_hardware("HBB 22",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(20):
+            #             self.add_hardware("HBB 20",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("HBB 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(16):
+            #             self.add_hardware("HBB 16",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(14):
+            #             self.add_hardware("HBB 14",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("HBB 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(10):
+            #             self.add_hardware("HBB 10",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box)                                            
                         
-                if slide_name == 'Blum Undermount':
-                    if drawer_box_depth >= sn_unit.inch(21):
-                        self.add_hardware("Blum 21",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("Blum 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(15):
-                        self.add_hardware("Blum 15",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("Blum 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(9):
-                        self.add_hardware("Blum 9",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box) 
+            #     if slide_name == 'Blum Undermount':
+            #         if drawer_box_depth >= sn_unit.inch(21):
+            #             self.add_hardware("Blum 21",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("Blum 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(15):
+            #             self.add_hardware("Blum 15",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("Blum 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(9):
+            #             self.add_hardware("Blum 9",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
                         
-                if slide_name == 'King Undermount':
-                    if drawer_box_depth >= sn_unit.inch(21):
-                        self.add_hardware("King 21",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("King 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(15):
-                        self.add_hardware("King 15",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("King 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(9):
-                        self.add_hardware("King 9",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box) 
+            #     if slide_name == 'King Undermount':
+            #         if drawer_box_depth >= sn_unit.inch(21):
+            #             self.add_hardware("King 21",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("King 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(15):
+            #             self.add_hardware("King 15",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("King 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(9):
+            #             self.add_hardware("King 9",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
                         
-                if slide_name == 'Salice Undermount':
-                    if drawer_box_depth >= sn_unit.inch(21):
-                        self.add_hardware("Salice 21",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(18):
-                        self.add_hardware("Salice 18",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(15):
-                        self.add_hardware("Salice 15",drawer_box)
-                    elif drawer_box_depth >= sn_unit.inch(12):
-                        self.add_hardware("Salice 12",drawer_box) 
-                    elif drawer_box_depth >= sn_unit.inch(9):
-                        self.add_hardware("Salice 9",drawer_box)                         
-                    else:
-                        self.add_hardware("ERROR Drawer Too Small",drawer_box)                                                 
+            #     if slide_name == 'Salice Undermount':
+            #         if drawer_box_depth >= sn_unit.inch(21):
+            #             self.add_hardware("Salice 21",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(18):
+            #             self.add_hardware("Salice 18",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(15):
+            #             self.add_hardware("Salice 15",drawer_box)
+            #         elif drawer_box_depth >= sn_unit.inch(12):
+            #             self.add_hardware("Salice 12",drawer_box) 
+            #         elif drawer_box_depth >= sn_unit.inch(9):
+            #             self.add_hardware("Salice 9",drawer_box)                         
+            #         else:
+            #             self.add_hardware("ERROR Drawer Too Small",drawer_box)                                                 
                                              
                         
                                         

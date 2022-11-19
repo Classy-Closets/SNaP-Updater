@@ -324,7 +324,6 @@ class Standard(sn_types.Assembly):
         if self.carcass.carcass_type == "Upper":
             self.obj_bp.location.z = props.height_above_floor
         elif self.carcass.carcass_type == "Suspended":
-            self.obj_bp.location.z = sn_unit.millimeter(float(props.base_cabinet_height))
             self.obj_bp.location.z = sn_unit.millimeter(float(props.base_cabinet_height)) + carcass_props.toe_kick_height
 
         self.obj_bp.lm_cabinets.product_shape = 'RECTANGLE'

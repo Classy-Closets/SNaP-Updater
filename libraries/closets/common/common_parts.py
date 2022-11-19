@@ -404,6 +404,7 @@ def add_drawer_side(assembly):
     side.obj_bp.snap.comment_2 = "1031"
     side.set_name("Drawer Side")
     side.cutpart("Drawer_Part")
+    side.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
     side.add_prompt("Use Dovetail Construction", 'CHECKBOX', False)
     side.edgebanding('Drawer_Box_Edge',l1 = True)
     props = side.obj_bp.sn_closets
@@ -418,6 +419,7 @@ def add_drawer_back(assembly):
     drawer_back.obj_bp.snap.comment_2 = "1032"
     drawer_back.set_name("Drawer Back")
     drawer_back.cutpart("Drawer_Back")
+    drawer_back.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
     drawer_back.add_prompt("Use Dovetail Construction", 'CHECKBOX', False)
     drawer_back.edgebanding('Drawer_Box_Edge',l1 = True)
     props = drawer_back.obj_bp.sn_closets
@@ -432,6 +434,7 @@ def add_drawer_sub_front(assembly):
     front_back.obj_bp.snap.comment_2 = "1029"
     front_back.set_name("Drawer Sub Front")
     front_back.cutpart("Drawer_Part")
+    front_back.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
     front_back.add_prompt("Use Dovetail Construction", 'CHECKBOX', False)
     front_back.edgebanding('Drawer_Box_Edge',l1 = True)
     props = front_back.obj_bp.sn_closets
@@ -446,6 +449,7 @@ def add_drawer_bottom(assembly):
     bottom.obj_bp.snap.comment_2 = "1030"
     bottom.set_name("Drawer Bottom")
     bottom.cutpart("Drawer_Bottom")
+    bottom.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
     bottom.add_prompt("Use Dovetail Construction", 'CHECKBOX', False)
     props = bottom.obj_bp.sn_closets
     props.is_drawer_bottom_bp = True
@@ -461,19 +465,27 @@ def add_drawer(assembly):
         drawer.material("Drawer_Box_Surface")
         drawer.obj_bp.snap.comment_2 = "1014"
     else:
-        drawer = data_drawer_wood.Wood_Drawer_Box()
+        drawer = data_drawer_wood.White_Drawer_Box()
         drawer.draw()
         drawer.obj_bp.parent = assembly.obj_bp
         drawer.obj_bp.snap.comment_2 = "1014"
     add_drawer_file_rails(drawer)
     return drawer
 
+def add_melamine_drawer(assembly):
+    drawer = data_drawer_wood.Melamine_Drawer_Box()
+    drawer.draw()
+    drawer.obj_bp.parent = assembly.obj_bp
+    drawer.obj_bp.snap.comment_2 = "1014"
+    add_drawer_file_rails(drawer)
+    return drawer
 
 def add_dovetail_drawer(assembly):
     drawer = data_drawer_wood.Wood_Drawer_Box()
     drawer.draw()
     drawer.obj_bp.parent = assembly.obj_bp
     drawer.obj_bp.snap.comment_2 = "1014"
+    add_drawer_file_rails(drawer)
     return drawer
 
 

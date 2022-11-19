@@ -58,8 +58,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
     # Return Special Order SKU as default if nothing is found
     sku = 'SO-0000001'
     
-
-    #Pull
+    # Pull
     if assembly.obj_bp.sn_closets.is_handle:
         pull_cat = bpy.context.scene.sn_closets.closet_options.pull_category
         pull_name = bpy.context.scene.sn_closets.closet_options.pull_name
@@ -89,7 +88,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    #Hinge
+    # Hinge
     if assembly.obj_bp.sn_closets.is_hinge or 'Hinge' in item_name:
         hinge_name = bpy.context.scene.sn_closets.closet_options.hinge_name
 
@@ -141,7 +140,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    # Jewelry / Suspended Inserts
+    # Drawer Slides, Drawer Locks, and Jewelry / Suspended Inserts
     if assembly.obj_bp.get("IS_BP_DRAWER_BOX"):
         is_jewelry = "jewelry" in item_name.lower()
         is_velvet_liner = "velvet" in item_name.lower()
@@ -204,6 +203,12 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
             conn.close()
             return sku
+        if item_name == "Cam Lock Drawer":
+            print("DRAWER LOCK CAM")
+            return "AC-0000694"
+        if item_name == "Side Lock Drawer":
+            print("DRAWER LOCK SIDE")
+            return "AC-0000697"
         else:
             # print("Found Non Standard Slide: ", item_name)
             cursor.execute(
@@ -212,7 +217,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 FROM\
                     {CCItems}\
                 WHERE\
-                    ProductType == 'HW' AND\
                     DisplayName LIKE '{}'\
                 ;".format(
                     "%" + item_name + "%",
@@ -293,6 +297,12 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     #Hamper Basket or Wire Basket
     if assembly.obj_bp.sn_closets.is_hamper_bp or "Wire Basket" in item_name or "Cloth Laundry Bag" in item_name:
+        if "Wire Basket" in item_name:
+            return 'AC-0000004'
+        elif "Cloth Laundry Bag" in item_name:
+            return 'AC-0000015'
+        else:
+            return 'SO-0000001'
         # mat_props = bpy.context.scene.closet_materials
         # hamper_insert_bp = assembly.obj_bp.parent
         # basket_color = mat_props.wire_basket_colors
@@ -325,7 +335,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         
         # conn.close()
         # return sku
-        return 'SO-0000001'
               
 
     #Hamper Brake Flaps
@@ -495,57 +504,10 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    #Door lock
-    if item_name == "Door Lock":
-        print("DOOR LOCK")
-        cursor.execute(
-            "SELECT\
-                sku\
-            FROM\
-                {CCItems}\
-            WHERE\
-                ProductType == 'AC' AND\
-                VendorItemNum =='{}'\
-            ;".format("C8055-14A", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-        )
-        rows = cursor.fetchall()
-
-        if len(rows) == 0:
-            print("SKU match not found for selected part: {}".format(item_name))
-            print("Special Order Sku Returned: SO-0000001")
-            return 'SO-0000001'
-        for row in rows:
-            sku = row[0]
-            print("FOUND DOOR LOCK SKU:", sku)
-
-        conn.close()
-        return sku
-
-    #Door lock cam
-    if item_name == "Door Lock Cam":
+    #Cam Door Lock
+    if item_name == "Cam Lock Door":
         print("DOOR LOCK CAM")
-        cursor.execute(
-            "SELECT\
-                sku\
-            FROM\
-                {CCItems}\
-            WHERE\
-                ProductType == 'AC' AND\
-                VendorItemNum =='{}'\
-            ;".format("C7004-2C", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-        )
-        rows = cursor.fetchall()
-
-        if len(rows) == 0:
-            print("SKU match not found for selected part: {}".format(item_name))
-            print("Special Order Sku Returned: SO-0000001")
-            return 'SO-0000001'
-        for row in rows:
-            sku = row[0]
-            print("FOUND LOCK CAM SKU:", sku)
-
-        conn.close()
-        return sku
+        return "AC-0000694"
 
     #Door lock latch finger
     if item_name == "Door Lock Latch":
@@ -574,7 +536,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    #----------Closet Accessories
+    #------------------Closet Accessories--------------
     # Valet Rod
     if 'Valet Rod' in item_name:
         parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
@@ -1295,6 +1257,9 @@ class OPS_Export_XML(Operator):
         use_dovetail_construction = False
         if assembly.get_prompt("Use Dovetail Construction"):
             use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction").get_value()
+        if assembly.get_prompt("Box Type"):
+            if assembly.get_prompt("Box Type").get_value() == 2:
+                use_dovetail_construction = True
         drawer_material_number = "20"
         if use_dovetail_construction:
             drawer_material_number = "22"
@@ -3485,62 +3450,92 @@ class OPS_Export_XML(Operator):
                 self.assembly_count += 1
 
     def write_parts_for_subassembly(self,elm_parts,obj_bp,spec_group):
-        # Slides
         if obj_bp.get("IS_BP_DRAWER_BOX"):
             assembly = sn_types.Assembly(obj_bp)
             parent_assembly = sn_types.Assembly(obj_bp.parent)
-            slide_type = assembly.get_prompt('Slide Type')
-            if slide_type:
-                if slide_type.get_value() == 0:
-
+            box_type = assembly.get_prompt("Box Type")
+            if box_type:
+                if box_type.get_value() == 1:
                     slide_size = 10
-                    sizes = [10, 12, 14, 16, 18, 20, 22]
+                    sizes = [12, 15, 18, 21]
                     for size in sizes:
+                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
                         if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
-
-                    sidemount_options = parent_assembly.get_prompt("Sidemount Options")
-                    if sidemount_options:
-                        if sidemount_options.get_value() == 0:
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size) + "in")
-                        else:
-                            self.write_hardware_node(elm_parts, obj_bp, name="HR BB SC " + str(slide_size) + "in")
+                    self.write_hardware_node(elm_parts, obj_bp, name='Hafele 3/4 UM SC ' + str(slide_size))
+                elif box_type.get_value() == 2:
+                    slide_size = 10
+                    sizes = [12, 15, 18, 21]
+                    for size in sizes:
+                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+                        if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
+                            slide_size = size
+                    self.write_hardware_node(elm_parts, obj_bp, name='Hettich 4D ' + str(slide_size))
                 else:
-
-                    slide_size = 9
-                    sizes = [9, 12, 15, 18, 21]
+                    slide_size = 10
+                    sizes = [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]
                     for size in sizes:
+                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
                         if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
-
-                    undermount_options = parent_assembly.get_prompt("Undermount Options")
-                    if undermount_options:
-                        if undermount_options.get_value() == 0:
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hettich 3D " + str(slide_size) + "in")
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hettich L & R Locking set")
-                        elif undermount_options.get_value() == 1:
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hettich 4D " + str(slide_size) + "in")
-                            self.write_hardware_node(elm_parts, obj_bp, name="Hettich 4D Clip and Spacer set")
-                        # elif undermount_options.get_value() == 2:
-                        #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion UM " + str(slide_size) + "in")
-                        #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion Locking Device L")
-                        #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion Locking Device R")
-                        else:
-                            self.write_hardware_node(elm_parts, obj_bp, name="KING SLIDE UM SC " + str(slide_size) + "in")
-                            self.write_hardware_node(elm_parts, obj_bp, name="KING LOCKING DEVICE LEFT")
-                            self.write_hardware_node(elm_parts, obj_bp, name="KING LOCKING DEVICE RIGHT")
+                    self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size))
             else:
-                
-                self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide L")
-                self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide R")
+                slide_type = assembly.get_prompt('Slide Type')
+                if slide_type:
+                    if slide_type.get_value() == 0:
+
+                        slide_size = 10
+                        sizes = [10, 12, 14, 16, 18, 20, 22]
+                        for size in sizes:
+                            if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
+                                slide_size = size
+
+                        sidemount_options = parent_assembly.get_prompt("Sidemount Options")
+                        if sidemount_options:
+                            if sidemount_options.get_value() == 0:
+                                self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size) + "in")
+                            else:
+                                self.write_hardware_node(elm_parts, obj_bp, name="HR BB SC " + str(slide_size) + "in")
+                    else:
+
+                        slide_size = 9
+                        sizes = [9, 12, 15, 18, 21]
+                        for size in sizes:
+                            if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
+                                slide_size = size
+
+                        undermount_options = parent_assembly.get_prompt("Undermount Options")
+                        if undermount_options:
+                            if undermount_options.get_value() == 0:
+                                self.write_hardware_node(elm_parts, obj_bp, name="Hettich 3D " + str(slide_size) + "in")
+                                self.write_hardware_node(elm_parts, obj_bp, name="Hettich L & R Locking set")
+                            elif undermount_options.get_value() == 1:
+                                self.write_hardware_node(elm_parts, obj_bp, name="Hettich 4D " + str(slide_size) + "in")
+                                self.write_hardware_node(elm_parts, obj_bp, name="Hettich 4D Clip and Spacer set")
+                            # elif undermount_options.get_value() == 2:
+                            #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion UM " + str(slide_size) + "in")
+                            #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion Locking Device L")
+                            #     self.write_hardware_node(elm_parts, obj_bp, name="Blumotion Locking Device R")
+                            else:
+                                self.write_hardware_node(elm_parts, obj_bp, name="KING SLIDE UM SC " + str(slide_size) + "in")
+                                self.write_hardware_node(elm_parts, obj_bp, name="KING LOCKING DEVICE LEFT")
+                                self.write_hardware_node(elm_parts, obj_bp, name="KING LOCKING DEVICE RIGHT")
+                else:
+                    
+                    self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide L")
+                    self.write_hardware_node(elm_parts, obj_bp, name="Drawer Slide R")
         #Slides
         if obj_bp.sn_closets.is_drawer_box_bp:
+            dad = obj_bp.parent
+            dad_assy = sn_types.Assembly(dad)
+            dad_width = round(sn_unit.meter_to_inch(dad_assy.obj_x.location.x))
             drawers_dict = self.get_jewel_inserts_data(obj_bp)
             if len(drawers_dict) > 0:
                 for drawer, inserts in drawers_dict.items():
                     for insert in inserts:
                         if insert != 'None':
                             self.write_hardware_node(elm_parts, drawer, name=insert)
+
         #Locked shelf - add KD fittings (4)
         if obj_bp.sn_closets.is_shelf_bp:
             assembly = sn_types.Assembly(obj_bp)
@@ -3557,8 +3552,8 @@ class OPS_Export_XML(Operator):
             double_door = door_insert.get_prompt("Force Double Doors").get_value()
 
             if lock_door:
-                self.write_hardware_node(elm_parts, obj_bp, name="Door Lock")
-                self.write_hardware_node(elm_parts, obj_bp, name="Door Lock Cam")
+                # self.write_hardware_node(elm_parts, obj_bp, name="Door Lock")
+                self.write_hardware_node(elm_parts, obj_bp, name="Cam Lock Door")
 
                 #Double door
                 if double_door or door_insert.obj_x.location.x > double_door_auto_switch:
@@ -3581,7 +3576,6 @@ class OPS_Export_XML(Operator):
                                 if var_height.get_value():
                                     height += 2
                             self.tk_skin_heights.append(str(height))
-
                 continue
 
             if child.get("IS_BP_TOE_KICK_CAPPING_BASE"):
@@ -3771,6 +3765,15 @@ class OPS_Export_XML(Operator):
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    if ji == 1 or ji == 2:
+                        ji_label = common_lists.VELVET_LINERS_DICT.get(0)
+                        drawers_dict[obj_bp].append(ji_label)
+                    if ji == 3:
+                        ji_label = common_lists.VELVET_LINERS_DICT.get(1)
+                        drawers_dict[obj_bp].append(ji_label)
+                    if ji == 4:
+                        ji_label = common_lists.VELVET_LINERS_DICT.get(2)
+                        drawers_dict[obj_bp].append(ji_label)
                     return
                 # Velvet Liners
                 elif is_ji and notstd_jwl_ins_lt16:
@@ -3969,6 +3972,7 @@ class OPS_Export_XML(Operator):
             hardware_name = obj_bp.snap.name_object if obj_bp.snap.name_object != "" else obj_bp.name
 
         part_length = self.distance(0)
+        part_width = self.distance(0)
         is_hanging_rod = assembly.obj_bp.sn_closets.is_hanging_rod
         rods_name = bpy.context.scene.sn_closets.closet_options.rods_name
 
@@ -3984,6 +3988,10 @@ class OPS_Export_XML(Operator):
 
         if assembly.obj_bp.get("IS_SHOE_SHELF_LIP"):
             part_length = self.get_part_length(assembly)
+
+        if "velvet" in hardware_name.lower():
+            part_length = self.get_part_length(assembly)
+            part_width = self.get_part_width(assembly)
 
         elm_hdw_part = self.xml.add_element(elm_product,
                                         'Part',
@@ -4006,7 +4014,7 @@ class OPS_Export_XML(Operator):
             ("y", "text", "0"),
             ("z", "text", "0"),
             ("lenx", "text", part_length),
-            ("leny", "text", "0"),
+            ("leny", "text", part_width),
             ("lenz", "text", "0"),
             ("rotx", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.x)))),
             ("roty", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.y)))),
@@ -4391,6 +4399,9 @@ class OPS_Export_XML(Operator):
             use_dovetail_construction = False
             if assembly.get_prompt("Use Dovetail Construction"):
                 use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction").get_value()
+            if assembly.get_prompt("Box Type"):
+                if assembly.get_prompt("Box Type").get_value() == 2:
+                    use_dovetail_construction = True
             if obj_props.is_drawer_sub_front_bp and not use_dovetail_construction:
                 if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                     edge_2 = "L1"

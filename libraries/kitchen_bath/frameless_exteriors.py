@@ -144,6 +144,7 @@ def add_common_drawer_prompts(assembly):
     assembly.add_prompt("Horizontal Grain", 'CHECKBOX', props.horizontal_grain_on_drawer_fronts)
     assembly.add_prompt("Open", 'PERCENTAGE', 0)
     
+    assembly.add_prompt("Drawer Quantity", "QUANTITY", assembly.drawer_qty)
     assembly.add_prompt("Open Drawers", 'PERCENTAGE', 0)
     
     assembly.add_prompt("Inset Reveal", 'DISTANCE', sn_unit.inch(0.125)) 
@@ -173,11 +174,11 @@ def add_frameless_overlay_prompts(assembly):
 
     # CALCULATED
     ppt_obj_overlays = assembly.add_prompt_obj("Overlays")
-    assembly.add_prompt("Top Overlay", 'DISTANCE', sn_unit.inch(.6875), prompt_obj=ppt_obj_overlays)
-    assembly.add_prompt("Bottom Overlay", 'DISTANCE', sn_unit.inch(.6875), prompt_obj=ppt_obj_overlays)
-    assembly.add_prompt("Left Overlay", 'DISTANCE', sn_unit.inch(.6875), prompt_obj=ppt_obj_overlays)
-    assembly.add_prompt("Right Overlay", 'DISTANCE', sn_unit.inch(.6875), prompt_obj=ppt_obj_overlays)
-    assembly.add_prompt("Division Overlay", 'DISTANCE', sn_unit.inch(.6875), prompt_obj=ppt_obj_overlays)
+    assembly.add_prompt("Top Overlay", 'DISTANCE', sn_unit.inch(0.29), prompt_obj=ppt_obj_overlays)
+    assembly.add_prompt("Bottom Overlay", 'DISTANCE', sn_unit.inch(0.29), prompt_obj=ppt_obj_overlays)
+    assembly.add_prompt("Left Overlay", 'DISTANCE', sn_unit.inch(0.6875), prompt_obj=ppt_obj_overlays)
+    assembly.add_prompt("Right Overlay", 'DISTANCE', sn_unit.inch(0.6875), prompt_obj=ppt_obj_overlays)
+    assembly.add_prompt("Division Overlay", 'DISTANCE', sn_unit.inch(0.6875), prompt_obj=ppt_obj_overlays)
 
     # INHERITED
     assembly.add_prompt("Extend Top Amount", 'DISTANCE', 0)
@@ -188,28 +189,18 @@ def add_frameless_overlay_prompts(assembly):
     assembly.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
     assembly.add_prompt("Division Thickness", 'DISTANCE', sn_unit.inch(.75))
 
-    inset = assembly.get_prompt("Inset Front").get_var('inset')
-    ir = assembly.get_prompt("Inset Reveal").get_var('ir')
-    tr = assembly.get_prompt("Top Reveal").get_var('tr')
-    br = assembly.get_prompt("Bottom Reveal").get_var('br')
     lr = assembly.get_prompt("Left Reveal").get_var('lr')
     rr = assembly.get_prompt("Right Reveal").get_var('rr')
     vg = assembly.get_prompt("Vertical Gap").get_var('vg')
-    hot = assembly.get_prompt("Half Overlay Top").get_var('hot')
-    hob = assembly.get_prompt("Half Overlay Bottom").get_var('hob')
     hol = assembly.get_prompt("Half Overlay Left").get_var('hol')
     hor = assembly.get_prompt("Half Overlay Right").get_var('hor')
-    tt = assembly.get_prompt("Top Thickness").get_var('tt')
     lst = assembly.get_prompt("Left Side Thickness").get_var('lst')
     rst = assembly.get_prompt("Right Side Thickness").get_var('rst')
-    bt = assembly.get_prompt("Bottom Thickness").get_var('bt')
     dt = assembly.get_prompt("Division Thickness").get_var('dt')
 
-    assembly.get_prompt('Top Overlay').set_formula('IF(inset,-ir,IF(hot,(tt/2)-(vg/2),tt-tr))', [inset, ir, hot, tt, tr, vg])
-    assembly.get_prompt('Bottom Overlay').set_formula('IF(inset,-ir,IF(hob,(bt/2)-(vg/2),bt-br))', [inset, ir, hob, bt, br, vg])
-    assembly.get_prompt('Left Overlay').set_formula('IF(inset,-ir,IF(hol,(lst/2)-(vg/2),lst-lr))', [inset, ir, hol, lst, lr, vg])
-    assembly.get_prompt('Right Overlay').set_formula('IF(inset,-ir,IF(hor,(rst/2)-(vg/2),rst-rr))', [inset, ir, hor, rst, rr, vg])
-    assembly.get_prompt('Division Overlay').set_formula('IF(inset,-ir,(dt/2)-(vg/2))', [inset, ir, dt, vg])
+    assembly.get_prompt('Left Overlay').set_formula('IF(hol,(lst/2)-(vg/2),lst-lr)', [hol, lst, lr, vg])
+    assembly.get_prompt('Right Overlay').set_formula('IF(hor,(rst/2)-(vg/2),rst-rr)', [hor, rst, rr, vg])
+    assembly.get_prompt('Division Overlay').set_formula('(dt/2)-(vg/2)', [dt, vg])
 
 def add_part(self, path):
     part_bp = self.add_assembly_from_file(path)
@@ -225,7 +216,6 @@ class Doors(sn_types.Assembly):
     placement_type = "EXTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    # drop_id = "sn_closets.drop_insert"
     drop_id = "lm_cabinets.insert_doors_drop"
 
     door_type = ""  # {Base, Tall, Upper}
@@ -554,7 +544,6 @@ class Vertical_Drawers(sn_types.Assembly):
     placement_type = "EXTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    # drop_id = "sn_closets.drop_insert"
     drop_id = "lm_cabinets.insert_drawers_drop"
     drawer_qty = 1
     
@@ -605,7 +594,7 @@ class Vertical_Drawers(sn_types.Assembly):
             prev_drawer_z_loc = prev_drawer_empty.snap.get_var('location.z','prev_drawer_z_loc')
             front_empty.snap.loc_z('prev_drawer_z_loc-Drawer_Front_Height-Vertical_Gap',[prev_drawer_z_loc,Drawer_Front_Height,Vertical_Gap])
         else:
-            front_empty.snap.loc_z('Height-Drawer_Front_Height+Top_Overlay',[Height,Drawer_Front_Height,Top_Overlay])        
+            front_empty.snap.loc_z('Height-Drawer_Front_Height+Top_Overlay',[Height,Drawer_Front_Height,Top_Overlay])
         drawer_z_loc = front_empty.snap.get_var('location.z','drawer_z_loc')
         
         drawer_front = add_part(self, DRAWER_FRONT)
@@ -653,11 +642,6 @@ class Vertical_Drawers(sn_types.Assembly):
                 drawer_bp = self.add_assembly_from_file(BUYOUT_DRAWER_BOX)
                 drawer = sn_types.Assembly(drawer_bp)
                 drawer.obj_bp["CABINET_DRAWER_BOX"] = True
-                # drawer.material('Drawer_Box_Surface')
-            # else:
-            #     drawer = drawer_boxes.Wood_Drawer_Box()
-            #     drawer.draw()
-            #     drawer.obj_bp.parent = self.obj_bp
             drawer.set_name("Drawer Box " + str(i))
             drawer.loc_x('Drawer_Box_Slide_Gap',[Drawer_Box_Slide_Gap])
             drawer.loc_y('IF(Inset_Front,Front_Thickness,-Door_to_Cabinet_Gap)-(Depth*Open_Drawers)',[Inset_Front,Door_to_Cabinet_Gap,Front_Thickness,Depth,Open_Drawers])
@@ -684,18 +668,13 @@ class Vertical_Drawers(sn_types.Assembly):
         calc_distance_obj.empty_display_size = .001
         self.calculator = self.obj_prompts.snap.add_calculator(self.calculator_name, calc_distance_obj)
         self.calculator.set_total_distance(
-            "Height+Vertical_Gap*(" + str(self.drawer_qty) +"-1)+Top_Overlay+Bottom_Overlay",
+            "Height-Vertical_Gap*(" + str(self.drawer_qty) +"-1)+Top_Overlay+Bottom_Overlay-(" + str(self.drawer_qty) +"-1)*INCH(0.025)",
             [Height, Vertical_Gap, Top_Overlay, Bottom_Overlay])
 
-        empties = []            
+        empties = []
 
         drawer = None
         for i in range(self.drawer_qty):
-            equal = True
-            height = 0
-            if len(self.front_heights) >= i + 1:
-                equal = True if self.front_heights[i] == 0 else False
-                height = self.front_heights[i]
             self.calculator.add_calculator_prompt("Drawer Front " + str(i+1) + " Height")
             drawer, pull_y, box_dim_z = self.add_drawer_front(i+1,drawer)
             empties.append(drawer)
@@ -708,6 +687,7 @@ class Vertical_Drawers(sn_types.Assembly):
             z_loc_driver = df_empty.animation_data.drivers[0].driver
             data_path = z_loc_driver.variables["Drawer_Front_Height"].targets[0].data_path
             z_loc_driver.variables["Drawer_Front_Height"].targets[0].data_path = data_path
+
             
 class Horizontal_Drawers(sn_types.Assembly):
     
@@ -986,7 +966,8 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
             splitter = frameless_splitters.INSERT_2_Vertical_Openings()
             drawer = INSERT_1_Drawer()
 
-            splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+            # splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) # - sn_unit.inch(0.8)
+            splitter.opening_1_height = sn_unit.inch(4.29)
             splitter.exterior_1 = drawer
             splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
 

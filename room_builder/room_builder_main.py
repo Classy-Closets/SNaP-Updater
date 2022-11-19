@@ -7,9 +7,10 @@ def update_wall_index(self, context):
     obj = bpy.data.objects[wall.bp_name]
 
     for child in obj.children:
-        if child.type == 'MESH' and child.get('IS_BP_ASSEMBLY') is None:
-            child.select_set(True)
-            context.view_layer.objects.active = child
+        if context.view_layer.objects.find(child.name):
+            if child.type == 'MESH' and child.get('IS_BP_ASSEMBLY') is None:
+                child.select_set(True)
+                context.view_layer.objects.active = child
 
 
 def update_obstacle_index(self, context):

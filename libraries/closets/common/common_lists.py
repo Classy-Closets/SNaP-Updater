@@ -808,7 +808,7 @@ JEWELRY_INSERTS_18IN_DICT = {
     1: 'Jewelry 18in Maroon',
     2: 'Jewelry 18in Sterling Grey',
     3: 'Velvet Liner - Black',
-    4: 'Velvet Liner - Burgandy',
+    4: 'Velvet Liner - Burgundy',
     5: 'Velvet Liner - Sterling Grey'
 }
 
@@ -818,7 +818,7 @@ JEWELRY_INSERTS_21IN_DICT = {
     2: 'Jewelry 21in Maroon',
     3: 'Jewelry 21in Sterling Grey',
     4: 'Velvet Liner - Black',
-    5: 'Velvet Liner - Burgandy',
+    5: 'Velvet Liner - Burgundy',
     6: 'Velvet Liner - Sterling Grey'
 }
 
@@ -828,7 +828,7 @@ JEWELRY_INSERTS_24IN_DICT = {
     2: 'Jewelry 24in Maroon',
     3: 'Jewelry 24in Sterling Grey',
     4: 'Velvet Liner - Black',
-    5: 'Velvet Liner - Burgandy',
+    5: 'Velvet Liner - Burgundy',
     6: 'Velvet Liner - Sterling Grey'
 }
 
@@ -856,7 +856,7 @@ JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT = {
     2: 'Jewelry 18in Maroon',
     3: 'Jewelry 18in Sterling Grey',
     4: 'Velvet Liner - Black',
-    5: 'Velvet Liner - Burgandy',
+    5: 'Velvet Liner - Burgundy',
     6: 'Velvet Liner - Sterling Grey'
 }
 
@@ -867,7 +867,7 @@ JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT = {
     3: 'Jewelry 21in Maroon',
     4: 'Jewelry 21in Sterling Grey',
     5: 'Velvet Liner - Black',
-    6: 'Velvet Liner - Burgandy',
+    6: 'Velvet Liner - Burgundy',
     7: 'Velvet Liner - Sterling Grey'
 }
 
@@ -878,13 +878,13 @@ JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT = {
     3: 'Jewelry 24in Maroon',
     4: 'Jewelry 24in Sterling Grey',
     5: 'Velvet Liner - Black',
-    6: 'Velvet Liner - Burgandy',
+    6: 'Velvet Liner - Burgundy',
     7: 'Velvet Liner - Sterling Grey'
 }
 
 VELVET_LINERS_DICT = {
     0: 'Velvet Liner - Black',
-    1: 'Velvet Liner - Maroon',
+    1: 'Velvet Liner - Burgundy',
     2: 'Velvet Liner - Sterling Grey'
 }
 

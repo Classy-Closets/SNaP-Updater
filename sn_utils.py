@@ -127,15 +127,19 @@ def get_part_thickness(obj):
             for child in obj.parent.children:
                 if 'obj_z' in child:
                     return math.fabs(child.location.z)
+
+        drawer_box_parts = [
+            obj.parent.get('IS_BP_DRAWER_BOTTOM'),
+            obj.parent.get('IS_BP_DRAWER_SUB_FRONT'),
+            obj.parent.get('IS_BP_DRAWER_BACK'),
+            obj.parent.get('IS_BP_DRAWER_SIDE')
+        ]
         
-        if obj.parent.get("IS_BP_DRAWER_BOTTOM"):
+        if any(drawer_box_parts):
             parent_assembly = sn_types.Assembly(obj.parent)
-            dovetail = parent_assembly.get_prompt("Use Dovetail Construction")
-            if dovetail:
-                if dovetail.get_value():
-                    for child in obj.parent.children:
-                        if 'obj_z' in child:
-                            return math.fabs(child.location.z)
+            for child in obj.parent.children:
+                if 'obj_z' in child:
+                    return math.fabs(child.location.z)
 
         if obj.parent.get("IS_COVER_CLEAT"):
             cover_cleat = sn_types.Assembly(obj.parent)
@@ -263,6 +267,15 @@ def get_countertop_bp(obj):
         return obj
     elif obj.parent:
         return get_countertop_bp(obj.parent)
+
+def get_tagged_bp(obj, tag):
+    if not obj:
+        return None
+    if tag in obj:
+        return obj
+    elif obj.parent:
+        return get_tagged_bp(obj.parent, tag)
+
 
 def get_appliance_bp(obj):
     if not obj:

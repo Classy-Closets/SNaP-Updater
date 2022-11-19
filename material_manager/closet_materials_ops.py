@@ -151,18 +151,51 @@ class SN_MAT_OT_Assign_Materials(Operator):
     def set_drawer_part_material(self, part):
         for obj in part.obj_bp.children:
             if obj.snap.type_mesh == 'CUTPART':
-                props = self.props_closet_materials
-                box_type = self.closet_props.closet_options.box_type
-
-                if box_type == 'MEL':
-                    obj.snap.cutpart_material_name = "Winter White (Oxford White) 12200"
+                box_type = part.get_prompt("Box Type")
+                if box_type:
+                    if box_type.get_value() == 1 and not part.obj_bp.get('IS_BP_DRAWER_BOTTOM'):
+                        drawer_part = sn_types.Part(part.obj_bp)
+                        drawer_part.cutpart("Panel")
+                        drawer_part.edgebanding("Edge", l1=True)
+                        cab_mat_props = self.props_closet_materials
+                        mat_type = cab_mat_props.door_drawer_materials.get_mat_type()
+                        edge_type = cab_mat_props.door_drawer_edges.get_edge_type()
+                        obj.snap.cutpart_material_name = mat_type.get_inventory_material_name()
+                        obj.snap.edgeband_material_name_l1 = edge_type.get_inventory_edge_name()
+                        obj.snap.edgeband_material_name_l2 = ""
+                        obj.snap.edgeband_material_name_w1 = ""
+                        obj.snap.edgeband_material_name_w2 = ""
+                    elif box_type.get_value() == 2:
+                        drawer_part = sn_types.Part(part.obj_bp)
+                        drawer_part.cutpart("Drawer_Part")
+                        drawer_part.edgebanding("Drawer_Box_Edge", l1=True)
+                        obj.snap.cutpart_material_name = "Baltic Birch 32200"
+                        obj.snap.edgeband_material_name_l1 = "Winter White (Oxford White) 1030"
+                        obj.snap.edgeband_material_name_l2 = ""
+                        obj.snap.edgeband_material_name_w1 = ""
+                        obj.snap.edgeband_material_name_w2 = ""
+                    else:
+                        drawer_part = sn_types.Part(part.obj_bp)
+                        drawer_part.cutpart("Drawer_Part")
+                        drawer_part.edgebanding("Drawer_Box_Edge", l1=True)
+                        obj.snap.cutpart_material_name = "Winter White (Oxford White) 12200"
+                        obj.snap.edgeband_material_name_l1 = "Winter White (Oxford White) 1030"
+                        obj.snap.edgeband_material_name_l2 = ""
+                        obj.snap.edgeband_material_name_w1 = ""
+                        obj.snap.edgeband_material_name_w2 = ""
                 else:
-                    obj.snap.cutpart_material_name = "Baltic Birch 32200"
+                    props = self.props_closet_materials
+                    box_type = self.closet_props.closet_options.box_type
 
-                obj.snap.edgeband_material_name_l1 = "Winter White (Oxford White) 1030"
-                obj.snap.edgeband_material_name_l2 = ""
-                obj.snap.edgeband_material_name_w1 = ""
-                obj.snap.edgeband_material_name_w2 = ""
+                    if box_type == 'MEL':
+                        obj.snap.cutpart_material_name = "Winter White (Oxford White) 12200"
+                    else:
+                        obj.snap.cutpart_material_name = "Baltic Birch 32200"
+
+                    obj.snap.edgeband_material_name_l1 = "Winter White (Oxford White) 1030"
+                    obj.snap.edgeband_material_name_l2 = ""
+                    obj.snap.edgeband_material_name_w1 = ""
+                    obj.snap.edgeband_material_name_w2 = ""
 
     def update_material_pointers(self, context):
         mat_props = self.props_closet_materials

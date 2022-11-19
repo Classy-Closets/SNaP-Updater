@@ -585,7 +585,7 @@ class Query_PDF_Form_Data:
         velvet_liners = [
             'Velvet Liner - Black',
             'Velvet Liner - Maroon',
-            'Velvet Liner - Burgandy',
+            'Velvet Liner - Burgundy',
             'Velvet Liner - Sterling Grey'
         ]
         hampers_bags = [
@@ -622,6 +622,10 @@ class Query_PDF_Form_Data:
         tie_result = self.etl_object.part_walls_query("tie", walls)
         hooks_qty = self.__get_hooks_counting(walls)
         hooks_qty_str = str(hooks_qty) if hooks_qty > 0 else ""
+        lock_latch_result = self.etl_object.part_walls_query("door lock latch", walls)
+        lock_result = self.etl_object.part_walls_query("cam lock", walls)
+        side_lock_result = self.etl_object.part_walls_query("side lock", walls)
+
         self.data_dict[page]["hooks_qty"] = hooks_qty_str
         self.data_dict[page]["hooks_style"] = ''
         belt_result = self.etl_object.part_walls_query("belt", walls)
@@ -651,6 +655,12 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["legs"] = ''
         self.data_dict[page]["misc_qty"] = ''
         self.data_dict[page]["misc_style"] = ''
+        self.data_dict[page]["lock_qty"] = ''
+        self.data_dict[page]["lock"] = ''
+        self.data_dict[page]["side_lock_qty"] = ''
+        self.data_dict[page]["side_lock"] = ''
+        self.data_dict[page]["door_latch_qty"] = ''
+        self.data_dict[page]["door_latch"] = ''
         # Hamper basket / bags
         for key, value in hmp_baskets_results.items():
             form_hmp_qty = self.data_dict[page]["hamper_qty"]
@@ -718,6 +728,18 @@ class Query_PDF_Form_Data:
             qty = str(value.get("qty", 0))
             self.data_dict[page]["belt_rack_qty"] = qty
             self.data_dict[page]["belt_rack_style"] = key
+        for key, value in lock_latch_result.items():
+            qty = str(value.get("qty", 0))
+            self.data_dict[page]["door_latch_qty"] = qty
+            self.data_dict[page]["door_latch"] = key
+        for key, value in lock_result.items():
+            qty = str(value.get("qty", 0))
+            self.data_dict[page]["lock_qty"] = qty
+            self.data_dict[page]["lock"] = key
+        for key, value in side_lock_result.items():
+            qty = str(value.get("qty", 0))
+            self.data_dict[page]["side_lock_qty"] = qty
+            self.data_dict[page]["side_lock"] = key
         for key, value in ji_results.items():
             item_str, item_data = value
             qty = str(item_data.get("qty", 0))
@@ -806,6 +828,8 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["file_rails"] = ''
         self.data_dict[page]["drawer_hardware_qty"] = ''
         self.data_dict[page]["drawer_hardware"] = ''
+        self.data_dict[page]["drawer_lock_qty"] = ''
+        self.data_dict[page]["lock_hardware"] = ''
         for key, value in drw_boxes_result.items():
             quantities = ''
             description = ''
@@ -1164,6 +1188,9 @@ class Query_PDF_Form_Data:
         mel = self.etl_object.part_walls_query("melamine countertop", walls)
         gnt = self.etl_object.part_walls_query("granite countertop", walls)
         wood = self.etl_object.part_walls_query("wood countertop", walls)
+        hpl = self.etl_object.part_walls_query("hpl countertop", walls)
+        quartz = self.etl_object.part_walls_query("quartz countertop", walls)
+
         self.data_dict[page]["ct_type"] = ''
         self.data_dict[page]["ct_color"] = ''
         self.data_dict[page]["ct_chip"] = ''
@@ -1191,6 +1218,32 @@ class Query_PDF_Form_Data:
                 color = mfg.get_color()
                 self.data_dict[page]["ct_type"] += mfg.name
                 self.data_dict[page]["ct_color"] += color.name
+        if len(hpl) > 0:
+            for key, _ in hpl.items():
+                if self.data_dict[page]["ct_type"] != '':
+                    self.data_dict[page]["ct_type"] += ' / '
+                    self.data_dict[page]["ct_color"] += ' / '
+                ct_type = ct_mat_props.get_type()
+                if ct_type.name == "Custom":
+                    color = ct_type.get_color()
+                    self.data_dict[page]["ct_type"] += "Custom"
+                    self.data_dict[page]["ct_color"] += color.name.replace("Custom ", "")
+                elif ct_type.name == "HPL":
+                    mfg = ct_type.get_mfg()
+                    color = mfg.get_color()
+                    self.data_dict[page]["ct_type"] += mfg.name
+                    self.data_dict[page]["ct_color"] += color.name
+        if len(quartz) > 0:
+            for key, _ in quartz.items():
+                if self.data_dict[page]["ct_type"] != '':
+                    self.data_dict[page]["ct_type"] += ' / '
+                    self.data_dict[page]["ct_color"] += ' / '
+                mfg = ct_mat_props.get_type().get_mfg()
+                color = mfg.get_color()
+                self.data_dict[page]["ct_type"] += "Quartz - " + mfg.name
+                self.data_dict[page]["ct_color"] += color.name
+
+                bpy.context.window_manager.sn_project.get_project().designer
 
     def __write_install_info(self, page, walls):
         self.data_dict[page]["tear_out"] = False

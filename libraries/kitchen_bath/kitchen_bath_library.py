@@ -121,7 +121,7 @@ class PRODUCT_1_Door_1_Drawer_Base(cabinets.Standard):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
@@ -141,7 +141,7 @@ class PRODUCT_2_Door_2_Drawer_Base(cabinets.Standard):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
@@ -160,7 +160,7 @@ class PRODUCT_2_Door_1_Drawer_Base(cabinets.Standard):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
@@ -346,7 +346,7 @@ class PRODUCT_2_Door_2_Drawer_Tall(cabinets.Standard):
         self.depth = props.tall_cabinet_depth
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_2_height = sn_unit.inch(20)
+        self.splitter.opening_2_height = sn_unit.inch(19.41)  #16 H
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Tall_Double_Door()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
@@ -364,7 +364,7 @@ class PRODUCT_2_Door_3_Drawer_Tall(cabinets.Standard):
         self.depth = props.tall_cabinet_depth
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_2_height = sn_unit.inch(20)
+        self.splitter.opening_2_height = sn_unit.inch(21.93)  #18H
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Tall_Double_Door()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
@@ -515,6 +515,7 @@ class PRODUCT_2_Door_2_Drawer_Upper(cabinets.Standard):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
+        self.splitter.opening_2_height = sn_unit.inch(19.41)  # 16H
         self.splitter.exterior_2 = frameless_exteriors.INSERT_2_Drawer_Stack()
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         
@@ -824,7 +825,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
@@ -845,7 +846,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
@@ -866,7 +867,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
@@ -887,7 +888,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
-        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.8)
+        self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()

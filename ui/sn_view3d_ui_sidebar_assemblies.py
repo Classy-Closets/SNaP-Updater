@@ -6,6 +6,12 @@ from snap import sn_utils
 from snap import sn_unit
 
 
+def get_formula_ppt_objs(assembly):
+    objs = []
+    for child in assembly.obj_bp.children:
+        if "obj_formula_prompts" in child:
+            objs.append(child)
+    return objs
 
 
 def draw_object_transform(context, layout, obj):
@@ -263,7 +269,6 @@ def draw_object_properties(context, layout, obj):
 
 
 def draw_assembly_properties(context, layout, assembly):
-    unit_system = context.scene.unit_settings.system
     scene_props = context.scene.snap
 
     col = layout.column(align=True)
@@ -279,7 +284,14 @@ def draw_assembly_properties(context, layout, assembly):
         sn_utils.draw_assembly_transform(context, box, assembly)
 
     if scene_props.assembly_tabs == 'PROMPTS':
-        assembly.obj_prompts.snap.draw_prompts(box)
+        ppts_box = box.box()
+        assembly.obj_prompts.snap.draw_prompts(ppts_box)
+
+        # Draw formula prompts
+        for ppt_obj in get_formula_ppt_objs(assembly):
+            formula_ppts_box = box.box()
+            formula_ppts_box.label(text=ppt_obj.name)
+            ppt_obj.snap.draw_prompts(formula_ppts_box)
 
     if scene_props.assembly_tabs == 'OBJECTS':
 

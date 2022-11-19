@@ -233,6 +233,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         
         opening = common_parts.add_section_opening(self)
+        opening.obj_bp.sn_closets.opening_name = str(i)
         
         if panel:
             X_Loc = panel.obj_bp.snap.get_var('location.x','X_Loc')

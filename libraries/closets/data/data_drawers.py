@@ -128,8 +128,8 @@ class Drawer_Stack(sn_types.Assembly):
         self.add_prompt("Double Box Height", 'DISTANCE', sn_unit.inch(2))
         self.add_prompt("Locked Double Box Height", 'DISTANCE', sn_unit.inch(2.68))
         self.add_prompt("Above Hamper Or Base Doors", 'CHECKBOX', False)
-        self.add_prompt("Use Dovetail Drawer", 'CHECKBOX', False)
-        self.add_prompt("Slide Type", 'COMBOBOX', 0, ["Sidemount", "Undermount"])
+        # self.add_prompt("Use Dovetail Drawer", 'CHECKBOX', False)
+        # self.add_prompt("Slide Type", 'COMBOBOX', 0, ["Sidemount", "Undermount"])
         self.add_prompt("Sidemount Options", 'COMBOBOX', 0, ["Hafele BB Sidemount Slides", "HR BB Soft Close Sidemount Slides"])
         self.add_prompt("Undermount Options", 'COMBOBOX', 0, [
             "Hettich 3D Undermount Slide",
@@ -142,7 +142,7 @@ class Drawer_Stack(sn_types.Assembly):
         self.add_prompt("Twelve Inches", 'DISTANCE', sn_unit.inch(12))
         self.add_prompt("Nine Inches", 'DISTANCE', sn_unit.inch(9))
         self.add_prompt("Thick Adjustable Shelves", 'CHECKBOX', bpy.context.scene.sn_closets.closet_defaults.thick_adjustable_shelves)
-
+        self.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
 
     def add_drawer_box_prompts(self, drawer_num):
         self.add_prompt("Add Drawer Boxes", 'CHECKBOX', False)
@@ -234,7 +234,7 @@ class Drawer_Stack(sn_types.Assembly):
                 'IF(No_Pulls,True,IF(Use_Double_Pulls,False,True))',
                 [No_Pulls, Use_Double_Pulls])
 
-    def add_drawer_boxes(self):
+    def add_drawer_boxes(self, box_type=None):
         dim_x = self.obj_x.snap.get_var("location.x", "dim_x")
         y = self.obj_y.snap.get_var("location.y", "y")
         Front_Thickness = self.get_prompt("Front Thickness").get_var('Front_Thickness')
@@ -252,12 +252,21 @@ class Drawer_Stack(sn_types.Assembly):
         D = self.get_prompt("Deep Drawer Rear Gap").get_var('D')
         E = self.get_prompt("Extra Deep Drawer Box").get_var('E')
 
+        box_type_ppt = self.get_prompt("Box Type")
+
+        if box_type_ppt:
+            BT = box_type_ppt.get_var('BT')
+        else:
+            box_type_ppt = self.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
+            BT = box_type_ppt.get_var('BT')
+
         # I was extremely desperate to reduce how many characters are in the drawer.dim_y in order to get it to parse
         TO = self.get_prompt("Twenty-One Inches").get_var('TO')
         ET = self.get_prompt("Eighteen Inches").get_var('ET')
         F = self.get_prompt("Fifteen Inches").get_var('F')
         T = self.get_prompt("Twelve Inches").get_var('T')
         N = self.get_prompt("Nine Inches").get_var('N')
+
 
         for front in self.get_all_drawer_fronts():
             drawer_num = front.obj_bp.get("DRAWER_NUM")
@@ -268,18 +277,26 @@ class Drawer_Stack(sn_types.Assembly):
             FRD = self.get_prompt("File Rail Direction " + str(drawer_num)).get_var("FRD")
             UFR = self.get_prompt("Use File Rail " + str(drawer_num)).get_var("UFR")
             UDD = self.get_prompt("Use Double Drawer " + str(drawer_num)).get_var('UDD')
-            UD = self.get_prompt("Use Dovetail Drawer").get_var("UD")
-            ST = self.get_prompt("Slide Type").get_var("ST")
+            # UD = self.get_prompt("Use Dovetail Drawer").get_var("UD")
+            # ST = self.get_prompt("Slide Type").get_var("ST")
 
-            drawer = common_parts.add_drawer(self)
+            if box_type:
+                if box_type == 0:
+                    drawer = common_parts.add_drawer(self)
+                elif box_type == 1:
+                    drawer = common_parts.add_melamine_drawer(self)
+                else:
+                    drawer = common_parts.add_dovetail_drawer(self)
+            else:
+                drawer = common_parts.add_drawer(self)
             drawer.obj_bp["IS_DRAWER_BOX"] = True
             drawer.obj_bp["DRAWER_NUM"] = drawer_num
             self.drawer_boxes.append(drawer)
             drawer.set_name("Drawer Box")
-            drawer.loc_x('Drawer_Box_Slide_Gap', [Drawer_Box_Slide_Gap])
+            drawer.loc_x('Drawer_Box_Slide_Gap/IF(BT==1,2,1)', [Drawer_Box_Slide_Gap, BT])
             drawer.loc_y('-Door_to_Cabinet_Gap-(y*Open)', [Door_to_Cabinet_Gap, y, Open, Front_Thickness])
             drawer.loc_z('df_z_loc+DBBG', [df_z_loc, Drawer_Box_Bottom_Gap])
-            drawer.dim_x('dim_x-(Drawer_Box_Slide_Gap*2)+IF(UD,INCH(0.05),0)', [dim_x, Drawer_Box_Slide_Gap, UD])
+            drawer.dim_x('dim_x-(Drawer_Box_Slide_Gap*IF(BT==1,1,2))+IF(BT==2,INCH(0.05),IF(BT==1,INCH(0.025),0))', [dim_x, Drawer_Box_Slide_Gap, BT])
             # I had to reduce characters a TON to get this to work. If there is a better solution, please let me know.
             # This was the only way I could find of achieving this without causing a dependency cycle.
             # Please ask me, Teddy Ruth, if you need to figure out what is even going on here
@@ -288,14 +305,12 @@ class Drawer_Stack(sn_types.Assembly):
                 "IF(FRD==1,"
                 "IF(FRT==0,0.3556,0.4318),"  # 0.3556==INCH(14), 0.4318==INCH(17)
                 "IF(y<=E,y-S,y-D)),"
-                "IF(UD,"
-                "IF(ST==1,"
-                "CHECK(IF(y<=E,y-S,y-D)+0.0001,TO,ET,F,T,N)," # 0.0001 is there because otherwise I get a rounding error when we check what should be the same inch
-                "IF(IF(y<=E,y-S,y-D)<0.3048,0.27305,"  # 0.3048==INCH(12), 0.27305==INCH(10.75)
-                "IF(IF(y<=E,y-S,y-D)>0.6096,0.5588,"  # 0.6096==INCH(24), 0.5588==INCH(22)
-                "IF(y<=E,y-S,y-D)))),"
+                "IF(BT!=0,"
+                "IF(BT==1,"
+                "CHECK(y-INCH(1)+0.0001,TO,ET,F,T),"
+                "CHECK(IF(y<=E,y-S,y-D)+0.0001,TO,ET,F,T,N)),"  # 0.0001 is there because otherwise I get a rounding error when we check what should be the same inch,"
                 "IF(y<=E,y-S,y-D)))",
-                [y, E, S, D, UFR, FRD, FRT, UD, ST, TO, ET, F, T, N])
+                [y, E, S, D, UFR, FRD, FRT, TO, ET, F, T, N, BT])
             drawer.dim_z(
                 ("IF(DF_Height<SDF,DF_Height-THBD,"
                  "IF(OR(Lock_Drawer==2,Lock_Drawer==3),IF(UDD,LDBH,DF_Height-DBTG-DBBG),"
@@ -305,9 +320,9 @@ class Drawer_Stack(sn_types.Assembly):
             drawer.get_prompt('Use File Rail').set_formula('UFR', [UFR])
             drawer.get_prompt('File Rail Type').set_formula('FRT', [FRT])
             drawer.get_prompt('File Rail Direction').set_formula('FRD', [FRD])
-            drawer.get_prompt('Use Dovetail Construction').set_formula('UD', [UD])
             drawer.get_prompt('Drawer Front Height').set_formula('DF_Height', [DF_Height])
-            drawer.get_prompt('Slide Type').set_formula('ST', [ST])
+            # drawer.get_prompt('Slide Type').set_formula('ST', [ST])
+            drawer.get_prompt('Box Type').set_formula('BT', [BT])
 
     def add_lock(self, drawer_num):
         dim_x = self.obj_x.snap.get_var("location.x", "dim_x")
@@ -1348,20 +1363,20 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
             ('2', 'None', 'None')],
         default='0')
 
-    slide_type: EnumProperty(
-        name="Slide Type",
-        items=SLIDE_TYPE,
-        default='0')
+    # slide_type: EnumProperty(
+    #     name="Slide Type",
+    #     items=SLIDE_TYPE,
+    #     default='0')
 
-    sidemount_options: EnumProperty(
-        name="Sidemount Options",
-        items=SIDEMOUNT_OPTIONS,
-        default='0')
+    # sidemount_options: EnumProperty(
+    #     name="Sidemount Options",
+    #     items=SIDEMOUNT_OPTIONS,
+    #     default='0')
 
-    undermount_options: EnumProperty(
-        name="Undermount Options",
-        items=UNDERMOUNT_OPTIONS,
-        default='0')
+    # undermount_options: EnumProperty(
+    #     name="Undermount Options",
+    #     items=UNDERMOUNT_OPTIONS,
+    #     default='0')
 
     front_heights = []
 
@@ -1376,6 +1391,14 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
             ('0', 'Above', 'Above'),
             ('1', 'Below', 'Below'),
             ('2', 'None', 'None')],
+        default='0')
+    
+    box_type: EnumProperty(
+        name="Box Type",
+        items=[
+            ('0', 'White Melamine', 'White Melamine'),
+            ('1', '3/4" Melamine', '3/4" Melamine'),
+            ('2', 'Dovetail', 'Dovetail')],
         default='0')
 
     @classmethod
@@ -1400,7 +1423,11 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         open_drawers_ppt = self.assembly.get_prompt("Open")
 
         if add_drawers_ppt.get_value() and not self.assembly.drawer_boxes:
-            self.assembly.add_drawer_boxes()
+            box_type_ppt = self.assembly.get_prompt("Box Type")
+            if box_type_ppt:
+                self.assembly.add_drawer_boxes(box_type_ppt.get_value())
+            else:
+                self.assembly.add_drawer_boxes()
             self.assembly.update()
             open_drawers_ppt.set_value(1.0)
             bpy.ops.object.select_all(action='DESELECT')
@@ -1566,34 +1593,34 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         and to set the drawer rear gap to 1"
         when the user swaps to Dovetail Drawer Boxes.
         """
-        use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
-        slide_type = self.assembly.get_prompt("Slide Type")
-        undermount_options = self.assembly.get_prompt("Undermount Options")
+        # use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
+        # slide_type = self.assembly.get_prompt("Slide Type")
+        # undermount_options = self.assembly.get_prompt("Undermount Options")
         standard_drawer_box_rear_gap = self.assembly.get_prompt("Standard Drawer Rear Gap")
         deep_drawer_box_rear_gap = self.assembly.get_prompt("Deep Drawer Rear Gap")
-        prompts = [use_dovetail_drawer, slide_type, undermount_options, standard_drawer_box_rear_gap, deep_drawer_box_rear_gap]
+        prompts = [standard_drawer_box_rear_gap, deep_drawer_box_rear_gap]
 
-        if all(prompts):
-            if use_dovetail_drawer.get_value() and not self.set_default_slide:
-                self.set_default_slide = True
-                slide_type.set_value(1)
-                self.slide_type = '1'
-                undermount_options.set_value(0)
-                self.undermount_options = '0'
-                standard_drawer_box_rear_gap.set_value(sn_unit.inch(1))
-                deep_drawer_box_rear_gap.set_value(sn_unit.inch(1))
-            elif self.set_default_slide and not use_dovetail_drawer.get_value():
-                self.set_default_slide = False
-                if slide_type.get_value() == 1:
-                    standard_drawer_box_rear_gap.set_value(sn_unit.inch(1.25))
-                    deep_drawer_box_rear_gap.set_value(sn_unit.inch(2))
+        # if all(prompts):
+        #     if use_dovetail_drawer.get_value() and not self.set_default_slide:
+        #         # self.set_default_slide = True
+        #         # slide_type.set_value(1)
+        #         # self.slide_type = '1'
+        #         # undermount_options.set_value(0)
+        #         # self.undermount_options = '0'
+        #         standard_drawer_box_rear_gap.set_value(sn_unit.inch(1))
+        #         deep_drawer_box_rear_gap.set_value(sn_unit.inch(1))
+        #     elif self.set_default_slide and not use_dovetail_drawer.get_value():
+        #         self.set_default_slide = False
+        #         if slide_type.get_value() == 1:
+        #             standard_drawer_box_rear_gap.set_value(sn_unit.inch(1.25))
+        #             deep_drawer_box_rear_gap.set_value(sn_unit.inch(2))
 
-            if slide_type.get_value() == 0 and self.slide_type == '1' and use_dovetail_drawer.get_value():
-                standard_drawer_box_rear_gap.set_value(sn_unit.inch(1))
-                deep_drawer_box_rear_gap.set_value(sn_unit.inch(1))
-            elif slide_type.get_value() == 1 and self.slide_type == '0' and use_dovetail_drawer.get_value():
-                standard_drawer_box_rear_gap.set_value(sn_unit.inch(1.25))
-                deep_drawer_box_rear_gap.set_value(sn_unit.inch(2))
+        #     if slide_type.get_value() == 0 and self.slide_type == '1' and use_dovetail_drawer.get_value():
+        #         standard_drawer_box_rear_gap.set_value(sn_unit.inch(1))
+        #         deep_drawer_box_rear_gap.set_value(sn_unit.inch(1))
+        #     elif slide_type.get_value() == 1 and self.slide_type == '0' and use_dovetail_drawer.get_value():
+        #         standard_drawer_box_rear_gap.set_value(sn_unit.inch(1.25))
+        #         deep_drawer_box_rear_gap.set_value(sn_unit.inch(2))
 
 
 
@@ -1603,28 +1630,32 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         self.update_pulls(context)
         self.update_drawer_boxes(context)
         self.update_cleat_loc()
-        self.update_dovetail_defaults()
+        # self.update_dovetail_defaults()
 
         if self.drawer_qty_prompt:
             self.drawer_qty_prompt.quantity_value = int(self.drawer_quantity)
-            slide_type = self.assembly.get_prompt("Slide Type")
-            sidemount_options = self.assembly.get_prompt("Sidemount Options")
-            undermount_options = self.assembly.get_prompt("Undermount Options")
-            dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
-            slide_prompts = [slide_type, sidemount_options, undermount_options, dovetail_drawer]
-            if all(slide_prompts):
-                if not dovetail_drawer.get_value():
-                    slide_type.set_value(0)
-                    self.slide_type = "0"
-                else:
-                    slide_type.set_value(int(self.slide_type))
-                sidemount_options.set_value(int(self.sidemount_options))
-                undermount_options.set_value(int(self.undermount_options))
+            # slide_type = self.assembly.get_prompt("Slide Type")
+            # sidemount_options = self.assembly.get_prompt("Sidemount Options")
+            # undermount_options = self.assembly.get_prompt("Undermount Options")
+            # dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
+            # slide_prompts = [dovetail_drawer]
+            # if all(slide_prompts):
+                # if not dovetail_drawer.get_value():
+                #     slide_type.set_value(0)
+                #     self.slide_type = "0"
+                # else:
+                #     slide_type.set_value(int(self.slide_type))
+                # sidemount_options.set_value(int(self.sidemount_options))
+                # undermount_options.set_value(int(self.undermount_options))
+            
+            box_type = self.assembly.get_prompt("Box Type")
+            if box_type:
+                box_type.set_value(int(self.box_type))
 
             for i in range(1, self.drawer_qty_prompt.get_value()):
                 drawer_height = self.drawer_front_ppt_obj.snap.get_prompt("Drawer " + str(i) + " Height")
                 bottom_offset = self.assembly.get_prompt("Bottom Drawer Space")
-                slide_type = self.assembly.get_prompt("Drawer " + str(i) + " Slide Type") #DONT REMOVE USED in exec
+                # slide_type = self.assembly.get_prompt("Drawer " + str(i) + " Slide Type") #DONT REMOVE USED in exec
                 file_rail_type = self.assembly.get_prompt("File Rail Type " + str(i))
                 file_rail_direction = self.assembly.get_prompt("File Rail Direction " + str(i))
                 has_jewelry_insert = self.assembly.get_prompt("Has Jewelry Insert " + str(i))
@@ -1649,16 +1680,16 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
 
                 if props.closet_defaults.use_32mm_system:
                     if drawer_height:
-                        if dovetail_drawer:
+                        if box_type:
                             exec("drawer_height.set_value(float(self.drawer_" + str(i) + "_height))")
                             # If it is a three hole dovetail drawer, force it to be a 4 hole dovetail drawer
-                            if dovetail_drawer.get_value() and drawer_height.get_value() <= 91.948:
+                            if box_type.get_value() == 2 and drawer_height.get_value() <= 91.948:
                                 exec("self.drawer_" + str(i) + "_height =  str(123.952)")
                         exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_height) / 25.4))")
                     if bottom_offset:
                         bottom_offset.set_value(sn_unit.inch(float(self.bottom_offset)/25.4))
-                if slide_type:
-                    exec("slide_type.set_value(self.drawer_" + str(i) + "_slide)")
+                # if slide_type:
+                #     exec("slide_type.set_value(self.drawer_" + str(i) + "_slide)")
                 if file_rail_type:
                     self.update_file_rail_type(i)
                 if file_rail_direction:
@@ -1731,17 +1762,20 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         if bottom_offset:
             self.bottom_offset = str(round(sn_unit.meter_to_millimeter(bottom_offset)))
         
-        slide_type = self.assembly.get_prompt("Slide Type")
-        sidemount_options = self.assembly.get_prompt("Sidemount Options")
-        undermount_options = self.assembly.get_prompt("Undermount Options")
-        use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
-        slide_prompts = [slide_type, sidemount_options, undermount_options, use_dovetail_drawer]
-        if all(slide_prompts):
-            self.slide_type = SLIDE_TYPE[slide_type.get_value()][0]
-            self.sidemount_options = SIDEMOUNT_OPTIONS[sidemount_options.get_value()][0]
-            self.undermount_options = UNDERMOUNT_OPTIONS[undermount_options.get_value()][0]
-            self.set_default_slide = use_dovetail_drawer.get_value()
+        # slide_type = self.assembly.get_prompt("Slide Type")
+        # sidemount_options = self.assembly.get_prompt("Sidemount Options")
+        # undermount_options = self.assembly.get_prompt("Undermount Options")
+        # use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
+        # slide_prompts = [use_dovetail_drawer]
+        # if all(slide_prompts):
+            # self.slide_type = SLIDE_TYPE[slide_type.get_value()][0]
+            # self.sidemount_options = SIDEMOUNT_OPTIONS[sidemount_options.get_value()][0]
+            # self.undermount_options = UNDERMOUNT_OPTIONS[undermount_options.get_value()][0]
+            # self.set_default_slide = use_dovetail_drawer.get_value()
 
+        box_type = self.assembly.get_prompt("Box Type")
+        if box_type:
+            self.box_type = str(box_type.get_value())
 
         self.get_front_heights()
         
@@ -2275,16 +2309,17 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                     no_pulls = self.assembly.get_prompt('No Pulls')
                     use_mirror = self.assembly.get_prompt("Use Mirror")
                     cleat_loc = self.assembly.get_prompt("Cleat Location")
-                    use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
+                    # use_dovetail_drawer = self.assembly.get_prompt("Use Dovetail Drawer")
                     add_drawer_boxes_ppt = self.assembly.get_prompt("Add Drawer Boxes")
+                    box_type = self.assembly.get_prompt("Box Type")
 
                     box = layout.box()
                     propbox = box.box()
                     propbox.label(text="Options:", icon='SCRIPT')
 
                     row = propbox.row()
-                    if use_dovetail_drawer:
-                        if use_dovetail_drawer.get_value():
+                    if box_type:
+                        if box_type.get_value() == 2:
                             row.label(text="Minimum Drawer Rear Gap")
                         else:
                             row.label(text="Drawer Rear Gap")
@@ -2329,32 +2364,36 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                         row = propbox.row()
                         row.prop(full_overlay, "checkbox_value", text="Full Overlay")
 
-                    if use_dovetail_drawer:
+                    # if use_dovetail_drawer:
+                    #     row = propbox.row()
+                    #     row.prop(use_dovetail_drawer, "checkbox_value", text="Dovetail Drawer")
+
+                    if box_type:
                         row = propbox.row()
-                        row.prop(use_dovetail_drawer, "checkbox_value", text="Dovetail Drawer")
+                        row.prop(self, 'box_type', text="Box Type")
 
                     row = propbox.row()
                     row.prop(add_drawer_boxes_ppt, "checkbox_value", text="Open Drawers")
 
-                    propbox = box.box()
-                    row = propbox.row()
-                    column_1 = row.column()
-                    column_1.label(text="Slide Type")
-                    if use_dovetail_drawer:
-                        if use_dovetail_drawer.get_value():
-                            column_1.prop(self, "slide_type", text="")
-                        else:
-                            column_1.label(text="Sidemount")
-                    else:
-                        column_1.label(text="Sidemount")
-                    column_2 = row.column()
+                    # propbox = box.box()
+                    # row = propbox.row()
+                    # column_1 = row.column()
+                    # column_1.label(text="Slide Type")
+                    # if use_dovetail_drawer:
+                    #     if use_dovetail_drawer.get_value():
+                    #         column_1.prop(self, "slide_type", text="")
+                    #     else:
+                    #         column_1.label(text="Sidemount")
+                    # else:
+                    #     column_1.label(text="Sidemount")
+                    # column_2 = row.column()
 
-                    if self.slide_type == '0':
-                        column_2.label(text="Sidemount Options")
-                        column_2.prop(self, "sidemount_options", text="")
-                    else:
-                        column_2.label(text="Undermount Options")
-                        column_2.prop(self, "undermount_options", text="")
+                    # if self.slide_type == '0':
+                    #     column_2.label(text="Sidemount Options")
+                    #     column_2.prop(self, "sidemount_options", text="")
+                    # else:
+                    #     column_2.label(text="Undermount Options")
+                    #     column_2.prop(self, "undermount_options", text="")
 
                     self.draw_drawer_heights(box)
 

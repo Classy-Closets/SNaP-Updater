@@ -40,6 +40,8 @@ try:
 except ImportError as e:
     print(e.msg)
 
+approved_users = ["Ken Cook", "Tyler Standage", "Duane Standage", "Sarah Hightower", "Teddy Ruth", "Ted Standage"]
+
 
 enum_render_type = [('PRR', 'Photo Realistic Render','Photo Realistic Render'),
                         ('NPR', 'Line Drawing','Non-Photo Realistic Render')]
@@ -1997,6 +1999,8 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         description="If enabled, show franchise pricing in Project Pricing",
         default=False)
 
+    franchise_password: StringProperty(name="Franchise Password", subtype='PASSWORD')
+
     enable_kitchen_bath_lib: BoolProperty(
         name="Enable Kitchen Bath Library",
         description="If enabled, show Kitchen and Bath library",
@@ -2085,11 +2089,20 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
             row.prop(self, "debug_mac")
             row = box.row()
             row.prop(self, "enable_franchise_pricing")
+            if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
+                col = box.column(align=True)
+                if bpy.context.preferences.addons['snap'].preferences.franchise_password == "Cla$$y123":
+                    col.label(text="Correct Password: Access Granted")
+                    col.prop(self, "franchise_password", text="")
+                else:
+                    col.label(text="Wrong Password: Access Denied")
+                    col.prop(self, "franchise_password", text="")
             row.operator('closet_materials.unpack_material_images')
             row = box.row()
             row.prop(self, "enable_kitchen_bath_lib")
 
             addon_updater_ops.update_settings_ui(self, context)
+
 
 
 keys = {

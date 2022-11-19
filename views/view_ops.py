@@ -2182,10 +2182,9 @@ class VIEW_OT_generate_2d_views(Operator):
         first_wall = [wall[0] for wall in walls][0]
         last_wall = [wall[0] for wall in walls][-1]
         # Getting wall connections
-        connected_walls = [[wall for wall in group if wall is not None]
-                           for group in walls]
-        [connected_walls.remove(conn)
-         for conn in connected_walls if len(conn) == 1]
+        connected_walls = [[wall for wall in group if wall is not None] for group in walls]
+        [connected_walls.remove(conn) for conn in connected_walls if len(conn) == 1]
+
         for conn in connected_walls:
             current_wall = round(math.degrees(
                 conn[0].obj_bp.rotation_euler[2]))
@@ -2197,6 +2196,7 @@ class VIEW_OT_generate_2d_views(Operator):
             # the previous and the current wall need to be 90 or -270 degrees
             if cnctd_wall_angle_check:
                 joints.append((conn[0].obj_bp, conn[1].obj_bp))
+
         joints.append((first_wall.obj_bp, last_wall.obj_bp))
         wall_joints["first_wall"] = first_wall.obj_bp
         wall_joints["last_wall"] = last_wall.obj_bp
@@ -2282,6 +2282,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 x_loc = self.to_inch(child.location[0])
                 openings.append((x_loc, child))
         openings = sorted(openings, key=lambda tup: tup[0])
+
         if len(openings) > 0 and opening_at == 'MIN':
             desired_opening = openings[0][1]
             result = self.lookup_openings_at_same_position(assembly,
@@ -2292,6 +2293,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 return [desired_opening, result]
             elif result is None:
                 return [desired_opening]
+
         elif len(openings) > 0 and opening_at == 'MAX':
             desired_opening = openings[-1][1]
             result = self.lookup_openings_at_same_position(assembly,
@@ -2312,39 +2314,30 @@ class VIEW_OT_generate_2d_views(Operator):
         if opening_at not in ('MIN', 'MAX'):
             return
         section = 'section' in assembly.name.lower()
-        # corner_shelves = 'corner shelves' in assembly.name.lower()
-        # l_shelves = 'l shelves' in assembly.name.lower()
-        # triangular_shelves = 'corner shelves' in assembly.name.lower()
+
         if section:
-            opng_parts = self.get_opening_parts(assembly,
-                                                opening_at,
-                                                lookup_pos)
+            opng_parts = self.get_opening_parts(assembly, opening_at, lookup_pos)
+            result_parts = []
+            insert_parts = []
+            top_shelves_parts = []
+            partition_parts = []
+            toe_kicks_parts = []
+
             if opng_parts is not None:
-                result_parts = []
-                insert_parts = []
-                top_shelves_parts = []
-                partition_parts = []
-                toe_kicks_parts = []
                 partitions, virtual_partitions = None, None
                 for part in opng_parts:
                     part_pos = abs(self.to_inch(part.location[0]))
                     part_width_m = sn_types.Assembly(part).obj_x.location.x
                     ts_pos = abs(self.to_inch(part.location[0]) - cpart_width)
                     inserts = self.find_matching_inserts(part.parent, part_pos)
-                    top_shelves = self.find_matching_topshelves(part.parent,
-                                                                ts_pos,
-                                                                opening_at)
-                    all_partitions = self.find_matching_partitions(part.parent,
-                                                                   part_pos,
-                                                                   part_width_m,
-                                                                   opening_at)
+                    top_shelves = self.find_matching_topshelves(part.parent, ts_pos, opening_at)
+                    all_partitions = self.find_matching_partitions(part.parent, part_pos, part_width_m, opening_at)
+
                     if all_partitions is not None:
-                        partitions, virtual_partitions = all_partitions 
+                        partitions, virtual_partitions = all_partitions
                     elif all_partitions is None:
                         partitions, virtual_partitions = None, None
-                    toe_kicks = self.find_matching_toe_kick(part.parent, 
-                                                            part_pos,
-                                                            opening_at)
+                    toe_kicks = self.find_matching_toe_kick(part.parent, part_pos, opening_at)
                     for insert in inserts:
                         insert_parts.append(insert)
                     for top_shelf in top_shelves:
@@ -2353,6 +2346,7 @@ class VIEW_OT_generate_2d_views(Operator):
                         partition_parts.append(partition)
                     for tk in toe_kicks:
                         toe_kicks_parts.append(tk)
+
                 opng_parts.append(spread(partition_parts))
                 opng_parts.append(spread(top_shelves_parts))
                 opng_parts.append(spread(insert_parts))
@@ -2360,8 +2354,6 @@ class VIEW_OT_generate_2d_views(Operator):
                 result_parts = spread(opng_parts)
                 parts.append(result_parts)
                 virtual_parts.append(spread(virtual_partitions))
-        # if corner_shelves or l_shelves or triangular_shelves:
-        #     parts.append(assembly)
         result = parts, virtual_parts
         return result
 
@@ -2390,6 +2382,7 @@ class VIEW_OT_generate_2d_views(Operator):
         assy_loc_dict = {}
         if assemblies is None:
             return (None, None)
+
         for assembly in assemblies:
             assy_obj = sn_types.Assembly(assembly)
             assy_width = self.to_inch(assy_obj.obj_x.location.x)
@@ -2397,9 +2390,11 @@ class VIEW_OT_generate_2d_views(Operator):
             end_position = start_position + assy_width
             assy_loc_dict[start_position] = assembly
             assy_loc_dict[end_position] = assembly
+
         if len(assy_loc_dict) > 0:
             parts, virtual_parts = None, None
             min_assembly_loc = min(assy_loc_dict.items(), key=lambda x: x[0])
+
             # Assemblies at min position (start of wall)
             min_assy = sn_types.Assembly(min_assembly_loc[1])
             min_assy_width = self.to_inch(min_assy.obj_x.location.x)
@@ -2419,6 +2414,7 @@ class VIEW_OT_generate_2d_views(Operator):
             min_assy_data["virtual_parts"] = spread(virtual_parts)
             pieces = min_assy_data["parts"]
             min_assy_data["depth"] = self.get_partition_max_depth(pieces)
+
             # Assemblies at max position (end of wall)
             max_assembly_loc = max(assy_loc_dict.items(), key=lambda x: x[0])
             max_assy = sn_types.Assembly(max_assembly_loc[1])
@@ -2435,11 +2431,13 @@ class VIEW_OT_generate_2d_views(Operator):
                 parts, virtual_parts = result
             if virtual_parts is None or len(virtual_parts) == 0:
                 max_assy_data["virtual_parts"] = []
+
             max_assy_data["parts"] = spread(parts)
             max_assy_data["virtual_parts"] = spread(virtual_parts)
             pieces = max_assy_data["parts"]
             max_assy_data["depth"] = self.get_partition_max_depth(pieces)
             return (min_assy_data, max_assy_data)
+
         if len(assy_loc_dict) == 0:
             return (None, None)
 
@@ -2460,7 +2458,7 @@ class VIEW_OT_generate_2d_views(Operator):
             return assemblies
         if len(assemblies) == 0:
             return None
-    
+
     def get_joint_parts(self, current_wall, left_wall, assemblies_dict):
         offset = 6
         current_wall_record = assemblies_dict.get(current_wall)
@@ -2475,7 +2473,7 @@ class VIEW_OT_generate_2d_views(Operator):
             if current_wall_data is not None and left_wall_data is None:
                 left_wall_width = left_wall_record.get("width")
                 return (left_wall, left_wall_width, current_wall_data["parts"])
-            
+
             if left_wall_data is not None and current_wall_data is None:
                 return (current_wall, 0.0, left_wall_data["parts"])
 
@@ -2655,16 +2653,17 @@ class VIEW_OT_generate_2d_views(Operator):
         corner_ends = {}
         joint_parts_dict = {}
         corner_starts = {}
+
         if joints is not None:
             assemblies_dict = self.get_walls_assys_arrangement(wall_groups)
             virtual_parts = self.get_virtual_parts_dict(assemblies_dict)
+
             if assemblies_dict is not None:
                 wall_joints = joints["joints"]
                 for joint in wall_joints:
                     current_wall, left_wall = joint
-                    joint_parts = self.get_joint_parts(current_wall,
-                                                       left_wall,
-                                                       assemblies_dict)
+                    joint_parts = self.get_joint_parts(current_wall, left_wall, assemblies_dict)
+
                     corner_result = self.get_lsh_csh_assemblies(current_wall)
                     if corner_result:
                         for each in corner_result:
@@ -2673,8 +2672,8 @@ class VIEW_OT_generate_2d_views(Operator):
                                 left_wall_assy = sn_types.Assembly(left_wall)
                                 width = left_wall_assy.obj_x.location.x
                                 width_inches = self.to_inch(width)
-                                corner[collection] = (width_inches,
-                                                      corner_result)
+                                corner[collection] = (width_inches, corner_result)
+
                     # Before apply the cross-sections we need to take note
                     # if section parts won't appear when not expected due
                     # 2 steps cross section parts applying
@@ -2692,18 +2691,18 @@ class VIEW_OT_generate_2d_views(Operator):
                     
                     if joint_parts is not None:
                         joints_result.append(joint_parts)
-                if len(joints_result) > 0:
+
+                if len(joints_result) > 0 or corner_result:
                     # Adding the cross-section parts
                     # 1st pass - L-shelves/Corner Shelves
                     for key, value in corner.items():
                         cn_position, cn_parts = value
                         if joint_parts_dict.get(key) is not None:
-                            joint_parts_dict[key].append(
-                                (cn_position, cn_parts))
+                            joint_parts_dict[key].append((cn_position, cn_parts))
                         if joint_parts_dict.get(key) is None:
                             joint_parts_dict[key] = []
-                            joint_parts_dict[key].append(
-                                (cn_position, cn_parts))
+                            joint_parts_dict[key].append((cn_position, cn_parts))
+
                     # 2nd pass - other assemblies
                     for each in joints_result:
                         wall, position, parts = each
@@ -3308,12 +3307,9 @@ class VIEW_OT_generate_2d_views(Operator):
         #      for accordions are added after the ones for sections
         for wall in walls:
             corner_result = self.get_lsh_csh_assemblies(wall)
-            print("wall.name=" + wall.name)
-            print("corner_result=" + str(corner_result))
             if corner_result:
                 previous_wall = walls[walls.index(wall) - 1]
                 previous_wall_name = previous_wall.name
-                print("previous_wall_name=" + previous_wall_name)
                 right_name = f'{previous_wall_name}_right_grp'
                 all_collections = bpy.data.collections
                 present_collections = [col.name for col in all_collections]
@@ -3339,7 +3335,8 @@ class VIEW_OT_generate_2d_views(Operator):
                     offset = curr_wall_glb_x_pos + prvs_wall_width
                     right_instance = bpy.data.objects.new(
                         f'{previous_wall_name}_right_ins', None)
-                    right_instance.location = (offset, offset, 0)
+                    right_instance.location = (offset, 0, 0)
+                    right_instance.scale = (0.25, 1, 1)
                     right_instance.rotation_euler = (0, 0, math.radians(-90))
                     right_instance.instance_type = 'COLLECTION'
                     right_instance.instance_collection = grp
@@ -3628,6 +3625,7 @@ class VIEW_OT_generate_2d_views(Operator):
             tk_height = tk_height_pmpt.get_value()
             is_hanging = is_hanging_pmpt.get_value()
             tsh = tsh_pmpt.get_value()
+        bh_dims.append(tk_height)
         lsh_height = lsh_assy.obj_z.location.z + tk_height
         if is_hanging:
             lsh_height = lsh_assy.obj_z.location.z
@@ -4398,10 +4396,13 @@ class VIEW_OT_generate_2d_views(Operator):
             for j, wall in enumerate(accordion):
                 empty = self.empty_wall(wall)
                 just_door = self.is_just_door_wall(wall)
-                if empty or just_door:
-                    empty_acc_check.append(True)
+                has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
+                if has_lsh_csh:
+                    empty_acc_check.append(False)
                 elif not empty and not just_door:
                     empty_acc_check.append(False)
+                elif empty or just_door:
+                    empty_acc_check.append(True)
             empty_acc_check = list(set(empty_acc_check))
             if len(empty_acc_check) == 1 and empty_acc_check[0] == True:
                 continue
@@ -4914,6 +4915,12 @@ class VIEW_OT_generate_2d_views(Operator):
                 mfg = ct_mat_props.get_type().get_mfg()
                 CT_info = mfg.name
             elif CT_type == 'Granite':
+                CT_info = CT_type
+            elif CT_type == 'Quartz':
+                CT_info = CT_type + " " + ct_mat_props.get_color().name
+            elif CT_type == 'HPL':
+                CT_info = CT_type + " " + ct_mat_props.get_color().name
+            elif CT_type == 'Custom':
                 CT_info = CT_type
             else:
                 CT_info = CT_type + " " + CT_color
@@ -5716,35 +5723,52 @@ class VIEW_OT_generate_2d_views(Operator):
                 if sc.name == "_Main" or "Scene":
                     for obj in sc.objects:
                         scene_objects.append(obj)
+
+            wall_bp_list = []
+            wall_name_list = []
+
             for obj in scene_objects:
                 if obj.get("IS_BP_WALL"):
-                    self.unhide_wall(obj)
-                    wall = sn_types.Wall(obj_bp=obj)
-                    wall_groups_list = wall.get_wall_groups()
-                    wall_door_only = False
-                    door_toggle = False
-                    door_only = len(wall_groups_list) == 1
-                    right_wall = wall.get_connected_wall('RIGHT')
-                    corner_items = None
-                    if right_wall:
-                        corner_items = self.get_lsh_csh_assemblies(
-                            right_wall.obj_bp)
-                    has_assys = len(wall_groups_list) > 0
-                    for item in wall_groups_list:
-                        if 'BPASSEMBLY.' in item.name:
-                            for door in item.children:
-                                if 'door frame' in door.name.lower():
-                                    door_toggle = True
-                    if door_toggle and door_only:
-                        wall_door_only = True
-                    if (has_assys and not wall_door_only) or corner_items:
-                        grp_name = f"CSwall-{wall.obj_bp.snap.name_object}"
-                        grp = bpy.data.collections.new(grp_name)
-                        if elevations_only:
-                            self.create_elv_view_scene(context, wall, grp)
-                        left_wall = wall.get_connected_wall('LEFT')
-                        walls.append((wall, left_wall))
-                        wall_groups[wall.obj_bp.name] = grp
+                    wall_bp_list.append(obj)
+                    wall_name_list.append(obj.name)
+
+            for i, obj in enumerate(wall_bp_list):
+                self.unhide_wall(obj)
+                wall = sn_types.Wall(obj_bp=obj)
+                wall_groups_list = wall.get_wall_groups()
+
+
+                wall_door_only = False
+                door_toggle = False
+                door_only = len(wall_groups_list) == 1
+                right_wall = wall.get_connected_wall('RIGHT')
+                corner_items = None
+
+                if i == len(wall_bp_list) -1:
+                    has_lsh_csh = self.next_wall_has_lsh_csh(wall_name_list, wall.obj_bp)
+                    if has_lsh_csh:
+                        right_wall = sn_types.Wall(wall_bp_list[0])
+
+                if right_wall:
+                    corner_items = self.get_lsh_csh_assemblies(
+                        right_wall.obj_bp)
+                has_assys = len(wall_groups_list) > 0
+                for item in wall_groups_list:
+                    if 'BPASSEMBLY.' in item.name:
+                        for door in item.children:
+                            if 'door frame' in door.name.lower():
+                                door_toggle = True
+                if door_toggle and door_only:
+                    wall_door_only = True
+
+                if (has_assys and not wall_door_only) or corner_items:
+                    grp_name = f"CSwall-{wall.obj_bp.snap.name_object}"
+                    grp = bpy.data.collections.new(grp_name)
+                    if elevations_only:
+                        self.create_elv_view_scene(context, wall, grp)
+                    left_wall = wall.get_connected_wall('LEFT')
+                    walls.append((wall, left_wall))
+                    wall_groups[wall.obj_bp.name] = grp
 
                 name = obj.name
                 if "Island" in name and obj.parent is None:
@@ -6024,6 +6048,7 @@ class VIEW_OT_render_2d_views(Operator):
     def create_pdf_xml(self, context):
         room_file = None
         # Save main file to run XML generation
+        bpy.ops.closet_machining.prepare_closet_for_export()
         bpy.ops.wm.save_mainfile()
         pm_props = context.window_manager.sn_project
         proj = pm_props.projects[pm_props.project_index]

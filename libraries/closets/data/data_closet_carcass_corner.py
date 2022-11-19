@@ -1480,10 +1480,12 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
             self.product.add_shelves(amt=int(self.shelf_quantity))
 
         self.product.update()
-        shelf = self.product.shelves[0]
-        for child in shelf.obj_bp.children:
-            if child.type == 'MESH':
-                bpy.context.view_layer.objects.active = child    
+
+        if self.product.shelves:
+            shelf = self.product.shelves[0]
+            for child in shelf.obj_bp.children:
+                if child.type == 'MESH':
+                    bpy.context.view_layer.objects.active = child
 
     def closest_hole_amt(self, opening_heights, height):
         return opening_heights[min(range(len(opening_heights)), key=lambda i: abs(opening_heights[i] - height))]

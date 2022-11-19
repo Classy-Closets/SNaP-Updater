@@ -7,6 +7,7 @@ import bpy
 from bpy.props import StringProperty, IntProperty, CollectionProperty, FloatProperty, EnumProperty
 from bpy.types import Operator
 from snap import sn_types, sn_unit, sn_utils, bl_info
+from snap.libraries.kitchen_bath import cabinet_interface
 from .data_closet_carcass_corner import Corner_Shelves, L_Shelves
 from ..common import common_parts
 from ..common import common_lists
@@ -18,6 +19,7 @@ SHELF_OPENING_MIN_HEIGHT = 124  # milllimeters 4H opening space
 
 
 opening_height_ppt = None
+drawer_front_height_ppt = None
 shelf_stack_assembly = None
 
 
@@ -721,6 +723,20 @@ class SNAP_OT_set_opening_height(Operator):
 
         return {'FINISHED'}
 
+class SNAP_OT_set_drawer_front_height(Operator):
+    bl_idname = "sn_closets.set_drawer_front_height"
+    bl_label = "Set Drawer Front Height"
+    bl_description = "This sets the drawer front height"
+    bl_options = {'UNDO'}
+
+    height: FloatProperty(name="Drawer Front Height")
+
+    def execute(self, context):
+        global drawer_front_height_ppt
+        drawer_front_height_ppt.set_value(sn_unit.millimeter(self.height))
+
+        return {'FINISHED'}        
+
 
 def get_opening_heights(end_hole_amt=76):
     start = SHELF_OPENING_MIN_HEIGHT
@@ -736,6 +752,7 @@ class SNAP_MT_Opening_Heights(bpy.types.Menu):
     bl_label = ""
 
     opening_num = "0"
+    object_type = "Opening"
 
     def draw(self, context):
         col = self.layout.column()
@@ -743,55 +760,131 @@ class SNAP_MT_Opening_Heights(bpy.types.Menu):
         insert_bp = sn_utils.get_bp(obj, 'INSERT')
         product_bp = sn_utils.get_bp(obj, 'PRODUCT')
         assembly = None
+        global opening_height_ppt
+        global drawer_front_height_ppt
 
-        if insert_bp:
-            insert = Shelf_Stack(insert_bp)
-            assembly = insert
-            shelf_qty_ppt = insert.get_prompt("Shelf Quantity")
-            calculator = insert.calculator
-        elif product_bp:
-            if product_bp.get("IS_BP_CORNER_SHELVES"):
-                product = Corner_Shelves(product_bp)
-            if product_bp.get("IS_BP_L_SHELVES"):
-                product = L_Shelves(product_bp)
+        if "IS_BP_CABINET" in product_bp:
+            assembly = sn_types.Assembly(product_bp)
+  
+            for child in assembly.obj_bp.children:
+                if "IS_BP_SPLITTER" in child and child["IS_BP_SPLITTER"]:
+                    splitter_assy = sn_types.Assembly(child)
+                    if self.object_type == 'Opening':
+                        calculator = splitter_assy.get_calculator('Opening Heights Calculator')
+                        qty = len(calculator.prompts)
+                    elif self.object_type == "Drawer Front":
+                        for subchild in splitter_assy.obj_bp.children:
+                            if "VERTICAL_DRAWERS" in subchild and subchild["VERTICAL_DRAWERS"]:
+                                drawer_stack_assy = sn_types.Assembly(subchild)
+                                calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
+                                qty = len(calculator.prompts)
 
-            assembly = product
-            shelf_qty_ppt = product.get_prompt("Shelf Quantity")
-            calculator = product.calculator
+                if "VERTICAL_DRAWERS" in child and child["VERTICAL_DRAWERS"] and self.object_type == "Drawer Front":
+                    drawer_stack_assy = sn_types.Assembly(child)
+                    calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
+                    qty = len(calculator.prompts)
 
-        if assembly:
-            opening_height = calculator.get_calculator_prompt("Opening {} Height".format(self.opening_num))
-            total_distance = calculator.distance_obj.snap.calculator_distance
-            min_height = sn_unit.millimeter(float(SHELF_OPENING_MIN_HEIGHT))
+            if assembly and calculator:
+                if self.object_type == "Drawer Front":
 
-            taken_space = 0
-            equal_ppts = []
+                    last_height = calculator.get_calculator_prompt("Drawer Front {} Height".format(self.opening_num))
+                else:
+                    last_height = calculator.get_calculator_prompt("Opening {} Height".format(self.opening_num))
 
-            for i in range(1, shelf_qty_ppt.get_value() + 1):
-                height_ppt = eval("calculator.get_calculator_prompt('Opening {} Height')".format(str(i)))
-                if height_ppt.equal:
-                    equal_ppts.append(height_ppt)
-                elif height_ppt != opening_height:
-                    taken_space += height_ppt.get_value()
+                total_distance = calculator.distance_obj.snap.calculator_distance
+                taken_space = 0
+                equal_ppts = []
+                holes_taken = 0
+                equal_holes_taken = 0
 
-            equal_min_height = min_height * len(equal_ppts)
-            available_space = total_distance - equal_min_height
-            available_space -= taken_space
-            max_height = available_space // sn_unit.millimeter(32)
+                for i in range(1, qty + 1):
+                    if self.object_type == "Drawer Front":
+                        height_ppt = eval("calculator.get_calculator_prompt('Drawer Front {} Height')".format(str(i)))
+                    else:
+                        height_ppt = eval("calculator.get_calculator_prompt('Opening {} Height')".format(str(i)))
+                    if height_ppt.equal:
+                        equal_ppts.append(height_ppt)
+                        equal_holes_taken += round(height_ppt.get_value() / sn_unit.millimeter(32))
+                    elif height_ppt != last_height:
+                        height = height_ppt.get_value()
+                        taken_space += height
+                        holes_taken += round(height / sn_unit.millimeter(32))
 
-            for height in get_opening_heights(int(max_height)):
+                available_space = total_distance
+                available_space -= taken_space
+                max_height = round(available_space / sn_unit.millimeter(32))
+                opening_heights = cabinet_interface.get_opening_heights(int(max_height))
+                drawer_front_heights = cabinet_interface.get_drawer_front_heights(int(max_height))
+                heights = drawer_front_heights if self.object_type == "Drawer Front" else opening_heights
 
-                selected_height = float(height[0]) == round(sn_unit.meter_to_millimeter(opening_height.get_value()), 2)
-                op = col.operator(
-                    "sn_closets.set_opening_height",
-                    text=height[1],
-                    icon='RADIOBUT_ON' if selected_height else 'RADIOBUT_OFF')
+                for height in heights:
+                    selected_height = float(height[0]) == round(sn_unit.meter_to_millimeter(last_height.get_value()), 2)
+                    height_hole_amt = int(height[1].split("H")[0])
 
-                op.height = float(height[0])
-                global opening_height_ppt
-                global shelf_stack_assembly
-                opening_height_ppt = opening_height
-                shelf_stack_assembly = assembly
+                    if len(equal_ppts) > 1:
+                        # Skip if this hole selection is too large for minimun hole sizes to be maintained
+                        if max_height - height_hole_amt < 3 * len(equal_ppts):
+                            continue
+                        # Skip if this hole selection will not allow equal ppts to be split evenly
+                        elif (max_height - height_hole_amt) % len(equal_ppts) != 0:
+                            continue
+
+                    if self.object_type == "Drawer Front":
+                        op = col.operator("sn_closets.set_drawer_front_height",text=height[1],icon='RADIOBUT_ON' if selected_height else 'RADIOBUT_OFF')
+                        op.height = float(height[0])
+                        drawer_front_height_ppt = last_height
+                    else:
+                        op = col.operator("sn_closets.set_opening_height",text=height[1],icon='RADIOBUT_ON' if selected_height else 'RADIOBUT_OFF')
+                        op.height = float(height[0]) - 19  # 19mm (0.75") top and bottom shelves
+                        opening_height_ppt = last_height
+
+        else:
+            if insert_bp:
+                insert = Shelf_Stack(insert_bp)
+                assembly = insert
+                shelf_qty_ppt = insert.get_prompt("Shelf Quantity")
+                calculator = insert.calculator
+            elif product_bp:
+                if product_bp.get("IS_BP_CORNER_SHELVES"):
+                    product = Corner_Shelves(product_bp)
+                if product_bp.get("IS_BP_L_SHELVES"):
+                    product = L_Shelves(product_bp)
+
+                assembly = product
+                shelf_qty_ppt = product.get_prompt("Shelf Quantity")
+                calculator = product.calculator
+
+            if assembly:
+                opening_height = calculator.get_calculator_prompt("Opening {} Height".format(self.opening_num))
+                total_distance = calculator.distance_obj.snap.calculator_distance
+                min_height = sn_unit.millimeter(float(SHELF_OPENING_MIN_HEIGHT))
+
+                taken_space = 0
+                equal_ppts = []
+
+                for i in range(1, shelf_qty_ppt.get_value() + 1):
+                    height_ppt = eval("calculator.get_calculator_prompt('Opening {} Height')".format(str(i)))
+                    if height_ppt.equal:
+                        equal_ppts.append(height_ppt)
+                    elif height_ppt != opening_height:
+                        taken_space += height_ppt.get_value()
+
+                equal_min_height = min_height * len(equal_ppts)
+                available_space = total_distance - equal_min_height
+                available_space -= taken_space
+                max_height = available_space // sn_unit.millimeter(32)
+
+                for height in get_opening_heights(int(max_height)):
+                    selected_height = float(height[0]) == round(sn_unit.meter_to_millimeter(opening_height.get_value()), 2)
+                    op = col.operator(
+                        "sn_closets.set_opening_height",
+                        text=height[1],
+                        icon='RADIOBUT_ON' if selected_height else 'RADIOBUT_OFF')
+
+                    op.height = float(height[0])
+                    global shelf_stack_assembly
+                    opening_height_ppt = opening_height
+                    shelf_stack_assembly = assembly
 
 
 class SNAP_MT_Opening_1_Heights(SNAP_MT_Opening_Heights):
@@ -911,6 +1004,46 @@ class SNAP_MT_Opening_15_Heights(SNAP_MT_Opening_Heights):
 
     def draw(self, context):
         self.opening_num = "15"
+        super().draw(context)
+
+class SNAP_MT_Drawer_Front_1_Heights(SNAP_MT_Opening_Heights):
+    bl_label = "Drawer Front 1 Heights"
+
+    def draw(self, context):
+        self.opening_num = "1"
+        self.object_type = "Drawer Front"
+        super().draw(context)
+
+class SNAP_MT_Drawer_Front_2_Heights(SNAP_MT_Opening_Heights):
+    bl_label = "Drawer Front 2 Heights"
+
+    def draw(self, context):
+        self.opening_num = "2"
+        self.object_type = "Drawer Front"
+        super().draw(context)
+
+class SNAP_MT_Drawer_Front_3_Heights(SNAP_MT_Opening_Heights):
+    bl_label = "Drawer Front 3 Heights"
+
+    def draw(self, context):
+        self.opening_num = "3"
+        self.object_type = "Drawer Front"
+        super().draw(context)
+
+class SNAP_MT_Drawer_Front_4_Heights(SNAP_MT_Opening_Heights):
+    bl_label = "Drawer Front 4 Heights"
+
+    def draw(self, context):
+        self.opening_num = "4"
+        self.object_type = "Drawer Front"
+        super().draw(context)
+        
+class SNAP_MT_Drawer_Front_5_Heights(SNAP_MT_Opening_Heights):
+    bl_label = "Drawer Front 5 Heights"
+
+    def draw(self, context):
+        self.opening_num = "5"
+        self.object_type = "Drawer Front"
         super().draw(context)
 
 
@@ -1186,6 +1319,8 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
                 row.prop(height, 'equal', text="")
             else:
                 row.label(text="", icon='BLANK1')
+
+
         if height.equal:
             row.label(text=str(round(sn_unit.meter_to_active_unit(height.distance_value), 2)) + '"')
         else:
@@ -1402,7 +1537,15 @@ bpy.utils.register_class(SNAP_MT_Opening_12_Heights)
 bpy.utils.register_class(SNAP_MT_Opening_13_Heights)
 bpy.utils.register_class(SNAP_MT_Opening_14_Heights)
 bpy.utils.register_class(SNAP_MT_Opening_15_Heights)
+
+bpy.utils.register_class(SNAP_MT_Drawer_Front_1_Heights)
+bpy.utils.register_class(SNAP_MT_Drawer_Front_2_Heights)
+bpy.utils.register_class(SNAP_MT_Drawer_Front_3_Heights)
+bpy.utils.register_class(SNAP_MT_Drawer_Front_4_Heights)
+bpy.utils.register_class(SNAP_MT_Drawer_Front_5_Heights)
+
 bpy.utils.register_class(PROMPTS_Vertical_Splitter_Prompts)
 bpy.utils.register_class(PROMPTS_Horizontal_Splitter_Prompts)
 bpy.utils.register_class(OPERATOR_Vertical_Splitters_Drop)
 bpy.utils.register_class(SNAP_OT_set_opening_height)
+bpy.utils.register_class(SNAP_OT_set_drawer_front_height)
