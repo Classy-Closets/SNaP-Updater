@@ -860,8 +860,7 @@ class Closet_Options(PropertyGroup):
     hardware_tabs: EnumProperty(name="Hardware Tabs",
                                  items=[('RODS',"Rods",'Show the rod options'),
                                         ('PULLS',"Pulls",'Show the pull options'),
-                                        ('HINGES',"Hinges",'Show the hinge options'),
-                                        ('DRAWERS',"Drawer Slides",'Show the drawer options')],
+                                        ('HINGES',"Hinges",'Show the hinge options')],
                                  default = 'RODS')
     
     base_molding_category: EnumProperty(name="Base Molding Category",items=enum_base_molding_categories,update=update_base_molding_category)
@@ -966,24 +965,24 @@ class Closet_Options(PropertyGroup):
             row.label(text="Hinges:")
             col.template_icon_view(self,"hinge_name",show_labels=True)
         
-        if self.hardware_tabs == 'DRAWERS':
-            col = hardware_box.column(align=True)
-            row = col.row()
-            row.prop(self,'box_type',expand=True)
+        # if self.hardware_tabs == 'DRAWERS':
+        #     col = hardware_box.column(align=True)
+        #     row = col.row()
+        #     row.prop(self,'box_type',expand=True)
             
-            if self.box_type == 'MEL':
-                row = col.row(align=True)
-                row.label(text="Melamine Slides:")
-                mat_props = bpy.context.scene.closet_materials
-                slide_type = mat_props.get_drawer_slide_type()
-                col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
+        #     if self.box_type == 'MEL':
+        #         row = col.row(align=True)
+        #         row.label(text="Melamine Slides:")
+        #         mat_props = bpy.context.scene.closet_materials
+        #         slide_type = mat_props.get_drawer_slide_type()
+        #         col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
 
-            else:
-                row = col.row(align=True)
-                row.label(text="Dovetail Slides:")
-                mat_props = bpy.context.scene.closet_materials
-                slide_type = mat_props.get_drawer_slide_type()
-                col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
+        #     else:
+        #         row = col.row(align=True)
+        #         row.label(text="Dovetail Slides:")
+        #         mat_props = bpy.context.scene.closet_materials
+        #         slide_type = mat_props.get_drawer_slide_type()
+        #         col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
 
 
 class Project_Property(PropertyGroup):

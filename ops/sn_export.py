@@ -3453,6 +3453,15 @@ class OPS_Export_XML(Operator):
         if obj_bp.get("IS_BP_DRAWER_BOX"):
             assembly = sn_types.Assembly(obj_bp)
             parent_assembly = sn_types.Assembly(obj_bp.parent)
+            lock_drawer = parent_assembly.get_prompt("Lock " + str(assembly.obj_bp.get("DRAWER_NUM")) + " Drawer")
+
+            # Drawer Locks
+            if lock_drawer:
+                if lock_drawer.get_value() == 1:
+                    self.write_hardware_node(elm_parts, obj_bp, name="Cam Lock Drawer")
+                if lock_drawer.get_value() == 2 or lock_drawer.get_value() == 3:
+                    self.write_hardware_node(elm_parts, obj_bp, name="Side Lock Drawer")
+
             box_type = assembly.get_prompt("Box Type")
             if box_type:
                 if box_type.get_value() == 1:

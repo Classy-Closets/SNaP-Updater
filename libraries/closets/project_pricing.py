@@ -2192,7 +2192,7 @@ def get_mat_sku(mat_name):
     return sku
 
 
-def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name=None, eb_orientation=None, center_rail=None, upgrade_color=None):
+def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name='', eb_orientation=None, center_rail=None, upgrade_color=None):
     length_inches = float(length_inches)
     width_inches = float(width_inches)
     upgraded_panel_pricing_file = os.path.join(sn_paths.ROOT_DIR, "db_init", "Upgraded_Panel_Pricing.xlsx")
@@ -2654,7 +2654,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                                 SKU_NUMBER = sku_value
                                 if 'rod'.upper() in PART_NAME.upper():
                                     LENGTH = rod_length
-                                    pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH)
+                                    pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                 else:
                                     LENGTH = lenx
                                     WIDTH = leny
@@ -2877,7 +2877,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                                     SKU_NUMBER = sku_value
                                     if 'rod'.upper() in PART_NAME.upper():
                                         LENGTH = rod_length
-                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH)
+                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                     else:
                                         LENGTH = lenx
                                         WIDTH = leny
@@ -3102,7 +3102,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                                         SKU_NUMBER = sku_value
                                         if 'rod'.upper() in PART_NAME.upper():
                                             LENGTH = rod_length
-                                            pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH)
+                                            pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME)
                                         else:
                                             LENGTH = lenx
                                             WIDTH = leny
