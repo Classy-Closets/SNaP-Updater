@@ -167,7 +167,8 @@ def get_project_xml(self):
         print("Projects Directory does not exist")
         # os.makedirs(project_dir)
     if not os.path.exists(xml_file):
-        print("The 'snap_job.xml' file is not found. Please select desired rooms and perform an export.")   
+        print("The 'snap_job.xml' file is not found. Please select desired rooms and perform an export.")
+        return None
     else:
         return xml_file
 
@@ -745,13 +746,13 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                         and (PART_NAME.str.contains("Drawer Sub Front")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Back")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Bottom")==False)', engine='python')
-
-            materials_summary = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING'], values=['QUANTITY'], aggfunc=numpy.sum)
-            materials_summary.to_excel(writer, sheet_name='Materials Summary')
-            writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Materials Summary'])
+            if not df_materials.empty:
+                materials_summary = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING'], values=['QUANTITY'], aggfunc=numpy.sum)
+                materials_summary.to_excel(writer, sheet_name='Materials Summary')
+                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Materials Summary'])
 
 
             df_drawers = pandas.read_excel(parts_file, sheet_name='Materials').query('(PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("EB")==False) \
@@ -769,48 +770,53 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
         if hardware_sheet is not None:
             df_hardware = pandas.read_excel(parts_file, sheet_name='Hardware')
-            hardware_summary = pandas.pivot_table(df_hardware, index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME'], values='QUANTITY', aggfunc=numpy.sum)
-            hardware_summary.to_excel(writer, sheet_name='Hardware Summary')
-            writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.center.text = "Hardware Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Hardware Summary'])
+            if not df_hardware.empty:
+                hardware_summary = pandas.pivot_table(df_hardware, index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME'], values='QUANTITY', aggfunc=numpy.sum)
+                hardware_summary.to_excel(writer, sheet_name='Hardware Summary')
+                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.center.text = "Hardware Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Hardware Summary'])
             
         if accessories_sheet is not None:
             df_accessories = pandas.read_excel(parts_file, sheet_name='Accessories')
-            accessories_summary = pandas.pivot_table(df_accessories, index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME', 'PART_DIMENSIONS'], values='QUANTITY', aggfunc=numpy.sum)
-            accessories_summary.to_excel(writer, sheet_name='Accessories Summary')
-            writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.center.text = "Accessories Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Accessories Summary'])
+            if not df_accessories.empty:
+                accessories_summary = pandas.pivot_table(df_accessories, index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME', 'PART_DIMENSIONS'], values='QUANTITY', aggfunc=numpy.sum)
+                accessories_summary.to_excel(writer, sheet_name='Accessories Summary')
+                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.center.text = "Accessories Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Accessories Summary'])
 
         if upgraded_panel_sheet is not None:
             df_upgraded_panel = pandas.read_excel(parts_file, sheet_name='Upgraded Panels')
-            upgraded_panel_summary = pandas.pivot_table(df_upgraded_panel, index=['ROOM_NAME', 'PAINT_STAIN_COLOR', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
-            upgraded_panel_summary.to_excel(writer, sheet_name='Upgraded Panels Summary')
-            writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.center.text = "Upgraded Panels Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Upgraded Panels Summary'])
+            if not df_upgraded_panel.empty:
+                upgraded_panel_summary = pandas.pivot_table(df_upgraded_panel, index=['ROOM_NAME', 'PAINT_STAIN_COLOR', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
+                upgraded_panel_summary.to_excel(writer, sheet_name='Upgraded Panels Summary')
+                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.center.text = "Upgraded Panels Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Upgraded Panels Summary'])
 
         if glass_sheet is not None:
             df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
-            glass_summary = pandas.pivot_table(df_glass, index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
-            glass_summary.to_excel(writer, sheet_name='Glass Summary')
-            writer.sheets['Glass Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Glass Summary'].HeaderFooter.oddHeader.center.text = "Glass Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Glass Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Glass Summary'])
+            if not df_glass.empty:
+                glass_summary = pandas.pivot_table(df_glass, index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
+                glass_summary.to_excel(writer, sheet_name='Glass Summary')
+                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.center.text = "Glass Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Glass Summary'])
 
         if so_sheet is not None:
             df_so = pandas.read_excel(parts_file, sheet_name='Special Order')
-            so_summary = pandas.pivot_table(df_so, index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
-            so_summary.to_excel(writer, sheet_name='Special Order Summary')
-            writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-            writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.center.text = "Special Order Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-            writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-            set_column_width(writer.sheets['Special Order Summary'])
+            if not df_so.empty:
+                so_summary = pandas.pivot_table(df_so, index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], values=['QUANTITY'], aggfunc=numpy.sum)
+                so_summary.to_excel(writer, sheet_name='Special Order Summary')
+                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.center.text = "Special Order Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                set_column_width(writer.sheets['Special Order Summary'])
 
     print("Parts Summary Created")
     display_parts_summary(parts_file)
@@ -3389,13 +3395,15 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
             This function calculates the price of the project from the xml export
         '''
         xml_file = get_project_xml(self)
-        if xml_file:
+        if xml_file is not None:
             calculate_project_price(xml_file)
-        props = get_pricing_props()
-        if props.export_pricing_parts_list:
-            generate_retail_parts_list()
-            if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
-                generate_franchise_parts_list()
+            props = get_pricing_props()
+            if props.export_pricing_parts_list:
+                generate_retail_parts_list()
+                if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
+                    generate_franchise_parts_list()
+        else:
+            raise NameError("The 'snap_job.xml' was not created and returned a NoneType. Pricing NOT Generated.")
             
 
     def draw(self, layout):

@@ -1238,10 +1238,12 @@ class Query_PDF_Form_Data:
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
                     self.data_dict[page]["ct_color"] += ' / '
-                mfg = ct_mat_props.get_type().get_mfg()
-                color = mfg.get_color()
-                self.data_dict[page]["ct_type"] += "Quartz - " + mfg.name
-                self.data_dict[page]["ct_color"] += color.name
+                ct_type = ct_mat_props.get_type()
+                if ct_type == 4:
+                    mfg = ct_type.get_mfg()
+                    color = mfg.get_color()
+                    self.data_dict[page]["ct_type"] += "Quartz - " + mfg.name
+                    self.data_dict[page]["ct_color"] += color.name
 
                 bpy.context.window_manager.sn_project.get_project().designer
 

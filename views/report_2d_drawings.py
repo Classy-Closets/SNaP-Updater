@@ -45,6 +45,7 @@ class OPERATOR_create_pdf(bpy.types.Operator):
     filepath: StringProperty(subtype="FILE_PATH")
     filename: StringProperty()
     directory: StringProperty()
+    filter_glob: StringProperty(default='*.pdf;', options={'HIDDEN'})
     files = None
     project_name = "project"
     room_name = "room"

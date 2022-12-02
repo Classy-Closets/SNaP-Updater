@@ -853,7 +853,7 @@ class VIEW_OT_generate_2d_views(Operator):
         width = 0
         opening_number = opening.sn_closets.opening_name
         bp = sn_utils.get_closet_bp(opening)
-        if not "IS_BP_CABINET" in bp:
+        if not "IS_BP_CABINET" in bp and opening_number:
             closet = data_closet_carcass.Closet_Carcass(bp)
             calculator = closet.get_calculator('Opening Widths Calculator')
             width_calc = eval(
@@ -5726,21 +5726,22 @@ class VIEW_OT_generate_2d_views(Operator):
 
             wall_bp_list = []
             wall_name_list = []
+            island_bps = []
 
             for obj in scene_objects:
                 if obj.get("IS_BP_WALL"):
                     wall_bp_list.append(obj)
                     wall_name_list.append(obj.name)
+                if "Island" in obj.name and obj.parent is None:
+                    island_bps.append(obj)
 
             for i, obj in enumerate(wall_bp_list):
                 self.unhide_wall(obj)
                 wall = sn_types.Wall(obj_bp=obj)
                 wall_groups_list = wall.get_wall_groups()
-
-
                 wall_door_only = False
-                door_toggle = False
-                door_only = len(wall_groups_list) == 1
+                has_entry_door = False
+                has_assys = len(wall_groups_list) > 0
                 right_wall = wall.get_connected_wall('RIGHT')
                 corner_items = None
 
@@ -5750,15 +5751,13 @@ class VIEW_OT_generate_2d_views(Operator):
                         right_wall = sn_types.Wall(wall_bp_list[0])
 
                 if right_wall:
-                    corner_items = self.get_lsh_csh_assemblies(
-                        right_wall.obj_bp)
-                has_assys = len(wall_groups_list) > 0
+                    corner_items = self.get_lsh_csh_assemblies(right_wall.obj_bp)
+
                 for item in wall_groups_list:
-                    if 'BPASSEMBLY.' in item.name:
-                        for door in item.children:
-                            if 'door frame' in door.name.lower():
-                                door_toggle = True
-                if door_toggle and door_only:
+                    if 'IS_BP_ENTRY_DOOR' in item:
+                        has_entry_door = True
+
+                if has_entry_door and len(wall_groups_list) == 1:
                     wall_door_only = True
 
                 if (has_assys and not wall_door_only) or corner_items:
@@ -5770,11 +5769,9 @@ class VIEW_OT_generate_2d_views(Operator):
                     walls.append((wall, left_wall))
                     wall_groups[wall.obj_bp.name] = grp
 
-                name = obj.name
-                if "Island" in name and obj.parent is None:
-                    island = obj
-
-                    self.create_island_elv_view_scene(context, island)
+            if island_bps:
+                for bp in island_bps:
+                    self.create_island_elv_view_scene(context, bp)
             self.create_plan_view_scene(context)
 
             virtual = self.create_virtual_scene()

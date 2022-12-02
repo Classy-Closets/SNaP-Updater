@@ -617,6 +617,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return sku
             type_code = 8
 
+        if type_code == 2 and color_name == "Cafe Au Lait (Cabinet Almond)":
+            type_code = 15200
+
         if type_code == 15225 and (color_name != "Winter White (Oxford White)" and color_name != "Cafe Au Lait (Cabinet Almond)"):  # Need to change type code for oversized materials that are not White or Almond to the Textured Type Code
             type_code = 15150
 
@@ -723,7 +726,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
             if any(backing_parts):
                 if obj_props.use_unique_material:
-                    mat_type = self.materials.get_mat_type()
+                    mat_type = self.materials.mat_types[obj_props.unique_mat_types]
                     mat_name = obj_props.unique_mat
                     color_code = mat_type.colors[mat_name].color_code
 
@@ -907,10 +910,10 @@ class SnapMaterialSceneProps(PropertyGroup):
                 ]
 
                 if assembly.obj_bp.get("IS_CEDAR_BACK"):
-                    sku = 'VN-0000005'
+                    sku = 'VN-0000006'
                     return sku
 
-                if color_name in shared_sku_colors:
+                if color_name in shared_sku_colors and not assembly.obj_bp.sn_closets.use_unique_material:
                     sku = 'PM-0000041'
                     return sku
 

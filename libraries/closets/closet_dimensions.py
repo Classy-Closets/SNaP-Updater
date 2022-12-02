@@ -2224,6 +2224,8 @@ class SNAP_OT_Auto_Dimension(Operator):
     def valances_labeling(self, assembly):
         if sn_utils.get_wallbed_bp(assembly.obj_bp):
             return
+        if sn_utils.get_cabinet_bp(assembly.obj_bp):
+            return
         valance_obj = assembly.obj_bp
         width = assembly.obj_x.location.x
         height = assembly.get_prompt('Molding Height').get_value()

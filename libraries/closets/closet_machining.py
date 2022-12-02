@@ -1721,7 +1721,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         for i, panel in enumerate(panels):
             if str(i + 1) == insert_bp.sn_closets.opening_name:
                 left_panel_bp = panel
-                right_panel_bp = panels[i+1]
+                right_panel_bp = panels[-1]
                 break
             
         left_panel = sn_types.Part(left_panel_bp)
