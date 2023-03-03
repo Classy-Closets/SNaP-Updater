@@ -254,10 +254,10 @@ class PROMPTS_Shoe_Cubbies(sn_types.Prompts_Interface):
         obj_insert_bp = sn_utils.get_bp(obj,'INSERT')
         self.assembly = Shoe_Cubbies(obj_insert_bp)
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(330))
-        
+        return super().invoke(context, event, width=330)
+
     def draw(self, context):
+        super().draw(context)
         props = bpy.context.scene.sn_closets
         
         layout = self.layout

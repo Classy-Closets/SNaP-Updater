@@ -57,11 +57,11 @@ def get_hardware_sku(obj_bp, assembly, item_name):
     # sku = "Unknown"
     # Return Special Order SKU as default if nothing is found
     sku = 'SO-0000001'
-    
+
     # Pull
-    if assembly.obj_bp.sn_closets.is_handle:
+    if assembly.obj_bp.sn_closets.is_handle or obj_bp.snap.is_cabinet_pull:
         pull_cat = bpy.context.scene.sn_closets.closet_options.pull_category
-        pull_name = bpy.context.scene.sn_closets.closet_options.pull_name
+        pull_name = bpy.context.scene.sn_closets.closet_options.get_pull_style()
         vendor_id = item_name[:10] # use vendor code in item name for lookup (123.45.678)
 
         cursor.execute(
@@ -91,7 +91,24 @@ def get_hardware_sku(obj_bp, assembly, item_name):
     # Hinge
     if assembly.obj_bp.sn_closets.is_hinge or 'Hinge' in item_name:
         hinge_name = bpy.context.scene.sn_closets.closet_options.hinge_name
+        parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+        full_overlay_ppt = parent_assembly.get_prompt("Full Overlay")
+        has_blind_left_corner_ppt = parent_assembly.get_prompt("Has Blind Left Corner")
+        has_blind_right_corner_ppt = parent_assembly.get_prompt("Has Blind Right Corner")
+        has_door_swing_ppt = assembly.get_prompt("Door Swing")
 
+        if full_overlay_ppt:
+            if full_overlay_ppt.get_value():
+                hinge_name = hinge_name + " FO"
+            else:
+                hinge_name = hinge_name + " HO"
+
+        if has_blind_left_corner_ppt and has_door_swing_ppt or has_blind_right_corner_ppt and has_door_swing_ppt:
+            if has_blind_left_corner_ppt.get_value() and has_door_swing_ppt.get_value() == 0:
+                return 'HW-0000046'
+            if has_blind_right_corner_ppt.get_value() and has_door_swing_ppt.get_value() == 1:
+                return 'HW-0000046'
+            
         cursor.execute(
             "SELECT\
                 sku\
@@ -162,7 +179,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
             for row in rows:
                 sku = row[0]
-            
             conn.close()
             return sku
         
@@ -200,7 +216,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             for row in rows:
                 sku = row[0]
                 # print("FOUND SLIDE SKU: ", sku)
-
             conn.close()
             return sku
         if item_name == "Cam Lock Drawer":
@@ -232,43 +247,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             for row in rows:
                 sku = row[0]
                 # print("FOUND SLIDE SKU: ", sku)
-
             conn.close()
             return sku
-
-
-    # Hamper Laundry Bag
-    # if "Cloth Laundry Bag" in item_name:
-    #     print(assembly.obj_bp.name)
-    #     basket_width = sn_unit.meter_to_inch(assembly.obj_x.location.x)
-
-    #     if basket_width > 18.0:
-    #         bag_name = item_name + " 24"
-    #     else:
-    #         bag_name = item_name + " 18"
-
-    #     cursor.execute(
-    #         "SELECT\
-    #             sku\
-    #         FROM\
-    #             {CCItems}\
-    #         WHERE\
-    #             ProductType == 'AC' AND\
-    #             Name LIKE'{}'\
-    #         ;".format("%" + bag_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-    #     )
-    #     rows = cursor.fetchall()
-
-    #     if len(rows) == 0:
-    #         print("SKU match not found for selected part: {}".format(bag_name))
-    #         print("Special Order Sku Returned: SO-0000001")
-    #         return 'SO-0000001'
-    #     for row in rows:
-    #         sku = row[0]
-    #         #print("FOUND LAUNDRY BAG SKU: ", sku)            
-        
-    #     conn.close()
-    #     return sku
 
     # Hamper Tilt Out Laundry Bag
     if "HAMPER TILT OUT" in item_name:
@@ -290,54 +270,95 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             return 'SO-0000001'
         for row in rows:
             sku = row[0]
-            # print("FOUND LAUNDRY BAG SKU: ", sku)            
-        
+            # print("FOUND LAUNDRY BAG SKU: ", sku)
         conn.close()
         return sku
 
-    #Hamper Basket or Wire Basket
-    if assembly.obj_bp.sn_closets.is_hamper_bp or "Wire Basket" in item_name or "Cloth Laundry Bag" in item_name:
-        if "Wire Basket" in item_name:
+    # Wire Basket
+    if "Wire Basket" in item_name:
+        basket_width = sn_unit.meter_to_inch(assembly.obj_x.location.x)
+        if basket_width > 18.0:
             return 'AC-0000004'
-        elif "Cloth Laundry Bag" in item_name:
+        else:
+            return 'AC-0000002'
+
+    # Hamper Basket
+    if "Hamper Basket" in item_name:
+        cursor.execute(
+            "SELECT\
+                sku\
+            FROM\
+                {CCItems}\
+            WHERE\
+                ProductType == 'AC' AND\
+                Name LIKE'{}'\
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+        )
+        rows = cursor.fetchall()
+
+        if len(rows) == 0:
+            print("SKU match not found for selected part: {}".format(item_name))
+            print("Special Order Sku Returned: SO-0000001")
+            return 'SO-0000001'
+        for row in rows:
+            sku = row[0]
+            #print("FOUND HAMPER BASKET SKU: ", sku)
+        conn.close()
+        return sku
+
+    # Hamper Cloth Laundry Bag
+    if "CLOTH LAUNDRY BAG" in item_name:
+        if "24" in item_name:
             return 'AC-0000015'
         else:
-            return 'SO-0000001'
-        # mat_props = bpy.context.scene.closet_materials
-        # hamper_insert_bp = assembly.obj_bp.parent
-        # basket_color = mat_props.wire_basket_colors
-        # basket_width = sn_unit.meter_to_inch(assembly.obj_x.location.x)
-        # basket_depth = sn_unit.meter_to_inch(assembly.obj_y.location.y)
-        # color_id = 2 if basket_color == 'CHROME' else 7
-        # width_id = 1 if basket_width == 18.0 else 2
-        # depth_id = 3 if basket_depth == 14.0 else 4
-        # vendor_id = '547.42.{}{}{}'.format(color_id,depth_id,width_id)
+            return 'AC-0000016'
 
-        # cursor.execute(
-        #     "SELECT\
-        #     sku\
-        #     FROM\
-        #         {CCItems}\
-        #     WHERE\
-        #         ProductType == 'AC' AND\
-        #         VendorItemNum ='{}'\
-        #     ;".format(vendor_id, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
-        # )
-        # rows = cursor.fetchall()
+    # Pull Out Canvas
+    if assembly.obj_bp.sn_closets.is_hamper_bp:
+        # Hamper Pull Out
+        if "Pull Out Canvas" in item_name:
+            if "Single" in item_name:
+                basket_color = assembly.get_prompt("Basket Color")
+                if basket_color:
+                    if basket_color.get_value() == 0:
+                        return 'AC-0000805'
+                    elif basket_color.get_value() == 1:
+                        return 'AC-0000744'
+                    elif basket_color.get_value() == 2:
+                        return 'AC-0000347'
+                    else:
+                        return 'AC-0000344'
+                else:
+                    return 'SO-0000001'
+            else:
+                if math.fabs(round(sn_unit.meter_to_active_unit(math.fabs(assembly.obj_x.location.x)),2)) > 29.99:
+                    basket_color = assembly.get_prompt("Basket Color")
+                    if basket_color:
+                        if basket_color.get_value() == 0:
+                            return 'AC-0000807'
+                        elif basket_color.get_value() == 1:
+                            return 'AC-0000746'
+                        elif basket_color.get_value() == 2:
+                            return 'AC-0000349'
+                        else:
+                            return 'AC-0000346'
+                    else:
+                        return 'SO-0000001'
+                else:
+                    basket_color = assembly.get_prompt("Basket Color")
+                    if basket_color:
+                        if basket_color.get_value() == 0:
+                            return 'AC-0000806'
+                        elif basket_color.get_value() == 1:
+                            return 'AC-0000745'
+                        elif basket_color.get_value() == 2:
+                            return 'AC-0000348'
+                        else:
+                            return 'AC-0000345'
+                    else:
+                        return 'SO-0000001'
 
-        # if len(rows) == 0:
-        #     print("SKU match not found for selected part - VendorID: {}".format(vendor_id))
-        #     print("Special Order Sku Returned: SO-0000001")
-        #     return 'SO-0000001'
-        # for row in rows:
-        #     sku = row[0]
-        #     #print("FOUND HAMPER BASKET SKU: ", sku)            
-        
-        # conn.close()
-        # return sku
-              
-
-    #Hamper Brake Flaps
+    # Hamper Brake Flaps
     if "Hamper Brake Flap Left" in item_name or "Hamper Brake Flap Right" in item_name:
         cursor.execute(
             "SELECT\
@@ -362,16 +383,10 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    #Hamper Rack
+    # Hamper Rack
     if "Hamper Rack" in item_name:
-        mat_props = bpy.context.scene.closet_materials        
+        mat_props = bpy.context.scene.closet_materials
         basket_color = mat_props.wire_basket_colors
-
-        if basket_color == 'CHROME':
-            rack_name = "Hamper Rack Chrome"
-
-        elif basket_color == 'WHITE':
-            rack_name = "Hamper Rack White"
 
         cursor.execute(
             "SELECT\
@@ -381,12 +396,12 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 Name LIKE'{}'\
-            ;".format("%" + rack_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
         rows = cursor.fetchall()
 
         if len(rows) == 0:
-            print("SKU match not found for selected part: {}".format(rack_name))
+            print("SKU match not found for selected part: {}".format(item_name))
             print("Special Order Sku Returned: SO-0000001")
             return 'SO-0000001'
         for row in rows:
@@ -394,7 +409,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             #print("FOUND HAMPER RACK SKU: ", sku)            
         
         conn.close()
-        return sku        
+        return sku          
 
     #Rod
     if assembly.obj_bp.sn_closets.is_hanging_rod:
@@ -427,7 +442,40 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     #Rod Cup
     if "Pole Cup" in item_name:
-        hw_sku = bpy.context.scene.sn_closets.closet_options.pole_cup_name
+        cup_category = ""
+        cup_type = ""
+        cup_color = ""
+        # hw_sku = bpy.context.scene.sn_closets.closet_options.pole_cup_name
+        rod_name = bpy.context.scene.sn_closets.closet_options.rods_name
+
+        if "Elite" in rod_name:
+            cup_category = "Elite"
+        if "Synergy" in rod_name:
+            cup_category = "Synergy"
+
+        if "Black" in rod_name:
+            if "Matte Black" in rod_name:
+                cup_color = "Matt Black"
+            else:
+                cup_color = "Black"
+        if "Matte Aluminum" in rod_name:
+            cup_color = "Matt Alum"
+        if "Matte Nickel" in rod_name:
+            cup_color = "Matt Nickel"
+        if "Matte Gold" in rod_name:
+            cup_color = "Matt Gold"
+        if "Slate" in rod_name:
+            cup_color = "Slate"
+        if "Oil Rubbed Bronze" in rod_name:
+            cup_color = "ORB"
+        if "Polished Chrome" in rod_name:
+            cup_color = "Pol Chrome"
+
+        if "Round" in rod_name:
+            cup_type = "RND"
+        if "Oval" in rod_name:
+            return "AC-0000496"
+
         cursor.execute(
             "SELECT\
                 sku\
@@ -435,13 +483,13 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 {CCItems}\
             WHERE\
                 ProductType IN ('AC', 'HW') AND\
-                SKU LIKE'%{}%'\
-            ;".format(hw_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                NAME LIKE ('%{category} {type} POLE CUP {color}%')\
+            ;".format(category=cup_category, color=cup_color, type=cup_type, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
         rows = cursor.fetchall()
 
         if len(rows) == 0:
-            print("SKU match not found for selected part: {}".format(name))
+            print("SKU match not found for selected Pole Cups: {}".format(rod_name))
             print("Special Order Sku Returned: SO-0000001")
             return 'SO-0000001'
         for row in rows:
@@ -451,7 +499,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
     
-
     #KD Fitting
     if "KD Fitting" in item_name:
         mat_props = bpy.context.scene.closet_materials
@@ -536,7 +583,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         conn.close()
         return sku
 
-    #------------------Closet Accessories--------------
     # Valet Rod
     if 'Valet Rod' in item_name:
         parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
@@ -605,12 +651,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         print(item_name)
         sku = "AC-0000176"
         return sku
-
-    # Wire Basket
-    # if "Wire Basket" in item_name:
-    #     print(item_name)
-    #     sku = "AC-0000001"
-    #     return sku
 
     # Pants Rack
     if item_name == "Pants Rack":
@@ -1134,7 +1174,18 @@ class OPS_Export_XML(Operator):
                 while current_inches % 3 != 0:
                     current_inches += 1
                 length = sn_unit.inch_to_millimeter(current_inches) / 1000
-                
+
+        full_length_molding = "IS_FULL_LENGTH" in assembly.obj_bp
+
+        if "IS_KB_MOLDING" in assembly.obj_bp and not full_length_molding:
+            length = 0
+            for child in assembly.obj_bp.children:
+                if child.type == 'CURVE':
+                    curve = child
+            if curve:
+                for spline in curve.data.splines:
+                    length += spline.calc_length()
+
         return self.distance(length)
 
     def get_os_top_shelf_length(self, x):
@@ -1661,8 +1712,7 @@ class OPS_Export_XML(Operator):
                         category_number = material_number + "0"
 
         if len(category_number) != 4:
-            print("{} has an incorrect category number of {}. Setting Category Number to Default Panel",
-            part_name, category_number)
+            # print("{} has an incorrect category number of {}. Setting Category Number to Default Panel",part_name, category_number)
             category_number = "1033"
 
         return category_number
@@ -1893,11 +1943,11 @@ class OPS_Export_XML(Operator):
 
         #Mid hinge drilling for doors longer than 39H Count
         if door_x_dim > 50:
-            if(round(sn_unit.meter_to_millimeter(door_x_dim)/32) % 2 == 0):
-                if door_swing == "Left":
-                    dim_in_x = door_x_dim * 0.5 + mid_hole_offset
-                else:
+            if(round(sn_unit.meter_to_millimeter(assembly.obj_x.location.x)/32) % 2 == 0):
+                if door_swing == 0:
                     dim_in_x = door_x_dim * 0.5 - mid_hole_offset
+                else:
+                    dim_in_x = door_x_dim * 0.5 + mid_hole_offset
             else:
                 dim_in_x = door_x_dim * 0.5            
 
@@ -2612,7 +2662,7 @@ class OPS_Export_XML(Operator):
                 needed_full_lengths = 1
             else:
                 needed_full_lengths = (total_cover_cleat/96)/2 #96
-                if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
+                if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White"):
                     needed_full_lengths = needed_full_lengths * 2
                 needed_full_lengths = math.ceil(needed_full_lengths)
                 if(needed_full_lengths < 3):
@@ -2625,6 +2675,7 @@ class OPS_Export_XML(Operator):
             for i in range(0,needed_full_lengths):
                 cover_cleat = sn_types.Assembly(self.cover_cleat_bp)
                 cover_cleat.obj_x.location.x = sn_unit.inch(96)
+                cover_cleat.obj_bp["IS_FULL_LENGTH"] = True
 
                 for child in cover_cleat.obj_bp.children:
                     if child.snap.type_mesh == 'CUTPART':
@@ -2662,12 +2713,18 @@ class OPS_Export_XML(Operator):
                 for i in range(0, needed_full_lengths):
                     flat_crown.obj_y.location.y = float(sn_unit.inch_to_millimeter(height) / 1000)
                     flat_crown.obj_x.location.x = sn_unit.inch(96)
-                    for child in flat_crown.obj_bp.children:
-                        if child.snap.type_mesh == 'CUTPART':
-                            if not child.hide_viewport:
-                                self.write_part_node(elm_parts, child, spec_group)
+                    flat_crown.obj_bp["IS_FULL_LENGTH"] = True
 
-    def write_full_sized_crown_molding(self,elm_parts,spec_group):     
+                    if flat_crown.obj_bp.get("IS_KB_MOLDING"):
+                        self.write_part_node(elm_parts, flat_crown.obj_bp, spec_group)
+                
+                    else:
+                        for child in flat_crown.obj_bp.children:
+                            if child.snap.type_mesh == 'CUTPART':
+                                if not child.hide_viewport:
+                                    self.write_part_node(elm_parts, child, spec_group)
+
+    def write_full_sized_crown_molding(self,elm_parts,spec_group):
         if self.crown_molding_bp:
             crown_molding = sn_types.Assembly(self.crown_molding_bp)
             
@@ -2692,6 +2749,7 @@ class OPS_Export_XML(Operator):
                 crown_molding.obj_y.location.y = sn_unit.inch(2.5)
                 crown_molding.obj_z.location.z = sn_unit.inch(0.625)
                 crown_molding.obj_bp["IS_BP_CROWN_MOLDING"] = True
+                crown_molding.obj_bp["IS_FULL_LENGTH"] = True
                 self.write_part_node(elm_parts, crown_molding.obj_bp, spec_group)
 
     def write_full_sized_inverted_base(self,elm_parts,spec_group):     
@@ -2714,6 +2772,7 @@ class OPS_Export_XML(Operator):
                     needed_full_lengths += 3
 
             for i in range(0,needed_full_lengths):
+                inverted_base.obj_bp["IS_FULL_LENGTH"] = True
                 self.write_part_node(elm_parts, inverted_base.obj_bp, spec_group)
 
     def write_full_sized_base_molding(self,elm_parts,spec_group):       
@@ -2737,6 +2796,7 @@ class OPS_Export_XML(Operator):
             for i in range(0,needed_full_lengths):
                 base_molding = sn_types.Assembly(self.base_molding_bp)
                 base_molding.obj_x.location.x = sn_unit.inch(96)
+                base_molding.obj_bp["IS_FULL_LENGTH"] = True
                 self.write_part_node(elm_parts, base_molding.obj_bp, spec_group)   
 
     def write_full_sized_tk_skin(self,elm_parts,spec_group):
@@ -2769,6 +2829,7 @@ class OPS_Export_XML(Operator):
                     tk_skin.obj_x.location.x = sn_unit.inch(96)
                     tk_skin.obj_y.location.y = float(sn_unit.inch_to_millimeter(float(height)) / 1000) + sn_unit.inch(1)
                     tk_skin.obj_z.location.z = sn_unit.inch(0.25)
+                    tk_skin.obj_bp["IS_FULL_LENGTH"] = True
                     for child in tk_skin.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
                             if not child.hide_get():
@@ -2782,6 +2843,7 @@ class OPS_Export_XML(Operator):
                 total_rod_length += float(length)
 
             rod_qty = math.ceil(total_rod_length / 96)
+            self.hang_rod_bp["IS_FULL_LENGTH"] = True
             self.write_hardware_node(elm_parts, self.hang_rod_bp, qty=rod_qty)
      
     def write_full_sized_cleat_stock(self,elm_parts,spec_group):
@@ -2791,12 +2853,14 @@ class OPS_Export_XML(Operator):
             cleat_assembly.obj_x.location.x = sn_unit.inch(96)
             cleat_assembly.obj_y.location.y = sn_unit.inch(3.64)
             cleat_assembly.obj_bp["IS_WALL_CLEAT"] = False
+            cleat_assembly.obj_bp["IS_FULL_LENGTH"] = True
             cleat_assembly.obj_bp.name = "Cleat Stock"
             cleat_assembly.obj_bp.snap.name_object = "Cleat Stock"
 
             mat_sku = closet_materials.get_mat_sku(cleat_assembly.obj_bp, cleat_assembly)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
-            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Duraply White"):
+
+            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White"):
                 if self.is_wrap_around:
                     for child in cleat_assembly.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
@@ -2889,7 +2953,7 @@ class OPS_Export_XML(Operator):
             total_black_length = 0
             total_chrome_length = 0
             obj = None
-
+            
             for leg in self.metal_leg_list:
                 needed_mounting_plates += 1
                 needed_thread_insert += 1
@@ -2918,9 +2982,9 @@ class OPS_Export_XML(Operator):
             self.write_hardware_node(elm_parts, obj, name='Metal Leg Levelers', qty=needed_levelers)
             if needed_steel_length > 0:
                 self.write_hardware_node(elm_parts, obj, name='Length of Brushed Steel Legs (in feet)', qty=needed_steel_length)
-            if needed_chrome_length > 0:
-                self.write_hardware_node(elm_parts, obj, name='Length Of Black Matte Legs (in feet)', qty=needed_black_length)
             if needed_black_length > 0:
+                self.write_hardware_node(elm_parts, obj, name='Length Of Black Matte Legs (in feet)', qty=needed_black_length)
+            if needed_chrome_length > 0:
                 self.write_hardware_node(elm_parts, obj, name='Length Of Polished Chrome Legs (in feet)', qty=needed_chrome_length)
 
     def write_parts_for_wall_bed(self, elm_parts, obj_bp, spec_group):
@@ -3001,7 +3065,7 @@ class OPS_Export_XML(Operator):
             self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
             self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
             if bed_type == 0:
-                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(43.88), sn_unit.inch(79.25), sn_unit.inch(0.75))
             else:
                 self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
                 self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
@@ -3015,21 +3079,24 @@ class OPS_Export_XML(Operator):
                 print("No Bed Type of: ", bed_type)
         elif bed_make == 3:
             width = full_width -sn_unit.inch(1.5)
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(6), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(13), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(13), width, sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Cleat", sn_unit.inch(26), width, sn_unit.inch(0.75))
 
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
-            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(4)+(depth+wall_bed_depth.get_value()), sn_unit.inch(14), sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(8), sn_unit.inch(8), sn_unit.inch(0.75))
+            self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Block", sn_unit.inch(8), sn_unit.inch(8), sn_unit.inch(0.75))
 
             self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele Piston Cover Cap", qty=1)
 
             if bed_type == 0:
-                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
-            else:
-                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
-                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", (width-sn_unit.inch(0.5))/2, height-sn_unit.inch(5.93), sn_unit.inch(0.75))
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(43.88), sn_unit.inch(79.25), sn_unit.inch(0.75))
+            if bed_type == 1:
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(29.44), sn_unit.inch(79.25), sn_unit.inch(0.75))
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(29.44), sn_unit.inch(79.25), sn_unit.inch(0.75))
+            elif bed_type == 2:
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(32.50), sn_unit.inch(84.31), sn_unit.inch(0.75))
+                self.write_wall_bed_part_node(elm_subassembly, obj_bp, spec_group, "Wall Bed Backing", sn_unit.inch(32.50), sn_unit.inch(84.31), sn_unit.inch(0.75))
+
             if bed_type == 0:
                 self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Bed Kit - Twin", qty=1)
                 self.write_hardware_node(elm_subassembly, obj_bp, name="Hafele WB Slat System - Twin", qty=1)
@@ -3090,6 +3157,20 @@ class OPS_Export_XML(Operator):
         edge_2_sku = ''
         edge_3_sku = ''
         edge_4_sku = ''
+
+        if "Backing" in part_name or "Block" in part_name:
+            edge_1 = "S1"
+            edge_2 = "L1"
+            edge_3 = "S2"
+            edge_4 = "L2"
+            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+            edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+            edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+            edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)            
+
+        if "Cleat" in part_name:
+            edge_1 = "1L"
+            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
         edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name))
         secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name))
@@ -3211,88 +3292,104 @@ class OPS_Export_XML(Operator):
                                     self.cover_cleat_bp = cover_cleat_assembly.obj_bp
                                     self.cover_cleat_lengths.append(self.get_part_length(cover_cleat_assembly))
                 continue
-            if child.sn_closets.is_crown_molding or child.sn_closets.is_base_molding:
-                if(child.sn_closets.is_empty_molding):
-                    if(child.sn_closets.is_crown_molding):
+
+            kb_molding = child.get("IS_KB_MOLDING")
+            closet_base_molding = child.sn_closets.is_base_molding
+            closet_crown_molding = child.sn_closets.is_crown_molding
+
+            if closet_crown_molding or closet_base_molding or kb_molding:
+                if child.sn_closets.is_empty_molding:
+                    if child.sn_closets.is_crown_molding:
                         crown_molding_assembly = sn_types.Assembly(child)
                         length = self.get_part_length(crown_molding_assembly)
-                        crown_to_ceiling = crown_molding_assembly.get_prompt("Crown To Ceiling").get_value()
                         self.crown_molding_bp = crown_molding_assembly.obj_bp
                         self.crown_molding_lengths.append(length)
-                        if(crown_to_ceiling):
-                            self.inverted_base_bp = crown_molding_assembly.obj_bp
-                            self.inverted_base_lengths.append(length)
+                        crown_to_ceiling = crown_molding_assembly.get_prompt("Crown To Ceiling")
+                        if crown_to_ceiling:
+                            if crown_to_ceiling.get_value():
+                                self.inverted_base_bp = crown_molding_assembly.obj_bp
+                                self.inverted_base_lengths.append(length)
                     elif(child.sn_closets.is_base_molding):
                         base_molding_assembly = sn_types.Assembly(child)
                         self.base_molding_bp = child
                         self.base_molding_lengths.append(self.get_part_length(base_molding_assembly))
                 else:
-                    for nchild in child.children:
-                        for nnchild in nchild.children:
-                            if nnchild.snap.type_mesh == 'CUTPART':
-                                if not nnchild.hide_viewport:
-                                    if "IS_BP_FLAT_CROWN" in nchild:
-                                        flat_crown_assembly = sn_types.Assembly(nnchild.parent)
-                                        p_flat_crown_assembly = sn_types.Assembly(flat_crown_assembly.obj_bp.parent)
-                                        EL = flat_crown_assembly.get_prompt("Exposed Left").get_value()
-                                        ER = flat_crown_assembly.get_prompt("Exposed Right").get_value()
-                                        EB = flat_crown_assembly.get_prompt("Exposed Back").get_value()
-                                        var_height = p_flat_crown_assembly.get_prompt("Extend To Ceiling")
-                                        length = self.get_part_length(flat_crown_assembly)
-                                        height = float(self.get_part_width(flat_crown_assembly))
-                                        if var_height:
-                                            if var_height.get_value():
-                                                height = height + 2
+                    flat_crown_assembly = None
 
-                                        if(not EL and not ER):
-                                            self.flat_crown_heights.append(height)
-                                        if(EL and ER):
-                                            if(float(length) > 96):
-                                                flat_crown_assembly.get_prompt("Exposed Left").set_value(False)
-                                                flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
-                                                if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                                    self.flat_crown_bp = flat_crown_assembly.obj_bp
-                                                number_of_lengths = math.ceil(float(length)/96)
-                                                if(number_of_lengths == 2):
-                                                    self.single_exposed_flat_crown.append(True)
-                                                    self.single_exposed_flat_crown.append(True)
-                                                    if(EB):
-                                                        self.top_edgebanded_flat_crown.append(True)
-                                                        self.top_edgebanded_flat_crown.append(True)
-                                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                                    self.flat_crown_heights.append(height)
-                                                else:
-                                                    self.single_exposed_flat_crown.append(True)
-                                                    self.single_exposed_flat_crown.append(True)
-                                                    if(EB):
-                                                        self.top_edgebanded_flat_crown.append(True)
-                                                        self.top_edgebanded_flat_crown.append(True)
-                                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                                    self.flat_crown_heights.append(height)
-                                                    number_of_lengths = number_of_lengths - 2
-                                                    for x in range(number_of_lengths):
-                                                        if(EB):
-                                                            self.top_edgebanded_flat_crown.append(True)
-                                                        self.flat_crown_lengths.append(sn_unit.inch(96))
-                                                        self.flat_crown_heights.append(height)
-                                            else:
-                                                self.write_part_node(elm_parts, nnchild, spec_group)
-                                        elif((EL and not ER) or (not EL and ER)):
-                                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                                self.flat_crown_bp = flat_crown_assembly.obj_bp
-                                            self.single_exposed_flat_crown.append(True)
-                                            if(EB):
-                                                self.top_edgebanded_flat_crown.append(True)
-                                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly))
-                                            self.flat_crown_heights.append(height)
-                                        else:
-                                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                                self.flat_crown_bp = flat_crown_assembly.obj_bp
-                                            if(EB):
-                                                self.top_edgebanded_flat_crown.append(True)
-                                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly)) 
+                    if kb_molding:
+                        flat_crown_assembly = sn_types.Assembly(child)
+                    else:
+                        for nchild in child.children:
+                            for nnchild in nchild.children:
+                                if nnchild.snap.type_mesh == 'CUTPART':
+                                    if not nnchild.hide_viewport:
+                                        if "IS_BP_FLAT_CROWN" in nchild:
+                                            flat_crown_assembly = sn_types.Assembly(nnchild.parent)
+
+                    if flat_crown_assembly:
+                        p_flat_crown_assembly = sn_types.Assembly(flat_crown_assembly.obj_bp.parent)
+                        EL = flat_crown_assembly.get_prompt("Exposed Left").get_value()
+                        ER = flat_crown_assembly.get_prompt("Exposed Right").get_value()
+                        EB = flat_crown_assembly.get_prompt("Exposed Back").get_value()
+                        var_height = p_flat_crown_assembly.get_prompt("Extend To Ceiling")
+                        length = self.get_part_length(flat_crown_assembly)
+                        height = float(self.get_part_width(flat_crown_assembly))
+                        if var_height:
+                            if var_height.get_value():
+                                height = height + 2
+
+                        if(not EL and not ER):
+                            print("Not EL and not ER")
+                            self.flat_crown_heights.append(height)
+                        if(EL and ER):
+                            print("EL ER")
+                            if(float(length) > 96):
+                                flat_crown_assembly.get_prompt("Exposed Left").set_value(False)
+                                flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
+                                if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
+                                    self.flat_crown_bp = flat_crown_assembly.obj_bp
+                                number_of_lengths = math.ceil(float(length)/96)
+                                if(number_of_lengths == 2):
+                                    self.single_exposed_flat_crown.append(True)
+                                    self.single_exposed_flat_crown.append(True)
+                                    if(EB):
+                                        self.top_edgebanded_flat_crown.append(True)
+                                        self.top_edgebanded_flat_crown.append(True)
+                                    self.flat_crown_lengths.append(sn_unit.inch(96))
+                                    self.flat_crown_lengths.append(sn_unit.inch(96))
+                                    self.flat_crown_heights.append(height)
+                                else:
+                                    self.single_exposed_flat_crown.append(True)
+                                    self.single_exposed_flat_crown.append(True)
+                                    if(EB):
+                                        self.top_edgebanded_flat_crown.append(True)
+                                        self.top_edgebanded_flat_crown.append(True)
+                                    self.flat_crown_lengths.append(sn_unit.inch(96))
+                                    self.flat_crown_lengths.append(sn_unit.inch(96))
+                                    self.flat_crown_heights.append(height)
+                                    number_of_lengths = number_of_lengths - 2
+                                    for x in range(number_of_lengths):
+                                        if(EB):
+                                            self.top_edgebanded_flat_crown.append(True)
+                                        self.flat_crown_lengths.append(sn_unit.inch(96))
+                                        self.flat_crown_heights.append(height)
+                            else:
+                                print("Writing Part Node")
+                                self.write_part_node(elm_parts, flat_crown_assembly.obj_bp, spec_group)
+                        elif((EL and not ER) or (not EL and ER)):
+                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
+                                self.flat_crown_bp = flat_crown_assembly.obj_bp
+                            self.single_exposed_flat_crown.append(True)
+                            if(EB):
+                                self.top_edgebanded_flat_crown.append(True)
+                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly))
+                            self.flat_crown_heights.append(height)
+                        else:
+                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
+                                self.flat_crown_bp = flat_crown_assembly.obj_bp
+                            if(EB):
+                                self.top_edgebanded_flat_crown.append(True)
+                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly))
                     continue
 
             if child.sn_closets.is_toe_kick_skin_bp:
@@ -3373,21 +3470,20 @@ class OPS_Export_XML(Operator):
             subassemblies = self.get_subassemblies(obj_bp)
         
         for assembly in subassemblies:
-
+            print("write_subassemblies_for_product",assembly.obj_bp)
             # Had to move some of the garage leg logic here due to how the assembly is set up
             if assembly.obj_bp.get('IS_BP_GARAGE_LEG'):
                 hide = sn_types.Assembly(assembly.obj_bp).get_prompt("Hide") # Don't know why, but only retrieving the Hide prompt let me actually find the unhidden legs
-                if hide:
-                    if not hide.get_value():
-                        for child in assembly.obj_bp.children:
-                            for nchild in child.children:
-                                if not nchild.hide_viewport:
-                                    if child.get('IS_BP_PLASTIC_LEG'):
-                                        if child not in self.plastic_leg_list:
-                                            self.plastic_leg_list.append(child)
-                                    elif child.get('IS_BP_METAL_LEG'):
-                                        if child not in self.metal_leg_list:
-                                            self.metal_leg_list.append(child)
+                if not hide:
+                    for child in assembly.obj_bp.children:
+                        for nchild in child.children:
+                            if not nchild.hide_viewport:
+                                if child.get('IS_BP_PLASTIC_LEG'):
+                                    if child not in self.plastic_leg_list:
+                                        self.plastic_leg_list.append(child)
+                                elif child.get('IS_BP_METAL_LEG'):
+                                    if child not in self.metal_leg_list:
+                                        self.metal_leg_list.append(child)
                 continue
 
             sub_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.name
@@ -3420,9 +3516,24 @@ class OPS_Export_XML(Operator):
 
             if assembly.obj_bp.sn_closets.is_hamper_insert_bp:
                 hamper_type = assembly.get_prompt("Hamper Type").get_value()
+                wire_basket_color_ppt = assembly.get_prompt("Wire Basket Color")
+                add_cloth_bag_ppt = assembly.get_prompt("Add Cloth Bag")
                 self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Brake Flap Left")
                 self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Brake Flap Right")
-                self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Rack")
+                if hamper_type == 0:
+                    if wire_basket_color_ppt:
+                        if wire_basket_color_ppt.get_value() == 0:
+                            self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Rack Chrome")
+                        else:
+                            self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Rack White")
+                    else:
+                        self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Rack Chrome")
+                else:
+                    self.write_hardware_node(elm_subassembly, obj_bp, name="Hamper Rack Matte Black")
+
+                add_cloth_bag = False
+                if add_cloth_bag_ppt:
+                    add_cloth_bag = add_cloth_bag_ppt.get_value()
 
                 if hamper_type == 1:
                     basket_width = round(sn_unit.meter_to_inch(assembly.obj_x.location.x), 2)
@@ -3433,7 +3544,37 @@ class OPS_Export_XML(Operator):
                             self.write_hardware_node(elm_subassembly, obj_bp, name='HAMPER TILT OUT 24" 20H DOUBLE BAG')
                         else:
                             self.write_hardware_node(elm_subassembly, obj_bp, name='HAMPER TILT OUT 30" 20H DOUBLE BAG')
-            
+                else:
+                    basket_width = round(sn_unit.meter_to_inch(assembly.obj_x.location.x), 2)
+                    basket_export_width = 0
+                    basket_depth = round(sn_unit.meter_to_inch(assembly.obj_y.location.y), 2)
+                    basket_export_depth = 0
+                    basket_color = ""
+                    
+                    if wire_basket_color_ppt:
+                        if wire_basket_color_ppt.get_value() == 0:
+                            basket_color = "Chrome"
+                        else:
+                            basket_color = "Wht"
+                        if basket_width >= 18.0:
+                            if basket_width < 24.0:
+                                basket_export_width = '18'
+                                if add_cloth_bag:
+                                    self.write_hardware_node(elm_subassembly, obj_bp, name='CLOTH LAUNDRY BAG 18" CREAM')
+                            else:
+                                basket_export_width = '24'
+                                if add_cloth_bag:
+                                    self.write_hardware_node(elm_subassembly, obj_bp, name='CLOTH LAUNDRY BAG 24" CREAM')
+                        if basket_depth >= 14.0:
+                            if basket_depth < 16.0:
+                                basket_export_depth = '14'
+                            else:
+                                basket_export_depth = '16'
+                        
+                        print('Hamper Basket ' + basket_color + ' ' + basket_export_width + 'x' + basket_export_depth + 'x19')
+                        self.write_hardware_node(elm_subassembly, obj_bp, name='Hamper Basket ' + basket_color + ' ' + basket_export_width + 'x' + basket_export_depth + 'x19')
+
+
     def write_nested_subassemblies(self,elm_subassembly, obj_bp, spec_group):
         for child in obj_bp.children:
             if child.snap.export_as_subassembly and child.sn_closets.is_drawer_box_bp:
@@ -3468,7 +3609,7 @@ class OPS_Export_XML(Operator):
                     slide_size = 10
                     sizes = [12, 15, 18, 21]
                     for size in sizes:
-                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+                        # print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
                         if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
                     self.write_hardware_node(elm_parts, obj_bp, name='Hafele 3/4 UM SC ' + str(slide_size))
@@ -3476,15 +3617,15 @@ class OPS_Export_XML(Operator):
                     slide_size = 10
                     sizes = [12, 15, 18, 21]
                     for size in sizes:
-                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
-                        if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
+                        # print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+                        if sn_unit.meter_to_inch(parent_assembly.obj_y.location.y) >= size:
                             slide_size = size
                     self.write_hardware_node(elm_parts, obj_bp, name='Hettich 4D ' + str(slide_size))
                 else:
                     slide_size = 10
                     sizes = [10, 12, 14, 16, 18, 20, 22, 24, 26, 28]
                     for size in sizes:
-                        print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+                        # print(sn_unit.meter_to_inch(assembly.obj_y.location.y))
                         if sn_unit.meter_to_inch(assembly.obj_y.location.y) >= size:
                             slide_size = size
                     self.write_hardware_node(elm_parts, obj_bp, name="Hafele BB " + str(slide_size))
@@ -3548,10 +3689,11 @@ class OPS_Export_XML(Operator):
         #Locked shelf - add KD fittings (4)
         if obj_bp.sn_closets.is_shelf_bp:
             assembly = sn_types.Assembly(obj_bp)
-            is_locked_shelf = assembly.get_prompt("Is Locked Shelf").get_value()
+            is_locked_shelf_ppt = assembly.get_prompt("Is Locked Shelf")
 
-            if is_locked_shelf:
-                self.write_hardware_node(elm_parts, obj_bp, name="KD Fitting",qty=4)
+            if is_locked_shelf_ppt:
+                if is_locked_shelf_ppt.get_value():
+                    self.write_hardware_node(elm_parts, obj_bp, name="KD Fitting",qty=4)
 
         #Door lock for doors 
         if obj_bp.sn_closets.is_door_insert_bp:
@@ -3607,9 +3749,10 @@ class OPS_Export_XML(Operator):
 
             if child.sn_closets.is_hanging_rod:
                 for nchild in child.children:
-                    if not nchild.hide_viewport and not nchild.hide_get():
-                        self.write_hardware_node(elm_parts, obj_bp, name="Pole Cup")
-                        self.write_hardware_node(elm_parts, obj_bp, name="Pole Cup")  
+                    if nchild.type == 'MESH':
+                        if not nchild.hide_viewport and not nchild.hide_get():
+                            self.write_hardware_node(elm_parts, obj_bp, name="Pole Cup")
+                            self.write_hardware_node(elm_parts, obj_bp, name="Pole Cup")
 
             if child.snap.type_mesh == 'HARDWARE':
                 needed_hardware = 0
@@ -3622,10 +3765,11 @@ class OPS_Export_XML(Operator):
                     if child.name == 'Sliding Panels Rack':
                         self.write_hardware_node(elm_parts, child, 'Pants Rack')
                     elif child.name == 'Single Pull Out Canvas Hamper':
-                        self.write_hardware_node(elm_parts, child, name="Cloth Laundry Bag")
+                        print("Found Single Pull Out")
+                        self.write_hardware_node(elm_parts, child, name="Single Pull Out Canvas Hamper")
                     elif child.name == 'Double Pull Out Canvas Hamper':
-                        self.write_hardware_node(elm_parts, child, name="Cloth Laundry Bag")
-                        self.write_hardware_node(elm_parts, child, name="Cloth Laundry Bag")
+                        print("Found Double Pull Out")
+                        self.write_hardware_node(elm_parts, child, name="Double Pull Out Canvas Hamper")
                     continue
 
             for nchild in child.children:
@@ -3638,7 +3782,7 @@ class OPS_Export_XML(Operator):
                                 hamper_type = hamper_assembly.get_prompt("Hamper Type")
                                 if hamper_type:
                                     if hamper_type.get_value() == 0:
-                                        self.write_hardware_node(elm_parts, nchild)
+                                        continue
                             else:
                                 self.write_hardware_node(elm_parts, nchild)
                         else:
@@ -3682,25 +3826,42 @@ class OPS_Export_XML(Operator):
             return
         is_jewelry = insert_category == "jewelry"
         is_sliding = insert_category == "sliding"
+
         for obj in dad.children:
             drw_num = obj.get("DRAWER_NUM")
             if drw_num:
-                insert_pmpt = dad_assy.get_prompt(
-                            f"Jewelry Insert Type {drw_num}")
-                has_ji = dad_assy.get_prompt(
-                    f'Has Jewelry Insert {drw_num}'
-                ).get_value()
-                has_si = dad_assy.get_prompt(
-                    f'Has Sliding Insert {drw_num}'
-                ).get_value()
+                insert_pmpt = dad_assy.get_prompt(f"Jewelry Insert Type {drw_num}")
+                double_drawer_pmpt = dad_assy.get_prompt(f"Use Double Drawer {drw_num}")
+                has_ji = dad_assy.get_prompt(f'Has Jewelry Insert {drw_num}').get_value()
+                has_si = dad_assy.get_prompt(f'Has Sliding Insert {drw_num}').get_value()
                 insert_type = insert_pmpt.get_value()
-                std_jwl_ins = insert_type == 1
-                notstd_jwl_ins_gt16 = insert_type == 2
-                notstd_jwl_ins_lt16 = insert_type == 3
                 is_drawer = obj.sn_closets.is_drawer_box_bp
                 is_given_obj = obj_bp == obj
                 is_ji = is_drawer and is_given_obj and is_jewelry and has_ji
                 is_si = is_drawer and is_given_obj and is_sliding and has_si
+
+                # Jewelry settings may not have been initialized. Reset jewelry insert type if it has become out of sync
+                if has_ji and double_drawer_pmpt:
+                    use_double_door = double_drawer_pmpt.get_value()
+                    if insert_type == 0 and not use_double_door and is_given_obj:
+                        width_in = round(sn_unit.meter_to_inch(dad_assy.obj_x.location.x), 1)
+                        is_std_opng = width_in in [18, 21, 24]
+                        insert_type = 1 if is_std_opng else 2
+
+                        jewelry_insert_18 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 18in {drw_num}')
+                        if jewelry_insert_18:
+                            jewelry_insert_18.set_value(value=1)
+                        jewelry_insert_21 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 21in {drw_num}')
+                        if jewelry_insert_21:
+                            jewelry_insert_21.set_value(value=1)
+                        jewelry_insert_24 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 24in {drw_num}')
+                        if jewelry_insert_24:
+                            jewelry_insert_24.set_value(value=1)
+
+                std_jwl_ins = insert_type == 1
+                notstd_jwl_ins_gt16 = insert_type == 2
+                notstd_jwl_ins_lt16 = insert_type == 3
+
                 if is_ji and std_jwl_ins and dad_width == 18:
                     qry_ji = f'Jewelry Insert 18in {drw_num}'
                     ji = dad_assy.get_prompt(qry_ji).get_value()
@@ -3725,6 +3886,7 @@ class OPS_Export_XML(Operator):
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
                     return
+
                 # Standard Sliding Inserts
                 elif is_si and std_jwl_ins and dad_width == 18:
                     qry_si = f'Sliding Insert 18in {drw_num}'
@@ -3750,6 +3912,7 @@ class OPS_Export_XML(Operator):
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(si_label)
                     return
+                
                 # Non-Standard Jewelry Inserts deeper than 16 inches
                 elif is_ji and notstd_jwl_ins_gt16 and 18 <= dad_width < 21:
                     qry_ji = f'Lower Jewelry Insert Velvet Liner 18in {drw_num}'
@@ -3986,7 +4149,7 @@ class OPS_Export_XML(Operator):
         rods_name = bpy.context.scene.sn_closets.closet_options.rods_name
 
         if is_hanging_rod:
-            if "Oval" in rods_name:
+            if "Oval" in rods_name or "Round" in rods_name:
                 part_length = self.get_part_length(assembly)
             else:
                 self.hang_rod_lengths.append(self.get_part_length(assembly))
@@ -4013,12 +4176,20 @@ class OPS_Export_XML(Operator):
         self.xml.add_element_with_text(elm_hdw_part, 'Routing', "HDSTK")#Str literal OKAY
         self.xml.add_element_with_text(elm_hdw_part, 'Type', "hardware")#Str literal OKAY
 
-        wall_name = self.get_wall_name(obj_bp)        
+        wallname = ''
+        if sn_utils.get_closet_bp(obj_bp).get("IS_BP_ISLAND"):
+            wallname = 'Island'
+        elif obj_bp.get("IS_FULL_LENGTH"):
+            wallname = 'General'
+        elif obj_bp.parent and obj_bp.parent.get("IS_FULL_LENGTH"):
+            wallname = 'General'
+        else:
+            wallname = self.get_wall_name(obj_bp)
 
         lbl = [
             ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),
             ("name", "text", hardware_name),
-            ("wallname", "text", wall_name),
+            ("wallname", "text", wallname),
             ("x", "text", "0"),
             ("y", "text", "0"),
             ("z", "text", "0"),
@@ -4064,8 +4235,11 @@ class OPS_Export_XML(Operator):
             assembly = sn_types.Assembly(obj.parent)
         obj_hasnt_wall = not sn_utils.get_wall_bp(obj)
         obj_hasnt_island = not sn_utils.get_island_bp(obj)
-        if obj_hasnt_wall and obj_hasnt_island:
-            return
+
+        if not sn_utils.get_cabinet_bp(obj):
+            if obj_hasnt_wall and obj_hasnt_island:
+                return
+
         if assembly.obj_bp.snap.type_group != "PRODUCT":
 
             obj_props = assembly.obj_bp.sn_closets
@@ -4120,7 +4294,8 @@ class OPS_Export_XML(Operator):
                         "Bergamo", "Capri", "Venice", "Sienna",
                         "Napoli", "Molino Vechio", "Volterra", 
                         "Portofino", "Carrera", "Milano", "Merano", 
-                        "Palermo", "Verona", "Rome", "San Marino"
+                        "Palermo", "Verona", "Rome", "San Marino",
+                        "Melamine", "Traviso"
                     ]
                     for door_style in door_styles_list:
                         if door_style in part_name:
@@ -4135,30 +4310,40 @@ class OPS_Export_XML(Operator):
                     part_name = "Partition"
                 if part_name == "Top":
                     part_name = "Top Shelf"
-                is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
-                if is_locked_shelf and is_locked_shelf.get_value() == True:
-                    if assembly.obj_bp.parent.get("IS_BP_L_SHELVES"):
-                        part_name = "L KD Shelf"
-                    elif assembly.obj_bp.parent.get("IS_BP_CORNER_SHELVES"):
-                        part_name = "Corner KD Shelf"
-                    else:
-                        part_name = "KD Shelf"
+
+                if assembly.obj_bp.get("IS_SHELF"):
+                    is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
+                    if is_locked_shelf and is_locked_shelf.get_value() == True:
+                        if assembly.obj_bp.parent.get("IS_BP_L_SHELVES"):
+                            part_name = "L KD Shelf"
+                        elif assembly.obj_bp.parent.get("IS_BP_CORNER_SHELVES"):
+                            part_name = "Corner KD Shelf"
+                        else:
+                            part_name = "KD Shelf"
                 if part_name == "Shelf" :
                     part_name = "Adj Shelf"
                 if part_name == 'Left Filler' or part_name == 'Right Filler':
                     part_name = 'Filler'
                 if 'Accessory Cleat' in part_name:
                     part_name = 'Wall Cleat'
+                    
             part_name_splitted = part_name.split(".")
-            part_name = part_name_splitted[0]            
+            part_name = part_name_splitted[0]
+            part_dcname = ""
             mat_sku = closet_materials.get_mat_sku(obj, assembly, part_name)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
+
+            if obj_props.is_door_bp or obj.get('IS_DOOR'):
+                door_style_ppt = assembly.get_prompt("Door Style")
+                if door_style_ppt:
+                    if door_style_ppt.get_value() == "Melamine Door Glass":
+                        part_name += " with Insert - Slab"
             
             if part_name == "Cover Cleat":
-                if mat_inventory_name == "Winter White (Oxford White)" or  mat_inventory_name =="Duraply White":
+                if mat_inventory_name == "Winter White (Oxford White)" or  mat_inventory_name == "Duraply White":
                     mat_inventory_name = "White Paper 11300"
                     mat_sku = "PM-0000002"
-                elif mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond":
+                elif mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond":
                     mat_inventory_name = "Almond Paper 11300"
                     mat_sku = "PM-0000001"
 
@@ -4190,7 +4375,6 @@ class OPS_Export_XML(Operator):
                     if child.get("IS_SHOE_SHELF_LIP") and 'Fence' in child.name:
                         self.write_hardware_node(node, child, name=child.name, qty=1)
 
-
             ppt_dogear = assembly.get_prompt("Is Dogeared Panel")
             ppt_dogear_depth = assembly.get_prompt("Dog Ear Depth")
 
@@ -4213,14 +4397,19 @@ class OPS_Export_XML(Operator):
                 }
             )
 
-            self.xml.add_element_with_text(elm_part, 'Name', part_name)
+            self.xml.add_element_with_text(elm_part,'Name', part_name)
             self.xml.add_element_with_text(elm_part,'Quantity', self.get_part_qty(assembly))
             self.xml.add_element_with_text(elm_part,'Width', self.get_part_width(assembly)) 
             self.xml.add_element_with_text(elm_part,'FinishedWidth', self.get_part_width(assembly))           
             self.xml.add_element_with_text(elm_part,'Length', self.get_part_length(assembly))
             self.xml.add_element_with_text(elm_part,'FinishedLength', self.get_part_length(assembly))
-            self.xml.add_element_with_text(elm_part,'Thickness',self.distance(sn_utils.get_part_thickness(obj)))
-            self.xml.add_element_with_text(elm_part,'FinishedThickness', self.distance(sn_utils.get_part_thickness(obj)))
+            if(part_name == "Cover Cleat"):
+                if(mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Almond Paper 11300"):
+                    self.xml.add_element_with_text(elm_part,'Thickness','0.375')
+                    self.xml.add_element_with_text(elm_part,'FinishedThickness','0.375')
+            else:
+                self.xml.add_element_with_text(elm_part,'Thickness',self.distance(sn_utils.get_part_thickness(obj)))
+                self.xml.add_element_with_text(elm_part,'FinishedThickness', self.distance(sn_utils.get_part_thickness(obj)))
             if(part_name == "Cover Cleat"):
                 if(mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Almond Paper 11300"):
                     self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
@@ -4247,7 +4436,6 @@ class OPS_Export_XML(Operator):
             self.xml.add_element_with_text(elm_unit,'Name', "dimension")#Str literal okay
             self.xml.add_element_with_text(elm_unit,'Measure', "inch")#Str literal okay
             self.xml.add_element_with_text(elm_unit,'RoundFactor', "0")#Str literal okay
-
 
             obj_props = assembly.obj_bp.sn_closets
             closet_materials = bpy.context.scene.closet_materials
@@ -4446,9 +4634,9 @@ class OPS_Export_XML(Operator):
                         edge_2 = "L1"
                     else:
                         edge_2 = "S1"
-                    if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name =="Duraply White" or mat_inventory_name =="White Paper 11300"):
+                    if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Duraply White" or mat_inventory_name == "White Paper 11300"):
                         edge_2_sku = "EB-0000316"
-                    elif(mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name =="Duraply Almond" or mat_inventory_name =="Almond Paper 11300"):
+                    elif(mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Almond Paper 11300"):
                         edge_2_sku = "EB-0000315"
                     else:
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
@@ -4915,35 +5103,66 @@ class OPS_Export_XML(Operator):
 
             #Flat Crown
             if "IS_BP_FLAT_CROWN" in assembly.obj_bp:
-                EL = assembly.get_prompt("Exposed Left").get_value()
-                ER = assembly.get_prompt("Exposed Right").get_value()
-                EB = assembly.get_prompt("Exposed Back").get_value()
+                exposed_left_ppt = assembly.get_prompt("Exposed Left")
+                exposed_right_ppt = assembly.get_prompt("Exposed Right")
+                exposed_back_ppt = assembly.get_prompt("Exposed Back")
+
+                if exposed_left_ppt:
+                    EL = exposed_left_ppt.get_value()
+                if exposed_right_ppt:
+                    ER = exposed_right_ppt.get_value()
+                if exposed_back_ppt:
+                    EB = exposed_back_ppt.get_value()
+
                 edge_2 = "L1"
                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                if((EL and ER) and assembly.obj_y.location.y < sn_unit.inch(96)):
-                    edge_1 = "S1"
-                    edge_3 = "S2"
-                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    if(EB):
-                        edge_4 = "L2"
-                        edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                else:
-                    if(len(self.single_exposed_flat_crown) > 0 ):
-                        if(self.single_exposed_flat_crown[0]):
-                            edge_1 = "S1"
-                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                            self.single_exposed_flat_crown.pop()
-                    if(len(self.top_edgebanded_flat_crown) > 0 ):
-                        if(self.top_edgebanded_flat_crown[0]):
+
+                if not "IS_KB_MOLDING" in assembly.obj_bp:
+                    if((EL and ER) and assembly.obj_y.location.y < sn_unit.inch(96)):
+                        edge_1 = "S1"
+                        edge_3 = "S2"
+                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        if(EB):
                             edge_4 = "L2"
                             edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                            self.top_edgebanded_flat_crown.pop()
+                    else:
+                        if(len(self.single_exposed_flat_crown) > 0 ):
+                            if(self.single_exposed_flat_crown[0]):
+                                edge_1 = "S1"
+                                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                self.single_exposed_flat_crown.pop()
+                        if(len(self.top_edgebanded_flat_crown) > 0 ):
+                            if(self.top_edgebanded_flat_crown[0]):
+                                edge_4 = "L2"
+                                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                self.top_edgebanded_flat_crown.pop()
 
             # Capping Base
             if "IS_BP_TOE_KICK_CAPPING_BASE" in assembly.obj_bp:
                 edge_2 = "L1"
                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+            # Wallbed parts
+            if "IS_BP_WALLBED_SUPPORT" in assembly.obj_bp:
+                edge_1 = "1L"
+                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+            if "IS_BP_WALLBED_FACIA" in assembly.obj_bp:
+                edge_2 = "L1"
+                edge_4 = "L2"
+                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+            if "IS_BP_WALLBED_HEADBOARD" in assembly.obj_bp or "IS_BP_WALLBED_DECO" in assembly.obj_bp:
+                edge_1 = "S1"
+                edge_2 = "L1"
+                edge_3 = "S2"
+                edge_4 = "L2"
+                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             len_x = self.get_part_length(assembly)
             len_y = self.get_part_width(assembly)
@@ -4952,14 +5171,23 @@ class OPS_Export_XML(Operator):
                 len_x = self.get_part_width(assembly)
                 len_y = self.get_part_length(assembly)
 
-            wall_name = self.get_wall_name(obj)
+
+            wallname = ''
+            if sn_utils.get_closet_bp(obj).get("IS_BP_ISLAND"):
+                wallname = 'Island'
+            elif obj.get("IS_FULL_LENGTH"):
+                wallname = 'General'
+            elif obj.parent and obj.parent.get("IS_FULL_LENGTH"):
+                wallname = 'General'
+            else:
+                wallname = self.get_wall_name(obj)
             
             #Create and add label
             lbl = [
                 ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),                
-                ("dcname", "text", part_name),
+                ("dcname", "text", part_dcname if part_dcname else part_name),
                 ("name", "text", part_name),
-                ("wallname", "text", wall_name),
+                ("wallname", "text", wallname),
                 ("variablesection", "text", str(self.is_variable_section(assembly))),
                 ("x", "text", self.get_part_x_location(assembly.obj_bp,assembly.obj_bp.location.x)),
                 ("y", "text", self.get_part_y_location(assembly.obj_bp,assembly.obj_bp.location.y)),
@@ -5007,13 +5235,24 @@ class OPS_Export_XML(Operator):
                     if all(prompts) and (has_center_rail_ppt.get_value()):
                         has_center_rail = "Yes"
                         center_rail_distance_from_center = sn_unit.meter_to_inch(center_rail_distance_from_center_ppt.get_value())
+
+                door_glass_sku = ""
+                if obj_props.is_door_bp or obj.get('IS_DOOR'):
+                    door_style_ppt = assembly.get_prompt("Door Style")
+                    if door_style_ppt:
+                        if "Glass" in door_style_ppt.get_value():
+                            door_glass_sku = closet_materials.get_glass_sku(glass_color)
+
                 door_lbl = [
+                    ("has_center_rail", "text", has_center_rail),
+                    ("center_rail_distance_from_center", "text", str(center_rail_distance_from_center) if has_center_rail == "Yes" else 'None'),
                     ("style", "text", door_style if door_style != '' else 'None'),
                     ("glazecolor", "text", glaze_color if door_style != '' else 'None'),
                     ("glazestyle", "text", glaze_style if door_style != '' else 'None'),
                     ("glasscolor", "text", glass_color if glass_color != '' else 'None'),
-                    ("has_center_rail", "text", has_center_rail),
-                    ("center_rail_distance_from_center", "text", str(center_rail_distance_from_center) if has_center_rail == "Yes" else 'None'),
+                    ("glasssku", "text", door_glass_sku if door_glass_sku != '' else 'None'),
+                    # ("has_center_rail", "text", has_center_rail),
+                    # ("center_rail_distance_from_center", "text", str(center_rail_distance_from_center) if has_center_rail == "Yes" else 'None'),
                 ]
                 lbl.extend(door_lbl)
 
@@ -5234,6 +5473,7 @@ class OPS_Export_XML(Operator):
                 ('jobnumber', self.write_job_info_var(self.job_number)),
                 ('customername', self.write_job_info_var(customer_name)),
                 ('clientid', self.write_job_info_var(client_id)),
+                ('leadid', self.write_job_info_var("")),
                 ('projectaddress', self.write_job_info_var(proj_address)),
                 ('city', self.write_job_info_var(city)),
                 ('state', self.write_job_info_var(state)),

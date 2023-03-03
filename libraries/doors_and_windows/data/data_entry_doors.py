@@ -592,7 +592,7 @@ class Bi_Fold_Doors(sn_types.Assembly):
             self.obj_z.location.z = self.height
 
 
-class SNAP_OT_Entry_Door_Prompts(Operator):
+class SNAP_OT_Entry_Door_Prompts(sn_types.Prompts_Interface):
     bl_idname = "sn_entry_doors.entry_door_prompts"
     bl_label = "Entry Door Prompts"
     bl_options = {'UNDO'}
@@ -663,8 +663,7 @@ class SNAP_OT_Entry_Door_Prompts(Operator):
             except:
                 pass
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=480)
+        return super().invoke(context, event, width=480)
 
     def draw_product_size(self, layout):
         row = layout.row()
@@ -742,6 +741,7 @@ class SNAP_OT_Entry_Door_Prompts(Operator):
         row.prop(self.product.obj_bp, 'location', index=0, text="")
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.product.obj_bp:
             if self.product.obj_bp.name in context.scene.objects:

@@ -9,6 +9,7 @@ import re
 
 from snap import sn_types
 from snap import sn_utils
+from snap import sn_unit
 
 
 class PlaceClosetAsset():
@@ -201,7 +202,7 @@ class PlaceClosetAsset():
         bpy.ops.mesh.primitive_plane_add()
         plane = context.active_object
         plane['IS_DRAWING_PLANE'] = True
-        plane.location = (0, 0, 0)
+        plane.location = (0, 0, -0.01)
         self.drawing_plane = context.active_object
         self.drawing_plane.display_type = 'WIRE'
         self.drawing_plane.dimensions = (100, 100, 1)
@@ -606,7 +607,20 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             self.asset.obj_bp.location.x = self.selected_point[0]
             self.asset.obj_bp.location.y = self.selected_point[1]
 
+    def get_floor_collection(self, context):
+        floor_coll = context.scene.collection.children.get("Floor")
+
+        if not context.scene.collection.children.get("Floor"):
+            floor_coll = bpy.data.collections.new("Floor")
+            context.scene.collection.children.link(floor_coll)
+        
+        return floor_coll
+
+
     def confirm_placement(self, context):
+        has_floor_parent = False
+        asset_will_fit = True
+
         if self.current_wall:
             x_loc = sn_utils.calc_distance(
                 (
@@ -623,7 +637,30 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             self.asset.obj_bp.parent = self.current_wall.obj_bp
             self.asset.obj_bp.location.x = x_loc
 
-        if self.placement == 'LEFT':
+            if self.selected_asset and self.asset.obj_bp.get('IS_BP_CABINET'):
+                sel_asset_x_loc = self.selected_asset.obj_bp.location.x
+                asset_will_fit = sel_asset_x_loc > self.asset.obj_x.location.x
+                if not asset_will_fit:
+                    self.asset.obj_bp.location.x = sel_asset_x_loc - self.asset.obj_x.location.x
+
+        if self.selected_asset:
+            floor_parent = sn_utils.get_floor_parent(self.selected_asset.obj_bp)
+            if floor_parent:
+                has_floor_parent = True
+
+        if self.selected_obj.sn_roombuilder.is_floor or has_floor_parent:
+            floor = self.selected_obj
+            self.asset.obj_bp.parent = floor
+            floor_coll = self.get_floor_collection(context)
+
+            if floor.name not in floor_coll.objects:
+                floor_coll.objects.link(floor)
+                context.scene.collection.objects.unlink(floor)
+
+            sn_utils.add_assembly_to_collection(self.asset.obj_bp, floor_coll, recursive=True)
+            sn_utils.remove_assembly_from_collection(self.asset.obj_bp, context.scene.collection, recursive=True)
+
+        if self.placement == 'LEFT' and asset_will_fit:
             self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
             constraint_obj = self.asset.obj_x
             constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
@@ -666,16 +703,24 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
         floor = self.selected_obj.sn_roombuilder.is_floor
         drawing_plane = 'IS_DRAWING_PLANE' in self.selected_obj
         closet = None
+        is_cabinet = None
         island = sn_utils.get_island_bp(self.asset.obj_bp)
 
         if self.asset.obj_bp.get("product_type"):
             closet = self.asset.obj_bp['product_type'] == "Closet"
+        
+        if "IS_BP_CABINET" in self.asset.obj_bp:
+            is_cabinet = True
 
         # Only validate if room has been created and file has been saved, allow free placement if no existing room
         if bpy.data.is_saved:
             # Check if current asset is a hang section
             if closet and not island:
                 if floor or drawing_plane:
+                    valid_placement = False
+
+            if is_cabinet:
+                if drawing_plane:
                     valid_placement = False
 
         return valid_placement

@@ -1618,6 +1618,10 @@ class sn_image(PropertyGroup):
                                  default=False,
                                  description="This determines if the image is a 2D Island View")
     
+    is_custom_view: BoolProperty(name="Is Custom View",
+                                 default=False,
+                                 description="This determines if the image is a 2D Custom View")
+
     island_index: IntProperty(name="Island Index",
                                  default=0,
                                  description="This determines in which order the island will be added on PDF")
@@ -1853,6 +1857,10 @@ class SnapSceneProps(PropertyGroup):
 
     accordion_view_scene: BoolProperty(name="Accordion View Scene",
                                   description="Scene used for rendering project accordion view",
+                                  default=False)
+
+    custom_view_scene: BoolProperty(name="Custom View Scene",
+                                  description="Scene used for rendering project custom views",
                                   default=False)
 
     island_view_scene: BoolProperty(name="Island View Scene",

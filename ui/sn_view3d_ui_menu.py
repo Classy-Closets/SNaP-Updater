@@ -52,9 +52,10 @@ class SN_OT_object_properties(sn_types.Prompts_Interface):
         else:
             self.plane = ""
 
-        return context.window_manager.invoke_props_dialog(self)
+        return super().invoke(context, event, width=300)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         box = layout.box()
         self.draw_product_position(box, self.plane)
@@ -170,12 +171,6 @@ class VIEW3D_MT_object_context_menu(Menu):
                 layout.operator(
                     'sn_closets.delete_closet_insert',
                     text="Delete - {}".format(appliance_bp.snap.name_object),
-                    icon='X')
-
-            if entry_door_bp or window_bp:
-                layout.operator(
-                    'sn_closets.delete_closet',
-                    text="Delete - {}".format(entry_door_bp.snap.name_object),
                     icon='X')
 
             if insert_bp:

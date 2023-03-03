@@ -4,6 +4,7 @@ from snap import sn_unit, sn_types, sn_paths, sn_utils
 from snap.libraries.kitchen_bath.carcass_simple import Inside_Corner_Carcass, Standard_Carcass
 from . import cabinet_properties
 from . import cabinet_countertops
+from . import common_parts
 from .frameless_exteriors import Doors, Horizontal_Drawers, Vertical_Drawers
 from snap.libraries.closets import closet_paths
 import os
@@ -17,18 +18,30 @@ REFRIGERATOR = os.path.join(os.path.dirname(__file__),"Appliances", "Professiona
 BLIND_PANEL = os.path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
 
 def add_product_width_dimension(product):
+    carcass = product.carcass
+
+    for child in product.obj_bp.children:
+        if not carcass and child.get("IS_BP_CARCASS"):
+            carcass = sn_types.Assembly(child)
+        if child.get("WIDTH_LABEL"):
+            # print("PREV_product_width_dimensions - product.obj_bp.child=",child)
+            sn_utils.delete_object_and_children(child)
+
     Product_Width = product.obj_x.snap.get_var('location.x','Product_Width')
-    Left_Side_Wall_Filler = product.carcass.get_prompt('Left Side Wall Filler').get_var()
-    Right_Side_Wall_Filler = product.carcass.get_prompt('Right Side Wall Filler').get_var()
-    
+    Left_Side_Wall_Filler = carcass.get_prompt('Left Side Wall Filler').get_var()
+    Right_Side_Wall_Filler = carcass.get_prompt('Right Side Wall Filler').get_var()
+
     dim = sn_types.Dimension()
     dim.parent(product.obj_bp)
+    dim.anchor["IS_KB_LABEL"] = True
+    dim.anchor["WIDTH_LABEL"] = True
 
-    if hasattr(product, "mirror_z") and product.mirror_z:
+    if (hasattr(product, "mirror_z") and product.mirror_z) or carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
         dim.start_z(value=sn_unit.inch(5))
     else:
         dim.start_z(value=-sn_unit.inch(5))
-    if product.carcass.carcass_type == 'Upper':
+
+    if carcass.obj_bp['CARCASS_TYPE'] == 'Upper':
         dim.start_y(value=sn_unit.inch(8))
     else:
         dim.start_y(value=sn_unit.inch(3))
@@ -36,50 +49,131 @@ def add_product_width_dimension(product):
     dim.end_x('Product_Width-Left_Side_Wall_Filler-Right_Side_Wall_Filler',[Product_Width,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
 
 def add_product_depth_dimension(product):
-    hashmark = sn_types.Line(sn_unit.inch(6), (0, 45, 0))
-    hashmark.parent(product.obj_bp)
+    carcass = product.carcass
 
-    if hasattr(product, "mirror_z") and product.mirror_z:
-        hashmark.anchor.location.z = product.obj_z.location.z
+    for child in product.obj_bp.children:
+        if not carcass and child.get("IS_BP_CARCASS"):
+            carcass = sn_types.Assembly(child)
+        if child.get("DEPTH_LABEL") or child.get('DEPTH_HASHMARK_LABEL'):
+            print("PREV_product_width_dimensions - product.obj_bp.child=",child)
+            sn_utils.delete_object_and_children(child)
+
+    Product_Height = product.obj_z.snap.get_var('location.z','Product_Height')
+    Toe_Kick_Height_ppt = carcass.get_prompt('Toe Kick Height')
+    Toe_Kick_Height = None
+    if Toe_Kick_Height_ppt:
+        Toe_Kick_Height = Toe_Kick_Height_ppt.get_var()
+
+    hashmark = sn_types.Line(sn_unit.inch(6), (0, 45, 0))
+    # hashmark.parent(carcass.obj_bp)
+    hashmark.parent(product.obj_bp)
+    hashmark.anchor["IS_KB_LABEL"] = True
+    hashmark.anchor['DEPTH_HASHMARK_LABEL'] = True
+   
+    if (hasattr(product, "mirror_z") and product.mirror_z) or carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+        hashmark.anchor.location.z = product.obj_z.location.z 
+        hashmark.start_z("Product_Height",[Product_Height])
+    else:
+        if Toe_Kick_Height:
+            hashmark.start_z("IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)",[Toe_Kick_Height])
+        else:
+            hashmark.start_z("INCH(3.52)")
 
     dim = sn_types.Dimension()
     anchor_props = dim.anchor.snap_closet_dimensions
     end_point_props = dim.end_point.snap_closet_dimensions
     anchor_props.is_dim_obj = True
     end_point_props.is_dim_obj = True
-    dim.anchor.parent = hashmark.end_point    
 
-    dim.start_z(value=sn_unit.inch(2))
+    dim.anchor.parent = product.obj_bp  
+    dim.anchor["IS_KB_LABEL"] = True
+    dim.anchor["DEPTH_LABEL"] = True
+
+    if Toe_Kick_Height:
+        dim.start_x("1.4*IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)",[Toe_Kick_Height])
+        dim.start_z("2*IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)+INCH(1.5)",[Toe_Kick_Height])
+    else:
+        dim.start_x("INCH(5)")
+        dim.start_z("Product_Height+INCH(5)",[Product_Height])
+
     abs_y_loc = math.fabs(sn_unit.meter_to_inch(product.obj_y.location.y))
     dim_y_label = str(round(abs_y_loc, 2)) + '\"'
     dim.set_label(dim_y_label)
 
 def add_product_filler_dimension(product, filler_side):
+    carcass = product.carcass
+
+    for child in product.obj_bp.children:
+        if not carcass and child.get("IS_BP_CARCASS"):
+            carcass = sn_types.Assembly(child)
+        if child.get("FILLER_WIDTH_" + filler_side.upper() + "_LABEL"):
+            # print("PREV_product_filler_width_dimensions - product.obj_bp.child=",child)
+            sn_utils.delete_object_and_children(child)
+
     Product_Width = product.obj_x.snap.get_var('location.x','Product_Width')
-    Filler = product.carcass.get_prompt(filler_side + " Side Wall Filler").get_var('Filler')
+    Filler = carcass.get_prompt(filler_side + " Side Wall Filler").get_var('Filler')
 
     dim = sn_types.Dimension()
     dim.parent(product.obj_bp)
+    dim.anchor["IS_KB_LABEL"] = True
+    dim.anchor['FILLER_WIDTH_' + filler_side.upper() + '_LABEL'] = True
     
     if hasattr(product, "mirror_z") and product.mirror_z:
         dim.start_z(value=sn_unit.inch(5))
     else:
         dim.start_z(value=-sn_unit.inch(5))
 
-    if product.carcass.carcass_type == 'Upper':
+    if carcass.obj_bp['CARCASS_TYPE'] == 'Upper':
         dim.start_y(value=sn_unit.inch(8))
     else:
         dim.start_y(value=sn_unit.inch(3))
     
     if filler_side == 'Left':
-        # dim.start_x('-Filler',[Filler])
         dim.end_x('Filler',[Filler])
     else:
         dim.start_x('Product_Width-Filler',[Product_Width,Filler])
         dim.end_x('Filler',[Filler])
+
+def create_dimensions(assembly):
     
+    add_product_width_dimension(assembly)
+    add_product_depth_dimension(assembly)
+    add_product_filler_dimension(assembly, "Left")
+    add_product_filler_dimension(assembly, "Right")
+
+    inserts = sn_utils.get_insert_bp_list(assembly.obj_bp, [])
+
+    for obj_bp in inserts:
+        if "IS_BP_CARCASS" in obj_bp:
+            if "STANDARD_CARCASS" in obj_bp:
+                carcass = Standard_Carcass(obj_bp)
+            elif "INSIDE_CORNER_CARCASS" in obj_bp:
+                carcass = Inside_Corner_Carcass(obj_bp)
+            carcass.create_dimensions()
+        elif "IS_BP_DOOR_INSERT" in obj_bp:
+            door_insert = Doors(obj_bp)
+            door_insert.create_dimensions()
+        elif "IS_DRAWERS_BP" in obj_bp:
+            if "VERTICAL_DRAWERS" in obj_bp:
+                drawers_insert = Vertical_Drawers(obj_bp)
+            elif "HORIZONTAL_DRAWERS" in obj_bp:
+                drawers_insert = Horizontal_Drawers(obj_bp)
+            drawers_insert.create_dimensions()
+
 
 def update_dimensions(assembly):
+    prod_dimensions = []
+
+    for child in assembly.obj_bp.children:
+        if 'DEPTH_LABEL' in child:
+            prod_dimensions.append(child)
+       
+    for anchor in prod_dimensions:
+        assembly = sn_types.Assembly(anchor.parent)
+        abs_y_loc = math.fabs(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+        dim_y_label = str(round(abs_y_loc, 2)) + '\"'
+        anchor.snap.opengl_dim.gl_label = str(dim_y_label)
+
     inserts = sn_utils.get_insert_bp_list(assembly.obj_bp, [])
 
     for obj_bp in inserts:
@@ -131,7 +225,6 @@ def add_countertop(product):
     ctop.dim_z(value = sn_unit.inch(4))
     return ctop
 
-
 def create_cabinet(product):
     props = cabinet_properties.get_scene_props().carcass_defaults
     toe_kick_height = props.toe_kick_height
@@ -167,6 +260,8 @@ def add_insert(product, insert):
             insert.draw()
             insert.obj_bp.parent = product.obj_bp
 
+    insert.obj_bp['OPENING_NBR'] = 1
+
     Width = product.obj_x.snap.get_var('location.x', 'Width')
     Height = product.obj_z.snap.get_var('location.z', 'Height')
     Depth = product.obj_y.snap.get_var('location.y', 'Depth')
@@ -179,6 +274,9 @@ def add_insert(product, insert):
     Back_Inset = product.carcass.get_prompt("Back Inset").get_var()
     Left_Side_Wall_Filler = product.carcass.get_prompt('Left Side Wall Filler').get_var()
     Right_Side_Wall_Filler = product.carcass.get_prompt('Right Side Wall Filler').get_var()
+    if product.carcass.carcass_type == 'Appliance':
+        Remove_Left_Side = product.carcass.get_prompt('Remove Left Side').get_var()
+        Remove_Right_Side = product.carcass.get_prompt('Remove Right Side').get_var()
 
 
     insert.loc_x('Left_Side_Thickness+Left_Side_Wall_Filler',[Left_Side_Thickness,Left_Side_Wall_Filler])
@@ -193,8 +291,14 @@ def add_insert(product, insert):
         product.mirror_z = True
         insert.loc_z('Height+Bottom_Inset',[Height,Bottom_Inset])
 
-    insert.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness+Left_Side_Wall_Filler+Right_Side_Wall_Filler)',[Width,Left_Side_Thickness,Right_Side_Thickness,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
-
+    if product.carcass.carcass_type != 'Appliance':
+        insert.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness+Left_Side_Wall_Filler+Right_Side_Wall_Filler)',
+                        [Width,Left_Side_Thickness,Right_Side_Thickness,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
+    else:
+        insert.loc_x('IF(Remove_Left_Side,0,Left_Side_Thickness)',[Remove_Left_Side,Left_Side_Thickness])
+        insert.dim_x('Width-(IF(Remove_Left_Side,0,Left_Side_Thickness)+IF(Remove_Right_Side,0,Right_Side_Thickness)+Left_Side_Wall_Filler+Right_Side_Wall_Filler)',
+                        [Width,Remove_Left_Side,Left_Side_Thickness,Remove_Right_Side,Right_Side_Thickness,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
+    
     if product.carcass.carcass_shape == 'RECTANGLE':
         insert.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])
     else:
@@ -205,8 +309,8 @@ def add_insert(product, insert):
     if product.carcass.carcass_shape != 'RECTANGLE':
         Cabinet_Depth_Left = product.carcass.get_prompt("Cabinet Depth Left").get_var()
         Cabinet_Depth_Right = product.carcass.get_prompt("Cabinet Depth Right").get_var()
-        insert.get_prompt("Left Depth").set_formula('Cabinet_Depth_Left',[Cabinet_Depth_Left])
-        insert.get_prompt("Right Depth").set_formula('Cabinet_Depth_Right',[Cabinet_Depth_Right])
+        # insert.get_prompt("Left Depth").set_formula('Cabinet_Depth_Left',[Cabinet_Depth_Left])
+        # insert.get_prompt("Right Depth").set_formula('Cabinet_Depth_Right',[Cabinet_Depth_Right])
 
     # ALLOW DOOR TO EXTEND TO TOP FOR VALANCE
     extend_top_amount = insert.get_prompt("Extend Top Amount")
@@ -243,8 +347,9 @@ def add_insert(product, insert):
 
 def add_opening(product):
     opening = product.add_opening()
-    opening.obj_bp.name = 'Open'
-    opening.obj_bp["IS_BP_OPENING"] = True
+    opening.obj_bp.name = "Opening 1"
+    opening.obj_bp['IS_BP_OPENING'] = True
+    opening.obj_bp['OPENING_NBR'] = 1
     opening.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
     opening.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
     opening.add_prompt("Top Thickness", 'DISTANCE', sn_unit.inch(.75))
@@ -283,32 +388,21 @@ class Standard(sn_types.Assembly):
         Right Side Wall Filler
     """
     carcass = None
-
-    """ Type:sn_types.Assembly - Splitter insert to add to the cabinet """
     splitter = None
-
-    """ Type:sn_types.Assembly - Interior insert to add to the cabinet """
     interior = None
-
-    """ Type:sn_types.Assembly - Exterior insert to add to the cabinet """
     exterior = None
-
-    """ Type:bool - This adds an empty opening to the carcass for starter products """
     add_empty_opening = False
-
-    """ Type:bool - This adds a microwave below the cabinet.
-                        This is typically only used for upper cabinets """
     add_microwave = False
-
-    """ Type:bool - This adds a vent below the cabinet.
-                        This is typically only used for upper cabinets """
     add_vent_hood = False
-
-    """ Type:bool - This adds a countertop to the product. """
+    add_dishwasher = False
+    add_wine_cooler = False
     add_countertop = True
 
     """ Type:float - This is the base price for the product. """
     product_price = 0
+
+    def create_dimensions(self):
+        create_dimensions(self)  # Call module level function to find and create/recreate door/drawer dim labels
 
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
@@ -323,6 +417,7 @@ class Standard(sn_types.Assembly):
             self.obj_z['IS_MIRROR'] = True
         if self.carcass.carcass_type == "Upper":
             self.obj_bp.location.z = props.height_above_floor
+            self.obj_bp["IS_BP_APPLIANCE_CABINET"] = True
         elif self.carcass.carcass_type == "Suspended":
             self.obj_bp.location.z = sn_unit.millimeter(float(props.base_cabinet_height)) + carcass_props.toe_kick_height
 
@@ -330,14 +425,18 @@ class Standard(sn_types.Assembly):
  
         self.obj_bp["IS_BP_CLOSET"] = True
         self.obj_bp["IS_BP_CABINET"] = True
+        self.obj_bp["CARCASS_TYPE"] = self.carcass.carcass_type
         self.obj_y['IS_MIRROR'] = True
         self.obj_bp.snap.type_group = self.type_assembly
+
+        if self.carcass.carcass_type == 'Appliance':
+            self.obj_bp["IS_BP_APPLIANCE_CABINET"] = True
 
     def draw(self):
         create_cabinet(self)
         add_carcass(self)
 
-        if self.add_countertop and self.carcass.carcass_type in {"Base","Sink","Suspended"}:
+        if self.add_countertop and self.carcass.carcass_type in {"Base","Appliance","Sink","Suspended"}:
             add_countertop(self)
 
         if self.splitter:
@@ -407,6 +506,9 @@ class Refrigerator(sn_types.Assembly):
     """ Type:float - This is the base price for the product. """   
     product_price = 0
 
+    def create_dimensions(self):
+        create_dimensions(self)  # Call module level function to find and create/recreate door/drawer dim labels
+
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
 
@@ -441,6 +543,10 @@ class Refrigerator(sn_types.Assembly):
             ref_bp = self.add_assembly_from_file(REFRIGERATOR)
             ref = sn_types.Assembly(ref_bp)
             ref.set_name("Refrigerator")
+            self.obj_bp['IS_BP_APPLIANCE'] = True
+            self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
+            ref.obj_bp['SPLITTER_NBR'] = self.splitter.obj_bp['SPLITTER_NBR']
+            ref.obj_bp['OPENING_NBR'] = 2
 
             ref.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
             ref.loc_y("Product_Depth", [Product_Depth])
@@ -471,9 +577,13 @@ class Blind_Corner(sn_types.Assembly):
     interior = None
     exterior = None
     add_countertop = True
+    add_empty_opening = False
     
     """ Type:float - This is the base price for the product. """   
     product_price = 0    
+
+    def create_dimensions(self):
+        create_dimensions(self)  # Call module level function to find and create/recreate door/drawer dim labels
     
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
@@ -490,20 +600,18 @@ class Blind_Corner(sn_types.Assembly):
         self.obj_bp["IS_BP_CLOSET"] = True
         self.obj_bp["IS_BP_CABINET"] = True
         self.obj_bp["IS_CORNER"] = True
+        self.obj_bp["CARCASS_TYPE"] = self.carcass.carcass_type
         self.obj_y['IS_MIRROR'] = True
         self.obj_bp.snap.type_group = self.type_assembly
 
-    def add_part(self, path):
-        part_bp = self.add_assembly_from_file(path)
-        part = sn_types.Assembly(part_bp)
-        part.obj_bp.sn_closets.is_panel_bp = True
-        return part
-        
     def draw(self):
         props = cabinet_properties.get_scene_props().size_defaults
         create_cabinet(self)
         self.obj_bp.lm_cabinets.product_shape = 'RECTANGLE'
         add_carcass(self)
+       
+        if self.add_empty_opening:
+            add_opening(self)
 
         if self.carcass.carcass_type == 'Base':
             self.add_prompt("Blind Panel Width", 'DISTANCE', props.base_cabinet_depth)
@@ -539,7 +647,7 @@ class Blind_Corner(sn_types.Assembly):
             if self.blind_side == "Right":
                 ctop.get_prompt('Add Right Backsplash').set_value(value=True)
         
-        blind_panel = self.add_part(BLIND_PANEL)
+        blind_panel = common_parts.add_panel(self)
         blind_panel.obj_bp.snap.name_object = "Blind Panel"
         if self.blind_side == "Left":
             blind_panel.loc_x('IF(Inset_Blind_Panel,Left_Side_Thickness,0)',[Inset_Blind_Panel,Left_Side_Thickness])
@@ -559,10 +667,26 @@ class Blind_Corner(sn_types.Assembly):
         blind_panel.rot_z(value=math.radians(90))
         blind_panel.dim_z('Blind_Panel_Thickness',[Blind_Panel_Thickness])
         # blind_panel.cutpart("Cabinet_Blind_Panel")
-        
+
+        # Toe kick
+        if self.carcass.carcass_type in {"Base","Tall","Sink"}:
+            tk_path = os.path.join(closet_paths.get_library_path(), "/Products - Basic/Toe Kick.png")
+            wm_props = bpy.context.window_manager.snap
+
+            toe_kick = wm_props.get_asset(tk_path)
+            toe_kick.draw()
+            toe_kick.obj_bp.parent = self.obj_bp
+            toe_kick.obj_bp["ID_PROMPT"] = toe_kick.id_prompt
+            toe_kick.obj_bp.snap.comment_2 = "1034"
+            toe_kick.dim_x('Carcass_Width-INCH(0.75)/2', [Carcass_Width])
+            toe_kick.dim_y('Carcass_Depth', [Carcass_Depth])
+            toe_kick.get_prompt('Toe Kick Height').set_formula('Toe_Kick_Height', [Toe_Kick_Height])
+            left_depth_amount = toe_kick.get_prompt("Extend Depth Amount").get_var("left_depth_amount")
+
         if self.splitter:
             self.splitter.draw()
             self.splitter.obj_bp.parent = self.obj_bp
+           
             if self.blind_side == "Left":
                 self.splitter.loc_x('Blind_Panel_Width+Blind_Panel_Reveal',[Blind_Panel_Width,Blind_Panel_Reveal])
             if self.blind_side == "Right":
@@ -582,6 +706,8 @@ class Blind_Corner(sn_types.Assembly):
         if self.interior:
             self.interior.draw()
             self.interior.obj_bp.parent = self.obj_bp
+            self.interior.obj_bp['OPENING_NBR'] = 1
+            self.interior.obj_bp['PLACEMENT_TYPE'] = "Interior"
             self.interior.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
             self.interior.loc_y('Carcass_Depth+IF(Inset_Blind_Panel,Blind_Panel_Thickness,0)',[Carcass_Depth,Inset_Blind_Panel,Blind_Panel_Thickness])
             if self.carcass.carcass_type in {"Base","Tall","Sink"}:
@@ -595,6 +721,8 @@ class Blind_Corner(sn_types.Assembly):
         if self.exterior:
             self.exterior.draw()
             self.exterior.obj_bp.parent = self.obj_bp
+            self.exterior.obj_bp['OPENING_NBR'] = 1
+            self.exterior.obj_bp['PLACEMENT_TYPE'] = "Exterior"
             if self.blind_side == "Left":
                 self.exterior.loc_x('Blind_Panel_Width+Blind_Panel_Reveal',[Blind_Panel_Width,Blind_Panel_Reveal])
             if self.blind_side == "Right":
@@ -618,7 +746,6 @@ class Blind_Corner(sn_types.Assembly):
 
         self.update()
 
-
 class Inside_Corner(sn_types.Assembly):
     type_assembly = "PRODUCT"
     show_in_library = True
@@ -629,12 +756,17 @@ class Inside_Corner(sn_types.Assembly):
     carcass = None
     interior = None
     exterior = None
+    splitter = None
     
     add_countertop = True
+    add_empty_opening = False
     
     """ Type:float - This is the base price for the product. """   
     product_price = 0
 
+    def create_dimensions(self):
+        create_dimensions(self)  # Call module level function to find and create/recreate door/drawer dim labels
+        
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
 
@@ -652,6 +784,9 @@ class Inside_Corner(sn_types.Assembly):
         
         self.exterior.draw()
         self.exterior.obj_bp.parent = self.obj_bp
+        # self.exterior.obj_bp['SPLITTER_NBR'] = self.splitter.obj_bp['SPLITTER_NBR']
+        self.exterior.obj_bp['OPENING_NBR'] = 1
+        self.exterior.obj_bp['PLACEMENT_TYPE'] = "Exterior"
         self.exterior.loc_x('Cabinet_Depth_Left',[Cabinet_Depth_Left])
         self.exterior.loc_y('-Cabinet_Depth_Right',[Cabinet_Depth_Right])
         if self.carcass.carcass_type == "Base":
@@ -676,6 +811,9 @@ class Inside_Corner(sn_types.Assembly):
         
         self.exterior.draw()
         self.exterior.obj_bp.parent = self.obj_bp
+        # self.exterior.obj_bp['SPLITTER_NBR'] = self.splitter.obj_bp['SPLITTER_NBR']
+        self.exterior.obj_bp['OPENING_NBR'] = 1
+        self.exterior.obj_bp['PLACEMENT_TYPE'] = "Exterior"
         self.exterior.loc_x('Cabinet_Depth_Left',[Cabinet_Depth_Left])
         self.exterior.loc_y('Depth+Left_Side_Thickness',[Depth,Left_Side_Thickness])
         if self.carcass.carcass_type == "Base":
@@ -699,13 +837,16 @@ class Inside_Corner(sn_types.Assembly):
         self.obj_bp["IS_BP_CLOSET"] = True
         self.obj_bp["IS_BP_CABINET"] = True
         self.obj_bp["IS_CORNER"] = True
+        self.obj_bp["CARCASS_TYPE"] = self.carcass.carcass_type
         self.obj_y['IS_MIRROR'] = True
         self.obj_bp.snap.type_group = self.type_assembly
 
     def draw(self):
         create_cabinet(self)
         add_carcass(self)
-        
+        if self.add_empty_opening:
+            add_opening(self)
+
         Product_Width = self.obj_x.snap.get_var('location.x', 'Product_Width')
         Product_Height = self.obj_z.snap.get_var('location.z', 'Product_Height')
         Product_Depth = self.obj_y.snap.get_var('location.y', 'Product_Depth')
@@ -751,6 +892,9 @@ class Inside_Corner(sn_types.Assembly):
                         [Cabinet_Depth_Left,Countertop_Overhang_Left_Back,Countertop_Overhang_Left_Front])
             ctop.get_prompt("Right Side Depth").set_formula('Cabinet_Depth_Right+Countertop_Overhang_Right_Back+Countertop_Overhang_Right_Front',
                         [Cabinet_Depth_Right,Countertop_Overhang_Right_Back,Countertop_Overhang_Right_Front])
+
+        if self.splitter:
+            add_insert(self,self.splitter)
 
         if self.interior:
             add_insert(self,self.interior)

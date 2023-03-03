@@ -1,8 +1,11 @@
 from os import path
 import math
 
-from snap import sn_props, sn_types, sn_unit
+import bpy
+
+from snap import sn_props, sn_types, sn_unit, sn_utils
 from . import cabinet_properties
+from . import common_parts
 from snap.libraries.closets import closet_paths
 from snap import sn_paths
 
@@ -14,36 +17,38 @@ NOTCHED_SIDE = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES, "Notched Side.blend")
 LEG_LEVELERS = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES, "Leg Levelers.blend")
 CHAMFERED_PART = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES,"Chamfered Part.blend")
 CORNER_NOTCH_PART = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES,"Corner Notch Part.blend")
-USE_DADO_BOTTOM = True
 
 
-# def add_toe_kick_notch(assembly):
-#     Notch_X_Dimension = assembly.get_prompt("Notch X Dimension").get_var()
-#     Notch_Y_Dimension = assembly.get_prompt("Notch Y Dimension").get_var()
-#     dim_z = assembly.obj_z.snap.get_var("location.z")
+def add_side_height_dimension(original_part):
+    part = original_part
 
-#     obj, token = assembly.add_machine_token('Toe Kick Notch' ,'CORNERNOTCH','5','1')
-#     token.add_driver(obj,'dim_in_x','Notch_X_Dimension',[Notch_X_Dimension])
-#     token.add_driver(obj,'dim_in_y','Notch_Y_Dimension',[Notch_Y_Dimension])
-#     token.add_driver(obj,'dim_in_z','fabs(dim_z)+INCH(.01)',[dim_z])
-#     token.lead_in = sn_unit.inch(.25)
-#     token.tool_number = DEFAULT_ROUTING_TOOL_CW
+    part_children = part.obj_bp.children
+    for child in part_children:
+        for subchild in child.children:
+            if subchild.get("SIDE_HEIGHT_LABEL"):
+                # print("PREV_add_side_height_dimensions - part.obj_bp.child=",child, "subchild=",subchild)
+                sn_utils.delete_object_and_children(subchild)
+                part = sn_types.Assembly(child)
 
-def add_side_height_dimension(part):
     Part_Height = part.obj_x.snap.get_var('location.x','Part_Height')
-         
+
     dim = sn_types.Dimension()
     dim.anchor["SIDE_HEIGHT_LABEL"] = True
+    dim.anchor["IS_KB_LABEL"] = True
     dim.parent(part.obj_bp)
     
     dim.anchor.rotation_euler.y = math.radians(-90)
     if hasattr(part, "mirror_z") and part.mirror_z:
-        dim.start_x('Part_Height/2',[part])
+        dim.start_x('part/2',[part])
     else:
         dim.start_x('Part_Height/2',[Part_Height])
     dim.start_y(value=sn_unit.inch(-1.5))
     dim.start_z(value=sn_unit.inch(-1.5))
     dim.set_label("")
+
+def create_dimensions(part):
+    add_side_height_dimension(part)
+    update_dimensions(part)
 
 def update_dimensions(part):
     dimensions = []
@@ -83,6 +88,10 @@ class Standard_Carcass(sn_types.Assembly):
     open_name = ""
 
     remove_top = False  # Used to remove top for face frame sink cabinets
+    remove_bottom = False  # Used to remove bottom for appliance cabinets
+
+    def create_dimensions(self):
+        create_dimensions(self) # Call module level function to create/recreate door dim labels
 
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
@@ -91,13 +100,16 @@ class Standard_Carcass(sn_types.Assembly):
         super().update()
         self.obj_bp["IS_BP_CARCASS"] = True
         self.obj_bp["STANDARD_CARCASS"] = True
-        self.obj_bp["PROFILE_SHAPE_RECTANGLE"] = True 
+        self.obj_bp["PROFILE_SHAPE_RECTANGLE"] = True
+        self.obj_bp["CARCASS_TYPE"] = self.carcass_type
 
     def add_common_carcass_prompts(self):
         props = cabinet_properties.get_scene_props().carcass_defaults
 
         self.add_prompt("Left Fin End", 'CHECKBOX', False)
         self.add_prompt("Right Fin End", 'CHECKBOX', False)
+        self.add_prompt("Left End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
+        self.add_prompt("Right End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
         self.add_prompt("Left Side Wall Filler", 'DISTANCE', 0.0)
         self.add_prompt("Right Side Wall Filler", 'DISTANCE', 0.0)
         self.add_prompt("Use Nailers", 'CHECKBOX', props.use_nailers)
@@ -152,6 +164,11 @@ class Standard_Carcass(sn_types.Assembly):
         self.add_prompt("Sub Front Height",'DISTANCE', props.sub_front_height)
         self.add_prompt("Sub Front Thickness",'DISTANCE',sn_unit.inch(.75))
     
+    def add_appliance_prompts(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.add_prompt("Remove Left Side", 'CHECKBOX', False)
+        self.add_prompt("Remove Right Side", 'CHECKBOX', False)
+
     def add_prompt_formulas(self):
         tt = self.get_prompt("Top Thickness").get_var('tt')
         bt = self.get_prompt("Bottom Thickness").get_var('bt')
@@ -226,112 +243,92 @@ class Standard_Carcass(sn_types.Assembly):
         # self.prompt('Edgebanding Thickness','EDGE_THICKNESS(sgi,"' + Edgebanding_Pointer_Name + '")',[sgi])
         # endregion
 
-
     def add_base_sides(self):
-        props = cabinet_properties.get_scene_props().carcass_defaults
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
 
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
-        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
-        Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
 
-        part_path = NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING
+        left_side = common_parts.add_panel(self)
+        left_side.obj_bp["IS_BP_PANEL"] = True
 
-        left_side = add_part(self, part_path)
-        left_side.set_name(self.carcass_type + " Left Side")
-        left_side.add_prompt("Is Cutpart",'CHECKBOX',True)
-        if props.use_notched_sides:
-            left_side.dim_x('Height',[Height])
-            left_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
+        right_depth = left_side.get_prompt("Right Depth")
+        right_depth.set_formula('fabs(Depth)', [Depth])
+
+        left_side.add_prompt("Is Cutpart", 'CHECKBOX', True)
+        left_side.loc_z('Toe_Kick_Height', [Toe_Kick_Height])
+        left_side.dim_x('Height-Toe_Kick_Height', [Height, Toe_Kick_Height])
         left_side.rot_y(value=math.radians(-90))
-        left_side.dim_y('Depth',[Depth])
-        left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
+        left_side.dim_y('Depth', [Depth])
+        left_side.dim_z('-Left_Side_Thickness', [Left_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
         add_side_height_dimension(left_side)
-        # left_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # left_side.edgebanding('Cabinet_Body_Edges',l2=True)
+
+        right_side = common_parts.add_panel(self)
+        right_side.obj_bp["IS_BP_PANEL"] = True
         
-        right_side = add_part(self, part_path)
-        right_side.set_name(self.carcass_type + " Right Side")
+        left_depth = right_side.get_prompt("Left Depth")
+        left_depth.set_formula('fabs(Depth)', [Depth])
+
         right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
         right_side.loc_x('Width',[Width])
-        if props.use_notched_sides:
-            right_side.dim_x('Height',[Height])
-            right_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
+        right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+        right_side.dim_x('Height-Toe_Kick_Height', [Height, Toe_Kick_Height])
         right_side.rot_y(value=math.radians(-90))
         right_side.dim_y('Depth',[Depth])
         right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('IF(Right_Fin_End,True,False)',[Right_Fin_End])
-        # right_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # right_side.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        left_fe = add_part(self, part_path)
-        left_fe.set_name(self.carcass_type + " Left FE")
-        left_fe.add_prompt("Is Cutpart",'CHECKBOX',True)
 
-        if props.use_notched_sides:
-            left_fe.dim_x('Height',[Height])
-            left_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            left_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
-        left_fe.rot_y(value=math.radians(-90))
-        left_fe.dim_y('Depth',[Depth])
-        left_fe.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-        left_fe.get_prompt('Hide').set_formula('IF(Left_Fin_End,False,True)',[Left_Fin_End])
-        # left_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # left_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        right_fe = add_part(self, part_path)
-        right_fe.set_name(self.carcass_type + " Right FE")
-        right_fe.add_prompt("Is Cutpart",'CHECKBOX',True)
-        right_fe.loc_x('Width',[Width])
-        if props.use_notched_sides:
-            right_fe.dim_x('Height',[Height])
-            right_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            right_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
-        right_fe.rot_y(value=math.radians(-90))
-        right_fe.dim_y('Depth',[Depth])
-        right_fe.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-        right_fe.get_prompt('Hide').set_formula('IF(Right_Fin_End,False,True)',[Right_Fin_End])
+    def add_appliance_sides(self):
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
 
-        # region XML Export
-        # right_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # right_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        # TODO XML Export
-        # if props.use_notched_sides:
-        #     add_toe_kick_notch(left_side)
-        #     add_toe_kick_notch(right_side)
-        #     add_toe_kick_notch(left_fe)
-        #     add_toe_kick_notch(right_fe)
-        # endregion
-            
+        # Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+        Left_Fin_End = self.get_prompt('Left Fin End').get_var()
+        Right_Fin_End = self.get_prompt('Right Fin End').get_var()
+        Remove_Left_Side = self.get_prompt('Remove Left Side').get_var()
+        Remove_Right_Side = self.get_prompt('Remove Right Side').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+
+        left_side = common_parts.add_panel(self)
+        left_side.obj_bp["IS_BP_PANEL"] = True
+
+        right_depth = left_side.get_prompt("Right Depth")
+        right_depth.set_formula('fabs(Depth)', [Depth])
+
+        left_side.add_prompt("Is Cutpart", 'CHECKBOX', True)
+        left_side.dim_x('Height', [Height])
+        left_side.rot_y(value=math.radians(-90))
+        left_side.dim_y('Depth', [Depth])
+        left_side.dim_z('-Left_Side_Thickness', [Left_Side_Thickness])
+        left_side.get_prompt('Hide').set_formula('IF(Remove_Left_Side,True,False)',[Remove_Left_Side])
+        add_side_height_dimension(left_side)
+  
+        right_side = common_parts.add_panel(self)
+        right_side.obj_bp["IS_BP_PANEL"] = True
+        left_depth = right_side.get_prompt("Left Depth")
+        left_depth.set_formula('fabs(Depth)', [Depth])
+
+        right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
+        right_side.loc_x('Width',[Width])
+        right_side.dim_x('Height', [Height])
+        right_side.rot_y(value=math.radians(-90))
+        right_side.dim_y('Depth',[Depth])
+        right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
+        right_side.get_prompt('Hide').set_formula('IF(Remove_Right_Side,True,False)',[Remove_Right_Side])
+
     def add_tall_sides(self):
-        props = cabinet_properties.get_scene_props().carcass_defaults
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
-        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
-        Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
@@ -340,90 +337,33 @@ class Standard_Carcass(sn_types.Assembly):
         Right_Side_Full_Height = self.get_prompt('Right Side Full Height').get_var()
         Top_Inset = self.get_prompt('Top Inset').get_var()
         Top_Thickness = self.get_prompt('Top Thickness').get_var()
-    
-        part_path = NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING
 
-        left_side = add_part(self, part_path)
-        left_side.set_name(self.carcass_type + " Left Side")
-        if props.use_notched_sides:
-            left_side.dim_x('Height+IF(Left_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness,Left_Side_Full_Height])
-            left_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            left_side.dim_x('Height-Toe_Kick_Height+IF(Left_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Left_Side_Full_Height,Height,Toe_Kick_Height,Top_Thickness,Top_Inset])
+        left_side = common_parts.add_panel(self)
+        right_depth = left_side.get_prompt("Right Depth")
+        right_depth.set_formula('fabs(Depth)', [Depth])
+        left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+        left_side.dim_x('Height-Toe_Kick_Height+IF(Left_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Left_Side_Full_Height,Height,Toe_Kick_Height,Top_Thickness,Top_Inset])
         left_side.rot_y(value=math.radians(-90))
         left_side.dim_y('Depth',[Depth])
         left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
         add_side_height_dimension(left_side)
-        # left_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # left_side.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        right_side = add_part(self, part_path)
-        right_side.set_name(self.carcass_type + " Right Side")
+
+        right_side = common_parts.add_panel(self)
+        left_depth = right_side.get_prompt("Left Depth")
+        left_depth.set_formula('fabs(Depth)', [Depth])
         right_side.loc_x('Width',[Width])
-        if props.use_notched_sides:
-            right_side.dim_x('Height+IF(Right_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness,Right_Side_Full_Height])
-            right_side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            right_side.dim_x('Height-Toe_Kick_Height+IF(Right_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Right_Side_Full_Height,Top_Thickness,Top_Inset,Height,Toe_Kick_Height])
+        right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+        right_side.dim_x('Height-Toe_Kick_Height+IF(Right_Side_Full_Height,0,-Top_Inset+Top_Thickness)',[Right_Side_Full_Height,Top_Thickness,Top_Inset,Height,Toe_Kick_Height])
         right_side.rot_y(value=math.radians(-90))
         right_side.dim_y('Depth',[Depth])
         right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('IF(Right_Fin_End,True,False)',[Right_Fin_End])
-        # right_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # right_side.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        left_fe = add_part(self, part_path)
-        left_fe.set_name(self.carcass_type + " Left FE")
-        if props.use_notched_sides:
-            left_fe.dim_x('Height',[Height])
-            left_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            left_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            left_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
-        left_fe.rot_y(value=math.radians(-90))
-        left_fe.dim_y('Depth',[Depth])
-        left_fe.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-        left_fe.get_prompt('Hide').set_formula('IF(Left_Fin_End,False,True)',[Left_Fin_End])
-        # left_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # left_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        right_fe = add_part(self, part_path)
-        right_fe.set_name(self.carcass_type + " Right FE")
-        right_fe.loc_x('Width',[Width])
-        if props.use_notched_sides:
-            right_fe.dim_x('Height',[Height])
-            right_fe.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-        else:
-            right_fe.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            right_fe.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
-        right_fe.rot_y(value = -90)
-        right_fe.dim_y('Depth',[Depth])
-        right_fe.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-        right_fe.get_prompt('Hide').set_formula('IF(Right_Fin_End,False,True)',[Right_Fin_End])
-        # right_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # right_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-         # TODO XML Export
-        # if props.use_notched_sides:
-        #     add_toe_kick_notch(left_side)
-        #     add_toe_kick_notch(right_side)
-        #     add_toe_kick_notch(left_fe)
-        #     add_toe_kick_notch(right_fe)        
-        
+
     def add_upper_sides(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
-        # Width = self.obj_bp.snap.get_var('dim_x', 'Width')
-        # Height = self.obj_bp.snap.get_var('dim_z', 'Height')
-        # Depth = self.obj_bp.snap.get_var('dim_y', 'Depth')
         Left_Fin_End = self.get_prompt('Left Fin End').get_var()
         Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
@@ -433,54 +373,28 @@ class Standard_Carcass(sn_types.Assembly):
         Valance_Height_Top = self.get_prompt('Valance Height Top').get_var()
         Valance_Height_Bottom = self.get_prompt('Valance Height Bottom').get_var()
 
-        left_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-        left_side.set_name(self.carcass_type + " Left Side")
+        left_side = common_parts.add_panel(self)
+        right_depth = left_side.get_prompt("Right Depth")
+        right_depth.set_formula('fabs(Depth)', [Depth])
         left_side.loc_z('IF(Left_Side_Full_Height,0,-Valance_Height_Top)',[Left_Side_Full_Height,Valance_Height_Top])
-        # left_side.loc_z('IF(Left_Side_Full_Height,0,Height)',[Left_Side_Full_Height,Valance_Height_Top, Height])
-        # left_side.loc_z(value=sn_unit.inch(36))
         left_side.rot_y(value=math.radians(-90))
         left_side.dim_x('Height+IF(Left_Side_Full_Height,0,Valance_Height_Top+Valance_Height_Bottom)',[Height,Valance_Height_Bottom,Valance_Height_Top,Left_Side_Full_Height])
         left_side.dim_y('Depth',[Depth])
         left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
         add_side_height_dimension(left_side)
-        # left_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # left_side.edgebanding('Cabinet_Body_Edges',l2=True)
         
-        right_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-        right_side.set_name(self.carcass_type + " Right Side")
+        right_side = common_parts.add_panel(self)
+        left_depth = right_side.get_prompt("Left Depth")
+        left_depth.set_formula('fabs(Depth)', [Depth])
         right_side.loc_x('Width',[Width])
         right_side.loc_z('IF(Right_Side_Full_Height,0,-Valance_Height_Top)',[Right_Side_Full_Height,Valance_Height_Top])
-        # right_side.loc_z('IF(Right_Side_Full_Height,0,Height)',[Right_Side_Full_Height,Valance_Height_Top, Height])
         right_side.rot_y(value=math.radians(-90))
         right_side.dim_x('Height+IF(Right_Side_Full_Height,0,Valance_Height_Top+Valance_Height_Bottom)',[Height,Right_Side_Full_Height,Valance_Height_Top,Valance_Height_Bottom])
         right_side.dim_y('Depth',[Depth])
         right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('IF(Right_Fin_End,True,False)',[Right_Fin_End])
-        # right_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # right_side.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        left_fe = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-        left_fe.set_name(self.carcass_type + " Left FE")
-        left_fe.rot_y(value=math.radians(-90))
-        left_fe.dim_x('Height',[Height])
-        left_fe.dim_y('Depth',[Depth])
-        left_fe.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-        left_fe.get_prompt('Hide').set_formula('IF(Left_Fin_End,False,True)',[Left_Fin_End])
-        # left_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # left_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        right_fe = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-        right_fe.set_name(self.carcass_type + " Right FE")
-        right_fe.loc_x('Width',[Width])
-        right_fe.rot_y(value=math.radians(-90))
-        right_fe.dim_x('Height',[Height])
-        right_fe.dim_y('Depth',[Depth])
-        right_fe.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-        right_fe.get_prompt('Hide').set_formula('IF(Right_Fin_End,False,True)',[Right_Fin_End])
-        # right_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # right_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
+
     def add_suspended_sides(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -490,49 +404,26 @@ class Standard_Carcass(sn_types.Assembly):
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
 
-        left_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        left_side.set_name(self.carcass_type + " Left Side")
+        left_side = common_parts.add_panel(self)
+        right_depth = left_side.get_prompt("Right Depth")
+        right_depth.set_formula('fabs(Depth)', [Depth])
         left_side.rot_y(value=math.radians(-90))
         left_side.dim_x('Height',[Height])
         left_side.dim_y('Depth',[Depth])
         left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
         add_side_height_dimension(left_side)
-        # left_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # left_side.edgebanding('Cabinet_Body_Edges',l2=True)
         
-        right_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        right_side.set_name(self.carcass_type + " Right Side")
+        right_side = common_parts.add_panel(self)
+        left_depth = right_side.get_prompt("Left Depth")
+        left_depth.set_formula('fabs(Depth)', [Depth])
         right_side.loc_x('Width',[Width])
         right_side.rot_y(value=math.radians(-90))
         right_side.dim_x('Height',[Height])
         right_side.dim_y('Depth',[Depth])
         right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('IF(Right_Fin_End,True,False)',[Right_Fin_End])
-        # right_side.cutpart('Cabinet_Unfinished_Side' + self.open_name)
-        # right_side.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        left_fe = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        left_fe.set_name(self.carcass_type + " Left FE")
-        left_fe.rot_y(value=math.radians(-90))
-        left_fe.dim_x('Height',[Height])
-        left_fe.dim_y('Depth',[Depth])
-        left_fe.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-        left_fe.get_prompt('Hide').set_formula('IF(Left_Fin_End,False,True)',[Left_Fin_End])
-        # left_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # left_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
-        right_fe = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        right_fe.set_name(self.carcass_type + " Right FE")
-        right_fe.loc_x('Width',[Width])
-        right_fe.rot_y(value=math.radians(-90))
-        right_fe.dim_x('Height',[Height])
-        right_fe.dim_y('Depth',[Depth])
-        right_fe.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-        right_fe.get_prompt('Hide').set_formula('IF(Right_Fin_End,False,True)',[Right_Fin_End])
-        # right_fe.cutpart('Cabinet_Finished_Side' + self.open_name)
-        # right_fe.edgebanding('Cabinet_Body_Edges',l2=True)
-        
+
     def add_fillers(self):
         width = self.obj_x.snap.get_var('location.x', 'width')
         height = self.obj_z.snap.get_var('location.z', 'height')
@@ -544,7 +435,7 @@ class Standard_Carcass(sn_types.Assembly):
         if self.carcass_type in {'Base','Sink','Tall'}:
             kick_height = self.get_prompt("Toe Kick Height").get_var('kick_height')
             
-        left_filler = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        left_filler = common_parts.add_filler(self)
         left_filler.set_name("Left Filler")
         left_filler.loc_y('depth',[depth])
         left_filler.loc_z('height',[height])
@@ -554,9 +445,8 @@ class Standard_Carcass(sn_types.Assembly):
         left_filler.dim_y('l_filler',[l_filler])
         left_filler.dim_z('ft',[ft])
         left_filler.get_prompt('Hide').set_formula('IF(l_filler>0,False,True)',[l_filler])
-        # left_filler.cutpart('Cabinet_Filler')
         
-        right_filler = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        right_filler = common_parts.add_filler(self)
         right_filler.set_name("Right Filler")
         right_filler.loc_x('width',[width])
         right_filler.loc_y('depth',[depth])
@@ -566,7 +456,6 @@ class Standard_Carcass(sn_types.Assembly):
         right_filler.dim_y('r_filler',[r_filler])
         right_filler.dim_z('-ft',[ft])
         right_filler.get_prompt('Hide').set_formula('IF(r_filler>0,False,True)',[r_filler])
-        # right_filler.cutpart('Cabinet_Filler')
         
         if self.carcass_type in {'Base','Sink','Tall'}:
             left_filler.dim_x('height-kick_height',[height,kick_height])
@@ -580,34 +469,32 @@ class Standard_Carcass(sn_types.Assembly):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+
         Top_Thickness = self.get_prompt('Top Thickness').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
         Top_Inset = self.get_prompt('Top Inset').get_var()
         
-        top = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        top.set_name(self.carcass_type + " Top")
-        top.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+        if self.carcass_type == "Appliance":
+            Remove_Left_Side = self.get_prompt('Remove Left Side').get_var()   
+            Remove_Right_Side = self.get_prompt('Remove Right Side').get_var()
+
+        top = common_parts.add_kd_shelf(self)
+        if self.carcass_type != "Appliance":
+            top.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+            top.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+        else:
+            top.dim_x('Width-IF(Remove_Left_Side,0,Left_Side_Thickness)-IF(Remove_Right_Side,0,Right_Side_Thickness)',
+                            [Width,Remove_Left_Side,Left_Side_Thickness,Remove_Right_Side,Right_Side_Thickness])
+            top.loc_x('IF(Remove_Left_Side,0,Left_Side_Thickness)',[Remove_Left_Side,Left_Side_Thickness])
         top.dim_y('Depth',[Depth])
         top.dim_z('-Top_Thickness',[Top_Thickness])
-        top.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
-        # top.loc_z('IF(Height>0,Height-Top_Inset+Top_Thickness,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness])
+
         if self.carcass_type == "Upper":
             top.loc_z('IF(Height>0,2*Height-Top_Inset+Top_Thickness,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness])
         else: 
             top.loc_z('IF(Height>0,Height-Top_Inset+Top_Thickness,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness])
 
-
-        # region XML Export
-        # TODO: XML Export
-        # top.cutpart("Cabinet_Top" + self.open_name)
-        # top.edgebanding('Cabinet_Body_Edges', l2 = True)
-        
-        # if USE_CONST_HOLES_TOP:
-        #     add_drilling(top)
-
-        # endregion
-        
     def add_sink_top(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -626,12 +513,6 @@ class Standard_Carcass(sn_types.Assembly):
         front_s.loc_y('Depth',[Depth])
         front_s.loc_z('IF(Height>0,Height,0)',[Height])
         front_s.rot_x(value=math.radians(90))
-
-        # front_s.cutpart("Cabinet_Sink_Sub_Front")
-        # front_s.edgebanding('Cabinet_Body_Edges', l1 = True)
-
-        # if USE_CONST_HOLES_STRETCHERS:
-        #     add_drilling(front_s)
         
     def add_bottom(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -643,20 +524,14 @@ class Standard_Carcass(sn_types.Assembly):
         Bottom_Thickness = self.get_prompt('Bottom Thickness').get_var()
         Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
                 
-        bottom = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        bottom.set_name(self.carcass_type + " Bottom")
-        if USE_DADO_BOTTOM:
-            bottom.loc_x('Left_Side_Thickness-INCH(.25)',[Left_Side_Thickness])
-            bottom.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)+INCH(.5)',[Width,Left_Side_Thickness,Right_Side_Thickness])
-        else:
-            bottom.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
-            bottom.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+        bottom = common_parts.add_kd_shelf(self)
+        # bottom.set_name(self.carcass_type + " Bottom")
+        bottom.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+        bottom.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
         bottom.dim_y('Depth',[Depth])
         bottom.dim_z('Bottom_Thickness',[Bottom_Thickness])
 
         bottom.get_prompt('Hide').set_formula('Remove_Bottom',[Remove_Bottom])
-        # bottom.cutpart("Cabinet_Bottom" + self.open_name)
-        # bottom.edgebanding('Cabinet_Body_Edges', l2 = True)
         
         if self.carcass_type in {'Upper','Suspended'}:
             Bottom_Inset = self.get_prompt('Bottom Inset').get_var()
@@ -665,14 +540,6 @@ class Standard_Carcass(sn_types.Assembly):
         if self.carcass_type in {'Base','Tall','Sink'}:
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             bottom.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-
-        # region TODO XML Export
-        # if USE_CONST_HOLES_BOTTOM:
-        #     add_drilling(bottom)
-            
-        # if USE_DADO_BOTTOM:
-        #     add_dado(bottom)
-        # endregion
             
     def add_toe_kick(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -697,8 +564,6 @@ class Standard_Carcass(sn_types.Assembly):
         kick.loc_y('Depth+Toe_Kick_Setback',[Depth,Toe_Kick_Setback])
         kick.rot_x(value=math.radians(90))
         kick.get_prompt('Hide').set_formula('Remove_Bottom', [Remove_Bottom])
-
-        # kick.cutpart("Cabinet_Toe_Kick")
     
     def add_leg_levelers(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -728,32 +593,42 @@ class Standard_Carcass(sn_types.Assembly):
         Top_Thickness = self.get_prompt('Top Thickness').get_var()
         Remove_Back = self.get_prompt('Remove Back').get_var()
         Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
-        if self.carcass_type in {'Base','Tall','Sink'}:
+        if self.carcass_type in {'Base','Appliance','Tall','Sink'}:
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+        if self.carcass_type == "Appliance":
+            Remove_Left_Side = self.get_prompt('Remove Left Side').get_var()   
+            Remove_Right_Side = self.get_prompt('Remove Right Side').get_var()
         
-        back = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        back.set_name(self.carcass_type + " Back")
-        back.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+        back = common_parts.add_back(self)
+        # back.set_name(self.carcass_type + " Back")
+
+        if self.carcass_type != 'Appliance':
+            back.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+        else:
+            back.loc_x('IF(Remove_Left_Side,0,Left_Side_Thickness)',[Remove_Left_Side,Left_Side_Thickness])
         back.rot_y(value=math.radians(-90))
         back.rot_z(value=math.radians(-90))
         
         if self.carcass_type in {'Base','Sink'}:
             back.dim_x('fabs(Height)-IF(Remove_Bottom,0,Toe_Kick_Height+Bottom_Thickness)-Top_Thickness',[Height,Toe_Kick_Height,Bottom_Thickness,Remove_Bottom,Top_Thickness])
-        
-        if self.carcass_type == 'Tall':
+        elif self.carcass_type in {'Appliance'}:
+            back.dim_x('fabs(Height)-Top_Thickness',[Height,Top_Thickness])
+        elif self.carcass_type == 'Tall':
             back.dim_x('fabs(Height)-IF(Remove_Bottom,0,Toe_Kick_Height+Bottom_Thickness)-Top_Inset',[Height,Top_Inset,Toe_Kick_Height,Bottom_Thickness,Remove_Bottom])
-        
-        if self.carcass_type in {'Upper','Suspended'}:
+        elif self.carcass_type in {'Upper','Suspended'}:
             back.dim_x('fabs(Height)-(Top_Inset+Bottom_Inset)',[Height,Top_Inset,Bottom_Inset])
-            
-        back.dim_y('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+
+        if self.carcass_type != 'Appliance':    
+            back.dim_y('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+        else:
+            back.dim_y('Width-IF(Remove_Left_Side,0,Left_Side_Thickness)-IF(Remove_Right_Side,0,Right_Side_Thickness)',
+                            [Width,Remove_Left_Side,Left_Side_Thickness,Remove_Right_Side,Right_Side_Thickness])
         back.dim_z('-Back_Thickness',[Back_Thickness])
-        # back.cutpart("Cabinet_Back" + self.open_name)
         back.get_prompt('Hide').set_formula('IF(Remove_Back,True,False)',[Remove_Back])
         
         if self.carcass_type in {'Base','Tall','Sink'}:
             back.loc_z('IF(Remove_Bottom,0,Toe_Kick_Height+Bottom_Thickness)',[Remove_Bottom,Toe_Kick_Height,Bottom_Thickness])
-        
+    
         if self.carcass_type in {'Upper','Suspended'}:
             back.loc_z('Height+Bottom_Inset',[Height,Bottom_Inset])
     
@@ -784,8 +659,6 @@ class Standard_Carcass(sn_types.Assembly):
         top_val.dim_y('Valance_Height_Top',[Valance_Height_Top])
         top_val.dim_z('-Valance_Thickness',[Valance_Thickness])
         top_val.get_prompt('Hide').set_formula('IF(AND(Valance_Each_Unit,Valance_Height_Top>0),False,True)',[Valance_Each_Unit,Valance_Height_Top])
-        # top_val.cutpart("Cabinet_Valance")
-        # top_val.edgebanding('Cabinet_Body_Edges',l1=True)
         
         if self.carcass_type == 'Upper':
             bottom_val = add_part(self, PART_WITH_FRONT_EDGEBANDING)
@@ -798,8 +671,6 @@ class Standard_Carcass(sn_types.Assembly):
             bottom_val.dim_y('-Valance_Height_Bottom',[Valance_Height_Bottom])
             bottom_val.dim_z('-Valance_Thickness',[Valance_Thickness])
             bottom_val.get_prompt('Hide').set_formula('IF(AND(Valance_Each_Unit,Valance_Height_Bottom>0),False,True)',[Valance_Each_Unit,Valance_Height_Bottom])
-            # bottom_val.cutpart("Cabinet_Valance")
-            # bottom_val.edgebanding('Cabinet_Body_Edges',l1=True)
             
     def draw(self):
         props = cabinet_properties.get_scene_props().carcass_defaults
@@ -810,26 +681,34 @@ class Standard_Carcass(sn_types.Assembly):
             self.add_base_assembly_prompts()
             if not self.remove_top:
                 self.add_full_top()
-            if props.use_notched_sides:
-                self.add_toe_kick()
+            self.add_back()
+            self.add_bottom()
             self.add_base_sides()
+            if props.use_leg_levelers:
+                self.add_leg_levelers()
+
+        if self.carcass_type == "Appliance":
+            self.add_base_assembly_prompts()
+            self.add_appliance_prompts()
+            self.add_appliance_sides()
             if props.use_leg_levelers:
                 self.add_leg_levelers()
 
         if self.carcass_type == "Tall":
             self.add_base_assembly_prompts()
             self.add_full_top()
+            self.add_back()
+            self.add_bottom()
             self.add_valance_prompts(add_bottom_valance=False)
-            if props.use_notched_sides:
-                self.add_toe_kick()
             self.add_tall_sides()
             if props.use_leg_levelers:
                 self.add_leg_levelers()
-            # self.add_valances()
             
         if self.carcass_type == "Upper":
             self.flip_z = True
             self.add_full_top()
+            self.add_back()
+            self.add_bottom()
             self.add_valance_prompts(add_bottom_valance=True)
             self.add_valances()
             self.add_upper_sides()
@@ -838,8 +717,8 @@ class Standard_Carcass(sn_types.Assembly):
             self.add_base_assembly_prompts()
             self.add_sink_prompts()
             self.add_sink_top()
-            if props.use_notched_sides:
-                self.add_toe_kick()
+            self.add_back()
+            self.add_bottom()
             self.add_base_sides()
             if props.use_leg_levelers:
                 self.add_leg_levelers()
@@ -849,10 +728,11 @@ class Standard_Carcass(sn_types.Assembly):
             self.add_suspended_sides()
             if not self.remove_top:
                 self.add_full_top()
+            self.add_back()
+            self.add_bottom()
 
         self.add_fillers()
-        self.add_bottom()
-        self.add_back()
+
         self.add_prompt_formulas()
         
         self.update()
@@ -869,6 +749,9 @@ class Inside_Corner_Carcass(sn_types.Assembly):
     carcass_shape = "" # {Notched, Diagonal}
     left_right_depth = sn_unit.inch(23)
 
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate door dim labels
+
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
 
@@ -876,6 +759,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         super().update()
         self.obj_bp["IS_BP_CARCASS"] = True   
         self.obj_bp["INSIDE_CORNER_CARCASS"] = True 
+        self.obj_bp["CARCASS_TYPE"] = self.carcass_type
 
         if self.carcass_shape.upper() == 'NOTCHED':
             self.obj_bp["PROFILE_SHAPE_NOTCHED"] = True
@@ -893,6 +777,8 @@ class Inside_Corner_Carcass(sn_types.Assembly):
 
         self.add_prompt("Left Fin End", 'CHECKBOX', False)
         self.add_prompt("Right Fin End", 'CHECKBOX', False)
+        self.add_prompt("Left End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
+        self.add_prompt("Right End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
         self.add_prompt("Left Side Wall Filler", 'DISTANCE', 0.0)
         self.add_prompt("Right Side Wall Filler", 'DISTANCE', 0.0)
         
@@ -998,99 +884,51 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
             Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
-        Left_Fin_End = self.get_prompt('Left Fin End').get_var()
-        Right_Fin_End = self.get_prompt('Right Fin End').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
         Cabinet_Depth_Left = self.get_prompt("Cabinet Depth Left").get_var()
         Cabinet_Depth_Right = self.get_prompt("Cabinet Depth Right").get_var()
-        sides = []
     
         if self.carcass_type in {"Base","Tall","Sink"}:
-            left_side = add_part(self, NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING)
+            left_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
             left_side.set_name(self.carcass_type + " Left Side")
+            left_side.rot_y(value=math.radians(-90))
             left_side.loc_y('depth',[depth])
-            left_side.dim_x('height',[height])
-            left_side.dim_y('-Cabinet_Depth_Left',[Cabinet_Depth_Left])
+            left_side.loc_z('Toe_Kick_Height', [Toe_Kick_Height])
+            left_side.dim_x('height-Toe_Kick_Height', [height, Toe_Kick_Height])
+            left_side.dim_y('-Cabinet_Depth_Left', [Cabinet_Depth_Left])
+            left_side.dim_z('-Left_Side_Thickness', [Left_Side_Thickness])
             left_side.rot_z(value=math.radians(90))
             add_side_height_dimension(left_side)
-            sides.append(left_side)
         
-            right_side = add_part(self, NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING)
+            right_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
             right_side.set_name(self.carcass_type + " Right Side")
-            right_side.dim_x('height',[height])
-            right_side.dim_y('-Cabinet_Depth_Right',[Cabinet_Depth_Right])
-            sides.append(right_side)
-            
-            left_fe = add_part(self, NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING)
-            left_fe.set_name(self.carcass_type + " Left FE")
-            left_fe.loc_y('depth',[depth])
-            left_fe.dim_x('height',[height])
-            left_fe.dim_y('-Cabinet_Depth_Left',[Cabinet_Depth_Left])
-            left_fe.rot_z(value=math.radians(90))
-            sides.append(left_fe)
-            
-            right_fe = add_part(self, NOTCHED_SIDE if props.use_notched_sides else PART_WITH_FRONT_EDGEBANDING)
-            right_fe.set_name(self.carcass_type + " Right FE")
-            right_fe.dim_x('height',[height])
-            right_fe.dim_y('-Cabinet_Depth_Right',[Cabinet_Depth_Right])
-            sides.append(right_fe)
-        
+            right_side.loc_x('width',[width])
+            right_side.loc_z('Toe_Kick_Height', [Toe_Kick_Height])
+            right_side.rot_y(value=math.radians(-90))
+            right_side.dim_x('height-Toe_Kick_Height', [height, Toe_Kick_Height])
+            right_side.dim_y('-Cabinet_Depth_Right', [Cabinet_Depth_Right])
+            right_side.dim_z('Right_Side_Thickness', [Right_Side_Thickness])
+
         if self.carcass_type in {"Upper","Suspended"}:
             left_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
             left_side.set_name(self.carcass_type + " Left Side")
+            left_side.rot_y(value=math.radians(-90))
             left_side.loc_y('depth',[depth])
             left_side.dim_x('height',[height])
             left_side.dim_y('-Cabinet_Depth_Left',[Cabinet_Depth_Left])
+            left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
             left_side.rot_z(value=math.radians(90))
             add_side_height_dimension(left_side)
-            sides.append(left_side)
         
             right_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
             right_side.set_name(self.carcass_type + " Right Side")
+            right_side.loc_x('width',[width])
+            right_side.rot_y(value=math.radians(-90))
             right_side.dim_x('height',[height])
             right_side.dim_y('-Cabinet_Depth_Right',[Cabinet_Depth_Right])
-            sides.append(right_side)
-            
-            left_fe = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-            left_fe.set_name(self.carcass_type + " Left FE")
-            left_fe.loc_y('depth',[depth])
-            left_fe.dim_x('height',[height])
-            left_fe.dim_y('-Cabinet_Depth_Left',[Cabinet_Depth_Left])
-            left_fe.rot_z(value=math.radians(90))
-            sides.append(left_fe)
-            
-            right_fe = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-            right_fe.set_name(self.carcass_type + " Right FE")
-            right_fe.dim_x('height',[height])
-            right_fe.dim_y('-Cabinet_Depth_Right',[Cabinet_Depth_Right])
-            sides.append(right_fe)
-    
-        for side in sides:
-            side.rot_y(value=math.radians(-90))
-            # side.edgebanding('Cabinet_Body_Edges',l1=True)
-            if self.carcass_type in {'Base','Tall'}:
-                side.get_prompt('Notch X Dimension').set_formula('Toe_Kick_Height',[Toe_Kick_Height])
-                side.get_prompt('Notch Y Dimension').set_formula('Toe_Kick_Setback+Toe_Kick_Thickness',[Toe_Kick_Setback,Toe_Kick_Thickness])
-            if "Left Side" in side.obj_bp.snap.name_object:
-                side.get_prompt('Hide').set_formula('IF(Left_Fin_End,True,False)',[Left_Fin_End])
-                side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-                # side.cutpart("Cabinet_Unfinished_Side"+self.open_name)
-            if "Right Side" in side.obj_bp.snap.name_object:
-                side.get_prompt('Hide').set_formula('IF(Right_Fin_End,True,False)',[Right_Fin_End])
-                side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-                # side.cutpart("Cabinet_Unfinished_Side"+self.open_name)
-                side.loc_x('width',[width])
-            if "Left FE" in side.obj_bp.snap.name_object:
-                side.get_prompt('Hide').set_formula('IF(Left_Fin_End,False,True)',[Left_Fin_End])
-                side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-                # side.cutpart("Cabinet_Finished_Side"+self.open_name)
-            if "Right FE" in side.obj_bp.snap.name_object:
-                side.get_prompt('Hide').set_formula('IF(Right_Fin_End,False,True)',[Right_Fin_End])
-                side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-                # side.cutpart("Cabinet_Finished_Side"+self.open_name)
-                side.loc_x('width',[width])
-                
+            right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
+
     def add_fillers(self):
         Width = self.obj_x.snap.get_var('location.x','Width')
         Depth = self.obj_y.snap.get_var('location.y','Depth')
@@ -1166,12 +1004,6 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         Width = self.obj_x.snap.get_var('location.x','Width')
         Depth = self.obj_y.snap.get_var('location.y','Depth')
         Height = self.obj_z.snap.get_var('location.z','Height')
-        if self.carcass_type in {'Base','Tall','Sink'}:
-            Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
-            Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
-            Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
-            Left_Toe_Kick_Filler = self.get_prompt('Left Toe Kick Filler').get_var()
-            Right_Toe_Kick_Filler = self.get_prompt('Right Toe Kick Filler').get_var()
         Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
         Bottom_Thickness = self.get_prompt('Bottom Thickness').get_var()
@@ -1186,51 +1018,19 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         bottom.set_name(self.carcass_type + " Bottom")
         bottom.dim_x('Width-Right_Side_Thickness',[Width,Right_Side_Thickness])
         bottom.dim_y('Depth+Left_Side_Thickness',[Depth,Left_Side_Thickness])
+        bottom.dim_z('Bottom_Thickness',[Bottom_Thickness])
         bottom.get_prompt('Left Depth').set_formula('Cabinet_Depth_Left',[Cabinet_Depth_Left])
         bottom.get_prompt('Right Depth').set_formula('Cabinet_Depth_Right',[Cabinet_Depth_Right])
         # bottom.cutpart("Cabinet_Bottom"+self.open_name)
         # bottom.edgebanding('Cabinet_Body_Edges', l1 = True)
         
         if self.carcass_type in {'Upper','Suspended'}:
-            bottom.dim_z('Bottom_Thickness',[Bottom_Thickness])
             bottom.loc_z('Height',[Height])
             
         if self.carcass_type in {'Base','Tall','Sink'}:
-            bottom.dim_z('Bottom_Thickness',[Bottom_Thickness])
+            Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             bottom.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            
-            left_kick = add_part(self, PART_WITH_NO_EDGEBANDING)
-            left_kick.set_name("Left Toe Kick")
-            left_kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
-            left_kick.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
-            left_kick.loc_x('Cabinet_Depth_Left-Toe_Kick_Setback',[Cabinet_Depth_Left,Toe_Kick_Setback])
-            left_kick.loc_y('Depth-Left_Toe_Kick_Filler',[Depth,Left_Toe_Kick_Filler])
-            left_kick.rot_x(value=math.radians(90))
-            left_kick.rot_z(value=math.radians(90))
-            # left_kick.cutpart("Toe_Kick")
-    
-            if self.carcass_shape == 'Notched':
-                left_kick.dim_x('fabs(Depth)-Cabinet_Depth_Right+Toe_Kick_Setback+Toe_Kick_Thickness+Left_Toe_Kick_Filler',
-                    [Depth,Cabinet_Depth_Right,Toe_Kick_Setback,Toe_Kick_Thickness,Left_Toe_Kick_Filler])
 
-                right_kick = add_part(self, PART_WITH_NO_EDGEBANDING)
-                right_kick.set_name("Left Toe Kick")
-                right_kick.dim_x('fabs(Width)-Cabinet_Depth_Left+Toe_Kick_Setback-Right_Side_Thickness+Toe_Kick_Thickness+Right_Toe_Kick_Filler',
-                    [Width,Cabinet_Depth_Left,Toe_Kick_Setback,Right_Side_Thickness,Toe_Kick_Thickness,Right_Toe_Kick_Filler])
-                right_kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
-                right_kick.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
-                right_kick.loc_x('Cabinet_Depth_Left-Toe_Kick_Setback',[Cabinet_Depth_Left,Toe_Kick_Setback,Toe_Kick_Thickness])
-                right_kick.loc_y('-Cabinet_Depth_Right+Toe_Kick_Setback',[Cabinet_Depth_Right,Toe_Kick_Setback])
-                right_kick.rot_x(value=math.radians(90))
-                # right_kick.cutpart("Toe_Kick")
-            
-            else:
-                left_kick.dim_x('sqrt(((fabs(Depth)-Left_Side_Thickness-Cabinet_Depth_Right+Toe_Kick_Setback)**2)+((fabs(Width)-Right_Side_Thickness-Cabinet_Depth_Left+Toe_Kick_Setback)**2))',
-                                [Depth,Width,Cabinet_Depth_Right,Cabinet_Depth_Left,Left_Side_Thickness,Right_Side_Thickness,Toe_Kick_Setback])
-                
-                left_kick.rot_z('atan((fabs(Depth)-Left_Side_Thickness-Cabinet_Depth_Right+Toe_Kick_Setback)/(fabs(Width)-Right_Side_Thickness-Cabinet_Depth_Left+Toe_Kick_Setback))',
-                                [Depth,Width,Left_Side_Thickness,Right_Side_Thickness,Cabinet_Depth_Left,Cabinet_Depth_Right,Toe_Kick_Setback])
-    
     def add_backs(self):
         Width = self.obj_x.snap.get_var('location.x','Width')
         Depth = self.obj_y.snap.get_var('location.y','Depth')
@@ -1240,7 +1040,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         Bottom_Inset = self.get_prompt('Bottom Inset').get_var()
         Back_Thickness = self.get_prompt('Back Thickness').get_var()
 
-        r_back = add_part(self, PART_WITH_NO_EDGEBANDING)
+        r_back = common_parts.add_back(self)
         r_back.set_name(self.carcass_type + " Back")
         r_back.loc_x('Back_Thickness',[Back_Thickness])
         r_back.loc_z('IF(Height>0,Bottom_Inset,Height+Bottom_Inset)',[Bottom_Inset,Height])
@@ -1251,7 +1051,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         r_back.dim_z('-Back_Thickness',[Back_Thickness])
         # r_back.cutpart("Cabinet_Thick_Back" + self.open_name)
         
-        l_back = add_part(self, PART_WITH_NO_EDGEBANDING)
+        l_back = common_parts.add_back(self)
         l_back.set_name(self.carcass_type + " Back")
         l_back.loc_z('IF(Height>0,Bottom_Inset,Height+Bottom_Inset)',[Bottom_Inset,Height])
         l_back.rot_y(value=math.radians(-90))
@@ -1264,18 +1064,80 @@ class Inside_Corner_Carcass(sn_types.Assembly):
     def add_valances(self):
         pass
     
+    def add_toe_kick(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.add_prompt("Toe Kick Height", 'DISTANCE', props.toe_kick_height)
+        self.add_prompt("Toe Kick Setback", 'DISTANCE', props.toe_kick_setback)
+
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+        Left_Depth = self.get_prompt('Cabinet Depth Left').get_var('Left_Depth')
+        Right_Depth = self.get_prompt('Cabinet Depth Right').get_var('Right_Depth')
+        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var('Toe_Kick_Setback')
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
+        LPT = self.get_prompt('Left Side Thickness').get_var("LPT")
+        RPT = self.get_prompt('Right Side Thickness').get_var("RPT")
+
+        tk_path = path.join(closet_paths.get_library_path(), "/Products - Basic/Toe Kick.png")
+        wm_props = bpy.context.window_manager.snap
+
+        left_tk = wm_props.get_asset(tk_path)
+        left_tk.draw()
+        left_tk.obj_bp.parent = self.obj_bp
+        left_tk.obj_bp["ID_PROMPT"] = left_tk.id_prompt
+        left_tk.obj_bp.snap.comment_2 = "1034"
+        left_tk.loc_y('Depth', [Depth])
+        left_tk.rot_z(value=math.radians(90))
+        left_tk.dim_x('-Depth+INCH(0.75)/2', [Depth])
+        left_tk.dim_y('-Left_Depth+Toe_Kick_Setback', [Left_Depth, Toe_Kick_Setback])
+        left_tk.get_prompt('Toe Kick Height').set_formula('Toe_Kick_Height', [Toe_Kick_Height])
+        left_depth_amount = left_tk.get_prompt("Extend Depth Amount").get_var("left_depth_amount")
+
+        right_tk = wm_props.get_asset(tk_path)
+        right_tk.draw()
+        right_tk.obj_bp.parent = self.obj_bp
+        right_tk.obj_bp.snap.comment_2 = "1034"
+        right_tk.loc_x(
+            'Left_Depth-Toe_Kick_Setback-INCH(0.75)/2+left_depth_amount',
+            [Left_Depth, Toe_Kick_Setback, left_depth_amount])
+        right_tk.dim_x(
+            'Width-Left_Depth+Toe_Kick_Setback+INCH(0.75)/2-left_depth_amount',
+            [Width, Left_Depth, Toe_Kick_Setback, left_depth_amount])
+        right_tk.dim_y('-Right_Depth+Toe_Kick_Setback', [Right_Depth, Toe_Kick_Setback])
+        right_tk.get_prompt('Toe Kick Height').set_formula('Toe_Kick_Height', [Toe_Kick_Height])
+
+        if self.carcass_shape == 'Diagonal':
+            angle_kick = common_parts.add_toe_kick(self)
+            angle_kick.set_name("Angle Kick")
+            angle_kick.loc_x(
+                'Left_Depth-Toe_Kick_Setback-INCH(0.75)+.00635',
+                [Left_Depth, Toe_Kick_Setback])
+            angle_kick.loc_y('Depth+3*INCH(0.75)/2-.00635', [Depth])
+            angle_kick.rot_x(value=math.radians(90))
+            angle_kick.rot_z(
+                '-atan((Depth+Right_Depth-Toe_Kick_Setback)'
+                '/(Width-Left_Depth+Toe_Kick_Setback))',
+                [Width, Depth, Right_Depth, Left_Depth, Toe_Kick_Setback])
+            angle_kick.dim_x(
+                'sqrt((Width-Left_Depth+Toe_Kick_Setback-INCH(0.75))**2'
+                '+(Depth+Right_Depth-Toe_Kick_Setback)**2)',
+                [Width, Depth, Left_Depth, Right_Depth,
+                Toe_Kick_Setback])
+            angle_kick.dim_y('Toe_Kick_Height', [Toe_Kick_Height])
+            angle_kick.dim_z('INCH(0.75)')
+
     def draw(self):
         self.create_assembly()
-        
         self.add_common_carcass_prompts()
         
         if self.carcass_type in {"Base","Tall"}:
             self.add_base_assembly_prompts()
-        
+        if self.carcass_type == "Base":
+            self.add_toe_kick()
         if self.carcass_type == "Tall":
             self.add_valance_prompts(add_bottom_valance=False)
         elif self.carcass_type == "Upper":
-                self.add_valance_prompts(add_bottom_valance=True)
+            self.add_valance_prompts(add_bottom_valance=True)
 
         self.add_prompt_formuls()
         self.add_sides()
@@ -1327,7 +1189,6 @@ class INSERT_Sink_Carcass(Standard_Carcass):
         self.width = sn_unit.inch(18)
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(23)
-
                 
 class INSERT_Suspended_Carcass(Standard_Carcass):
     
@@ -1338,6 +1199,16 @@ class INSERT_Suspended_Carcass(Standard_Carcass):
         self.width = sn_unit.inch(18)
         self.height = sn_unit.inch(6)
         self.depth = sn_unit.inch(23)
+
+class INSERT_Appliance_Carcass(Standard_Carcass):
+    
+    def __init__(self):
+        self.category_name = "Carcasses"
+        self.assembly_name = "Appliance Carcass"
+        self.carcass_type = "Appliance"
+        self.width = sn_unit.inch(24)
+        self.height = sn_unit.inch(34.5)
+        self.depth = sn_unit.inch(24)
 
 #---------Inside Corner Carcasses
 

@@ -203,6 +203,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     exterior_assembly = None
     splitters = []
     op_is_floor_mount = {}
+    op_door_height_exceeded = {}
 
     is_island = None
     is_single_island = None
@@ -910,6 +911,37 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                 if is_hang_double.get_value():
                                     add_bottom_deep_shelf_setback.set_value(depth.get_value() - sn_unit.inch(12))
 
+                if "IS_BP_DOOR_INSERT" in obj_bp:
+                    door_insert = sn_types.Assembly(obj_bp)
+                    height_exceeded_ppt = door_insert.get_prompt("Door Height Exceeded")
+
+                    for child in obj_bp.children:
+                        if child.get("IS_DOOR"):
+                            door_assy = sn_types.Assembly(child)
+                            door_style = door_assy.get_prompt("Door Style")
+                            if door_style and ("Traviso" in (door_style.get_value())):
+                                constraint = [c for c in door_assy.obj_x.constraints if c.type == 'LIMIT_LOCATION']
+
+                                if constraint:
+                                    constraint = constraint[0]
+                                    bpy.context.view_layer.update()
+                                    door_height_exceeded = door_assy.obj_x.location.x > constraint.max_x
+                                    height_exceeded_ppt = door_insert.get_prompt("Door Height Exceeded")
+
+                                    if not height_exceeded_ppt:
+                                        height_exceeded_ppt = door_insert.add_prompt("Door Height Exceeded", 'CHECKBOX', False)
+
+                                    height_exceeded_ppt.set_value(door_height_exceeded)
+                                    self.op_door_height_exceeded[obj_bp.sn_closets.opening_name] = height_exceeded_ppt.get_value()
+
+                                    if height_exceeded_ppt.get_value():
+                                        door_insert.get_prompt("Fill Opening").set_value(False)
+                                        door_insert.get_prompt("Insert Height").set_value(sn_unit.millimeter(1485.392))
+                                        for index, height in enumerate(common_lists.OPENING_HEIGHTS):
+                                            if not 1485.392 >= float(height[0]):
+                                                self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
+                                                break
+
             if obj_props.is_closet_top_bp:
                 extend_left = insert.get_prompt("Extend Left Amount")
                 extend_right = insert.get_prompt("Extend Right Amount")
@@ -1222,9 +1254,9 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         self.left_offset = 0
         self.right_offset = 0
         self.all_floor_mounted = self.is_closet_floor_mounted()
+        self.update_opening_inserts()
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=600)
+        return super().invoke(context, event)
 
     def convert_to_height(self, number, context):
         panel_heights = get_panel_heights(self,context)
@@ -1459,14 +1491,24 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         
         for i in range(1, 10):
             calculator = self.closet.get_calculator('Opening Widths Calculator')
-            width = eval("calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))            
+            width = eval("calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
             height = self.closet.get_prompt("Opening " + str(i) + " Height")
             depth = self.closet.get_prompt("Opening " + str(i) + " Depth")
             floor = self.closet.get_prompt("Opening " + str(i) + " Floor Mounted")
+            show_door_limit_warning = False
+
+            if self.op_door_height_exceeded:
+                opening = self.op_door_height_exceeded.get(str(i))
+                if opening:
+                    show_door_limit_warning = True
+                    message = "Traviso door style not permitted in sizes above 47H!"
 
             if width:
                 row = box.row()
-                row.label(text=str(i) + ":")
+                if show_door_limit_warning:
+                    row.label(text=str(i) + ":", icon='ERROR')
+                else:
+                    row.label(text=str(i) + ":")
                 if width.equal == False:
                     row.prop(width,'equal',text="")
                 else:
@@ -1486,6 +1528,11 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 else:
                     row.prop(height,'distance_value',text="")
                 row.prop(depth,'distance_value',text="")
+
+                if show_door_limit_warning:
+                    warning_box = box.box()
+                    row = warning_box.row()
+                    row.label(text=message)
 
     def draw_ctf_options(self,layout):
         prompts = []
@@ -1792,6 +1839,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         row.prop(self.closet.obj_bp,'rotation_euler',index=2,text="")
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         prompt_box = layout.box()
         prompt_box.label(text=self.closet_name, icon='LATTICE_DATA')

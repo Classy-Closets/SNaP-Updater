@@ -25,7 +25,6 @@ DIVISION = path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgeb
 def add_part(assembly, path):
     part_bp = assembly.add_assembly_from_file(path)
     part = sn_types.Assembly(part_bp)
-    part.obj_bp.sn_closets.is_panel_bp = True
     return part
 
 class Simple_Shelves(sn_types.Assembly):
@@ -111,6 +110,8 @@ class Simple_Shelves(sn_types.Assembly):
     def draw(self):
         self.create_assembly()
         self.obj_bp["IS_BP_SHELVES"] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Interior"
+        self.obj_bp['OPENING_NBR'] = 1
         props = self.obj_bp.sn_closets
         props.is_shelf_bp = True
         
@@ -232,6 +233,8 @@ class Shelves_Removed(sn_types.Assembly):
             self.add_advanced_frameless_prompts()
             
         self.obj_bp["IS_BP_SHELVES"] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Interior"
+        
         props = self.obj_bp.sn_closets
         props.is_shelf_bp = True
         
@@ -324,7 +327,8 @@ class Dividers(sn_types.Assembly):
         self.add_dividers()
         
         self.obj_bp["IS_BP_DIVIDER"] = True
-   
+        self.obj_bp['PLACEMENT_TYPE'] = "Interior"
+
         self.update()
         
 class Divisions(sn_types.Assembly):
@@ -459,6 +463,7 @@ class Divisions(sn_types.Assembly):
         self.add_adj_shelves()
         
         self.obj_bp["IS_BP_DIVISION"] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Interior"
 
         self.update()
         

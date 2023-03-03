@@ -135,8 +135,7 @@ class PROMPTS_Wall_Cleat_Prompts(sn_types.Prompts_Interface):
         self.left_offset = 0
         self.right_offset = 0
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def update_placement(self, context):
         parent_obj = self.product.obj_bp.parent
@@ -172,6 +171,7 @@ class PROMPTS_Wall_Cleat_Prompts(sn_types.Prompts_Interface):
 
     def draw(self, context):
         """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         layout.label(text=self.product.obj_bp.snap.name_object)
         box = layout.box()

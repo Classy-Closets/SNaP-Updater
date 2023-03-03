@@ -235,7 +235,17 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                            description="Default width for drawer cabinets",
                                            default=sn_unit.inch(18.0),
                                            unit='LENGTH')
-    
+
+    width_dishwasher: bpy.props.FloatProperty(name="Width Dishwasher",
+                                           description="Default width for dishwasher cabinets",
+                                           default=sn_unit.inch(24.0),
+                                           unit='LENGTH')
+
+    width_wine_cooler: bpy.props.FloatProperty(name="Width Wine Cooler",
+                                           description="Default width for wine cooler cabinets",
+                                           default=sn_unit.inch(24.0),
+                                           unit='LENGTH')
+
     base_width_blind: bpy.props.FloatProperty(name="Base Width Blind",
                                                description="Default width for base blind corner cabinets",
                                                default=sn_unit.inch(48.0),
@@ -291,10 +301,6 @@ class PROPERTIES_Carcass_Defaults(bpy.types.PropertyGroup):
     use_full_tops: bpy.props.BoolProperty(name="Use Full Tops", 
                                            description="Check this to use full tops and not stretchers on base cabinets", 
                                            default=False)
-    
-    use_notched_sides: bpy.props.BoolProperty(name="Use Notched Sides", 
-                                               description="Check this to use notched sides for base and tall cabinets", 
-                                               default=True)
     
     use_thick_back: bpy.props.BoolProperty(name="Use Thick Back", 
                                             description="Check this to use thick backs", 
@@ -367,7 +373,7 @@ class PROPERTIES_Carcass_Defaults(bpy.types.PropertyGroup):
     
     sub_front_height: bpy.props.FloatProperty(name="Sub Front Height",
                                                description="Default Sink Sub Front Height",
-                                               default=sn_unit.inch(7),
+                                               default=sn_unit.inch(7.05),
                                                unit='LENGTH')
 
 bpy.utils.register_class(PROPERTIES_Carcass_Defaults)

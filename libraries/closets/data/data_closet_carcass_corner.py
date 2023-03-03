@@ -89,6 +89,8 @@ class L_Shelves(sn_types.Assembly):
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
         previous_shelf = None
 
+        TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')
+
         if not self.calculator:
             self.add_calculator(amt)
 
@@ -101,6 +103,8 @@ class L_Shelves(sn_types.Assembly):
             self.shelves.append(shelf)
             height_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Height')".format(str(i)))
             opening_height = eval("height_prompt.get_var(self.calculator.name, 'opening_{}_height')".format(str(i)))
+
+            IBEKD = shelf.get_prompt('Is Bottom Exposed KD').get_var('IBEKD')
 
             shelf.loc_x('IF(Add_Backing,Backing_Thickness,0)', [Add_Backing, Backing_Thickness])
             shelf.loc_y('IF(Add_Backing,-Backing_Thickness,0)', [Add_Backing, Backing_Thickness])
@@ -115,7 +119,7 @@ class L_Shelves(sn_types.Assembly):
 
             shelf.dim_x('Width-IF(RRS,0,PT)-IF(Add_Backing,Backing_Thickness,0)', [Width, RRS, PT, Add_Backing, Backing_Thickness])
             shelf.dim_y('Depth+IF(RLS,0,PT)+IF(Add_Backing,Backing_Thickness,0)', [Depth, RLS, PT, Add_Backing, Backing_Thickness])
-            shelf.dim_z('Shelf_Thickness', [Shelf_Thickness])
+            shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1), PT)', [PT, TAS, IBEKD])
 
             l_depth = shelf.get_prompt('Left Depth')
             l_depth.set_formula('Left_Depth-IF(Add_Backing,Backing_Thickness,0)', [Left_Depth, Add_Backing, Backing_Thickness])
@@ -180,6 +184,8 @@ class L_Shelves(sn_types.Assembly):
         self.add_prompt("Right Filler Setback Amount", 'DISTANCE', 0.0)
         self.add_prompt("Edge Bottom of Left Filler", 'CHECKBOX', False)
         self.add_prompt("Edge Bottom of Right Filler", 'CHECKBOX', False)
+
+        self.add_prompt("Thick Adjustable Shelves", 'CHECKBOX', props.closet_defaults.thick_adjustable_shelves)
 
         common_prompts.add_toe_kick_prompts(self)
         common_prompts.add_thickness_prompts(self)
@@ -295,10 +301,12 @@ class L_Shelves(sn_types.Assembly):
         left_top_cleat.get_prompt('Hide').set_formula('IF(Add_Backing,True,False)', [Add_Backing])
 
         bottom = common_parts.add_l_shelf(self)
-        bottom.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)', [Is_Hanging, Height, Panel_Height, Toe_Kick_Height])
+        bottom.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+Shelf_Thickness', [Is_Hanging, Height, Panel_Height, Toe_Kick_Height, Shelf_Thickness])
         bottom.dim_x('Width-IF(RRS,0,PT)', [Width, RRS, PT])
         bottom.dim_y('Depth+IF(RLS,0,PT)', [Depth, PT, RLS])
         bottom.dim_z('Shelf_Thickness', [Shelf_Thickness])
+        bottom.rot_x(value=math.radians(180))
+        bottom.rot_z(value=math.radians(-90))
         bottom.get_prompt('Left Depth').set_formula('Left_Depth', [Left_Depth])
         bottom.get_prompt('Right Depth').set_formula('Right_Depth', [Right_Depth])
         bottom.get_prompt('Is Locked Shelf').set_value(True)
@@ -887,6 +895,8 @@ class Corner_Shelves(sn_types.Assembly):
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
         previous_shelf = None
 
+        TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')
+
         if not self.calculator:
             self.add_calculator(amt)
 
@@ -899,6 +909,8 @@ class Corner_Shelves(sn_types.Assembly):
             self.shelves.append(shelf)
             height_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Height')".format(str(i)))
             opening_height = eval("height_prompt.get_var(self.calculator.name, 'opening_{}_height')".format(str(i)))
+
+            IBEKD = shelf.get_prompt('Is Bottom Exposed KD').get_var('IBEKD')
 
             shelf.loc_x('IF(Add_Backing,Backing_Thickness,0)', [Add_Backing, Backing_Thickness])
             shelf.loc_y('IF(Add_Backing,-Backing_Thickness,0)', [Add_Backing, Backing_Thickness])
@@ -913,7 +925,7 @@ class Corner_Shelves(sn_types.Assembly):
 
             shelf.dim_x('Width-IF(RRS,0,PT)-IF(Add_Backing,Backing_Thickness,0)', [Width, RRS, PT, Add_Backing, Backing_Thickness])
             shelf.dim_y('Depth+IF(RLS,0,PT)+IF(Add_Backing,Backing_Thickness,0)', [Depth, RLS, PT, Add_Backing, Backing_Thickness])
-            shelf.dim_z('Shelf_Thickness', [Shelf_Thickness])
+            shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1), PT)', [PT, TAS, IBEKD])
 
             l_depth = shelf.get_prompt('Left Depth')
             l_depth.set_formula('Left_Depth-IF(Add_Backing,Backing_Thickness,0)', [Left_Depth, Add_Backing, Backing_Thickness])
@@ -1049,10 +1061,12 @@ class Corner_Shelves(sn_types.Assembly):
         left_top_cleat.get_prompt('Hide').set_formula('IF(Add_Backing,True,False)', [Add_Backing])
 
         bottom_angled = common_parts.add_angle_shelf(self)
-        bottom_angled.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)', [Is_Hanging, Height, Panel_Height, Toe_Kick_Height])
+        bottom_angled.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+Shelf_Thickness', [Is_Hanging, Height, Panel_Height, Toe_Kick_Height, Shelf_Thickness])
         bottom_angled.dim_x('Width-IF(RRS,0,PT)', [Width, RRS, PT])
         bottom_angled.dim_y('Depth+IF(RLS,0,PT)', [Depth, PT, RLS])
         bottom_angled.dim_z('Shelf_Thickness', [Shelf_Thickness])
+        bottom_angled.rot_x(value=math.radians(180))
+        bottom_angled.rot_z(value=math.radians(-90))
         bottom_angled.get_prompt('Left Depth').set_formula('Left_Depth', [Left_Depth])
         bottom_angled.get_prompt('Right Depth').set_formula('Right_Depth', [Right_Depth])
         bottom_angled.get_prompt('Is Locked Shelf').set_value(True)
@@ -1535,7 +1549,7 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         self.run_calculators(self.product.obj_bp)
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def set_obj_location(self):
         right_wall_filler =\
@@ -1883,7 +1897,8 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
             row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)            
 
     def draw(self, context):
-        """ This is where you draw the interface """        
+        """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         self.draw_product_size(layout)
         self.draw_filler_options(layout)
@@ -2010,8 +2025,7 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
             self.calculators.append(heights_calc)
         self.run_calculators(self.product.obj_bp)
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def set_filler_values(self):
         left_wall_filler =\
@@ -2361,7 +2375,8 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
             row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)            
 
     def draw(self, context):
-        """ This is where you draw the interface """        
+        """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         self.draw_product_size(layout)
         self.draw_filler_options(layout)

@@ -92,7 +92,7 @@ class Query_PDF_Form_Data:
         mat_props = bpy.context.scene.closet_materials
         basket_color = mat_props.wire_basket_colors
         hamper_types = {
-            0 : "Wire", 1: "Canvas"
+            0 : "Wire", 1: "Hafele Nylon"
         }
         scene_hampers = []
         pages_hampers = {}
@@ -127,7 +127,7 @@ class Query_PDF_Form_Data:
                 vendor_id = '547.42.{}{}{}'.format(color_id,depth_id,width_id)
                 scene_hampers.append((wall_letter, vendor_id))
                 seen.append(hmp.name)
-            elif unseen and not hidden and hamper_type == "Canvas" and really_canvas:
+            elif unseen and not hidden and hamper_type == "Hafele Nylon" and really_canvas:
                 basket_width = round(
                     sn_unit.meter_to_inch(hamper_ins_assy.obj_x.location.x), 2)
                 if 24.0 > basket_width >= 18.0:
@@ -394,28 +394,44 @@ class Query_PDF_Form_Data:
         ext_colors = []
         wall_obj = wall.obj_bp
         door_panel = self.__get_door_obj(wall_obj)
+
         if not door_panel:
             return
-        style =\
-            self.__get_door_type(door_panel)
+
+        style = self.__get_door_type(door_panel)
         scene_props = context.scene.closet_materials
         color = None
+
         if style == "slab":
             mat_types = scene_props.materials.mat_types
             type_index = scene_props.door_drawer_mat_type_index
             material_type = mat_types[type_index]
-            colors = material_type.colors
-            color_index = scene_props.door_drawer_mat_color_index
-            color = colors[color_index]
+
+            if material_type.name == "Upgrade Options":
+                if scene_props.upgrade_options.get_type().name == "Paint":
+                    color = scene_props.paint_colors[scene_props.paint_color_index]
+                else:
+                    color = scene_props.stain_colors[scene_props.stain_color_index]
+            else:
+                colors = material_type.colors
+                color_index = scene_props.door_drawer_mat_color_index
+                color = colors[color_index]
+
             if material_type.name.lower() == "veneer":
                 colors.append(color.name)
+
             ext_colors.append(color.name)
-        elif style == "wood":
+
+        elif style == "wood" and scene_props.use_custom_color_scheme:
             colors = scene_props.stain_colors
             color_index = scene_props.stain_color_index
             color = colors[color_index]
             ext_colors.append(color.name)
+
+        else:
+            ext_colors.append(scene_props.materials.get_mat_color().name)
         ext_colors = list(set(ext_colors))
+
         return ext_colors
 
 
@@ -454,9 +470,17 @@ class Query_PDF_Form_Data:
         mat_types = scene_props.materials.mat_types
         type_index = scene_props.mat_type_index
         material_type = mat_types[type_index]
-        colors = material_type.colors
+        if material_type.name == "Upgrade Options":
+            if scene_props.upgrade_options.get_type().name == "Paint":
+                colors = scene_props.paint_colors
+            else:
+                colors = scene_props.stain_colors
+        else:
+            colors = material_type.colors
+
         color_index = scene_props.get_mat_color_index(material_type.name)
         color = colors[color_index]
+
         if material_type.name.lower() == "veneer":
             data_dict["veneer"] = color.name
         data_dict["int_color"] = color.name
@@ -772,31 +796,37 @@ class Query_PDF_Form_Data:
                 for item in for_hamper:
                     qty = str(part_numbers[item])
                     self.data_dict[page]["hamper_qty"] = qty
-                    self.data_dict[page]["hamper"] = item
+                    # self.data_dict[page]["hamper"] = item
                 for item in for_misc:
                     qty = str(part_numbers[item])
                     if self.data_dict[page]["misc_qty"] != '':
                         self.data_dict[page]["misc_qty"] += "/"
                         self.data_dict[page]["misc_style"] += " / "
                     self.data_dict[page]["misc_qty"] += qty
-                    self.data_dict[page]["misc_style"] += item
+                    # self.data_dict[page]["misc_style"] += item
 
 
     def __write_drawer_section_info(self, page, walls, wallbed_drawers):
         dovetail = 0
         melamine = 0
+        thick_melamine = 0
         drawers_doors = self.__get_drawer_face_types(walls, wallbed_drawers)
-        drw_boxes_result = self.etl_object.part_walls_query("Drawer Bottom", walls)
+        drw_btm_result = self.etl_object.part_walls_query("Drawer Bottom", walls)
+        drw_subfront_result = self.etl_object.part_walls_query("Drawer Sub Front", walls)
+        drw_back_result = self.etl_object.part_walls_query("Drawer Back", walls)
         file_result = self.etl_object.part_walls_query("file rail", walls)
         # Sliders queries
         sliders_results = {}
         sliders_names = ["hafele bb",
                          "hr bb sc",
-                         "hettich 4d 9in",
-                         "hettich 4d 12in",
-                         "hettich 4d 15in",
-                         "hettich 4d 18in",
-                         "hettich 4d 21in",
+                         "hafele 3/4 um sc 12",
+                         "hafele 3/4 um sc 15",
+                         "hafele 3/4 um sc 18",
+                         "hafele 3/4 um sc 21",
+                         "hettich 4d 12",
+                         "hettich 4d 15",
+                         "hettich 4d 18",
+                         "hettich 4d 21",
                          "hettich v6 9in",
                          "hettich v6 12in",
                          "hettich v6 15in",
@@ -830,25 +860,47 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["drawer_hardware"] = ''
         self.data_dict[page]["drawer_lock_qty"] = ''
         self.data_dict[page]["lock_hardware"] = ''
-        for key, value in drw_boxes_result.items():
-            quantities = ''
-            description = ''
-            qty = str(value.get("qty", 0))
-            if 'birch' in key.lower():
-                dovetail += int(qty)
-            elif 'paper'in key.lower():
-                melamine += int(qty)
-            if dovetail > 0 and melamine > 0:
-                quantities = f'{melamine}/{dovetail}'
-                description = f'Melamine / Dovetail'
-            elif dovetail == 0 and melamine > 0:
-                quantities = f'{melamine}'
-                description = f'Melamine'
-            elif dovetail > 0 and melamine == 0:
-                quantities = f'{dovetail}'
-                description = f'Dovetail'
-            self.data_dict[page]["drawer_boxes_qty"] = quantities
-            self.data_dict[page]["drawer_boxes"] = description
+
+        quantities = ''
+        description = ''
+
+        for key, value in drw_btm_result.items():
+            if key:
+                qty = str(value.get("qty", 0))
+                if 'birch' in key.lower():
+                    dovetail += int(qty)
+        
+        for key, value in drw_subfront_result.items():
+            if key:
+                qty = str(value.get("qty", 0))
+                if 'paper'in key.lower():
+                    melamine += int(qty)
+                elif "bbbb prefinish" not in key.lower():
+                    thick_melamine += int(qty)
+
+        if dovetail > 0:
+            quantities += str(dovetail)
+            description += "Dovetail"
+
+        if melamine > 0:
+            if quantities:
+                quantities += "/"
+            if description:
+                description += " / "
+            quantities += str(melamine)
+            description += "White Melamine"
+
+        if thick_melamine > 0:
+            if quantities:
+                quantities += "/"
+            if description:
+                description += " / "
+            quantities += str(thick_melamine)
+            description += '3/4" Melamine'
+
+        self.data_dict[page]["drawer_boxes_qty"] = quantities
+        self.data_dict[page]["drawer_boxes"] = description
+
         for key, value in sliders_results.items():
             qty = str(value.get("qty", 0))
             if self.data_dict[page]["drawer_slides_qty"] != '':
@@ -856,6 +908,7 @@ class Query_PDF_Form_Data:
                 self.data_dict[page]["drawer_slides"] += ' / '
             self.data_dict[page]["drawer_slides_qty"] += qty
             self.data_dict[page]["drawer_slides"] += key
+
         for key, value in file_result.items():
             qty = str(value.get("qty", 0))
             self.data_dict[page]["file_rails_qty"] = qty
@@ -918,7 +971,7 @@ class Query_PDF_Form_Data:
                     if not has_glass and mat_type == "Wood":
                         is_wood = True
                     # Setting Style name
-                    if fillname == "":
+                    if fillname == "" or fillname == "Hamper":
                         mat_type = "Slab"
                     elif fillname != "":
                         mat_type = fillname
@@ -1214,10 +1267,16 @@ class Query_PDF_Form_Data:
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
                     self.data_dict[page]["ct_color"] += ' / '
-                mfg = ct_mat_props.get_type().get_mfg()
-                color = mfg.get_color()
-                self.data_dict[page]["ct_type"] += mfg.name
-                self.data_dict[page]["ct_color"] += color.name
+                ct_type = ct_mat_props.get_type()
+                if ct_type.name == 'Wood':
+                    mfg = ct_mat_props.get_type().get_mfg()
+                    if mfg.name == "Butcher Block":
+                        color_name = "Butcher Block"
+                    else:
+                        color_name = mfg.get_color().name
+                    self.data_dict[page]["ct_type"] += mfg.name
+                    self.data_dict[page]["ct_color"] += color_name
+                
         if len(hpl) > 0:
             for key, _ in hpl.items():
                 if self.data_dict[page]["ct_type"] != '':
@@ -1239,10 +1298,15 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["ct_type"] += ' / '
                     self.data_dict[page]["ct_color"] += ' / '
                 ct_type = ct_mat_props.get_type()
-                if ct_type == 4:
+                if ct_type.name == 'Quartz':
                     mfg = ct_type.get_mfg()
                     color = mfg.get_color()
                     self.data_dict[page]["ct_type"] += "Quartz - " + mfg.name
+                    self.data_dict[page]["ct_color"] += color.name
+                elif ct_type.name == 'Standard Quartz':
+                    print("Found Standard Quartz")
+                    color = ct_type.get_color()
+                    self.data_dict[page]["ct_type"] += "Standard Quartz"
                     self.data_dict[page]["ct_color"] += color.name
 
                 bpy.context.window_manager.sn_project.get_project().designer

@@ -13,10 +13,12 @@ from . import drawer_boxes
 from . import cabinet_properties
 from . import cabinet_pulls
 from . import frameless_splitters
+from . import common_parts
 from snap.libraries.closets import closet_paths
 from snap.libraries.closets.common import common_lists
 from snap.views import opengl_dim
 from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
+from snap.libraries.closets.common import common_parts as closet_common_parts
 
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
@@ -52,8 +54,14 @@ def get_hole_size(obj_height_meters):
 def add_door_height_dimension(door):
     Length = door.obj_x.snap.get_var('location.x','Length')
     Width = door.obj_y.snap.get_var('location.y','Width')
+
+    for child in door.obj_bp.children:
+        if child.get('DOOR_HOLE_LABEL'):
+            # print("PREV_door_height_dimensions - door.obj_bp.child=",child)
+            sn_utils.delete_object_and_children(child)
     
     dim = sn_types.Dimension()
+    dim.anchor["IS_KB_LABEL"] = True
     dim.anchor["DOOR_HOLE_LABEL"] = True
     dim.parent(door.obj_bp)
     dim.start_x("Length*0.6", [Length])
@@ -64,12 +72,27 @@ def add_drawer_height_dimension(drawer):
     Length = drawer.obj_x.snap.get_var('location.x','Length')
     Width = drawer.obj_y.snap.get_var('location.y','Width')
 
+    for child in drawer.obj_bp.children:
+        if child.get('DRAWER_HOLE_LABEL'):
+            # print("PREV_drawer_height_dimensions - drawer.obj_bp.child=",child)
+            sn_utils.delete_object_and_children(child)
+
     dim = sn_types.Dimension()
-    dim.anchor["DRAWER_HOLE_LABEL"] = True
+    dim.anchor["IS_KB_LABEL"] = True
+    dim.anchor['DRAWER_HOLE_LABEL'] = True
     dim.parent(drawer.obj_bp)
     dim.start_x("Length*0.5+INCH(1.5)", [Length])
     dim.start_y("Width*0.5", [Width])
     dim.set_label("")
+
+def create_dimensionss(part):
+    for child in part.obj_bp.children:
+        if 'IS_DOOR' in child:
+            door = sn_types.Assembly(child)
+            add_door_height_dimension(door)
+        elif 'IS_BP_DRAWER_FRONT' in child and not 'IS_BP_FALSE_FRONT' in child:
+            drawer = sn_types.Assembly(child)
+            add_drawer_height_dimension(drawer)
 
 def update_dimensions(part):
     dimensions = []
@@ -222,6 +245,9 @@ class Doors(sn_types.Assembly):
     door_swing = ""  # {Left Swing, Right Swing, Double Door, Flip up}
     false_front_qty = 0 # 0, 1, 2
 
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate door dim labels
+
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
 
@@ -291,7 +317,8 @@ class Doors(sn_types.Assembly):
 
     def draw(self):
         self.create_assembly()
-        self.obj_bp["IS_BP_DOOR_INSERT"] = True
+        self.obj_bp['IS_BP_DOOR_INSERT'] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
    
         self.add_doors_prompts()
 
@@ -315,12 +342,9 @@ class Doors(sn_types.Assembly):
             False_Front_Height = self.get_prompt("False Front Height").get_var()
 
         if self.false_front_qty > 0:
-            false_front = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-            false_front.set_name("False Front")
-            false_front.obj_bp['IS_BP_DRAWER_FRONT'] = True
-            false_front.obj_bp['IS_BP_FALSE_FRONT'] = True
-            false_front.loc_x('-Left_Overlay',[Left_Overlay])
-            false_front.loc_z('Height+eta',[Height,eta])
+            false_front = common_parts.add_false_front(self)
+            false_front.loc_x('-Left_Overlay', [Left_Overlay])
+            false_front.loc_z('Height+eta', [Height, eta])
             false_front.rot_x(value=math.radians(90))
 
             if self.false_front_qty > 1:
@@ -331,19 +355,17 @@ class Doors(sn_types.Assembly):
             false_front.dim_z('Door_Thickness',[Door_Thickness])
 
             if self.false_front_qty > 1:
-                false_front_2 = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-                false_front_2.set_name("False Front")
-                false_front_2.obj_bp['IS_BP_DRAWER_FRONT'] = True
+                false_front_2 = common_parts.add_false_front(self)
                 false_front_2.loc_x('Width*0.5+Vertical_Gap*0.5', [Width, Vertical_Gap])
-                false_front_2.loc_z('Height+eta',[Height,eta])
+                false_front_2.loc_z('Height+eta', [Height,eta])
                 false_front_2.rot_x(value=math.radians(90))
                 false_front_2.dim_x("(Width+Left_Overlay+Right_Overlay-Vertical_Gap)/2", [Width, Left_Overlay, Right_Overlay, Vertical_Gap])
                 false_front_2.dim_y('-False_Front_Height',[False_Front_Height])
                 false_front_2.dim_z('Door_Thickness',[Door_Thickness])
 
         #LEFT DOOR
-        left_door = add_part(self, DOOR)
-        left_door.set_name("Cabinet Left Door")
+        left_door = common_parts.add_door(self)
+        left_door.set_name("Left Door")
         left_door.obj_bp.parent = self.obj_bp
         left_door.obj_bp['IS_DOOR'] = True
         self.set_standard_drivers(left_door)
@@ -374,9 +396,9 @@ class Doors(sn_types.Assembly):
             left_pull.get_prompt('Hide').set_formula('IF(Left_Swing,IF(No_Pulls,True,False),True)',[Left_Swing,No_Pulls])
 
         #RIGHT DOOR
-        right_door = add_part(self, DOOR)
+        right_door = common_parts.add_door(self)
         right_door.obj_bp['IS_DOOR'] = True
-        right_door.set_name("Cabinet Right Door")
+        right_door.set_name("Right Door")
         self.set_standard_drivers(right_door)
         right_door.loc_x('Width+Right_Overlay',[Width,Right_Overlay])
         right_door.rot_z('radians(90)+(radians(120)*Open_Door)',[Open_Door])
@@ -418,6 +440,9 @@ class Pie_Cut_Doors(sn_types.Assembly):
 
     door_type = ""  # {Base, Tall, Upper}
     door_swing = ""  # {Left Swing, Right Swing, Double Door, Flip up}
+
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate door dim labels
 
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
@@ -471,8 +496,8 @@ class Pie_Cut_Doors(sn_types.Assembly):
     
     def draw(self):
         self.create_assembly()
-        self.obj_bp["IS_BP_DOOR_INSERT"] = True
-           
+        self.obj_bp['IS_BP_DOOR_INSERT'] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
         self.add_doors_prompts()
         
         Width = self.obj_x.snap.get_var('location.x','Width')
@@ -487,8 +512,7 @@ class Pie_Cut_Doors(sn_types.Assembly):
         Inset_Front = self.get_prompt("Inset Front").get_var()
         
         #LEFT DOOR
-        left_door = add_part(self, DOOR)  
-        left_door.obj_bp['IS_DOOR'] = True
+        left_door = common_parts.add_door(self)
         left_door.set_name("Left Cabinet Door")
         self.set_standard_drivers(left_door)
         left_door.loc_x('IF(Inset_Front,-Door_Thickness,Door_to_Cabinet_Gap)',[Door_to_Cabinet_Gap,Door_Thickness,Inset_Front])
@@ -512,8 +536,7 @@ class Pie_Cut_Doors(sn_types.Assembly):
         left_pull.get_prompt('Hide').set_formula('IF(Left_Swing,True,IF(No_Pulls,True,False))',[Left_Swing,No_Pulls])
         
         #RIGHT DOOR
-        right_door = add_part(self, DOOR)  
-        right_door.obj_bp['IS_DOOR'] = True
+        right_door = common_parts.add_door(self)
         right_door.set_name("Right Cabinet Door")
         self.set_standard_drivers(right_door)
         right_door.loc_x('IF(Inset_Front,0,Door_to_Cabinet_Gap+Door_Thickness)',[Inset_Front,Door_to_Cabinet_Gap,Door_Thickness])
@@ -547,7 +570,9 @@ class Vertical_Drawers(sn_types.Assembly):
     drop_id = "lm_cabinets.insert_drawers_drop"
     drawer_qty = 1
     
+    drawer_fronts = []
     front_heights = []
+    drawer_boxes = []
     
     add_pull = True
     add_drawer = True
@@ -555,8 +580,22 @@ class Vertical_Drawers(sn_types.Assembly):
 
     calculator = None
     calculator_name = "Vertical Drawers Calculator"
-    calculator_obj_name = "Vertical Drawers Distance Obj"     
-    
+    calculator_obj_name = "Vertical Drawers Distance Obj"
+
+    def __init__(self, obj_bp=None):
+        super().__init__(obj_bp=obj_bp)
+        self.drawer_boxes = []
+        self.get_drawer_boxes()
+
+    def get_drawer_boxes(self):
+        for child in self.obj_bp.children:
+            if child.get("IS_DRAWER_BOX"):
+                box = sn_types.Assembly(child)
+                self.drawer_boxes.append(box)
+
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate door dim labels
+
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
 
@@ -564,7 +603,45 @@ class Vertical_Drawers(sn_types.Assembly):
         
         add_common_drawer_prompts(self)
         add_frameless_overlay_prompts(self)
-    
+        self.add_prompt("Add Drawer Boxes", 'CHECKBOX', False)
+
+    def get_all_drawer_fronts(self):
+        drawer_fronts = [sn_types.Assembly(obj) for obj in self.obj_bp.children if "IS_BP_DRAWER_FRONT" in obj]
+        # drawer_fronts.sort(key=lambda assembly: assembly.obj_bp.location.z, reverse=True)
+        return drawer_fronts
+
+    def add_drawer_boxes(self):
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+        Open_Drawers = self.get_prompt("Open Drawers").get_var()
+        Door_to_Cabinet_Gap = self.get_prompt("Door to Cabinet Gap").get_var()
+        Drawer_Box_Slide_Gap = self.get_prompt("Drawer Box Slide Gap").get_var()
+        Drawer_Box_Bottom_Gap = self.get_prompt("Drawer Box Bottom Gap").get_var()
+        Drawer_Box_Rear_Gap = self.get_prompt("Drawer Box Rear Gap").get_var()
+        Drawer_Box_Top_Gap = self.get_prompt("Drawer Box Top Gap").get_var()
+
+        for i, drawer_front in enumerate(self.get_all_drawer_fronts(), 1):
+            df_z_loc = drawer_front.obj_bp.snap.get_var("location.z", "df_z_loc")
+            DF_Height = drawer_front.obj_x.snap.get_var("location.x", "DF_Height")
+            drawer = closet_common_parts.add_dovetail_drawer(self)
+            drawer.obj_bp["CABINET_DRAWER_BOX"] = True
+            drawer.obj_bp["IS_DRAWER_BOX"] = True
+            self.drawer_boxes.append(drawer)
+            drawer.get_prompt("Box Type").set_value(value=2)
+            drawer.set_name("Drawer Box " + str(i))
+            drawer.loc_x('Drawer_Box_Slide_Gap',[Drawer_Box_Slide_Gap])
+            drawer.loc_y('-Door_to_Cabinet_Gap-(Depth*Open_Drawers)', [Door_to_Cabinet_Gap, Depth, Open_Drawers])
+            drawer.loc_z('df_z_loc+Drawer_Box_Bottom_Gap', [Drawer_Box_Bottom_Gap, df_z_loc])
+
+            drawer.dim_x('Width-(Drawer_Box_Slide_Gap*2)+INCH(0.05)', [Width,Drawer_Box_Slide_Gap])
+            drawer.dim_y('Depth-Drawer_Box_Rear_Gap', [Depth, Drawer_Box_Rear_Gap])
+            drawer.dim_z(
+                'DF_Height-Drawer_Box_Top_Gap-Drawer_Box_Bottom_Gap',
+                [DF_Height, Drawer_Box_Top_Gap, Drawer_Box_Bottom_Gap])
+
+            DF_Height = drawer_front.obj_x.snap.get_var("location.x", "DF_Height")
+            drawer.get_prompt("Drawer Front Height").set_formula("DF_Height", [DF_Height])
+
     def add_drawer_front(self, i, prev_drawer_empty):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -580,10 +657,6 @@ class Vertical_Drawers(sn_types.Assembly):
         No_Pulls = self.get_prompt("No Pulls").get_var()
         Inset_Front = self.get_prompt("Inset Front").get_var()
         Horizontal_Grain = self.get_prompt("Horizontal Grain").get_var()
-        Drawer_Box_Slide_Gap = self.get_prompt("Drawer Box Slide Gap").get_var()
-        Drawer_Box_Bottom_Gap = self.get_prompt("Drawer Box Bottom Gap").get_var()
-        Drawer_Box_Rear_Gap = self.get_prompt("Drawer Box Rear Gap").get_var()
-        Drawer_Box_Top_Gap = self.get_prompt("Drawer Box Top Gap").get_var()
         Open_Drawers = self.get_prompt("Open Drawers").get_var()
 
         height_prompt = eval("self.calculator.get_calculator_prompt('Drawer Front {} Height')".format(str(i)))
@@ -597,7 +670,7 @@ class Vertical_Drawers(sn_types.Assembly):
             front_empty.snap.loc_z('Height-Drawer_Front_Height+Top_Overlay',[Height,Drawer_Front_Height,Top_Overlay])
         drawer_z_loc = front_empty.snap.get_var('location.z','drawer_z_loc')
         
-        drawer_front = add_part(self, DRAWER_FRONT)
+        drawer_front = common_parts.add_drawer_front(self)
         drawer_front.obj_bp["IS_BP_DRAWER_FRONT"] = True
         drawer_front.set_name("Drawer Front")
         drawer_front.loc_x('-Left_Overlay',[Left_Overlay])
@@ -636,27 +709,16 @@ class Vertical_Drawers(sn_types.Assembly):
             pull.get_prompt("Pull X Location").set_formula('IF(Center_Pulls_on_Drawers,Drawer_Front_Height/2,Drawer_Pull_From_Top)',[Center_Pulls_on_Drawers,Drawer_Front_Height,Drawer_Pull_From_Top])
             pull.get_prompt("Pull Z Location").set_formula('(Width/2)+Right_Overlay',[Width,Right_Overlay])
             pull.get_prompt("Hide").set_formula('IF(No_Pulls,True,False)',[No_Pulls])        
-        
-        if self.add_drawer:
-            if self.use_buyout_box:
-                drawer_bp = self.add_assembly_from_file(BUYOUT_DRAWER_BOX)
-                drawer = sn_types.Assembly(drawer_bp)
-                drawer.obj_bp["CABINET_DRAWER_BOX"] = True
-            drawer.set_name("Drawer Box " + str(i))
-            drawer.loc_x('Drawer_Box_Slide_Gap',[Drawer_Box_Slide_Gap])
-            drawer.loc_y('IF(Inset_Front,Front_Thickness,-Door_to_Cabinet_Gap)-(Depth*Open_Drawers)',[Inset_Front,Door_to_Cabinet_Gap,Front_Thickness,Depth,Open_Drawers])
-            drawer.loc_z('drawer_z_loc+Drawer_Box_Bottom_Gap',[Drawer_Box_Bottom_Gap,drawer_z_loc])
-            drawer.dim_x('Width-(Drawer_Box_Slide_Gap*2)',[Width,Drawer_Box_Slide_Gap])
-            drawer.dim_y('Depth-Drawer_Box_Rear_Gap-IF(Inset_Front,Front_Thickness,0)',[Depth,Drawer_Box_Rear_Gap,Inset_Front,Front_Thickness])
-            drawer.dim_z('Drawer_Front_Height-Drawer_Box_Top_Gap-Drawer_Box_Bottom_Gap',[Drawer_Front_Height,Drawer_Box_Top_Gap,Drawer_Box_Bottom_Gap])        
-        
-        return front_empty, pull.obj_y, drawer.obj_z
+
+        return front_empty, pull.obj_y
         
     def draw(self):
         self.create_assembly()
         self.obj_bp['IS_DRAWERS_BP'] = True
+        self.obj_bp['IS_BP_DRAWER_STACK'] = True
+        self.obj_bp.sn_closets.is_drawer_stack_bp = True
         self.obj_bp['VERTICAL_DRAWERS'] = True
-
+        self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
         self.add_common_prompts()
 
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -676,10 +738,9 @@ class Vertical_Drawers(sn_types.Assembly):
         drawer = None
         for i in range(self.drawer_qty):
             self.calculator.add_calculator_prompt("Drawer Front " + str(i+1) + " Height")
-            drawer, pull_y, box_dim_z = self.add_drawer_front(i+1,drawer)
+            drawer, pull_y = self.add_drawer_front(i+1,drawer)
             empties.append(drawer)
             empties.append(pull_y)
-            empties.append(box_dim_z)
 
         self.update()
 
@@ -688,7 +749,6 @@ class Vertical_Drawers(sn_types.Assembly):
             data_path = z_loc_driver.variables["Drawer_Front_Height"].targets[0].data_path
             z_loc_driver.variables["Drawer_Front_Height"].targets[0].data_path = data_path
 
-            
 class Horizontal_Drawers(sn_types.Assembly):
     
     library_name = LIBRARY_NAME
@@ -706,6 +766,9 @@ class Horizontal_Drawers(sn_types.Assembly):
     add_drawer = True
     use_buyout_box = True
     
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate door dim labels
+
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels
 
@@ -748,7 +811,7 @@ class Horizontal_Drawers(sn_types.Assembly):
 
         drawer_x_loc = front_empty.snap.get_var('location.x','drawer_x_loc')
         
-        drawer_front = add_part(self, DRAWER_FRONT)
+        drawer_front = common_parts.add_drawer_front(self)
         drawer_front.obj_bp["IS_BP_DRAWER_FRONT"] = True
         drawer_front.set_name("Drawer Front")
 
@@ -820,6 +883,7 @@ class Horizontal_Drawers(sn_types.Assembly):
         self.create_assembly()
         self.obj_bp['IS_DRAWERS_BP'] = True
         self.obj_bp['HORIZONTAL_DRAWERS'] = True
+        self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
         self.add_common_prompts()
         
         drawer = None
@@ -863,6 +927,9 @@ class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
         super().confirm_placement(context)
 
         insert = sn_types.Assembly(self.insert.obj_bp)
+        if self.selected_opening.obj_bp['OPENING_NBR']:
+                insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+
         product = sn_types.Assembly(self.insert.obj_bp.parent)
 
         carcass = None
@@ -893,10 +960,12 @@ class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
         opening = self.selected_opening
 
         if opening:
+
             if opening.obj_bp.snap.interior_open == True:
                 shelf_insert = cabinet_interiors.INSERT_Shelves()
                 shelf_insert = product.add_assembly(shelf_insert)
                 shelf_insert.obj_bp.parent = opening.obj_bp
+                shelf_insert.obj_bp['OPENING_NBR'] = opening.obj_bp['OPENING_NBR']
                 opening.obj_bp.snap.interior_open = False
 
                 Width = opening.obj_x.snap.get_var('location.x', 'Width')
@@ -937,6 +1006,7 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
 
         has_splitter = False
         drawer_qty = 0
+        opening_qty = 0
         splitter = None
         
         insert = sn_types.Assembly(self.insert.obj_bp)
@@ -946,6 +1016,7 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
 
         if "IS_BP_SPLITTER" in product.obj_bp:
             has_splitter = True
+            opening_qty = product.obj_bp
 
         for obj_bp in insert.obj_bp.children:
             if "IS_BP_DRAWER_FRONT" in obj_bp:
@@ -953,49 +1024,55 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
         
         # if insert is single drawer and there is no splitter, create splitte and set size to default for top drawer...
         if not has_splitter and drawer_qty == 1:
-            self.insert.obj_bp["DEFAULT_OVERRIDE"] = True
-
             for obj_bp in product.obj_bp.children:
                 if "IS_BP_CARCASS" in obj_bp:
                     carcass = sn_types.Assembly(obj_bp)
                 if "IS_BP_OPENING" in obj_bp:
                     opening = sn_types.Assembly(obj_bp)
 
-            props = cabinet_properties.get_scene_props().size_defaults
-
             splitter = frameless_splitters.INSERT_2_Vertical_Openings()
             drawer = INSERT_1_Drawer()
 
-            # splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) # - sn_unit.inch(0.8)
-            splitter.opening_1_height = sn_unit.inch(4.29)
-            splitter.exterior_1 = drawer
-            splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
+            if carcass.obj_bp['CARCASS_TYPE'] != 'Suspended':
+                self.insert.obj_bp["DEFAULT_OVERRIDE"] = True
+                # splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) # - sn_unit.inch(0.8)
+                if carcass.obj_bp['CARCASS_TYPE'] in {'Upper','Suspended'}:
+                    splitter.opening_2_height = sn_unit.inch(4.29)
+                    splitter.exterior_2 = drawer
+                    splitter.exterior_2.prompts = {'Half Overlay Top':True}
+                else:
+                    splitter.opening_1_height = sn_unit.inch(4.29)
+                    splitter.exterior_1 = drawer
+                    splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
 
-            splitter = product.add_assembly(splitter)
-            opening.obj_bp.snap.interior_open = False
-            opening.obj_bp.snap.exterior_open = False
-            splitter.run_all_calculators()
-            
-            Width = product.obj_x.snap.get_var('location.x', 'Width')
-            Height = product.obj_z.snap.get_var('location.z', 'Height')
-            Depth = product.obj_y.snap.get_var('location.y', 'Depth')
-            Left_Side_Thickness = carcass.get_prompt("Left Side Thickness").get_var()
-            Right_Side_Thickness = carcass.get_prompt("Right Side Thickness").get_var()
-            Top_Thickness = carcass.get_prompt("Top Thickness").get_var()
-            Bottom_Thickness = carcass.get_prompt("Bottom Thickness").get_var()
-            Top_Inset = carcass.get_prompt("Top Inset").get_var()
-            Bottom_Inset = carcass.get_prompt("Bottom Inset").get_var()
-            Back_Inset = carcass.get_prompt("Back Inset").get_var()
+                splitter = product.add_assembly(splitter)
+                opening.obj_bp.snap.interior_open = False
+                opening.obj_bp.snap.exterior_open = False
+                splitter.run_all_calculators()
+                
+                Width = product.obj_x.snap.get_var('location.x', 'Width')
+                Height = product.obj_z.snap.get_var('location.z', 'Height')
+                Depth = product.obj_y.snap.get_var('location.y', 'Depth')
+                Left_Side_Thickness = carcass.get_prompt("Left Side Thickness").get_var()
+                Right_Side_Thickness = carcass.get_prompt("Right Side Thickness").get_var()
+                Top_Inset = carcass.get_prompt("Top Inset").get_var()
+                Bottom_Inset = carcass.get_prompt("Bottom Inset").get_var()
+                Back_Inset = carcass.get_prompt("Back Inset").get_var()
 
-            splitter.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
-            splitter.loc_y('Depth',[Depth])
-            splitter.loc_z('Bottom_Inset',[Bottom_Inset])
-            
-            splitter.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
-            splitter.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])
-            splitter.dim_z('fabs(Height)-Bottom_Inset-Top_Inset',[Height,Bottom_Inset,Top_Inset])
+                splitter.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+                splitter.loc_y('Depth',[Depth])
 
-            splitter.run_all_calculators()
+                splitter.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+                splitter.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])
+
+                if carcass.obj_bp['CARCASS_TYPE'] in {'Upper','Suspended'}:
+                    splitter.loc_z('Height+Bottom_Inset',[Height,Bottom_Inset])
+                    splitter.dim_z('-Height-Bottom_Inset-Top_Inset', [Height,Bottom_Inset,Top_Inset])
+                else:
+                    splitter.loc_z('Bottom_Inset',[Bottom_Inset])
+                    splitter.dim_z('fabs(Height)-Bottom_Inset-Top_Inset',[Height,Bottom_Inset,Top_Inset])
+                
+                splitter.run_all_calculators()
            
     def finish(self, context):
             super().finish(context)

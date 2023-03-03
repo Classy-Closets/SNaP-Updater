@@ -13,10 +13,12 @@ from snap import sn_types, sn_unit
 from snap import sn_utils
 from .. import closet_props
 from ..common import common_parts
+from ..common import common_lists
 from .. import closet_paths
 from ..ops.drop_closet import PlaceClosetInsert
 from ..data import data_drawers
 from ..data import data_closet_carcass
+from snap.libraries.kitchen_bath import frameless_exteriors, cabinets
 
 
 def get_carcass_insert(product):
@@ -192,7 +194,7 @@ class SNAP_OT_move_closet(Operator):
         bpy.ops.mesh.primitive_plane_add()
         plane = context.active_object
         plane['IS_DRAWING_PLANE'] = True
-        plane.location = (0, 0, 0)
+        plane.location = (0, 0, -0.01)
         self.drawing_plane = context.active_object
         self.drawing_plane.display_type = 'WIRE'
         self.drawing_plane.dimensions = (100, 100, 1)
@@ -607,6 +609,12 @@ class SNAP_OT_copy_product(Operator):
         new_closet = sn_types.Assembly(new_obj_bp)
         self.hide_empties_and_boolean_meshes(new_closet.obj_bp)
 
+        cabinet_product = sn_utils.get_cabinet_bp(obj)
+        if cabinet_product:
+            product = cabinets.Standard(cabinet_product)
+            cabinets.create_dimensions(product)
+            cabinets.update_dimensions(product)
+
         bpy.ops.sn_closets.move_closet(obj_bp_name=new_closet.obj_bp.name, copy=True)
 
         return {'FINISHED'}
@@ -905,19 +913,21 @@ class SNAP_OT_update_pull_selection(Operator):
 
         for pull in pulls:
             pull_assembly = sn_types.Assembly(pull.parent)
-            pull_assembly.set_name(props.pull_name)
+            pull_assembly.set_name(props.get_pull_style())
             pull_length = pull_assembly.get_prompt("Pull Length")
+
             new_pull = sn_utils.get_object(
                 os.path.join(
                     os.path.dirname(__file__),
                     closet_paths.get_root_dir(),
                     closet_props.PULL_FOLDER_NAME,
                     props.pull_category,
-                    props.pull_name + ".blend"))
+                    props.get_pull_style() + ".blend"))
+
             new_pull.snap.is_cabinet_pull = True
             new_pull.snap.type_mesh = 'HARDWARE'
-            new_pull.snap.name_object = props.pull_name
-            new_pull.snap.comment = props.pull_name
+            new_pull.snap.name_object = props.get_pull_style()
+            new_pull.snap.comment = props.get_pull_style()
             new_pull.parent = pull.parent
             new_pull.location = pull.location
             new_pull.rotation_euler = pull.rotation_euler
@@ -933,12 +943,14 @@ class SNAP_OT_update_pull_selection(Operator):
             sn_utils.copy_drivers(pull, new_pull)
 
             wall_bp = sn_utils.get_wall_bp(pull_assembly.obj_bp)
+            scene_coll = context.scene.collection
 
             if wall_bp:
                 wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-                scene_coll = context.scene.collection
                 sn_utils.add_assembly_to_collection(new_pull, wall_coll)
-                sn_utils.remove_assembly_from_collection(new_pull, scene_coll)            
+                sn_utils.remove_assembly_from_collection(new_pull, scene_coll)
+            else:
+                sn_utils.add_assembly_to_collection(new_pull, scene_coll)
 
         sn_utils.delete_obj_list(pulls)
 
@@ -984,16 +996,17 @@ class SNAP_OT_place_applied_panel(Operator):
 
     def get_panel(self, context):
         props = bpy.context.scene.sn_closets.closet_options
+
         bp = sn_utils.get_group(
             os.path.join(
                 closet_paths.get_asset_folder_path(),
                 closet_props.DOOR_FOLDER_NAME,
                 props.door_category,
-                props.door_style + ".blend"))
+                props.get_door_style() + ".blend"))
 
         self.assembly = sn_types.Assembly(bp)
         self.assembly.obj_bp["ALLOW_PART_DELETE"] = True
-        self.assembly.set_name(props.door_style)
+        self.assembly.set_name(props.get_door_style())
         self.exclude_objects.append(self.get_door_mesh())
 
     def set_door_material_pointers(self, obj):
@@ -1179,7 +1192,7 @@ class SNAP_OT_place_applied_panel(Operator):
             bpy.ops.object.select_all(action='DESELECT')
             context.view_layer.objects.active = self.assembly.obj_bp
             self.assembly.obj_bp.select_set(True)
-            self.update_door_children_properties(self.assembly.obj_bp, sel_assembly_bp["ID_PROMPT"], props.door_style)
+            self.update_door_children_properties(self.assembly.obj_bp, sel_assembly_bp["ID_PROMPT"], props.get_door_style())
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
@@ -1301,6 +1314,7 @@ class SNAP_OT_update_door_selection(Operator):
 
     def execute(self, context):
         door_bps = []
+
         props = bpy.context.scene.sn_closets.closet_options
         for obj in context.selected_objects:
             closet_bp = sn_utils.get_closet_bp(obj)
@@ -1342,7 +1356,7 @@ class SNAP_OT_update_door_selection(Operator):
                     os.path.join(closet_paths.get_asset_folder_path(),
                                  closet_props.DOOR_FOLDER_NAME,
                                  props.door_category,
-                                 props.door_style + ".blend"))
+                                 props.get_door_style() + ".blend"))
 
                 new_door = sn_types.Assembly(group_bp)
 
@@ -1383,7 +1397,8 @@ class SNAP_OT_update_door_selection(Operator):
             new_door.obj_bp["ID_PROMPT"] = id_prompt
 
             wall_bp = sn_utils.get_wall_bp(door_assembly.obj_bp)
-
+            cabinet_product = sn_utils.get_cabinet_bp(door_assembly.obj_bp)
+            
             if wall_bp:
                 wall_coll = bpy.data.collections[wall_bp.snap.name_object]
                 scene_coll = context.scene.collection
@@ -1392,21 +1407,44 @@ class SNAP_OT_update_door_selection(Operator):
 
             if door_assembly.obj_bp.get("IS_DOOR"):
                 new_door.obj_bp['IS_DOOR'] = True
+                if cabinet_product:
+                    frameless_exteriors.add_door_height_dimension(new_door)
+                    product = cabinets.Standard(cabinet_product)
+                    product.update_dimensions()
             if door_assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
                 new_door.obj_bp['DRAWER_NUM'] = door_assembly.obj_bp.get("DRAWER_NUM")
                 new_door.obj_bp['IS_BP_DRAWER_FRONT'] = True
+                if cabinet_product:
+                    frameless_exteriors.add_drawer_height_dimension(new_door)
+                    product = cabinets.Standard(cabinet_product)
+                    product.update_dimensions()
+
             if obj_props.is_hamper_front_bp:
                 new_door.obj_bp['IS_BP_HAMPER_FRONT'] = True
 
             sn_utils.delete_obj_list(sn_utils.get_child_objects(door_assembly.obj_bp, []))
-
+            
             parent_assembly = sn_types.Assembly(new_door.obj_bp.parent)
             parent_door_style = parent_assembly.get_prompt("Door Style")
-            new_door.add_prompt("Door Style", 'TEXT', "Slab Door")
+            height_exceeded_ppt = new_door.get_prompt("Door Height Exceeded")
             door_style = new_door.get_prompt("Door Style")
+        
+            if not door_style:
+                door_style = new_door.add_prompt("Door Style", 'TEXT', "Slab Door")
+
             if(door_style):
-                door_style.set_value(props.door_style)
+                door_style.set_value(props.get_door_style())
                 if "Traviso" in (door_style.get_value()):
+                    door_height = new_door.obj_x.location.x
+                    if door_height > sn_unit.inch(60):
+                        msg = "Traviso door style not permitted in sizes above 47H!"
+                        bpy.ops.snap.message_box('INVOKE_DEFAULT', message=msg, width=350)
+                        parent_assembly.get_prompt("Fill Opening").set_value(False)
+                        parent_assembly.get_prompt("Insert Height").set_value(sn_unit.millimeter(1485.392))
+                        for index, height in enumerate(common_lists.OPENING_HEIGHTS):
+                            if not 1485.392 >= float(height[0]):
+                                self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
+                                break
                     height_constraint = new_door.obj_x.constraints.new(type='LIMIT_LOCATION')
                     height_constraint.use_max_x = True
                     height_constraint.max_x = sn_unit.inch(60)
@@ -1415,9 +1453,15 @@ class SNAP_OT_update_door_selection(Operator):
                     width_constraint.use_max_y = True
                     width_constraint.max_y = sn_unit.inch(24)
                     width_constraint.owner_space = 'LOCAL'
+                else:
+                    height_exceeded_ppt = parent_assembly.get_prompt("Door Height Exceeded")
+                    if height_exceeded_ppt:
+                        height_exceeded_ppt.set_value(False)
             if(parent_door_style):
-                parent_door_style.set_value(props.door_style)
-            self.update_door_children_properties(new_door.obj_bp, id_prompt, props.door_style)
+                parent_door_style.set_value(props.get_door_style())
+            self.update_door_children_properties(new_door.obj_bp, id_prompt, props.get_door_style())
+
+        bpy.context.view_layer.update()
 
         return {'FINISHED'}
 
@@ -1886,6 +1930,20 @@ class SNAP_OT_Update_Drawer_boxes(Operator):
         drawer_stack_bps = sn_utils.get_drawer_stack_bps()
 
         for bp in drawer_stack_bps:
+            if sn_utils.get_cabinet_bp(bp):
+                drawer_stack = frameless_exteriors.Vertical_Drawers(bp)
+
+                if self.add and not drawer_stack.drawer_boxes:
+                    drawer_stack.add_drawer_boxes()
+                    drawer_stack.update()
+
+                elif not self.add and drawer_stack.drawer_boxes:
+                    for box in drawer_stack.drawer_boxes:
+                        sn_utils.delete_object_and_children(box.obj_bp)
+
+                bpy.context.view_layer.update()
+                continue
+
             drawer_stack = data_drawers.Drawer_Stack(bp)
             drawer_qty_prompt = drawer_stack.get_prompt("Drawer Quantity")
             six_hole = drawer_stack.get_prompt("Six Hole")

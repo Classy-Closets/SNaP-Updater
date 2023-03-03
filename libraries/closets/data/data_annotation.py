@@ -84,12 +84,11 @@ class PROMPTS_Prompts_Annotation(sn_types.Prompts_Interface):
         label = self.assembly.get_prompt("Label").get_value()
         if label:
             exec("self.annotation_label = label")
-        wm = context.window_manager
-        dialog_width = sn_utils.get_prop_dialog_width(400)
-        return wm.invoke_props_dialog(self, width=dialog_width)
+        return super().invoke(context, event, width=400)
 
     """ This is where you draw the interface """
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         box = layout.box()
         row = box.row()

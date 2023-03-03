@@ -97,7 +97,21 @@ preview_collections["base_moldings"] = sn_utils.create_image_preview_collection(
 preview_collections["crown_moldings_categories"] = sn_utils.create_image_preview_collection()
 preview_collections["crown_moldings"] = sn_utils.create_image_preview_collection()
 preview_collections["door_style_categories"] = sn_utils.create_image_preview_collection()
-preview_collections["door_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["glass_inset_door_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["slab_door_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["small_faces_drawer_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["traviso_door_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["wood_door_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["wood_drawer_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["antique_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["brush_nickel_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["matte_black_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["matte_gold_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["orb_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["chrome_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["satin_bronze_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["satin_nickel_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["stainless_pull_styles"] = sn_utils.create_image_preview_collection()
 preview_collections["pull_categories"] = sn_utils.create_image_preview_collection()
 preview_collections["rods"] = sn_utils.create_image_preview_collection()
 preview_collections["pulls"] = sn_utils.create_image_preview_collection()
@@ -178,19 +192,125 @@ def enum_door_categories(self, context):
     return sn_utils.get_folder_enum_previews(icon_dir, pcoll)
 
 
-def enum_door_styles(self, context):
+def enum_glass_inset_door_styles(self, context):
     if context is None:
         return []
     icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
-    pcoll = preview_collections["door_styles"]
+    pcoll = preview_collections["glass_inset_door_styles"]
     return sn_utils.get_image_enum_previews(icon_dir, pcoll)
 
 
-def update_door_category(self, context):
-    if preview_collections["door_styles"]:
-        bpy.utils.previews.remove(preview_collections["door_styles"])
-        preview_collections["door_styles"] = sn_utils.create_image_preview_collection()
-    enum_door_styles(self, context)
+def enum_slab_door_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
+    pcoll = preview_collections["slab_door_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_small_faces_drawer_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
+    pcoll = preview_collections["small_faces_drawer_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_traviso_door_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
+    pcoll = preview_collections["traviso_door_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_wood_door_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
+    pcoll = preview_collections["wood_door_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_wood_drawer_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_asset_folder_path(), DOOR_FOLDER_NAME, self.door_category)
+    pcoll = preview_collections["wood_drawer_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_antique_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    print("icon_dir",icon_dir)
+    pcoll = preview_collections["antique_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_brush_nickel_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["brush_nickel_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_matte_black_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["matte_black_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_matte_gold_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["matte_gold_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_orb_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["orb_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_chrome_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["chrome_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_satin_bronze_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["satin_bronze_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_satin_nickel_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["satin_nickel_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_stainless_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["stainless_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
 
 
 # ---------RODS DYNAMIC ENUMS
@@ -405,7 +525,7 @@ def enum_rod_cups(self, context):
             FROM\
                 {CCItems}\
             WHERE\
-                ProductType == 'HW' AND\
+                ProductType IN ('AC', 'HW') AND\
                 Name LIKE '{}'\
             ;".format("%" + "pole cup" + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
@@ -509,6 +629,8 @@ def get_quartz_colors(self, context):
     ct_mfg = ct_type.manufactuers[self.unique_countertop_quartz_mfg]
     return ct_mfg.get_color_list()
 
+def get_standard_quartz_colors(self, context):
+    return bpy.context.scene.closet_materials.countertops.get_standard_quartz_color_list()
 
 def get_mel_colors(self, context):
     return bpy.context.scene.closet_materials.materials.mel_color_list
@@ -869,16 +991,30 @@ class Closet_Options(PropertyGroup):
     crown_molding_category: EnumProperty(name="Crown Molding Category",items=enum_crown_molding_categories,update=update_crown_molding_category)
     crown_molding: EnumProperty(name="Crown Molding",items=enum_crown_molding)
     
-    door_category: EnumProperty(name="Door Category",items=enum_door_categories,update=update_door_category)
-    door_style: EnumProperty(name="Door Style",items=enum_door_styles)
+    door_category: EnumProperty(name="Door Category",items=enum_door_categories)# ,update=update_door_category)
+    glass_inset_door_style: EnumProperty(name="Glass Inset Door Style",items=enum_glass_inset_door_styles)
+    slab_door_style: EnumProperty(name="Slab Door Style",items=enum_slab_door_styles)
+    small_faces_drawer_style: EnumProperty(name="Small Faces Drawer Style",items=enum_small_faces_drawer_styles)
+    traviso_door_style: EnumProperty(name="Traviso Door Style",items=enum_traviso_door_styles)
+    wood_door_style: EnumProperty(name="Wood Door Style",items=enum_wood_door_styles)
+    wood_drawer_style: EnumProperty(name="Wood Drawer Style",items=enum_wood_drawer_styles)
     
     material_category: EnumProperty(name="Material Category",items=enum_material_categories,update=update_material_category)
     material: EnumProperty(name="Material",items=enum_materials)     
 
     rods_name: EnumProperty(name="Rod Name",items=enum_rods,update=update_rods)
     
-    pull_category: EnumProperty(name="Pull Category",items=enum_pull_categories,update=update_pull_category)
+    pull_category: EnumProperty(name="Pull Category",items=enum_pull_categories)  #,update=update_pull_category)
     pull_name: EnumProperty(name="Pull Name",items=enum_pulls)
+    antique_pull_style: EnumProperty(name="Antique Pull Style",items=enum_antique_pull_styles)
+    brush_nickel_pull_style: EnumProperty(name="Brush Nickel Pull Style",items=enum_brush_nickel_pull_styles)
+    matte_black_pull_style: EnumProperty(name="Matte Black Pull Style",items=enum_matte_black_pull_styles)
+    matte_gold_pull_style: EnumProperty(name="Matte Gold Pull Style",items=enum_matte_gold_pull_styles)
+    orb_pull_style: EnumProperty(name="ORB Pull Style",items=enum_orb_pull_styles)
+    chrome_pull_style: EnumProperty(name="Chrome Pull Style",items=enum_chrome_pull_styles)
+    satin_bronze_pull_style: EnumProperty(name="Satin Bronze Pull Style",items=enum_satin_bronze_pull_styles)
+    satin_nickel_pull_style: EnumProperty(name="Satin Nickel Pull Style",items=enum_satin_nickel_pull_styles)
+    stainless_pull_style: EnumProperty(name="Stainless Pull Style",items=enum_stainless_pull_styles)
     
     hinge_name: EnumProperty(name="Hinge Name",items=enum_hinges,update=update_hinge)    
     
@@ -896,7 +1032,41 @@ class Closet_Options(PropertyGroup):
     
     accessory_category: EnumProperty(name="Accessory Category",items=enum_accessories_categories,update=update_accessories_category)
     accessory_name: EnumProperty(name="Accessory Name",items=enum_accessories)    
-    
+
+    def get_door_style(self):
+        if self.door_category == "Glass Inset Doors":
+            return self.glass_inset_door_style
+        if self.door_category == "Slab Door":
+            return self.slab_door_style
+        if self.door_category == "Small Drawer Faces":
+            return self.small_faces_drawer_style
+        if self.door_category == "Traviso Door and Drawer Faces":
+            return self.traviso_door_style
+        if self.door_category == "Wood Doors":
+            return self.wood_door_style
+        if self.door_category == "Wood Drawer Faces":
+            return self.wood_drawer_style
+
+    def get_pull_style(self):
+        if self.pull_category == "Antique Satin Brass":
+            return self.antique_pull_style
+        if self.pull_category == "Brushed Nickel":
+            return self.brush_nickel_pull_style
+        if self.pull_category == "Matte Black":
+            return self.matte_black_pull_style
+        if self.pull_category == "Matte Gold":
+            return self.matte_gold_pull_style
+        if self.pull_category == "Oil Rubbed Bronze":
+            return self.orb_pull_style
+        if self.pull_category == "Polished Chrome":
+            return self.chrome_pull_style
+        if self.pull_category == "Satin Bronzed Copper":
+            return self.satin_bronze_pull_style
+        if self.pull_category == "Satin Nickel":
+            return self.satin_nickel_pull_style
+        if self.pull_category == "Stainless Steel Look":
+            return self.stainless_pull_style
+
     def draw_molding_options(self,layout):
         molding_box = layout.box()
         row = molding_box.row(align=True)
@@ -928,8 +1098,25 @@ class Closet_Options(PropertyGroup):
         col.prop(self,'door_category',text="",icon='FILE_FOLDER')
 
         box = col.box()
-        box.label(text=self.door_style)
-        box.template_icon_view(self,"door_style",show_labels=True)
+
+        if self.door_category == "Glass Inset Doors":
+            box.label(text=self.glass_inset_door_style)
+            box.template_icon_view(self,"glass_inset_door_style",show_labels=True)
+        if self.door_category == "Slab Door":
+            box.label(text=self.slab_door_style)
+            box.template_icon_view(self,"slab_door_style",show_labels=True)
+        if self.door_category == "Small Drawer Faces":
+            box.label(text=self.small_faces_drawer_style)
+            box.template_icon_view(self,"small_faces_drawer_style",show_labels=True)
+        if self.door_category == "Traviso Door and Drawer Faces":
+            box.label(text=self.traviso_door_style)
+            box.template_icon_view(self,"traviso_door_style",show_labels=True)
+        if self.door_category == "Wood Doors":
+            box.label(text=self.wood_door_style)
+            box.template_icon_view(self,"wood_door_style",show_labels=True)
+        if self.door_category == "Wood Drawer Faces":
+            box.label(text=self.wood_drawer_style)
+            box.template_icon_view(self,"wood_drawer_style",show_labels=True)
             
         props = bpy.context.scene.sn_closets
         props.closet_defaults.draw_door_defaults(door_style_box)
@@ -953,9 +1140,35 @@ class Closet_Options(PropertyGroup):
             row.operator(LIBRARY_NAME_SPACE + '.update_pull_selection',text="Replace All",icon='FILE_REFRESH').update_all = True
             col.separator()
             col.prop(self,'pull_category',text="",icon='FILE_FOLDER')
-            col.label(text=self.pull_name)
-            col.template_icon_view(self,"pull_name",show_labels=True)
-            
+
+            if self.pull_category == "Antique Satin Brass":
+                col.label(text=self.antique_pull_style)
+                col.template_icon_view(self, "antique_pull_style", show_labels=True)
+            if self.pull_category == "Brushed Nickel":
+                col.label(text=self.brush_nickel_pull_style)
+                col.template_icon_view(self, "brush_nickel_pull_style", show_labels=True)
+            if self.pull_category == "Matte Black":
+                col.label(text=self.matte_black_pull_style)
+                col.template_icon_view(self, "matte_black_pull_style", show_labels=True)
+            if self.pull_category == "Matte Gold":
+                col.label(text=self.matte_gold_pull_style)
+                col.template_icon_view(self, "matte_gold_pull_style", show_labels=True)
+            if self.pull_category == "Oil Rubbed Bronze":
+                col.label(text=self.orb_pull_style)
+                col.template_icon_view(self, "orb_pull_style", show_labels=True)
+            if self.pull_category == "Polished Chrome":
+                col.label(text=self.chrome_pull_style)
+                col.template_icon_view(self, "chrome_pull_style", show_labels=True)
+            if self.pull_category == "Satin Bronzed Copper":
+                col.label(text=self.satin_bronze_pull_style)
+                col.template_icon_view(self, "satin_bronze_pull_style", show_labels=True)
+            if self.pull_category == "Satin Nickel":
+                col.label(text=self.satin_nickel_pull_style)
+                col.template_icon_view(self, "satin_nickel_pull_style", show_labels=True)
+            if self.pull_category == "Stainless Steel Look":
+                col.label(text=self.stainless_pull_style)
+                col.template_icon_view(self, "stainless_pull_style", show_labels=True)
+
             props = bpy.context.scene.sn_closets
             props.closet_defaults.draw_pull_defaults(hardware_box)
                 
@@ -1386,6 +1599,12 @@ class PROPERTIES_Object_Properties(PropertyGroup):
     unique_countertop_quartz: EnumProperty(
         name="Unique Quartz Color",
         items=get_quartz_colors,
+        update=update_render_materials
+    )
+
+    unique_countertop_standard_quartz: EnumProperty(
+        name="Unique Standard Quartz Color",
+        items=get_standard_quartz_colors,
         update=update_render_materials
     )
 

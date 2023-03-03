@@ -124,7 +124,7 @@ def add_countertop_prompts(assembly):
         "Countertop Type",
         'COMBOBOX',
         default_ct_type,
-        ["Melamine", "Custom", "Granite", "HPL", "Quartz", "Wood"])
+        ["Melamine", "Custom", "Granite", "HPL", "Quartz", "Standard Quartz", "Wood"])
 
     assembly.add_prompt("Front Overhang", 'DISTANCE', sn_unit.inch(1.5))
     assembly.add_prompt("Back Overhang", 'DISTANCE', sn_unit.inch(1.5))

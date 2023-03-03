@@ -78,6 +78,102 @@ def fetch_attach_walls(self, context):
             walls.append((wall_str, wall_str, wall_str))
     return walls
 
+
+def create_single_view_height_dims(self, single_scene, single_scene_camera_rot_z, single_scene_objs):
+    tallest_height = 0
+    product_height = 0
+    toe_kick_height = 0
+    ctop_thickness = 0
+    carcass_bp = None
+    ctop_bp = None
+    anchor_x = None
+    is_backside = single_scene_camera_rot_z == math.radians(180.0)
+
+    for obj in bpy.data.scenes[single_scene.name].objects:
+        if obj:
+            if obj.get("SCENE_BASE_HEIGHT_LABEL"):
+                is_backside = bool(obj.get("IS_BACKSIDE"))  # override camera if dim created for backside
+                if not is_backside:
+                    anchor_x = obj.matrix_world.translation.x + unit.inch(30)
+                else:
+                    anchor_x = obj.matrix_world.translation.x - unit.inch(30)
+                sn_utils.delete_object_and_children(obj)
+            elif obj.get("SCENE_TOE_KICK_HEIGHT_LABEL"):
+                sn_utils.delete_object_and_children(obj)
+
+    if not is_backside:
+        dim_polarity = -1
+    else:
+        dim_polarity = 1
+
+    for item in single_scene_objs:
+        obj = bpy.data.objects[item.name]
+        assembly = sn_types.Assembly(obj)
+
+        if not anchor_x and is_backside:
+            anchor_x = 0
+        elif not anchor_x:
+            anchor_x = 500
+
+        if is_backside:
+            if assembly.obj_bp.matrix_world.translation.x > anchor_x:
+                anchor_x = assembly.obj_bp.matrix_world.translation.x
+        else:
+            if assembly.obj_bp.matrix_world.translation.x < anchor_x:
+                anchor_x = assembly.obj_bp.matrix_world.translation.x
+
+        for child in assembly.obj_bp.children:
+            if child.get("IS_BP_CARCASS"):
+                carcass_bp = child
+            elif child.get("IS_BP_CABINET_COUNTERTOP"):
+                ctop_bp = child
+            if carcass_bp:
+                carcass = sn_types.Assembly(carcass_bp)
+                temp_tk_height = carcass.get_prompt("Toe Kick Height").get_value()
+                if temp_tk_height > toe_kick_height:
+                    toe_kick_height = temp_tk_height
+            if ctop_bp:
+                ctop = sn_types.Assembly(ctop_bp)
+                ctop_thickness = ctop.get_prompt("Deck Thickness").get_value()
+
+        product_height = assembly.obj_z.location.z + ctop_thickness
+        if product_height > tallest_height:
+            tallest_height = product_height
+
+    height_label = sn_types.Dimension()
+    height_label.anchor["IS_KB_LABEL"] = True
+    height_label.end_point["IS_KB_LABEL"] = True
+    height_label.anchor["SCENE_BASE_HEIGHT_LABEL"] = True
+    height_label.anchor["IS_BACKSIDE"] = is_backside
+    x_loc = anchor_x + (unit.inch(30)*dim_polarity)
+    height_label.anchor.location = (x_loc, 0, 0)
+    height_label.end_point.location = (0, 0, tallest_height)
+    height_label.set_label(str(round(unit.meter_to_inch(tallest_height), 2)) + '\"')
+    bpy.context.scene.collection.objects.unlink(height_label.anchor)
+    single_scene.collection.objects.link(height_label.anchor)
+
+    tk_label = sn_types.Dimension()
+    tk_label.anchor["IS_KB_LABEL"] = True
+    tk_label.end_point["IS_KB_LABEL"] = True
+    tk_label.anchor["SCENE_TOE_KICK_HEIGHT_LABEL"] = True
+    x_loc = anchor_x + (unit.inch(24)*dim_polarity)
+    tk_label.anchor.location = (x_loc, 0, 0)
+    tk_label.end_point.location = (0, 0, toe_kick_height)
+    tk_label.set_label(" ")
+    bpy.context.scene.collection.objects.unlink(tk_label.anchor)
+    single_scene.collection.objects.link(tk_label.anchor)
+
+    tk_text = sn_types.Dimension()
+    tk_text.anchor["IS_KB_LABEL"] = True
+    tk_text.end_point["IS_KB_LABEL"] = True
+    tk_text.anchor["SCENE_TOE_KICK_TEXT_LABEL"] = True
+    tk_text.parent(tk_label.anchor)
+    x_loc = unit.inch(3.0)*dim_polarity
+    tk_text.anchor.location = (x_loc, 0, unit.inch(2.0))
+    tk_text.set_label(str(round(unit.meter_to_inch(toe_kick_height), 2)) + '\"')
+    bpy.context.scene.collection.objects.unlink(tk_text.anchor)
+    single_scene.collection.objects.link(tk_text.anchor)
+
 class VIEW_OT_move_image_list_item(Operator):
     bl_idname = "sn_2d_views.move_2d_image_item"
     bl_label = "Move an item in the 2D image list"
@@ -121,7 +217,6 @@ class VIEW_OT_create_new_view(Operator):
     def invoke(self, context, event):
         wm = context.window_manager
         self.view_products.clear()
-
         # For now only products are selected,
         # could include walls or other objects
         for obj in context.view_layer.objects.selected:
@@ -142,7 +237,7 @@ class VIEW_OT_create_new_view(Operator):
         if len(self.view_products) > 0:
             for obj in self.view_products:
                 row = prod_box.row()
-                row.label(obj.snap.name_object, icon='OUTLINER_OB_LATTICE')
+                row.label(text=obj.snap.name_object, icon='OUTLINER_OB_LATTICE')
 
         else:
             row = prod_box.row()
@@ -155,7 +250,7 @@ class VIEW_OT_create_new_view(Operator):
         packed_bps = [{"name": obj_bp.name,
                        "obj_name": obj_bp.snap.name_object}
                       for obj_bp in self.view_products]
-        bpy.ops.sn_2d_views.generate_2d_views('INVOKE_DEFAULT',
+        bpy.ops.sn_2d_views.generate_2d_views('EXEC_DEFAULT',
                                               use_single_scene=True,
                                               single_scene_name=self.view_name,
                                               single_scene_objs=packed_bps)
@@ -172,6 +267,8 @@ class VIEW_OT_append_to_view(Operator):
 
     objects = []
 
+    single_scene_objs = []
+
     scenes: CollectionProperty(type=view_props.single_scene_objs,
                                name="Objects for Single Scene",
                                description="Objects to Include When Creating a Single View")
@@ -187,18 +284,21 @@ class VIEW_OT_append_to_view(Operator):
             self.scenes.remove(0)
 
         for scene in bpy.data.scenes:
-            scene_col = self.scenes.add()
-            scene_col.name = scene.name
+            if scene.name not in ["_Main","Z_Main Accordion","z_virtual"] and not scene.name.startswith("Accordion"):
+                scene_col = self.scenes.add()
+                scene_col.name = scene.name
 
         for obj in context.view_layer.objects.selected:
             product_bp = utils.get_bp(obj, 'PRODUCT')
 
             if product_bp and product_bp not in self.products:
                 self.products.append(product_bp)
+                self.single_scene_objs.append(product_bp)
 
         if len(self.products) == 0:
             for obj in context.view_layer.objects.selected:
                 self.objects.append(obj)
+                self.single_scene_objs.append(obj)
 
         return wm.invoke_props_dialog(self)
 
@@ -206,7 +306,7 @@ class VIEW_OT_append_to_view(Operator):
         layout = self.layout
         box = layout.box()
         box.label(text="Selected View to Append To:")
-        box.template_list("LIST_2d_images", " ", self,
+        box.template_list("VIEW_UL_2d_images", " ", self,
                           "scenes", self, "scene_index")
 
         if len(self.products) > 0:
@@ -214,33 +314,44 @@ class VIEW_OT_append_to_view(Operator):
             prod_box = box.box()
             for obj in self.products:
                 row = prod_box.row()
-                row.label(obj.snap.name_object, icon='OUTLINER_OB_LATTICE')
+                row.label(text=obj.snap.name_object, icon='OUTLINER_OB_LATTICE')
         else:
             if len(self.objects) > 0:
                 box.label(text="Selected Objects:")
                 prod_box = box.box()
                 for obj in self.objects:
                     row = prod_box.row()
-                    row.label(obj.name, icon='OBJECT_DATA')
+                    row.label(text=obj.name, icon='OBJECT_DATA')
             else:
                 warn_box = box.box()
                 row = warn_box.row()
                 row.label(text="Nothing to Append.", icon='ERROR')
 
     def link_children_to_scene(self, scene, obj_bp):
-        scene.collection.objects.link(obj_bp)
-        for child in obj_bp.children:
-            self.link_children_to_scene(scene, child)
+        if scene.name != "Plan View":
+            try:
+                scene.collection.objects.link(obj_bp)
+                for child in obj_bp.children:
+                    if not child.snap.is_cabinet_pull == True:
+                        self.link_children_to_scene(scene, child)
+            except Exception as e: print(e)
+        else:
+            if obj_bp.get("IS_BP_CABINET"):
+                bpy.ops.sn_cabinets.draw_plan(object_name=obj_bp.name,scene_name=scene.name)
+            else:
+                bpy.ops.sn_closets.draw_plan(object_name=obj_bp.name,scene_name=scene.name)
 
     def execute(self, context):
-        scene = bpy.data.scenes[self.scene_index]
+        scene = bpy.data.scenes[self.scenes[self.scene_index].name]
 
         for product in self.products:
             self.link_children_to_scene(scene, product)
 
-
         for obj in self.objects:
             self.link_children_to_scene(scene, obj)
+
+        camera = bpy.data.objects[self.scenes[self.scene_index].name]
+        create_single_view_height_dims(self, scene, camera.rotation_euler.z, self.single_scene_objs)    
 
         return {'FINISHED'}
 
@@ -291,6 +402,8 @@ class VIEW_OT_generate_2d_views(Operator):
     single_scene_objs: CollectionProperty(type=view_props.single_scene_objs,
                                           name="Objects for Single Scene",
                                           description="Objects to Include When Creating a Single View")
+
+    single_scene_camera_rot_z = 0
 
     # orphan_products = []
     def get_object_global_location(self, obj):
@@ -1731,8 +1844,7 @@ class VIEW_OT_generate_2d_views(Operator):
         cube_dims = (dim_x, dim_y, dim_z)
         x_loc, y_loc, z_loc = island.location
 
-        island_mesh = utils.create_cube_mesh(
-            island.name, cube_dims)
+        island_mesh = utils.create_cube_mesh(island.name, cube_dims)
         island_mesh.parent = island.parent
         island_mesh.location = (x_loc, y_loc, z_loc)
         island_mesh.rotation_euler = island.rotation_euler
@@ -1967,15 +2079,19 @@ class VIEW_OT_generate_2d_views(Operator):
         break_h = wall_assy.obj_z.location.z + (bool_grow * 2)
         break_size = (break_w, break_d, break_h)
 
-        entry_break_mesh = utils.create_cube_mesh('PV Entry Break', break_size)
-        entry_break_mesh.snap.type = 'CAGE'
-        entry_break_mesh.parent = entry_door_bp
-        entry_break_mesh.location = (0, -bool_grow, -bool_grow)
-        entry_break_mesh.hide_viewport = True
-        entry_break_mesh.hide_render = True
+        modifiers = [m for m in wall_mesh.modifiers if 'MESH' in m.name]
 
-        bool_modifier = [m for m in wall_mesh.modifiers if 'MESH' in m.name][0]
-        bool_modifier.object = entry_break_mesh
+
+        if modifiers:
+            entry_break_mesh = utils.create_cube_mesh('PV Entry Break', break_size)
+            entry_break_mesh.snap.type = 'CAGE'
+            entry_break_mesh.parent = entry_door_bp
+            entry_break_mesh.location = (0, -bool_grow, -bool_grow)
+            entry_break_mesh.hide_viewport = True
+            entry_break_mesh.hide_render = True
+            print(wall_mesh)
+            bool_modifier = [m for m in wall_mesh.modifiers if 'MESH' in m.name][0]
+            bool_modifier.object = entry_break_mesh
 
     def plan_view_cleats_accys(self, obj_bp, scene):
         all_child = utils.get_child_objects(obj_bp)
@@ -3717,9 +3833,10 @@ class VIEW_OT_generate_2d_views(Operator):
                 elif flat_crown_layers == 2:
                     fc_str += ' (2 layers)'
                 labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
-        labels.append(
-            (tkh_str, (hang_h + fc_assy.obj_y.location.y) + unit.inch(-6)))
-        labels = list(dict.fromkeys(labels))
+
+        if fc_assy:
+            labels.append((tkh_str, (hang_h + fc_assy.obj_y.location.y) + unit.inch(-6)))
+            labels = list(dict.fromkeys(labels))
 
 
     def add_flat_crowns(self, context, accordion, offset):
@@ -4676,47 +4793,85 @@ class VIEW_OT_generate_2d_views(Operator):
             instance.hide_select = True
             bpy.ops.object.select_all(action='DESELECT')
 
+    def link_dims_to_single_scene(self, scene, obj_bp):
+        obj_list = sn_utils.get_tagged_bp_list(obj_bp, 'IS_VISDIM_A', [])
+        for obj in obj_list:
+            new_anchor = None
+            new_endpoint = None
+
+            if obj.get('IS_VISDIM_A'):
+                new_anchor = obj.copy()
+                # new_anchor.parent = obj_bp
+                anchor_loc = obj.matrix_world.translation.x
+                for child in obj.children:
+                    if child.get('IS_VISDIM_B'):
+                        new_endpoint = child.copy()
+                        new_endpoint.parent = new_anchor
+                        endpoint_loc = child.matrix_world.translation.x
+                        if not obj.get('DEPTH_HASHMARK_LABEL'):
+                            if anchor_loc > endpoint_loc:
+                                camera = scene.camera
+                                camera.rotation_euler.z = math.radians(180.0)
+                                self.single_scene_camera_rot_z = math.radians(180.0)
+                                # camera.location.y = 1.0
+
+            if new_anchor and new_endpoint:                    
+                scene.collection.objects.link(new_anchor)
+                scene.collection.objects.link(new_endpoint)
 
     def create_single_elv_view(self, context):
-        grp = bpy.data.collections.new(self.single_scene_name)
+        tallest_height = 0
+        product_height = 0
+        toe_kick_height = 0
+        ctop_thickness = 0
+        carcass_bp = None
+        ctop_bp = None
+        is_backside = False
+        anchor_x = None
 
+        grp = bpy.data.collections.new(self.single_scene_name)
         bpy.ops.scene.new('INVOKE_DEFAULT', type='EMPTY')
         new_scene = context.scene
         new_scene.name = grp.name
         new_scene.snap.name_scene = self.single_scene_name
-        new_scene.snap.elevation_img_name = self.single_scene_name
-        new_scene.snap.plan_view_scene = False
-        new_scene.snap.elevation_scene = True
+        new_scene.snap.custom_view_scene = True
+        scene_type = context.window_manager.views_2d.views_option
+        if scene_type == 'ACCORDIONS':
+            new_scene.snap.scene_type = 'ACCORDION'
+            new_scene.snap.plan_view_scene = False
+            new_scene.snap.elevation_scene = False
+            new_scene.snap.accordion_scene = True
+        else:
+            new_scene.snap.scene_type = 'ELEVATION'
+            new_scene.snap.plan_view_scene = False
+            new_scene.snap.elevation_scene = True
+            new_scene.snap.accordion_scene = False
         self.create_linesets(new_scene)
+        camera = self.create_camera(new_scene)
+        camera.rotation_euler.x = math.radians(90.0)
 
         for item in self.single_scene_objs:
             obj = bpy.data.objects[item.name]
+            assembly = sn_types.Assembly(obj)
             self.group_children(grp, obj)
-            self.link_dims_to_scene(new_scene, obj)
+            self.link_dims_to_single_scene(new_scene, obj)
 
         instance = bpy.data.objects.new(
             self.single_scene_name + " " + "Instance", None)
         new_scene.collection.objects.link(instance)
         instance.instance_type = 'COLLECTION'
         instance.instance_collection = grp
+        instance['IS_INSTANCE'] = True
+
+        create_single_view_height_dims(self, new_scene, self.single_scene_camera_rot_z, self.single_scene_objs)
 
         new_scene.world = self.main_scene.world
-        # ----------------------------------------------------------------------------------------
-
-        # self.link_dims_to_scene(new_scene, assembly.obj_bp)
-
-        # Skip for now
-        # self.add_text(context, assembly)
-
-        camera = self.create_camera(new_scene)
-        camera.rotation_euler.x = math.radians(90.0)
-        # camera.rotation_euler.z = assembly.obj_bp.rotation_euler.z
-        
+         
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.view3d.camera_to_view_selected()
         camera.data.type = 'ORTHO'
-        camera.data.ortho_scale += self.pv_pad
-        #bpy.data.objects[grp.name + ' Instance'].hide_select = True
+        # camera.data.ortho_scale += self.pv_pad
+        camera.data.ortho_scale = 8.0        
 
     def shelf_is_kd(self, shelf_obj):
         """
@@ -4917,6 +5072,8 @@ class VIEW_OT_generate_2d_views(Operator):
             elif CT_type == 'Granite':
                 CT_info = CT_type
             elif CT_type == 'Quartz':
+                CT_info = CT_type + " " + ct_mat_props.get_color().name
+            elif CT_type == 'Standard Quartz':
                 CT_info = CT_type + " " + ct_mat_props.get_color().name
             elif CT_type == 'HPL':
                 CT_info = CT_type + " " + ct_mat_props.get_color().name
@@ -5623,12 +5780,23 @@ class VIEW_OT_generate_2d_views(Operator):
             hide = box.get_prompt("Hide")
             hide.set_value(False)
 
+    def add_pv_floor_cabinets(self, context):
+        for obj in context.scene.objects:
+            floor_parent = sn_utils.get_floor_parent(obj)
+
+            if "IS_BP_CABINET" in obj and floor_parent:
+                bpy.ops.sn_cabinets.draw_plan(object_name=obj.name, scene_name="Plan View")
+
     def execute(self, context):
         import time
         start_time = time.time()
+
+        if not bpy.data.is_saved:
+            return {'FINISHED'}
         
         self.current_ctx = context
-        self.pre_2d_cleanup(context)
+        if not self.use_single_scene:
+            self.pre_2d_cleanup(context)
         dimprops = get_dimension_props()
         room_type = context.scene.sn_roombuilder.room_type
         views_props = context.window_manager.views_2d
@@ -5732,7 +5900,10 @@ class VIEW_OT_generate_2d_views(Operator):
                 if obj.get("IS_BP_WALL"):
                     wall_bp_list.append(obj)
                     wall_name_list.append(obj.name)
-                if "Island" in obj.name and obj.parent is None:
+
+                if "IS_BP_ISLAND" in obj and obj.parent is None:
+                    island_bps.append(obj)
+                if "IS_BP_ISLAND" in obj and sn_utils.get_floor_parent(obj):
                     island_bps.append(obj)
 
             for i, obj in enumerate(wall_bp_list):
@@ -5765,8 +5936,11 @@ class VIEW_OT_generate_2d_views(Operator):
                     grp = bpy.data.collections.new(grp_name)
                     if elevations_only:
                         self.create_elv_view_scene(context, wall, grp)
+
                     left_wall = wall.get_connected_wall('LEFT')
-                    walls.append((wall, left_wall))
+                    if left_wall:
+                        walls.append((wall, left_wall))
+
                     wall_groups[wall.obj_bp.name] = grp
 
             if island_bps:
@@ -5798,6 +5972,7 @@ class VIEW_OT_generate_2d_views(Operator):
         hide_dim_handles()
         context.window_manager.snap.use_opengl_dimensions = False
         self.enable_all_elvs()
+        self.add_pv_floor_cabinets(context)
 
         print("generate_2d_views EXECUTE --- %s seconds ---" % (time.time() - start_time))
 
@@ -5821,10 +5996,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     bpy.data.objects.remove(obj)
                 if isinstance(mesh, bpy.types.Mesh) and mesh.users == 0:
                     bpy.data.meshes.remove(mesh)
-
-    
-
-
+ 
 class VIEW_OT_render_2d_views(Operator):
     bl_idname = "2dviews.render_2d_views"
     bl_label = "Render 2D Views"
@@ -5875,10 +6047,18 @@ class VIEW_OT_render_2d_views(Operator):
         return True
 
     def render_scene(self, context, scene):
+ 
+        if scene.snap.scene_type == 'PLAN_VIEW':
+            for obj in bpy.data.scenes[scene.name].objects:
+                if obj.get('IS_VISDIM_B'):
+                    obj.hide_viewport = False
+
+
         swaped_colors = False
         shaded_sc_types = ['ELEVATION', 'ACCORDION']
         valid_shaded_sc_type = scene.snap.scene_type in shaded_sc_types
         is_elevation = scene.snap.scene_type == 'ELEVATION'
+        is_custom_scene = scene.snap.custom_view_scene
         scene_setup_props = scene.snap_closet_dimensions
         shading_kill_switch = scene_setup_props.disable_2dviews_shading
         is_shaded_scene = valid_shaded_sc_type
@@ -5903,7 +6083,7 @@ class VIEW_OT_render_2d_views(Operator):
         rl.use_pass_z = False
         freestyle_settings.crease_angle = 2.617994
         freestyle_settings.as_render_pass = True
-        if "Island" in scene.name:
+        if "Island" in scene.name and not is_custom_scene:
             freestyle_settings.linesets["Hidden Lines"].show_render = False
 
         if rd.engine != 'BLENDER_EEVEE':
@@ -5993,6 +6173,9 @@ class VIEW_OT_render_2d_views(Operator):
         elif scene.snap.scene_type == 'VIRTUAL':
             image_view.is_virtual_view = True
 
+        # Check if this is a custom view
+        if scene.snap.custom_view_scene:
+            image_view.is_custom_view = True
         # Clear and deactivate nodes to prevent conflicts with other rendering methods
         for node in tree.nodes:
             tree.nodes.remove(node)
@@ -6506,7 +6689,7 @@ class VIEW_OT_add_dimension(Operator):
 
         if self.label != "":
             self.dimension.set_label(self.label)
-
+        
         wall_dim_x = self.wall.get_var("dim_x", "wall_dim_x")
         wall_dim_z = self.wall.get_var("dim_z", "wall_dim_z")
 

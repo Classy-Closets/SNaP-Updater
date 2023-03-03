@@ -298,7 +298,7 @@ class ROOM_BUILDER_OT_draw_walls(Operator):
     def create_drawing_plane(self, context):
         bpy.ops.mesh.primitive_plane_add()
         plane = context.active_object
-        plane.location = (0, 0, 0)
+        plane.location = (0, 0, -0.01)
         self.drawing_plane = context.active_object
         self.drawing_plane.display_type = 'WIRE'
         self.drawing_plane.dimensions = (100, 100, 1)
@@ -1686,17 +1686,50 @@ class ROOM_BUILDER_OT_Hide_Plane(Operator):
     object_name: StringProperty("Object Name", default="")
 
     def execute(self, context):
-        if self.object_name in context.view_layer.objects:
-            obj = context.view_layer.objects[self.object_name]
+        floor_coll = context.scene.collection.children.get("Floor")
+
+        if floor_coll and self.object_name == "Floor":
+            floor_coll.hide_viewport = True
         else:
-            obj = context.active_object
+            if self.object_name in context.view_layer.objects:
+                obj = context.view_layer.objects[self.object_name]
+            else:
+                obj = context.active_object
 
-        children = sn_utils.get_child_objects(obj)
+            children = sn_utils.get_child_objects(obj)
 
-        for child in children:
-            child.hide_viewport = True
+            for child in children:
+                child.hide_viewport = True
 
-        obj.hide_viewport = True
+            obj.hide_viewport = True
+
+        return {'FINISHED'}
+
+
+class ROOM_BUILDER_OT_Show_Plane(Operator):
+    bl_idname = "sn_roombuilder.show_plane"
+    bl_label = "Show Plane"
+
+    object_name: StringProperty("Object Name", default="")
+
+    def execute(self, context):
+        floor_coll = context.scene.collection.children.get("Floor")
+
+        if floor_coll and self.object_name == "Floor":
+            floor_coll.hide_viewport = False
+        else:
+            if self.object_name in context.view_layer.objects:
+                obj = context.view_layer.objects[self.object_name]
+            else:
+                obj = context.active_object
+
+            children = sn_utils.get_child_objects(obj)
+
+            for child in children:
+                if child.type != 'EMPTY':
+                    child.hide_viewport = False
+
+            obj.hide_viewport = False
 
         return {'FINISHED'}
 
@@ -1768,34 +1801,13 @@ class ROOM_BUILDER_OT_New_Room(Operator):
     bl_label = "New Room"
 
     def execute(self, context):
-        if bpy.data.is_dirty:
+        if bpy.data.is_saved:
             bpy.ops.wm.save_mainfile()
         bpy.ops.wm.read_homefile(app_template="")
 
         return {'FINISHED'}
 
 
-class ROOM_BUILDER_OT_Show_Plane(Operator):
-    bl_idname = "sn_roombuilder.show_plane"
-    bl_label = "Show Plane"
-
-    object_name: StringProperty("Object Name", default="")
-
-    def execute(self, context):
-        if self.object_name in context.view_layer.objects:
-            obj = context.view_layer.objects[self.object_name]
-        else:
-            obj = context.active_object
-
-        children = sn_utils.get_child_objects(obj)
-
-        for child in children:
-            if child.type != 'EMPTY':
-                child.hide_viewport = False
-
-        obj.hide_viewport = False
-
-        return {'FINISHED'}
 
 
 class ROOM_BUILDER_OT_Select_Two_Points(Operator):
@@ -2041,7 +2053,7 @@ class PROMPTS_Molding(bpy.types.Operator):
         return True
 
 
-class PROMPTS_OT_Wall(bpy.types.Operator):
+class PROMPTS_OT_Wall(sn_types.Prompts_Interface):
     bl_idname = "room_builder.wall_prompts"
     bl_label = "Assembly Properties"
     bl_description = "This show the assembly properties"
@@ -2064,10 +2076,10 @@ class PROMPTS_OT_Wall(bpy.types.Operator):
     def invoke(self, context, event):
         assembly_bp = sn_utils.get_assembly_bp(context.object)
         self.assembly = sn_types.Assembly(assembly_bp)
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=400)
+        return super().invoke(context, event, width=400)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         sn_utils.draw_assembly_transform(context, layout, self.assembly, include={'ROT', 'DIM'})
 

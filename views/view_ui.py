@@ -116,6 +116,8 @@ class VIEW_PT_2d_views(bpy.types.Panel):
                 elv_scenes.append(scene)
             elif scene.snap.scene_type == 'ISLAND':
                 elv_scenes.append(scene)
+            elif scene.snap.scene_type == 'PLAN_VIEW':
+                elv_scenes.append(scene)
 
         if len(elv_scenes) < 1:
             row.operator_context = 'INVOKE_DEFAULT'

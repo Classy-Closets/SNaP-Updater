@@ -330,17 +330,22 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
                                     icon="ERROR")
 
     def update_tk_height_parent(self):
-        toe_kick_height =\
-            self.product.get_prompt("Toe Kick Height").distance_value
+        toe_kick_height = self.product.get_prompt("Toe Kick Height").distance_value
         parent = self.product.obj_bp.parent
         children = parent.children
         closet = sn_types.Assembly(obj_bp=parent)
-        closet.get_prompt("Toe Kick Height").set_value(toe_kick_height)
+        tk_height_ppt = closet.get_prompt("Toe Kick Height")
+
+        if tk_height_ppt:
+            tk_height_ppt.set_value(toe_kick_height)
+
         for child in children:
             if "Toe Kick" in child.name:
                 toe_kick = child
                 tk = sn_types.Assembly(toe_kick)
-                tk.get_prompt("Toe Kick Height").set_value(toe_kick_height)
+                tk_height_ppt = tk.get_prompt("Toe Kick Height")
+                if tk_height_ppt:
+                    tk_height_ppt.set_value(toe_kick_height)
 
     def update_top_shelf_location(self, top_shelf):
         top_assembly = sn_types.Assembly(obj_bp=top_shelf)
@@ -466,8 +471,7 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
         self.height = math.fabs(self.product.obj_z.location.z)
         self.width = math.fabs(self.product.obj_x.location.x)
         self.prev_width = self.width
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(550))
+        return super().invoke(context, event, width=400)
 
     def draw_product_size(self, layout, use_rot_z=True):
 
@@ -510,6 +514,7 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
 
     def draw(self, context):
         """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         layout.label(text=self.product.obj_bp.snap.name_object)
         self.draw_product_size(layout)

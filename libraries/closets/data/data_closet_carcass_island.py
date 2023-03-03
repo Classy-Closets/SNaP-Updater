@@ -348,6 +348,8 @@ class Closet_Island_Carcass(sn_types.Assembly):
         Countertop_Type = countertop_type_ppt.get_var()
         no_countertop = self.get_prompt('No Countertop').get_value()
         ct_type_tag = "COUNTERTOP_{}".format(countertop_type.upper())
+        if countertop_type == "Standard Quartz":
+            ct_type_tag = "COUNTERTOP_QUARTZ"
 
         if self.countertop:
             if no_countertop:
@@ -378,6 +380,8 @@ class Closet_Island_Carcass(sn_types.Assembly):
         if countertop_type == 'Granite':
             self.countertop = common_parts.add_granite_countertop(self)
         if countertop_type == 'Quartz':
+            self.countertop = common_parts.add_quartz_countertop(self)
+        if countertop_type == 'Standard Quartz':
             self.countertop = common_parts.add_quartz_countertop(self)
         if countertop_type == 'Wood':
             self.countertop = common_parts.add_wood_countertop(self)
@@ -801,7 +805,8 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             ('2', 'Granite', 'Granite'),
             ('3', 'HPL', 'HPL'),
             ("4", "Quartz", "Quartz"),
-            ("5", "Wood", "Wood")],
+            ("5", "Standard Quartz", "Standard Quartz"),
+            ("6", "Wood", "Wood")],
         default='0')
     
     product = None
@@ -855,7 +860,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         # COUNTERTOP_HPL is used for "Custom"
         countertops = (
             "COUNTERTOP_MELAMINE", "COUNTERTOP_HPL", "COUNTERTOP_GRANITE",
-            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_WOOD")        
+            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_STANDARD_QUARTZ", "COUNTERTOP_WOOD")        
 
         if self.countertop_type_ppt:
             self.prev_countertop_type = self.countertop_type_ppt.get_value()
@@ -868,7 +873,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
 
             # Set unique material status
             for child in self.product.obj_bp.children:
-                if countertops[countertop_type] in child:
+                if countertops[countertop_type] in child or (self.countertop_type == "5" and "COUNTERTOP_QUARTZ" in child):
                     use_unique = mat_props.ct_type_index != countertop_type
                     child.sn_closets.use_unique_material = use_unique
                     bpy.context.view_layer.objects.active = child
@@ -961,8 +966,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             if self.countertop_type_ppt:
                 self.countertop_type = str(self.countertop_type_ppt.get_value())
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)
+        return super().invoke(context, event, width=500)
 
     def convert_to_height(self,number):
         for index, height in enumerate(common_lists.PANEL_HEIGHTS):
@@ -1113,7 +1117,21 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 row = col.row(align=True)
                 row.prop(Left_Overhang, "distance_value", text="Left Overhang")
                 row.prop(Right_Overhang, "distance_value", text="Right Overhang")
-            sn_utils.draw_enum(self, layout, 'countertop_type', 'Countertop Types', 6)
+            
+            c_box = layout.box()
+            c_box.label(text='Countertop Types')
+            tab_col = c_box.column(align=True)
+            row = tab_col.row(align=True)
+            row.prop_enum(self,"countertop_type","0")
+            row.prop_enum(self,"countertop_type","1")
+            row.prop_enum(self,"countertop_type","2")
+            row.prop_enum(self,"countertop_type","3")
+            row = tab_col.row(align=True)
+            row.prop_enum(self,"countertop_type","4")
+            row.prop_enum(self,"countertop_type","5")
+            row.prop_enum(self,"countertop_type","6")
+
+            # sn_utils.draw_enum(self, layout, 'countertop_type', 'Countertop Types', 7)
 
     def draw_product_placment(self,layout):
         box = layout.box()
@@ -1127,6 +1145,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         row.prop(self.product.obj_bp,'rotation_euler',index=2,text="")
         
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.product.obj_bp:
             if self.product.obj_bp.name in context.scene.objects:

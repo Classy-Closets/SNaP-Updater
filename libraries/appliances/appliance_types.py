@@ -82,7 +82,6 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
     product = None
 
     def invoke(self, context, event):
-        wm = context.window_manager
         self.product = None
         self.top_shelf = None
         obj_product_bp = sn_utils.get_bp(context.object, 'PRODUCT')
@@ -95,8 +94,7 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
         self.left_offset = 0
         self.right_offset = 0
 
-        # return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400)) 
-        return wm.invoke_props_dialog(self, width=400) 
+        return super().invoke(context, event, width=400) 
 
     def check(self, context):
         self.product.obj_x.location.x = self.width
@@ -172,6 +170,7 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
             row.prop(self, 'current_location', text="")
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         box = layout.box()
         row = box.row()
@@ -254,7 +253,6 @@ class PROMPTS_Countertop_Appliance(sn_types.Prompts_Interface):
     insert = None
 
     def invoke(self, context, event):
-        wm = context.window_manager
         self.insert = None
         self.top_shelf = None
         obj_product_bp = sn_utils.get_bp(context.object, 'INSERT')
@@ -264,7 +262,7 @@ class PROMPTS_Countertop_Appliance(sn_types.Prompts_Interface):
         self.width = self.insert.obj_x.location.x
         self.depth = math.fabs(self.insert.obj_y.location.y)
 
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def check(self, context):
         self.insert.obj_bp.location.x = self.x_loc
@@ -277,6 +275,7 @@ class PROMPTS_Countertop_Appliance(sn_types.Prompts_Interface):
         return {'FINISHED'}
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         box = layout.box()
 

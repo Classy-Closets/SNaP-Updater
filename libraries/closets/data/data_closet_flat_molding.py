@@ -49,7 +49,11 @@ class Flat_Molding(sn_types.Assembly):
         props.is_crown_molding = True
         self.obj_bp["IS_BP_CROWN_MOLDING"] = True
         if hasattr(self, "flat_molding_type"):
-            self.obj_bp["IS_BP_VALANCE"] = True
+            if self.flat_molding_type == "VALANCE":
+                self.obj_bp["IS_BP_VALANCE"] = True
+            else:
+                self.obj_bp["IS_BP_LIGHT_RAIL"] = True
+
 
         self.obj_bp["ID_PROMPT"] = self.id_prompt
         self.obj_bp["ID_DROP"] = self.drop_id
@@ -79,29 +83,57 @@ class Flat_Molding(sn_types.Assembly):
         Molding_Height = self.get_prompt('Molding Height').get_var()
         Molding_Location = self.get_prompt('Molding Location').get_var()
 
-        flat_crown = common_parts.add_flat_crown(self)
-        flat_crown.obj_bp.snap.comment_2 = "1040"
-        flat_crown.set_name("Flat Valance")
-        flat_crown.loc_x(
-            'IF(Extend_Left,0,Panel_Thickness/2)-Extend_Left_Amount',
-            [Extend_Left, Extend_Left_Amount, Panel_Thickness])
-        flat_crown.loc_y('-Depth-Front_Overhang+Panel_Thickness',
-                         [Depth, Front_Overhang, Panel_Thickness])
-        flat_crown.loc_z('Molding_Location', [Molding_Location])
-        flat_crown.rot_x(value=math.radians(-90))
-        flat_crown.dim_x(
-            'Width'
-            '-IF(Extend_Left,0,Panel_Thickness/2)'
-            '-IF(Extend_Right,0,Panel_Thickness/2)'
-            '+Extend_Left_Amount'
-            '+Extend_Right_Amount',
-            [Width, Extend_Left, Extend_Right, Panel_Thickness,
-             Extend_Right_Amount, Extend_Left_Amount])
-        flat_crown.dim_y('Molding_Height', [Molding_Height])
-        flat_crown.dim_z('-Panel_Thickness', [Panel_Thickness])
-        flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Left', [Exposed_Left])
-        flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Right', [Exposed_Right])
-        flat_crown.get_prompt('Exposed Back').set_formula('Exposed_Back', [Exposed_Back])
+        if hasattr(self, "flat_molding_type"):
+            if self.flat_molding_type == "VALANCE":
+                flat_crown = common_parts.add_flat_crown(self)
+                flat_crown.obj_bp.snap.comment_2 = "1040"
+                flat_crown.set_name("Flat Valance")
+                flat_crown.loc_x(
+                    'IF(Extend_Left,0,Panel_Thickness/2)-Extend_Left_Amount',
+                    [Extend_Left, Extend_Left_Amount, Panel_Thickness])
+                flat_crown.loc_y('-Depth-Front_Overhang+Panel_Thickness',
+                                [Depth, Front_Overhang, Panel_Thickness])
+                flat_crown.loc_z('Molding_Location', [Molding_Location])
+                flat_crown.rot_x(value=math.radians(-90))
+                flat_crown.dim_x(
+                    'Width'
+                    '-IF(Extend_Left,0,Panel_Thickness/2)'
+                    '-IF(Extend_Right,0,Panel_Thickness/2)'
+                    '+Extend_Left_Amount'
+                    '+Extend_Right_Amount',
+                    [Width, Extend_Left, Extend_Right, Panel_Thickness,
+                    Extend_Right_Amount, Extend_Left_Amount])
+                flat_crown.dim_y('Molding_Height', [Molding_Height])
+                flat_crown.dim_z('-Panel_Thickness', [Panel_Thickness])
+                flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Left', [Exposed_Left])
+                flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Right', [Exposed_Right])
+                flat_crown.get_prompt('Exposed Back').set_formula('Exposed_Back', [Exposed_Back])
+        
+        if hasattr(self, "flat_molding_type"):
+            if self.flat_molding_type == "LIGHT RAIL":
+                flat_crown = common_parts.add_flat_crown(self)
+                flat_crown.obj_bp.snap.comment_2 = "1040"
+                flat_crown.set_name("Light Rail")
+                flat_crown.loc_x(
+                    'IF(Extend_Left,0,Panel_Thickness/2)-Extend_Left_Amount',
+                    [Extend_Left, Extend_Left_Amount, Panel_Thickness])
+                flat_crown.loc_y('-Depth-Front_Overhang+Panel_Thickness',
+                                [Depth, Front_Overhang, Panel_Thickness])
+                flat_crown.loc_z('Molding_Location', [Molding_Location])
+                flat_crown.rot_x(value=math.radians(-90))
+                flat_crown.dim_x(
+                    'Width'
+                    '-IF(Extend_Left,0,Panel_Thickness/2)'
+                    '-IF(Extend_Right,0,Panel_Thickness/2)'
+                    '+Extend_Left_Amount'
+                    '+Extend_Right_Amount',
+                    [Width, Extend_Left, Extend_Right, Panel_Thickness,
+                    Extend_Right_Amount, Extend_Left_Amount])
+                flat_crown.dim_y('Molding_Height', [Molding_Height])
+                flat_crown.dim_z('-Panel_Thickness', [Panel_Thickness])
+                flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Left', [Exposed_Left])
+                flat_crown.get_prompt('Exposed Right').set_formula('Exposed_Right', [Exposed_Right])
+                flat_crown.get_prompt('Exposed Back').set_formula('Exposed_Back', [Exposed_Back])
 
         left_return = common_parts.add_cleat(self)
         left_return.obj_bp.snap.comment_2 = "1040"
@@ -438,8 +470,6 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
         self.layered_crown = self.insert.get_prompt('Layered Crown').get_value()
         if self.insert.get_prompt('Number of Layers'):
             self.layer_num = str(self.insert.get_prompt('Number of Layers').get_value())
-        wm = context.window_manager
-
         # check if topshelf exists
         self.has_topshelf = False
         for child in self.insert.obj_bp.parent.children:
@@ -448,10 +478,12 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
                     self.has_topshelf = True
                     break
 
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(450))
+        return super().invoke(context, event, width=400)
+
 
     def draw(self, context):
         """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         layout.label(text=self.insert.obj_bp.name)
         box = layout.box()
@@ -489,7 +521,7 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
         else:
             row = box.row()
             row.prop(molding_location, "distance_value", text=molding_location.name)
-            if self.insert.obj_bp.get("IS_BP_VALANCE"):
+            if self.insert.obj_bp.get("IS_BP_VALANCE") or self.insert.obj_bp.get("IS_BP_LIGHT_RAIL"):
                 row.prop(molding_height, "distance_value", text=molding_height.name)
 
         row = box.row()

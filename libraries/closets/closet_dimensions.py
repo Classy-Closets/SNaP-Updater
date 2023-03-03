@@ -156,7 +156,9 @@ class SNAP_OT_Cleanup(Operator):
             is_dimension = obj.get('IS_VISDIM_A') or obj.get('IS_VISDIM_B')
             is_annotation = obj.get('IS_ANNOTATION')
             if is_dimension and not is_annotation:
-                bpy.data.objects.remove(obj, do_unlink=True)
+                is_cabinet = sn_utils.get_cabinet_bp(obj)
+                if not is_cabinet:
+                    bpy.data.objects.remove(obj, do_unlink=True)
 
     def execute(self, context):
         self.clean_up_scene(context)
@@ -204,7 +206,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         for item in bpy.data.objects:
             if item.get('IS_VISDIM_A') or item.get('IS_VISDIM_B'):
                 cabinet_product = sn_utils.get_cabinet_bp(item)
-                if cabinet_product:
+                if cabinet_product or item.get('IS_KB_LABEL'):
                     continue
                 if sn_utils.get_obstacle_bp(item) or "IS_ANNOTATION" in item:
                     continue
@@ -212,9 +214,11 @@ class SNAP_OT_Auto_Dimension(Operator):
                     bpy.data.objects.remove(item, do_unlink=True)
 
         for obj in context.scene.collection.objects:
-            props = get_object_dimension_props(obj)
-            if props.is_dim_obj:
-                label_list.append(obj)
+            cabinet_product = sn_utils.get_cabinet_bp(obj)
+            if not cabinet_product:
+                props = get_object_dimension_props(obj)
+                if props.is_dim_obj:
+                    label_list.append(obj)
 
         sn_utils.delete_obj_list(label_list)
 
@@ -1701,26 +1705,27 @@ class SNAP_OT_Auto_Dimension(Operator):
     def toe_kick_garage_leg_dimension(self, assembly):
         assy_bp = assembly.obj_bp
         wall_bp = sn_utils.get_parent_assembly_bp(assy_bp)
-        dim_name = 'TKGL_HGT'
-        dim_exists = any([dim_name in c.name for c in wall_bp.children])
+        if wall_bp:
+            dim_name = 'TKGL_HGT'
+            dim_exists = any([dim_name in c.name for c in wall_bp.children])
 
-        if not dim_exists:
-            assy_height = 0
-            if assy_bp.get('IS_BP_TOE_KICK_INSERT'):
-                tk_height_pmpt = assembly.get_prompt("Toe Kick Height")
-                assy_height = tk_height_pmpt.get_value()
-            elif assy_bp.get('IS_BP_GARAGE_LEG'):
-                assy_height = assembly.obj_z.location.z
-            label = self.to_inch_lbl(assy_height)
-            dim = self.add_tagged_dimension(wall_bp)
-            dim.anchor.name = dim_name
-            dim.start_x(value=-sn_unit.inch(2))
-            dim.end_z(value=assy_height)
-            dim.set_label(' ')
-            text = self.add_tagged_dimension(dim.anchor)
-            text.start_x(value=-sn_unit.inch(3))
-            text.start_z(value=assy_height / 2)
-            text.set_label(label)
+            if not dim_exists:
+                assy_height = 0
+                if assy_bp.get('IS_BP_TOE_KICK_INSERT'):
+                    tk_height_pmpt = assembly.get_prompt("Toe Kick Height")
+                    assy_height = tk_height_pmpt.get_value()
+                elif assy_bp.get('IS_BP_GARAGE_LEG'):
+                    assy_height = assembly.obj_z.location.z
+                label = self.to_inch_lbl(assy_height)
+                dim = self.add_tagged_dimension(wall_bp)
+                dim.anchor.name = dim_name
+                dim.start_x(value=-sn_unit.inch(2))
+                dim.end_z(value=assy_height)
+                dim.set_label(' ')
+                text = self.add_tagged_dimension(dim.anchor)
+                text.start_x(value=-sn_unit.inch(3))
+                text.start_z(value=assy_height / 2)
+                text.set_label(label)
 
     def obstacle_label_dimension(self, obstacle):
         obstacle_bp = obstacle.obj_bp
@@ -2359,19 +2364,22 @@ class SNAP_OT_Auto_Dimension(Operator):
     def light_rails_labeling(self, assembly):
         light_rail_obj = assembly.obj_bp
         width = assembly.obj_x.location.x
-        height = assembly.get_prompt('Molding Height').get_value()
-        location = assembly.get_prompt('Molding Location').get_value()
-        x_offset = width / 2
-        z_offset = -(abs(height) + abs(location))
-        rotation = (135, 0, 90)
-        label = f'Light Rails {self.to_inch_lbl(abs(height))}'
-        hashmark = sn_types.Line(sn_unit.inch(2), rotation)
-        hashmark.parent(light_rail_obj)
-        hashmark.start_x(value=x_offset)
-        hashmark.start_z(value=z_offset)
-        dim = self.add_tagged_dimension(hashmark.end_point)
-        dim.start_z(value=sn_unit.inch(2))
-        dim.set_label(label)
+        height_ppt = assembly.get_prompt('Molding Height')
+        location_ppt = assembly.get_prompt('Molding Location')
+        if height_ppt and location_ppt:
+            height = height_ppt.get_value()
+            location = location_ppt.get_value()
+            x_offset = width / 2
+            z_offset = -(abs(height) + abs(location))
+            rotation = (135, 0, 90)
+            label = f'Light Rails {self.to_inch_lbl(abs(height))}'
+            hashmark = sn_types.Line(sn_unit.inch(2), rotation)
+            hashmark.parent(light_rail_obj)
+            hashmark.start_x(value=x_offset)
+            hashmark.start_z(value=z_offset)
+            dim = self.add_tagged_dimension(hashmark.end_point)
+            dim.start_z(value=sn_unit.inch(2))
+            dim.set_label(label)
 
     def wall_cleat_dimensions(self, assy):
         obj = assy.obj_bp
@@ -2454,7 +2462,8 @@ class SNAP_OT_Auto_Dimension(Operator):
             2: 'Granite',
             3: 'HPL',
             4: 'Quartz',
-            5: 'Wood'
+            5: 'Standard Quartz',
+            6: 'Wood'
         }
         ctop_assembly = sn_types.Assembly(item)
         ctop_mat_pmpt = ctop_assembly.get_prompt("Countertop Type")
@@ -2489,6 +2498,8 @@ class SNAP_OT_Auto_Dimension(Operator):
             if material_str == "HPL":
                 material += spec_group.materials["Countertop_HPL_Surface"].item_name
             if material_str == "Quartz":
+                material += spec_group.materials["Countertop_Quartz_Surface"].item_name
+            if material_str == "Standard Quartz":
                 material += spec_group.materials["Countertop_Quartz_Surface"].item_name
             if material_str == "Wood":
                 mfg = ct_mat_props.get_type().get_mfg()
@@ -2853,30 +2864,30 @@ class SNAP_OT_Auto_Dimension(Operator):
     def place_drawer_front_labels(self, drawer_assy, dims_list):
         suspended_offset = 0
         suspended_pmpt = drawer_assy.get_prompt('Lift Drawers From Bottom')
-        is_suspended_drw = suspended_pmpt.get_value()
-        if is_suspended_drw:
-            suspended_height_pmpt = drawer_assy.get_prompt(
-                "Bottom Drawer Space")
-            if suspended_height_pmpt:
-                suspended_offset = suspended_height_pmpt.get_value()
-        dims_list.reverse()
-        width = drawer_assy.obj_x.location.x
-        parent = drawer_assy.obj_bp
-        start_loc = 0
-        for drw_face_dim in dims_list:
-            vert_loc = 0
-            idx, face_height, label = drw_face_dim
-            curr_idx = len(dims_list) - idx
-            z_offset = (curr_idx * sn_unit.inch(0.1)) + suspended_offset
-            if face_height <= 0.3:
-                vert_loc = start_loc + (face_height / 2) + z_offset
-            elif face_height > 0.3:
-                vert_loc = start_loc + ((face_height / 4) * 3) + z_offset
-            dim = self.add_tagged_dimension(parent)
-            dim.start_x(value=(width / 4) * 3)
-            dim.start_z(value=vert_loc)
-            dim.set_label(label)
-            start_loc += face_height
+        if suspended_pmpt:
+            is_suspended_drw = suspended_pmpt.get_value()
+            if is_suspended_drw:
+                suspended_height_pmpt = drawer_assy.get_prompt("Bottom Drawer Space")
+                if suspended_height_pmpt:
+                    suspended_offset = suspended_height_pmpt.get_value()
+            dims_list.reverse()
+            width = drawer_assy.obj_x.location.x
+            parent = drawer_assy.obj_bp
+            start_loc = 0
+            for drw_face_dim in dims_list:
+                vert_loc = 0
+                idx, face_height, label = drw_face_dim
+                curr_idx = len(dims_list) - idx
+                z_offset = (curr_idx * sn_unit.inch(0.1)) + suspended_offset
+                if face_height <= 0.3:
+                    vert_loc = start_loc + (face_height / 2) + z_offset
+                elif face_height > 0.3:
+                    vert_loc = start_loc + ((face_height / 4) * 3) + z_offset
+                dim = self.add_tagged_dimension(parent)
+                dim.start_x(value=(width / 4) * 3)
+                dim.start_z(value=vert_loc)
+                dim.set_label(label)
+                start_loc += face_height
 
     def shelf_obj_mesh(self, assembly):
         children = assembly.obj_bp.children
@@ -3126,6 +3137,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         for assembly in scene_assemblies(context):
 
             props = assembly.obj_bp.sn_closets
+            cabinet_product = sn_utils.get_cabinet_bp(assembly.obj_bp)
 
             # SHELF LABEL
             if props.is_shelf_bp:
@@ -3154,9 +3166,10 @@ class SNAP_OT_Auto_Dimension(Operator):
 
             # DOOR HEIGHT LABEL
             if props.is_door_bp and scene_props.door_face_height:
-                door_obj = assembly.obj_bp
-                if not sn_utils.get_wallbed_bp(door_obj) and door_obj.parent:
-                    self.label_regular_doors(assembly, door_obj)
+                if not cabinet_product:
+                    door_obj = assembly.obj_bp
+                    if not sn_utils.get_wallbed_bp(door_obj) and door_obj.parent:
+                        self.label_regular_doors(assembly, door_obj)
 
             # DRAWER FRONT HEIGHT LABEL
             parent = assembly.obj_bp.parent
@@ -3271,7 +3284,8 @@ class SNAP_OT_Auto_Dimension(Operator):
                           props.is_bottom_back_bp)
 
             if scene_props.fullback and is_backing:
-                self.fullback_labeling(assembly)
+                if not cabinet_product:
+                    self.fullback_labeling(assembly)
 
             # Labels for assemblies in islands
             if props.is_island:
@@ -3337,8 +3351,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                 self.valances_labeling(assembly)
 
             # Light Rails Labeling
-            is_light_rail = 'light rail' in assembly.obj_bp.name.lower()
-            if scene_props.light_rails and is_light_rail:
+            if scene_props.light_rails and assembly.obj_bp.get("IS_BP_LIGHT_RAIL"):
                 self.light_rails_labeling(assembly)
 
             # Partition Height
@@ -3375,9 +3388,10 @@ class SNAP_OT_Auto_Dimension(Operator):
                 return False
             wall_length = wall_assy.obj_x.location.x
             item_length = item_assy.obj_x.location.x
-        negative_x_loc = item.location[0] < 0
-        positive_x_loc = (item_length + item.location[0]) < wall_length
-        if negative_x_loc or positive_x_loc:
+        item_loc_x = item_assy.obj_bp.location.x
+        negative_x_loc = item_loc_x < 0
+        positive_x_dim = item_loc_x + item_length > wall_length
+        if negative_x_loc or positive_x_dim:
             return True
         return False
 

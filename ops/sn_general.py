@@ -252,6 +252,7 @@ class SNAP_GEN_OT_place_product(sn_types.Prompts_Interface):
     allow_quantites = True
     allow_fills = True
     allow_height_above_floor = False
+    allow_placement_options = False
     
     product = None
 
@@ -285,32 +286,34 @@ class SNAP_GEN_OT_place_product(sn_types.Prompts_Interface):
         sn_utils.run_calculators(self.product.obj_bp)
 
     def update_placement(self):
-        left_x = self.product.get_collision_location('LEFT')
-        right_x = self.product.get_collision_location('RIGHT')
-        offsets = self.left_offset + self.right_offset
+        
+        if self.allow_placement_options:
+            left_x = self.product.get_collision_location('LEFT')
+            right_x = self.product.get_collision_location('RIGHT')
+            offsets = self.left_offset + self.right_offset
 
-        if self.placement_on_wall == 'FILL':
-            self.product.obj_bp.location.x = left_x + self.left_offset
-            self.product.obj_x.location.x = (right_x - left_x - offsets) / self.quantity
-        if self.placement_on_wall == 'LEFT':
-            if self.product.obj_bp.snap.placement_type == 'Corner':
-                self.product.obj_bp.rotation_euler.z = math.radians(0)
-            self.product.obj_bp.location.x = left_x + self.left_offset
-            self.product.obj_x.location.x = self.width
-        if self.placement_on_wall == 'CENTER':
-            self.product.obj_x.location.x = self.width
-            self.product.obj_bp.location.x = left_x + (right_x - left_x)/2 - ((self.product.calc_width()/2) * self.quantity)
-        if self.placement_on_wall == 'RIGHT':
-            if self.product.obj_bp.snap.placement_type == 'Corner':
-                self.product.obj_bp.rotation_euler.z = math.radians(-90)
-            self.product.obj_x.location.x = self.width
-            self.product.obj_bp.location.x = (right_x - self.product.calc_width()) - self.right_offset
-        if self.placement_on_wall == 'SELECTED_POINT' and self.last_placement != 'SELECTED_POINT':
-                self.product.obj_bp.location.x = self.selected_location
-        elif self.placement_on_wall == 'SELECTED_POINT' and self.last_placement == 'SELECTED_POINT':
-            self.selected_location = self.product.obj_bp.location.x
+            if self.placement_on_wall == 'FILL':
+                self.product.obj_bp.location.x = left_x + self.left_offset
+                self.product.obj_x.location.x = (right_x - left_x - offsets) / self.quantity
+            if self.placement_on_wall == 'LEFT':
+                if self.product.obj_bp.snap.placement_type == 'Corner':
+                    self.product.obj_bp.rotation_euler.z = math.radians(0)
+                self.product.obj_bp.location.x = left_x + self.left_offset
+                self.product.obj_x.location.x = self.width
+            if self.placement_on_wall == 'CENTER':
+                self.product.obj_x.location.x = self.width
+                self.product.obj_bp.location.x = left_x + (right_x - left_x)/2 - ((self.product.calc_width()/2) * self.quantity)
+            if self.placement_on_wall == 'RIGHT':
+                if self.product.obj_bp.snap.placement_type == 'Corner':
+                    self.product.obj_bp.rotation_euler.z = math.radians(-90)
+                self.product.obj_x.location.x = self.width
+                self.product.obj_bp.location.x = (right_x - self.product.calc_width()) - self.right_offset
+            if self.placement_on_wall == 'SELECTED_POINT' and self.last_placement != 'SELECTED_POINT':
+                    self.product.obj_bp.location.x = self.selected_location
+            elif self.placement_on_wall == 'SELECTED_POINT' and self.last_placement == 'SELECTED_POINT':
+                self.selected_location = self.product.obj_bp.location.x
 
-        self.last_placement = self.placement_on_wall
+            self.last_placement = self.placement_on_wall
 
     def check(self,context):
         self.update_overall_width()
@@ -376,6 +379,7 @@ class SNAP_GEN_OT_place_product(sn_types.Prompts_Interface):
         obj = bpy.data.objects[self.object_name]
         self.product = sn_types.Assembly(sn_utils.get_bp(obj,'PRODUCT'))
         self.inserts = sn_utils.get_insert_bp_list(self.product.obj_bp,[])
+        self.allow_placement_options = sn_utils.get_wall_bp(self.product.obj_bp)
 
         if 'IS_MIRROR' in self.product.obj_z:
             self.allow_height_above_floor = True 
@@ -546,7 +550,8 @@ class SNAP_GEN_OT_place_product(sn_types.Prompts_Interface):
 
         box = layout.box()
         self.draw_product_size(box)
-        self.draw_product_placment(box)
+        if self.allow_placement_options:
+            self.draw_product_placment(box)
 
 
 

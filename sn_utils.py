@@ -153,14 +153,14 @@ def get_part_thickness(obj):
             else:
                 return math.fabs(sn_unit.inch(0.75))
 
-        if obj.parent.get("IS_SHELF"):
+        if obj.parent.get("IS_SHELF") or obj.parent.get("IS_BP_L_SHELF") or obj.parent.get("IS_BP_ANGLE_SHELF"):
             closet_materials = bpy.context.scene.closet_materials
             mat_type = closet_materials.materials.get_mat_type()
             if mat_type.name == "Garage Material":
                 if obj.snap.type_mesh == 'CUTPART':
                     for child in obj.parent.children:
                         if 'obj_z' in child:
-                            print("Returning Garage Shelf Thickness")
+                            # print("Returning Garage Shelf Thickness")
                             return math.fabs(child.location.z)
             
         if obj.get('IS_BP_ASSEMBLY'):
@@ -169,13 +169,14 @@ def get_part_thickness(obj):
             if 'Shelf Lip' in part_name:
                 return math.fabs(sn_unit.inch(0.75))
 
-
         # Set thickness for Shoe Shelf Lip    
         if obj.get('IS_BP_ASSEMBLY'):
             assembly = sn_types.Assembly(obj_bp=obj)
             if assembly.obj_bp.get("IS_SHOE_SHELF_LIP"):
                 return math.fabs(sn_unit.inch(0.75))
 
+        if "IS_KB_MOLDING" in obj:
+            return sn_unit.inch(0.75)
 
     if obj.snap.type_mesh == 'CUTPART':
         spec_group = bpy.context.scene.snap.spec_groups[obj.snap.spec_group_index]
@@ -214,6 +215,16 @@ def get_wall_bp(obj):
     elif obj.parent:
         return get_wall_bp(obj.parent)
 
+
+def get_floor_parent(obj):
+    if not obj:
+        return None
+    if obj.sn_roombuilder.is_floor:
+        return obj
+    elif obj.parent:
+        return get_floor_parent(obj.parent)
+
+
 def get_wallbed_bp(obj):
     if not obj:
         return None
@@ -221,6 +232,16 @@ def get_wallbed_bp(obj):
         return obj
     elif obj.parent:
         return get_wallbed_bp(obj.parent)
+
+
+def get_top_level_insert_bp(obj):
+    if obj:
+        if "IS_BP_ASSEMBLY" in obj:
+            if obj.parent:
+                if obj.snap.type_group == 'INSERT' and obj.parent.snap.type_group == 'PRODUCT':
+                    return obj
+                else:
+                    return get_top_level_insert_bp(obj.parent)
 
 
 def get_room_bp(obj):
@@ -411,18 +432,22 @@ def assign_materials_from_pointers(obj):
 
                 island_bp = sn_utils.get_island_bp(obj)
                 island_assy = sn_types.Assembly(island_bp)
-                countertop_type = island_assy.get_prompt("Countertop Type")
+                island_countertop_type = island_assy.get_prompt("Countertop Type")
 
-                if countertop_type:
+                parent_assembly = sn_types.Assembly(part_bp.parent)
+                parent_countertop_type = parent_assembly.get_prompt("Countertop Type")
+
+                if island_countertop_type:
                     ct_types = {
                         '0': 'Melamine',
                         '1': 'Custom',
                         '2': 'Granite',
                         '3': 'HPL',
                         "4": "Quartz",
-                        "5": "Wood"}
+                        "5": "Standard Quartz",
+                        "6": "Wood"}
 
-                    ct_type = ct_types[str(countertop_type.get_value())]
+                    ct_type = ct_types[str(island_countertop_type.get_value())]
 
                     if ct_type == "Custom":
                         pointer_name = "Countertop_HPL_Surface"
@@ -432,13 +457,25 @@ def assign_materials_from_pointers(obj):
                         pointer_name = "Countertop_HPL_Surface"
                         unique_mat_name = bp_props.unique_countertop_hpl
 
+                    elif ct_type == "Standard Quartz":
+                        pointer_name = "Countertop_Quartz_Surface"
+                        unique_mat_name = bp_props.unique_countertop_standard_quartz
+
                 if 'COUNTERTOP_GRANITE' in part_bp:
                     pointer_name = "Countertop_Granite_Surface"
                     unique_mat_name = bp_props.unique_countertop_granite
 
                 if 'COUNTERTOP_QUARTZ' in part_bp:
-                    pointer_name = "Countertop_Quartz_Surface"
-                    unique_mat_name = bp_props.unique_countertop_quartz
+                    if parent_countertop_type:
+                        if parent_countertop_type.get_value() == 5:
+                            pointer_name = "Countertop_Quartz_Surface"
+                            unique_mat_name = bp_props.unique_countertop_standard_quartz
+                        else:
+                            pointer_name = "Countertop_Quartz_Surface"
+                            unique_mat_name = bp_props.unique_countertop_quartz
+                    else:
+                        pointer_name = "Countertop_Quartz_Surface"
+                        unique_mat_name = bp_props.unique_countertop_quartz
 
                 if 'COUNTERTOP_WOOD' in part_bp:
                     category_name = "Closet Materials"
@@ -1512,7 +1549,11 @@ def get_image_enum_previews(path, key, force_reload=False):
         image_paths = []
         for fn in os.listdir(path):
             if fn.lower().endswith(".png"):
-                image_paths.append(fn)
+                # Add code to make Standard hinges the default
+                if 'Standard Hinge' in fn:
+                    image_paths.insert(0,fn)
+                else:
+                    image_paths.append(fn)
 
         for i, name in enumerate(image_paths):
             filepath = os.path.join(path, name)
@@ -1617,6 +1658,15 @@ def get_insert_bp_list(obj_bp, insert_list):
         insert_list.sort(key=lambda obj: obj.location.z, reverse=True)
     return insert_list
 
+def get_tagged_bp_list(obj_bp, tag, insert_list):
+    for child in obj_bp.children:
+        if child.get(tag):
+            insert_list.append(child)
+        get_tagged_bp_list(child, tag, insert_list)
+
+    if len(insert_list) > 0:
+        insert_list.sort(key=lambda obj: obj.location.z, reverse=True)
+    return insert_list
 
 def init_objects(obj_bp):
     """ This Function is used to init all of the objects in an assembly

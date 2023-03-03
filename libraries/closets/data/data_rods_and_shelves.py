@@ -805,9 +805,11 @@ class PROMPTS_Hanging_Rod_With_Shelves_Prompts(sn_types.Prompts_Interface):
         self.insert = Hanging_Rods_with_Shelves(self.get_insert().obj_bp)
         self.set_properties_from_prompts()
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
+        return super().invoke(context, event, width=330)
+
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.insert.obj_bp:
             if self.insert.obj_bp.name in context.scene.objects:
@@ -1021,14 +1023,13 @@ class PROMPTS_Glass_Shelf_Prompts(sn_types.Prompts_Interface):
         if self.glass_thickness_prompt:
             self.glass_thickness = str(self.glass_thickness_prompt.combobox_index)
 
-
     def invoke(self, context, event):
         self.assembly = self.get_insert()
         self.set_properties_from_prompts(context)
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
+        return super().invoke(context, event, width=330)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
@@ -1039,6 +1040,7 @@ class PROMPTS_Glass_Shelf_Prompts(sn_types.Prompts_Interface):
                 shelf_quantity.draw(col, allow_edit=False)
                 row = col.row()
                 row.label(text="Glass Shelf Thickness")
+                row = col.row()
                 row.prop(self, "glass_thickness", expand=True)
 
 

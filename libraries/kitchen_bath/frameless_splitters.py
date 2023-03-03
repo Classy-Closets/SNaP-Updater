@@ -1,11 +1,14 @@
 
 
 import bpy
+from bpy.types import Operator
 import math
 from os import path
 from snap import sn_types, sn_unit, sn_utils
 from . import cabinet_properties
+from . import common_parts
 from snap.libraries.closets import closet_paths
+from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
 LIBRARY_NAME = "Cabinets"
@@ -14,12 +17,28 @@ INSERT_SPLITTER_CATEGORY_NAME = "Starter Splitters"
 ROOT_DIR = path.dirname(__file__)
 PART_WITH_EDGEBANDING = path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
 
+
+def get_splitter_count(product):
+    count = 0
+
+    splitters = sn_utils.get_tagged_bp_list(product, "IS_BP_SPLITTER", [])
+
+    if splitters:
+        count = len(splitters)
         
-def add_part(assembly, path):
-    part_bp = assembly.add_assembly_from_file(path)
-    part = sn_types.Assembly(part_bp)
-    part.obj_bp.sn_closets.is_panel_bp = True
-    return part  
+    print("get_splitter_count.splitter_count=" + str(count))    
+    return count + 1
+
+def get_splitter_count(product):
+    count = 0
+
+    splitters = sn_utils.get_tagged_bp_list(product, "IS_BP_SPLITTER", [])
+
+    if splitters:
+        count = len(splitters)
+        
+    print("get_splitter_count.splitter_count=" + str(count))    
+    return count + 1
 
 class Vertical_Splitters(sn_types.Assembly):
     
@@ -29,7 +48,7 @@ class Vertical_Splitters(sn_types.Assembly):
     placement_type = "SPLITTER"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_splitters_drop"
 
     mirror_y = False
 
@@ -39,7 +58,9 @@ class Vertical_Splitters(sn_types.Assembly):
   
     open_name = ""
 
+    splitter_nbr = 1
     vertical_openings = 2 #1-10
+
     opening_1_height = 0
     opening_2_height = 0
     opening_3_height = 0
@@ -93,8 +114,11 @@ class Vertical_Splitters(sn_types.Assembly):
         self.add_prompt("Extend Top Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Extend Bottom Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Opening Quantity", 'QUANTITY', self.vertical_openings)
+
+        self.add_prompt("Left Depth", 'DISTANCE', sn_unit.inch(24))
+        self.add_prompt("Right Depth", 'DISTANCE', sn_unit.inch(24))
         
-    def add_insert(self, insert, index, z_loc_vars=[], z_loc_expression=""):
+    def add_insert(self, insert, index, z_loc_vars=[], z_loc_expression="", opening_nbr=""):
         Width = self.obj_x.snap.get_var("location.x","Width")
         Depth = self.obj_y.snap.get_var("location.y","Depth")
         height_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Height')".format(str(index)))
@@ -104,7 +128,11 @@ class Vertical_Splitters(sn_types.Assembly):
         if insert:
             if not insert.obj_bp:
                 insert.draw()
+
             insert.obj_bp.parent = self.obj_bp
+            insert.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
+            insert.obj_bp['OPENING_NBR'] = opening_nbr
+
             if index == self.vertical_openings:
                 insert.loc_z(value = 0)
             else:
@@ -130,6 +158,10 @@ class Vertical_Splitters(sn_types.Assembly):
         
     def get_opening(self,index):
         opening = self.add_opening()
+        opening.set_name("Opening " + str(index))
+        opening.obj_bp['IS_BP_OPENING'] = True
+        opening.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
+        opening.obj_bp['OPENING_NBR'] = index
         opening.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
         opening.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
         opening.add_prompt("Top Thickness", 'DISTANCE', sn_unit.inch(.75))
@@ -189,7 +221,7 @@ class Vertical_Splitters(sn_types.Assembly):
                 z_loc = previous_splitter.obj_bp.snap.get_var("location.z", "Splitter_Z_Loc")
                 z_loc_vars.append(z_loc)
                 
-            splitter = add_part(self, PART_WITH_EDGEBANDING)
+            splitter = common_parts.add_kd_shelf(self)
             splitter.set_name("Splitter " + str(i))
             if previous_splitter:
                 z_loc_vars.append(Thickness)
@@ -203,9 +235,6 @@ class Vertical_Splitters(sn_types.Assembly):
             remove_splitter = eval("self.remove_splitter_" + str(i))
             if remove_splitter:
                 splitter.get_prompt('Hide').set_fomula(value=True)
-            # splitter.cutpart("Cabinet_Shelf")
-            # splitter.edgebanding('Cabinet_Body_Edges',l2 = True)
-            # cabinet_machining.add_drilling(splitter)
             
             previous_splitter = splitter
             
@@ -213,31 +242,36 @@ class Vertical_Splitters(sn_types.Assembly):
             opening_z_loc = previous_splitter.obj_bp.snap.get_var("location.z", "Splitter_Z_Loc")
             opening_z_loc_vars.append(opening_z_loc)
             
+            opening = self.get_opening(i)
+            self.add_insert(opening, i, opening_z_loc_vars, "Splitter_Z_Loc", opening.obj_bp["OPENING_NBR"])
+
             exterior = eval('self.exterior_' + str(i))
-            self.add_insert(exterior, i, opening_z_loc_vars, "Splitter_Z_Loc")
+            self.add_insert(exterior, i, opening_z_loc_vars, "Splitter_Z_Loc", opening.obj_bp["OPENING_NBR"])
             
             interior = eval('self.interior_' + str(i))
-            self.add_insert(interior, i, opening_z_loc_vars, "Splitter_Z_Loc")
+            self.add_insert(interior, i, opening_z_loc_vars, "Splitter_Z_Loc", opening.obj_bp["OPENING_NBR"])
             
-            opening = self.get_opening(i)
-            self.add_insert(opening, i, opening_z_loc_vars, "Splitter_Z_Loc")
-
         #ADD LAST INSERT
-        bottom_exterior = eval('self.exterior_' + str(self.vertical_openings))
-        self.add_insert(bottom_exterior, self.vertical_openings)
-        
-        bottom_interior = eval('self.interior_' + str(self.vertical_openings))
-        self.add_insert(bottom_interior, self.vertical_openings)
 
         bottom_opening = self.get_opening(self.vertical_openings)
-        self.add_insert(bottom_opening, self.vertical_openings)
+        self.add_insert(bottom_opening, self.vertical_openings, opening_nbr=bottom_opening.obj_bp["OPENING_NBR"])
+
+        bottom_exterior = eval('self.exterior_' + str(self.vertical_openings))
+        self.add_insert(bottom_exterior, self.vertical_openings, opening_nbr=bottom_opening.obj_bp["OPENING_NBR"])
+        
+        bottom_interior = eval('self.interior_' + str(self.vertical_openings))
+        self.add_insert(bottom_interior, self.vertical_openings, opening_nbr=bottom_opening.obj_bp["OPENING_NBR"])
 
     def draw(self):
         self.create_assembly()
         self.obj_bp['IS_BP_SPLITTER'] = True
+        self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
         self.add_prompts()
         self.add_splitters()
         self.update()
+
+    def export(self):
+        print("EXPORT:", "Splitters")
 
 class Horizontal_Splitters(sn_types.Assembly):
     
@@ -252,7 +286,9 @@ class Horizontal_Splitters(sn_types.Assembly):
     mirror_y = False
     open_name = ""
 
+    splitter_nbr = 1
     horizontal_openings = 2 #1-10
+
     opening_1_width = 0
     opening_2_width = 0
     opening_3_width = 0
@@ -321,7 +357,9 @@ class Horizontal_Splitters(sn_types.Assembly):
     def get_opening(self,index):
         opening = self.add_opening()
         opening.set_name("Opening " + str(index))
-
+        opening.obj_bp.name = "Opening " + str(index)
+        opening.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
+        opening.obj_bp['OPENING_NBR'] = index
         opening.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
         opening.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
         opening.add_prompt("Top Thickness", 'DISTANCE', sn_unit.inch(.75))
@@ -358,7 +396,7 @@ class Horizontal_Splitters(sn_types.Assembly):
                 x_loc_vars.append(x_loc)
                 x_loc_vars.append(Thickness)
 
-            splitter = add_part(self, PART_WITH_EDGEBANDING)
+            splitter = common_parts.add_kd_shelf(self)
             splitter.set_name("Splitter " + str(i))
             if previous_splitter:
                 splitter.loc_x("Splitter_X_Loc+Thickness+Opening_" + str(i) + "_Width",x_loc_vars)
@@ -399,11 +437,43 @@ class Horizontal_Splitters(sn_types.Assembly):
         
     def draw(self):
         self.create_assembly()
+        self.splitter_nbr = get_splitter_count(self)
         self.obj_bp['IS_BP_SPLITTER'] = True
+        self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
         self.add_prompts()
         self.add_splitters()
         self.update()
-        
+
+
+#---------SPLITTER OPERATORS
+class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
+    bl_idname = "lm_cabinets.insert_splitters_drop"
+    bl_label = "Custom drag and drop for splitter insert"
+
+
+    def execute(self, context):
+        return super().execute(context)    
+
+    def confirm_placement(self, context):
+        super().confirm_placement(context)
+
+        insert = sn_types.Assembly(self.insert.obj_bp)
+        product_bp = sn_utils.get_parent_assembly_bp(self.insert.obj_bp)
+
+        splitters = sn_utils.get_tagged_bp_list(product_bp, "IS_BP_SPLITTER", [])
+        splitter_qty = len(splitters)
+
+        insert.obj_bp["SPLITTER_NBR"] = splitter_qty
+
+        # opening_nbr = 1
+        for obj_bp in insert.obj_bp.children:
+            if "OPENING_NBR" in obj_bp:
+                obj_bp["SPLITTER_NBR"] = splitter_qty
+                # obj_bp["OPENING_NBR"] = str(splitter_qty) + "." + str(opening_nbr)
+                # opening_nbr += 1
+
+
+bpy.utils.register_class(OPS_KB_Splitters_Drop)        
 #---------SPLITTER INSERTS        
 class INSERT_2_Horizontal_Openings(Horizontal_Splitters):
     
@@ -489,6 +559,17 @@ class INSERT_5_Vertical_Openings(Vertical_Splitters):
         self.category_name = INSERT_SPLITTER_CATEGORY_NAME
         self.assembly_name = "5 Vertical Openings"
         self.vertical_openings = 5
+        self.width = sn_unit.inch(18)
+        self.height = sn_unit.inch(34)
+        self.depth = sn_unit.inch(23)
+
+class INSERT_1_Opening(Vertical_Splitters):
+    
+    def __init__(self):
+        self.library_name = LIBRARY_NAME
+        self.category_name = INSERT_SPLITTER_CATEGORY_NAME
+        self.assembly_name = "1 Opening"
+        self.vertical_openings = 1
         self.width = sn_unit.inch(18)
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(23)

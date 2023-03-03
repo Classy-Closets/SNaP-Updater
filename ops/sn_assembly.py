@@ -247,8 +247,6 @@ class SN_ASSY_OT_select_parent_assembly(bpy.types.Operator):
                 assembly.obj_bp.parent.select_set(True)
                 context.view_layer.objects.active = assembly.obj_bp.parent
 
-                self.select_children(assembly.obj_bp.parent)
-
         return {'FINISHED'}
 
 

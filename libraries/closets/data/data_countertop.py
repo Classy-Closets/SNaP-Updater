@@ -143,7 +143,7 @@ class Countertop_Insert(sn_types.Assembly):
              Extend_Left_Amount, Add_Left_Corner, Add_Right_Corner])
         quartz_ctop.dim_y("-Product_Depth-Deck_Overhang", [Product_Depth, Deck_Overhang])
         quartz_ctop.dim_z(value=sn_unit.inch(1.5))
-        quartz_ctop.get_prompt("Hide").set_formula("IF(Countertop_Type==4,False,True)", [Countertop_Type])
+        quartz_ctop.get_prompt("Hide").set_formula("IF(OR(Countertop_Type==4,Countertop_Type==5),False,True)", [Countertop_Type])
         quartz_ctop.get_prompt('Edge Type').set_value(0)
 
         wood_deck = common_parts.add_wood_countertop(self)
@@ -162,7 +162,7 @@ class Countertop_Insert(sn_types.Assembly):
              Extend_Left_Amount, Add_Left_Corner, Add_Right_Corner])
         wood_deck.dim_y("-Product_Depth-Deck_Overhang", [Product_Depth, Deck_Overhang])
         wood_deck.dim_z(value=sn_unit.inch(1.25))
-        wood_deck.get_prompt("Hide").set_formula("IF(Countertop_Type==5,False,True)", [Countertop_Type])
+        wood_deck.get_prompt("Hide").set_formula("IF(Countertop_Type==6,False,True)", [Countertop_Type])
 
         b_splash = common_parts.add_back_splash(self)
         b_splash.set_name("Countertop Backsplash")
@@ -251,7 +251,8 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
             ('2', 'Granite', 'Granite'),
             ('3', 'HPL', 'HPL'),
             ("4", "Quartz", "Quartz"),
-            ("5", "Wood", "Wood")],
+            ("5", "Standard Quartz", "Standard Quartz"),
+            ("6", "Wood", "Wood")],
         default='0')
 
     edge_type: EnumProperty(
@@ -279,7 +280,7 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
         # COUNTERTOP_HPL is used for "Custom"
         countertops = (
             "COUNTERTOP_MELAMINE", "COUNTERTOP_HPL", "COUNTERTOP_GRANITE",
-            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_WOOD")
+            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_STANDARD_QUARTZ", "COUNTERTOP_WOOD")
 
         if self.countertop_type_prompt:
             countertop_type = self.countertop_type_prompt.get_value()
@@ -291,7 +292,7 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
 
             # Set unique material status
             for child in self.assembly.obj_bp.children:
-                if countertops[countertop_type] in child:
+                if countertops[countertop_type] in child or (self.countertop_type == "5" and "COUNTERTOP_QUARTZ" in child):
                     use_unique = mat_props.ct_type_index != countertop_type
                     child.sn_closets.use_unique_material = use_unique
                     bpy.context.view_layer.objects.active = child
@@ -340,9 +341,10 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
         self.countertop_type = str(self.countertop_type_prompt.combobox_index)
         self.edge_type = str(self.edge_type_prompt.combobox_index)
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(475))          
+        return super().invoke(context, event, width=475)
         
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
@@ -432,16 +434,24 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
                     row.prop(Corner_Shape, "combobox_index", text=Corner_Shape.name)
 
                 if Countertop_Type:
-                    row = box.row()
-                    row.label(text=Countertop_Type.name)
-                    row = box.row()
-                    row.prop(self, "countertop_type", expand=True)
+                    c_box = layout.box()
+                    c_box.label(text=Countertop_Type.name)
+                    tab_col = c_box.column(align=True)
+                    row = tab_col.row(align=True)
+                    row.prop_enum(self,"countertop_type","0")
+                    row.prop_enum(self,"countertop_type","1")
+                    row.prop_enum(self,"countertop_type","2")
+                    row.prop_enum(self,"countertop_type","3")
+                    row = tab_col.row(align=True)
+                    row.prop_enum(self,"countertop_type","4")
+                    row.prop_enum(self,"countertop_type","5")
+                    row.prop_enum(self,"countertop_type","6")
 
                     if self.countertop_type == '2':
                         if Edge_Type:
-                            row = box.row()
+                            row = c_box.row()
                             row.label(text=Edge_Type.name)
-                            row = box.row()
+                            row = c_box.row()
                             row.prop(self, "edge_type", expand=True)
                         pass
 

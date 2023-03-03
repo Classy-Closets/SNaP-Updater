@@ -285,8 +285,7 @@ class PROMPTS_Topshelf_Support_Corbels(sn_types.Prompts_Interface):
         self.update_mid_corbels(context)
         self.get_assemblies()
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def update_placement(self, context):
         left_x = self.product.get_collision_location('LEFT')
@@ -354,6 +353,7 @@ class PROMPTS_Topshelf_Support_Corbels(sn_types.Prompts_Interface):
             row.prop(self, 'current_location', text="")
 
     def draw(self, context):
+        super().draw(context)
         exposed_left = self.top_shelf.get_prompt("Exposed Left")
         exposed_right = self.top_shelf.get_prompt("Exposed Right")
         extend_left_amount = self.product.get_prompt("Extend Left Amount")

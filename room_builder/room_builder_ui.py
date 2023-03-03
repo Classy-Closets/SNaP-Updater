@@ -20,7 +20,16 @@ class ROOM_BUILDER_UL_walls(UIList):
                 layout.label(text=item.name + "   " + count_text)
                 area = round(meter_to_active_unit(wall_bp.dimensions.x) * meter_to_active_unit(wall_bp.dimensions.y))
                 layout.label(text="Area: " + str(area))
-                if wall_bp.hide_viewport:
+
+                is_hidden = wall_bp.hide_viewport
+
+                if wall_bp.name in bpy.data.collections:
+                    floor_coll = bpy.data.collections[wall_bp.snap.name_object]
+
+                    if floor_coll.hide_viewport:
+                        is_hidden = floor_coll.hide_viewport
+
+                if is_hidden:
                     layout.operator('sn_roombuilder.show_plane',
                                     text="",
                                     icon='RESTRICT_VIEW_ON',

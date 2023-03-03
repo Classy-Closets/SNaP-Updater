@@ -340,7 +340,7 @@ class Closet_Carcass(sn_types.Assembly):
         left_side.get_prompt('Right Depth').set_formula('Depth_1', [Depth_1])
         left_side.get_prompt('Place Hanging Hardware On Right').set_value(True)
         Dog_Ear_Active = self.get_prompt('Dog Ear Active').get_var('Dog_Ear_Active')
-        left_side.get_prompt("Dog Ear Height").set_value(self.dog_ear_height)
+        left_side.get_prompt("Dog Ear Height").set_formula("IF(Dog_Ear_Active,{},0)".format(self.dog_ear_height),[Dog_Ear_Active])
         left_side.get_prompt("Dog Ear Depth").set_formula(
             'IF(Dog_Ear_Active,'
             'IF(Front_Angle_Depth_All<=Depth_1,'
@@ -447,7 +447,7 @@ class Closet_Carcass(sn_types.Assembly):
         # (with 4 openings the 5th panel is the right side and last panel)
         Front_Angle_Height = self.get_prompt(
             'Front Angle ' + str(self.opening_qty + 1) + ' Height').get_var('Front_Angle_Height')
-        right_side.get_prompt("Dog Ear Height").set_value(self.dog_ear_height)
+        right_side.get_prompt("Dog Ear Height").set_formula("IF(Dog_Ear_Active,{},0)".format(self.dog_ear_height),[Dog_Ear_Active])
         right_side.get_prompt("Dog Ear Depth").set_formula(
             'IF(Dog_Ear_Active,'
             'IF(Front_Angle_Depth_All<=Last_Depth,'
@@ -536,7 +536,7 @@ class Closet_Carcass(sn_types.Assembly):
         panel.get_prompt('Stop Drilling Top Right').set_formula('IF(Next_Floor,IF(H>NH,NH,0),0)', [H, NH, Next_Floor])
 
         dog_ear_height = panel.get_prompt("Dog Ear Height")
-        dog_ear_height.set_value(self.dog_ear_height)
+        dog_ear_height.set_formula("IF(Dog_Ear_Active,{},0)".format(self.dog_ear_height),[Dog_Ear_Active])
 
         dog_ear_depth = panel.get_prompt("Dog Ear Depth")
         dog_ear_depth.set_formula(
@@ -1874,9 +1874,10 @@ class OPERATOR_Closet_Standard_Draw_Plan(Operator):
                 partitions.append(child)
             elif is_filler and not is_capping_filler:
                 filler_assy = sn_types.Assembly(child)
-                filler_size = abs(filler_assy.obj_y.location.y)
-                if filler_size > 0:
-                    fillers.append(child)
+                if filler_assy and filler_assy.obj_y:
+                    filler_size = abs(filler_assy.obj_y.location.y)
+                    if filler_size > 0:
+                        fillers.append(child)
         self.add_parts(openings)
         self.add_parts(partitions)
         self.add_parts(fillers)

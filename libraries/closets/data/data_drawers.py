@@ -289,6 +289,20 @@ class Drawer_Stack(sn_types.Assembly):
                     drawer = common_parts.add_dovetail_drawer(self)
             else:
                 drawer = common_parts.add_drawer(self)
+
+            # Add drawer box to wall collection
+            collections = bpy.data.collections
+            scene_coll = bpy.context.scene.collection
+            wall_name = ""
+            wall = sn_utils.get_wall_bp(self.obj_bp)
+
+            if wall:
+                wall_name = sn_utils.get_wall_bp(self.obj_bp).snap.name_object
+                if wall_name in collections:
+                    wall_coll = collections[wall_name]
+                    sn_utils.add_assembly_to_collection(drawer.obj_bp, wall_coll, recursive=True)
+                    sn_utils.remove_assembly_from_collection(drawer.obj_bp, scene_coll, recursive=True)
+
             drawer.obj_bp["IS_DRAWER_BOX"] = True
             drawer.obj_bp["DRAWER_NUM"] = drawer_num
             self.drawer_boxes.append(drawer)
@@ -1622,7 +1636,9 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         #         standard_drawer_box_rear_gap.set_value(sn_unit.inch(1.25))
         #         deep_drawer_box_rear_gap.set_value(sn_unit.inch(2))
 
-
+    def cancel(self, context):
+        """Run check method if operator is cancelled to ensure prompt settings stay in sync with latest UI changes"""
+        self.check(context)
 
     def check(self, context):
         start_time = time.perf_counter()
@@ -1920,8 +1936,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
             self.kd_prompt = None
 
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=700)
+        return super().invoke(context, event, width=700)
     
     def draw_drawer_heights(self,layout):
         col = layout.column(align=True)
@@ -2114,10 +2129,8 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                             not_dbl_drw = not use_double_drawer.get_value()
                             width_metric = self.assembly.obj_x.location.x
                             depth_metric = self.assembly.obj_y.location.y
-                            width_in = round(
-                                sn_unit.meter_to_inch(width_metric), 1)
-                            depth_in = round(
-                                sn_unit.meter_to_inch(depth_metric), 1)
+                            width_in = round(sn_unit.meter_to_inch(width_metric), 1)
+                            depth_in = round(sn_unit.meter_to_inch(depth_metric), 1)
                             # Height Checks
                             std_height = drw_H == f6H or drw_H == f5H
                             std_widths = width_in in [18, 21, 24]
@@ -2125,7 +2138,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                             non_std_jwlry_ins = not is_std_opng and depth_in >= 16 and non_std_heights
                             non_std_velvet = not is_std_opng and depth_in < 16 and non_std_heights
                             velvet = depth_in < velvet_depth
-                            jwlry_ins = depth_in >= velvet_depth                            
+                            jwlry_ins = depth_in >= velvet_depth
                             if not is_dbl_jwl and non_std_heights:
                                 col_3 = row.column(align=True)
                                 col_3.label(text='Jewelry Insert')
@@ -2292,6 +2305,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
     #         return False
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:

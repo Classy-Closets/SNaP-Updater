@@ -50,6 +50,7 @@ class Garage_Leg(sn_types.Assembly):
         opening_quantity = self.get_prompt("Opening Quantity")
 
         Width = self.obj_x.snap.get_var("location.x", "Width")
+        X_Loc = self.obj_bp.snap.get_var("location.x", "X_Loc")
         Depth = self.obj_y.snap.get_var("location.y", "Depth")
         Left_Height = self.obj_z.snap.get_var('location.z', "Left_Height")
         Right_Height = self.get_prompt('Right Height').get_var("Right_Height")
@@ -161,7 +162,9 @@ class Garage_Leg(sn_types.Assembly):
             opening_plastic.dim_x(value=0)
             opening_plastic.dim_y(value=0)
             opening_plastic.dim_z("Left_Height", [Left_Height])
-            opening_plastic.loc_x("Opening_Location+(Opening_Width/2)-INCH(0.25)-Left_Side_Filler", [Opening_Location, Opening_Width, Left_Side_Filler])
+            opening_plastic.loc_x(
+                "Opening_Location+(Opening_Width/2)-INCH(0.25)-Left_Side_Filler-X_Loc",
+                [Opening_Location, Opening_Width, Left_Side_Filler, X_Loc])
             opening_plastic.loc_y("(Opening_Depth/2)*-1", [Opening_Depth])
             opening_plastic.loc_z(value=0)
             opening_plastic.rot_z(value=math.radians(90))
@@ -171,7 +174,9 @@ class Garage_Leg(sn_types.Assembly):
             opening_metal.dim_x(value=0)
             opening_metal.dim_y(value=0)
             opening_metal.dim_z("Left_Height", [Left_Height])
-            opening_metal.loc_x("Opening_Location+(Opening_Width/2)-INCH(1.5)-Left_Side_Filler", [Opening_Location, Opening_Width, Left_Side_Filler])
+            opening_metal.loc_x(
+                "Opening_Location+(Opening_Width/2)-INCH(1.5)-Left_Side_Filler-X_Loc",
+                [Opening_Location, Opening_Width, Left_Side_Filler, X_Loc])
             opening_metal.loc_y("(Opening_Depth/2)*-1", [Opening_Depth])
             opening_metal.loc_z(value=0)
             opening_metal.get_prompt('Hide').set_formula('IF(OR(Material_Type == 0, Opening_Width<=INCH(35.999)), True, False)', [Material_Type, Opening_Width])
@@ -188,7 +193,9 @@ class Garage_Leg(sn_types.Assembly):
             panel_front_plastic.dim_x(value=0)
             panel_front_plastic.dim_y(value=0)
             panel_front_plastic.dim_z("Left_Height", [Left_Height])
-            panel_front_plastic.loc_x("Panel_Location-INCH(.5)-Left_Side_Filler", [Panel_Location, Left_Side_Filler])
+            panel_front_plastic.loc_x(
+                "Panel_Location-INCH(.5)-Left_Side_Filler-X_Loc",
+                [Panel_Location, Left_Side_Filler, X_Loc])
             panel_front_plastic.loc_y("IF(Current_Depth>=Next_Depth,-Current_Depth,-Next_Depth)+INCH(1)", [Current_Depth, Next_Depth])
             panel_front_plastic.loc_z(value=0)
             panel_front_plastic.rot_z(value=math.radians(90))
@@ -201,7 +208,9 @@ class Garage_Leg(sn_types.Assembly):
             panel_back_plastic.dim_x(value=0)
             panel_back_plastic.dim_y(value=0)
             panel_back_plastic.dim_z("Left_Height", [Left_Height])
-            panel_back_plastic.loc_x("Panel_Location-INCH(.5)-Left_Side_Filler", [Panel_Location, Left_Side_Filler])
+            panel_back_plastic.loc_x(
+                "Panel_Location-INCH(.5)-Left_Side_Filler-X_Loc",
+                [Panel_Location, Left_Side_Filler, X_Loc])
             panel_back_plastic.loc_y(value=sn_unit.inch(-1))
             panel_back_plastic.loc_z(value=0)
             panel_back_plastic.rot_z(value=math.radians(-90))
@@ -283,11 +292,11 @@ class PROMPTS_Garage_Leg_Prompts(sn_types.Prompts_Interface):
         # self.width = math.fabs(self.product.obj_x.location.x)
         self.material_type = str(self.product.get_prompt("Material Type").get_value())
         self.metal_color = str(self.product.get_prompt("Metal Color").get_value())
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(500))
+        return super().invoke(context, event, width=400)
 
     def draw(self, context):
         """ This is where you draw the interface """
+        super().draw(context)
         material_type = self.product.get_prompt('Material Type')
         layout = self.layout
         layout.label(text=self.product.obj_bp.snap.name_object)

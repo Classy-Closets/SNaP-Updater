@@ -176,6 +176,7 @@ def add_l_shelf(assembly):
     shelf.obj_bp['IS_BP_L_SHELF'] = True
     shelf.add_prompt("Is Locked Shelf",'CHECKBOX',False)
     shelf.add_prompt("Is Forced Locked Shelf", 'CHECKBOX', False)
+    shelf.add_prompt("Is Bottom Exposed KD", 'CHECKBOX', False)
     shelf.obj_bp.snap.comment_2 = "1525"
     shelf.set_name("L Shelf")
     shelf.cutpart("Shelf")
@@ -192,6 +193,7 @@ def add_angle_shelf(assembly):
     shelf.obj_bp['IS_BP_ANGLE_SHELF'] = True
     shelf.add_prompt("Is Locked Shelf",'CHECKBOX',False)
     shelf.add_prompt("Is Forced Locked Shelf", 'CHECKBOX', False)
+    shelf.add_prompt("Is Bottom Exposed KD", 'CHECKBOX', False)
     shelf.set_name("Corner Shelf")
     shelf.cutpart("Shelf")
     shelf.edgebanding('Edge', l1=True)
@@ -506,12 +508,14 @@ def add_hamper_front(assembly):
 def add_wire_hamper(assembly):
     hamper = sn_types.Part(assembly.add_assembly_from_file(WIRE_BASKET))
     assembly.add_assembly(hamper)
+    hamper.add_prompt("Wire Basket Color", 'COMBOBOX', 0, ['Chrome', 'White'])
     hamper.obj_bp.snap.comment_2 = "1016"
     hamper.set_name("Hamper Basket")
-    hamper.material('Wire_Basket')
+    hamper.material('Chrome')
     props = hamper.obj_bp.sn_closets
     props.is_hamper_bp = True
     hamper.obj_bp['IS_BP_HAMPER'] = True
+    hamper.obj_bp['IS_BP_WIRE_HAMPER'] = True
     return hamper
 
 
@@ -866,6 +870,7 @@ def add_sliding_pants_rack(assembly):
 def add_single_pull_out_canvas_hamper(assembly):
     hamper = sn_types.Part(assembly.add_assembly_from_file(PULL_OUT_CANVAS_HAMPER))
     hamper = assembly.add_assembly(hamper)
+    hamper.add_prompt("Basket Color", 'COMBOBOX', 0, ['Black', 'Matt Aluminum', 'Matt Nickel', 'Polished Chrome'])
     hamper.obj_bp['IS_BP_HAMPER'] = True
     hamper.obj_bp.snap.comment_2 = "1016"
     hamper.set_name("Single Pull Out Canvas Hamper")
@@ -877,6 +882,7 @@ def add_single_pull_out_canvas_hamper(assembly):
 def add_double_pull_out_canvas_hamper(assembly):
     hamper = sn_types.Part(assembly.add_assembly_from_file(DOUBLE_PULL_OUT_CANVAS_HAMPER))
     hamper = assembly.add_assembly(hamper)
+    hamper.add_prompt("Basket Color", 'COMBOBOX', 0, ['Black', 'Matt Aluminum', 'Matt Nickel', 'Polished Chrome'])
     hamper.obj_bp['IS_BP_HAMPER'] = True
     hamper.obj_bp.snap.comment_2 = "1016"
     hamper.set_name("Double Pull Out Canvas Hamper")

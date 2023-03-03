@@ -187,7 +187,7 @@ class Window(sn_types.Assembly):
         self.update()
 
 
-class PROMPTS_Window_Prompts(bpy.types.Operator):
+class PROMPTS_Window_Prompts(sn_types.Prompts_Interface):
     bl_idname = "sn_entry_windows.window_prompts"
     bl_label = "Window Prompts"
     bl_options = {'UNDO'}
@@ -276,8 +276,8 @@ class PROMPTS_Window_Prompts(bpy.types.Operator):
             self.array_x_offset_prompt = self.product.get_prompt("Array X Offset")
             self.array_x_offset = self.array_x_offset_prompt.get_value()
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=480)
+        return super().invoke(context, event, width=480)
+
 
     def draw_product_size(self, layout):
         row = layout.row()
@@ -340,6 +340,7 @@ class PROMPTS_Window_Prompts(bpy.types.Operator):
         row.prop(self.product.obj_bp, 'location', index=2, text="")
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.product.obj_bp:
             if self.product.obj_bp.name in context.scene.objects:

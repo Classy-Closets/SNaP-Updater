@@ -259,7 +259,7 @@ class SnapMaterialSceneProps(PropertyGroup):
     default_mat_type = "Solid Color Smooth Finish"
     default_edge_type = "1mm Dolce"
     default_glass_color = "Clear"
-    default_kb_countertop_color = "Calacatta Blanco"
+    default_kb_countertop_color = "White Aurora"
     defaults_set: BoolProperty(name="Default materials have been set", default=False)
     color_change: BoolProperty(name="Material Color Updated", default=False)
 
@@ -402,6 +402,17 @@ class SnapMaterialSceneProps(PropertyGroup):
         obj_props = assembly.obj_bp.sn_closets
         custom_colors = bpy.context.scene.closet_materials.use_custom_color_scheme
 
+        countertop_parts = [
+            obj_props.is_countertop_bp,
+            obj_props.is_hpl_top_bp
+            ]
+
+        door_drawer_parts = [
+            obj_props.is_door_bp,
+            obj_props.is_drawer_front_bp,
+            obj_props.is_hamper_front_bp
+        ]
+
         # There is no edgebanding for garage colors, so we have to hardcode in alternate edgebanding.
         if self.materials.get_mat_type().type_code == 1:
             sku = self.get_garage_edge_sku(obj, assembly, part_name)
@@ -429,15 +440,19 @@ class SnapMaterialSceneProps(PropertyGroup):
             if upgrade_type.name == 'Stain':
                 return "EB-0000433"  # EB Alder Veneer 1MM
 
-        door_drawer_parts = [
-            obj_props.is_door_bp,
-            obj_props.is_drawer_front_bp,
-            obj_props.is_hamper_front_bp
-        ]
-
         if any(door_drawer_parts):
             type_code = self.door_drawer_edges.get_edge_type().type_code
             color_code = self.door_drawer_edges.get_edge_color().color_code
+
+        # Countertops with Unique Material
+        if any(countertop_parts):
+            if obj_props.use_unique_material and 'Melamine' not in part_name:
+                mat_type = self.materials.mat_types[obj_props.unique_mat_types]
+                mat_name = obj_props.unique_mat
+                type_code = mat_type.type_code
+                if type_code == 5: # Change EB typecode to old 1037 to locate in CCItems
+                    type_code = 1037
+                color_code = mat_type.colors[mat_name].color_code
 
         sku = sn_db.query_db(
             "SELECT\
@@ -514,6 +529,9 @@ class SnapMaterialSceneProps(PropertyGroup):
         else:
             edge_sku = self.get_edge_sku(None, None, None)
 
+        if sku == "EB-0000316":
+            return "Winter White (Oxford White)"
+
         edge_name = sn_db.query_db(
             "SELECT\
                 DisplayName\
@@ -580,7 +598,13 @@ class SnapMaterialSceneProps(PropertyGroup):
                 print(sku)
                 return "Unknown"
 
-        if cutpart_name in interior_edged_parts:
+        if cutpart_name == "Garage_Cleat":
+            return "EB-0000338"
+
+        elif cutpart_name == "Garage_Cover_Cleat":
+            return "EB-0000316"
+        
+        elif cutpart_name in "Garage_Interior_Shelf":
             sku = sn_db.query_db(
                 "SELECT\
                     SKU\
@@ -604,7 +628,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             return "Unknown"
 
     def get_mat_sku(self, obj=None, assembly=None, part_name=None):
-        print(obj, assembly, part_name)
+        # print(obj, assembly, part_name)
         mat_type = self.materials.get_mat_type()
         type_code = mat_type.type_code
         color_name = self.materials.get_mat_color().name
@@ -648,8 +672,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     return "Unknown"
 
             is_wood_door = obj.snap.type_mesh == 'BUYOUT'
+            is_drawer_bottom = "IS_BP_DRAWER_BOTTOM" in assembly.obj_bp
 
-            if not is_wood_door:
+            if not is_wood_door and not is_drawer_bottom:
                 if part_thickness == 0.75 or part_thickness == 0:
                     if self.upgrade_options.get_type().name == "Stain":
                         return "VN-0000014"
@@ -836,6 +861,73 @@ class SnapMaterialSceneProps(PropertyGroup):
                     return sku[0][0]
 
             if any(countertop_parts):
+                countertop_type = None
+                if assembly:
+                    parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                    if parent_assembly:
+                        countertop_type = parent_assembly.get_prompt("Countertop Type")
+                if obj_props.use_unique_material:
+                    if 'Quartz' in part_name:
+                        color = "None"
+                        if countertop_type.get_value() == 4:
+                            color = obj_props.unique_countertop_quartz
+                        elif countertop_type.get_value() == 5:
+                            color = obj_props.unique_countertop_standard_quartz
+                        sku = sn_db.query_db(
+                        "SELECT\
+                            SKU\
+                        FROM\
+                            {CCItems}\
+                        WHERE\
+                            ProductType IN ('QZ') AND\
+                            DisplayName LIKE '%{color_name}%'\
+                        ;\
+                        ".format(color_name=color, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                        )
+                        if len(sku) == 0:
+                            print(
+                                "No SKU found for - Countertop: {}".format(part_name))
+                            print("Returning Special Order SKU")
+                            return "SO-0000001"
+                        elif len(sku) == 1:
+                            return sku[0][0]
+                        else:
+                            print("Multiple SKUs found for - Countertop: {} ".format(part_name))
+                            print(sku)
+                            print("Returning Special Order SKU")
+                            return "SO-0000001"
+                    else: 
+                        mat_type = self.materials.mat_types[obj_props.unique_mat_types]
+                        mat_name = obj_props.unique_mat
+                        type_code = mat_type.type_code
+                        color_code = mat_type.colors[mat_name].color_code
+                if (part_name is not None and 'Quartz' in part_name) and (countertop_type):
+                    if countertop_type.get_value() == 4 or countertop_type.get_value() == 5:
+                        color = self.countertops.get_color().name
+                        sku = sn_db.query_db(
+                        "SELECT\
+                            SKU\
+                        FROM\
+                            {CCItems}\
+                        WHERE\
+                            ProductType IN ('QZ') AND\
+                            DisplayName LIKE '%{color_name}%'\
+                        ;\
+                        ".format(color_name=color, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                        )
+                        if len(sku) == 0:
+                            print(
+                                "No SKU found for - Countertop: {}".format(part_name))
+                            print("Returning Special Order SKU")
+                            return "SO-0000001"
+                        elif len(sku) == 1:
+                            return sku[0][0]
+                        else:
+                            print("Multiple SKUs found for - Countertop: {} ".format(part_name))
+                            print(sku)
+                            print("Returning Special Order SKU")
+                            return "SO-0000001"
+
                 if part_name is not None and 'Melamine' not in part_name:
                     return 'SO-0000001'
 
@@ -876,14 +968,13 @@ class SnapMaterialSceneProps(PropertyGroup):
                         else:
                             return "WD-0000007"
 
-            if obj_props.is_crown_molding and not obj.get('IS_BP_FLAT_CROWN') and not assembly.obj_bp.get('IS_BP_FLAT_CROWN'):
+            if (obj_props.is_crown_molding or obj_props.is_base_molding) and not assembly.obj_bp.get("IS_BP_FLAT_CROWN"):
                 sku = sn_db.query_db(
                     "SELECT\
                         SKU\
                     FROM\
                         {CCItems}\
                     WHERE\
-                        ProductType == 'MD' AND\
                         DisplayName == '{molding_name}'\
                     ;\
                     ".format(molding_name=part_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
@@ -899,6 +990,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     print("Multiple SKUs found for - Molding Name: {} ".format(part_name))
                     print(sku)
                     return "Unknown"
+
+        if type_code == 2 and color_name == "Cafe Au Lait (Cabinet Almond)":
+            type_code = 15200
 
         if part_thickness == 0.25:
             if any(backing_parts) or obj_props.is_toe_kick_skin_bp:
@@ -981,7 +1075,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 print("No SKU found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
                 return "Unknown"
             elif len(sku) == 1:
-                print(sku[0][0])
+                # print(sku[0][0])
                 return sku[0][0]
             else:
                 print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
@@ -1096,7 +1190,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         mat_name = sn_db.query_db(
             "SELECT\
-                Name\
+                DisplayName\
             FROM\
                 {CCItems}\
             WHERE\
@@ -1115,6 +1209,31 @@ class SnapMaterialSceneProps(PropertyGroup):
                 "Multiple Names found for - Material SKU: {sku}".format(sku=mat_sku))
             print(mat_name)
             return "Unknown"
+
+    def get_glass_sku(self, glass_color):
+        glass_thickness = 0.25
+        if 'Frosted' in glass_color or 'Smoked' in glass_color:
+            glass_thickness = 0.13
+        if glass_color == 'Clear':
+            glass_color = 'Clear Annealed'
+        rows = sn_db.query_db(
+            "SELECT\
+                SKU\
+            FROM\
+                {CCItems}\
+            WHERE\
+                ProductType = 'GL' AND\
+                Thickness == '{GlassThickness}' AND\
+                DisplayName LIKE '%{DisplayName}%';\
+            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, DisplayName=glass_color, GlassThickness=glass_thickness)
+        )
+        if len(rows) == 0:
+            sku = 'SO-0000001'
+            print("No Pricing SKU Returned for Material Name:  " + glass_color)
+            print("Special Order SKU given to:  " + glass_color)
+        for row in rows:
+            sku = row[0]
+        return sku
 
     def get_stain_color(self):
         return self.stain_colors[self.stain_color_index]
@@ -1170,6 +1289,11 @@ class SnapMaterialSceneProps(PropertyGroup):
         return self.drawer_slides[self.drawer_slide_index]
 
     def get_mat_color_index(self, mat_type):
+        if self.upgrade_options.get_type().name == "Paint":
+            upgrade_color_index = self.paint_color_index
+        else:
+            upgrade_color_index = self.stain_color_index
+
         mat_color_indexes = {
             "Solid Color Smooth Finish": self.solid_color_index,
             "Grain Pattern Smooth Finish": self.grain_color_index,
@@ -1178,8 +1302,8 @@ class SnapMaterialSceneProps(PropertyGroup):
             "Linen Pattern Linen Finish": self.linen_color_index,
             "Solid Color Matte Finish": self.matte_color_index,
             "Garage Material": self.garage_color_index,
-            "Oversized Material": 0
-            }
+            "Oversized Material": 0,
+            "Upgrade Options": upgrade_color_index}
 
         return mat_color_indexes[mat_type]
 
@@ -1233,10 +1357,9 @@ class SnapMaterialSceneProps(PropertyGroup):
         active_lib = bpy.context.scene.snap.active_library_name
 
         if active_lib == "Kitchen Bath Library":
-            self.ct_type_index = 4
-            self.ct_mfg_index = 4
-            ct_mfg = self.countertops.get_type().manufactuers[self.ct_mfg_index]
-            for i, color in enumerate(ct_mfg.colors):
+            self.ct_type_index = 5
+            self.std_quartz_colors = self.countertops.countertop_types['Standard Quartz'].colors
+            for i, color in enumerate(self.std_quartz_colors):
                 if color.name == self.default_kb_countertop_color:
                     self.ct_color_index = i
         else:
@@ -1302,7 +1425,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         if color_idx:
             self.glass_color_index = color_idx
         else:
-            self.glass_color_index = 0
+            self.glass_color_index = 2
 
     def set_default_secondary_edge_color(self):
         secondary_edge_type = self.secondary_edges.get_edge_type()

@@ -807,6 +807,14 @@ class Countertops(PropertyGroup):
                     mfgs.append((mfg.name, mfg.name, mfg.name))
         return mfgs
 
+    def get_standard_quartz_color_list(self):
+        standard_quartz_color_list = []
+        for mat_type in self.countertop_types:
+            if mat_type.name == 'Standard Quartz':
+                for color in mat_type.colors:
+                    standard_quartz_color_list.append((color.name, color.name, color.name))
+        return standard_quartz_color_list
+
     def set_ct_type_index(self, index):
         scene_props = bpy.context.scene.closet_materials
         scene_props.ct_type_index = index

@@ -223,7 +223,7 @@ class Room(PropertyGroup, CollectionMixIn):
     selected: BoolProperty(name="Room Selected", default=False)
     version: StringProperty(name="Version", default="")
 
-    def init(self, name, path=None, project_index=None):
+    def init(self, name, path=None, project_index=None, save_room_file=True):
         wm = bpy.context.window_manager.sn_project
         # On initial load, project index won't work.
         col = wm.projects[project_index or wm.project_index].rooms
@@ -244,7 +244,8 @@ class Room(PropertyGroup, CollectionMixIn):
             self.file_path = os.path.join(os.path.dirname(proj_dir), '{}.{}'.format(self.file_name, "blend"))
 
             # Save file to project dir
-            bpy.ops.wm.save_as_mainfile(filepath=self.file_path)
+            if save_room_file:
+                bpy.ops.wm.save_as_mainfile(filepath=self.file_path)
             wm.current_file_project = project.name
             wm.current_file_room = self.name
 
@@ -494,9 +495,9 @@ class Project(PropertyGroup, CollectionMixIn):
             row = layout.row()
             row.operator("project_manager.import_room", text="Import Room", icon='IMPORT')
 
-    def add_room(self, name, project_index=None):
+    def add_room(self, name, project_index=None, save_room_file=True):
         room = self.rooms.add()
-        room.init(name, project_index=project_index)
+        room.init(name, project_index=project_index, save_room_file=save_room_file)
         return room
 
     def add_room_from_file(self, name, path, project_index=None):

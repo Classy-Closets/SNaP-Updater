@@ -612,17 +612,17 @@ class OPERATOR_Place_Accessory(Operator, PlaceClosetInsert):
                             self.asset.obj_bp.rotation_euler.z = math.radians(90)
                             self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
                         else:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(180)
-                            self.asset.obj_bp.rotation_euler.z = math.radians(90)
+                            self.asset.obj_bp.rotation_euler.z = math.radians(-90)
                             self.asset.obj_bp.location.z = 0
                     else:  # CENTER AND RIGHT PANEL
                         if dist_to_bp > dist_to_z:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(180)
-                            self.asset.obj_bp.rotation_euler.z = math.radians(90)
+                            self.asset.obj_bp.rotation_euler.z = math.radians(-90)
                             self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
                         else:  # PLACE ON RIGHT SIDE
                             self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
@@ -711,10 +711,10 @@ class PROMPTS_Accessories(sn_types.Prompts_Interface):
         self.product = self.get_product()
         self.plane = self.get_plane()
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(300))
+        return super().invoke(context, event, width=300)
 
     def draw(self, context):
+        super().draw(context)
         Style = self.product.get_prompt("Custom Rack Style")
         Hook_Qty = self.product.get_prompt("Hook Qty")
         Pin_Qty = self.product.get_prompt("Pin Qty")
@@ -836,8 +836,7 @@ class PROMPTS_Belt_Rack_Prompts(sn_types.Prompts_Interface):
         """ This is called before the interface is displayed """
         self.product = self.get_product()
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(300))
+        return super().invoke(context, event, width=400)
 
     def set_properties_from_prompts(self):
         belt_rack_category = self.product.get_prompt("Belt Rack Category")
@@ -878,6 +877,7 @@ class PROMPTS_Belt_Rack_Prompts(sn_types.Prompts_Interface):
                 metal_color.set_value(int(self.metal_color))
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         belt_rack_category = self.product.get_prompt("Belt Rack Category")
         synergy_belt_rack_length = self.product.get_prompt("Synergy Belt Rack Length")
@@ -979,8 +979,7 @@ class PROMPTS_Tie_Rack_Prompts(sn_types.Prompts_Interface):
         """ This is called before the interface is displayed """
         self.product = self.get_product()
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(300))
+        return super().invoke(context, event, width=300)
 
     def set_properties_from_prompts(self):
         tie_rack_category = self.product.get_prompt("Tie Rack Category")
@@ -1021,6 +1020,7 @@ class PROMPTS_Tie_Rack_Prompts(sn_types.Prompts_Interface):
                 metal_color.set_value(int(self.metal_color))
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         tie_rack_category = self.product.get_prompt("Tie Rack Category")
         synergy_tie_rack_length = self.product.get_prompt("Synergy Tie Rack Length")

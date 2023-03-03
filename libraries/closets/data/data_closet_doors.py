@@ -99,6 +99,7 @@ class Doors(sn_types.Assembly):
         self.add_prompt("Center Rail Distance From Center", 'DISTANCE', 0)
 
         self.add_prompt("Full Overlay", 'CHECKBOX', False)
+        self.add_prompt("Door Height Exceeded", 'CHECKBOX', False)
 
         # Shelves
         self.add_prompt("Shelf Thickness", 'DISTANCE', sn_unit.inch(0.75))
@@ -199,9 +200,6 @@ class Doors(sn_types.Assembly):
         Individual_Shelf_Setbacks = self.get_prompt("Individual Shelf Setbacks").get_var()
         Door_Type = self.get_prompt("Door Type").get_var()
         Insert_Height = self.get_prompt("Insert Height").get_var()
-
-        # Glass shelves
-        Glass_Shelves = self.get_prompt("Glass Shelves").get_var('Glass_Shelves')
         Glass_Thickness = self.get_prompt("Glass Thickness").get_var('Glass_Thickness')
 
         TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')
@@ -232,10 +230,11 @@ class Doors(sn_types.Assembly):
             shelf.obj_bp["IS_STACK_SHELF"] = True
             shelf.obj_bp.name = "Stack Shelf"
             self.shelves.append(shelf)
+            if not glass:
+                IBEKD = shelf.get_prompt('Is Bottom Exposed KD').get_var('IBEKD')
             Is_Locked_Shelf = shelf.get_prompt('Is Locked Shelf').get_var('Is_Locked_Shelf')
-            IBEKD = shelf.get_prompt('Is Bottom Exposed KD').get_var('IBEKD')
-            Adj_Shelf_Setback = shelf.get_prompt('Adj Shelf Setback').get_var('Adj_Shelf_Setback')
             Locked_Shelf_Setback = shelf.get_prompt('Locked Shelf Setback').get_var('Locked_Shelf_Setback')
+            Adj_Shelf_Setback = shelf.get_prompt('Adj Shelf Setback').get_var('Adj_Shelf_Setback')
             Adj_Shelf_Clip_Gap = shelf.get_prompt('Adj Shelf Clip Gap').get_var('Adj_Shelf_Clip_Gap')
             Shelf_Setback_All = self.get_prompt("Adj Shelf Setback").get_var('Shelf_Setback_All')
 
@@ -259,7 +258,8 @@ class Doors(sn_types.Assembly):
             shelf.dim_y(
                 '-Depth+IF(Is_Locked_Shelf,Locked_Shelf_Setback,Adj_Shelf_Setback)+Shelf_Backing_Setback',
                 [Depth, Locked_Shelf_Setback, Is_Locked_Shelf, Adj_Shelf_Setback, Shelf_Backing_Setback])
-            shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),Thickness) *-1', [Thickness, TAS, IBEKD])
+            if not glass:
+                shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),Thickness) *-1', [Thickness, TAS, IBEKD])
             shelf.get_prompt("Adj Shelf Setback").set_formula(
                 'IF(Individual_Shelf_Setbacks,Shelf_Setback,Shelf_Setback_All)',
                 [Shelf_Setback, Shelf_Setback_All, Individual_Shelf_Setbacks])
@@ -542,6 +542,7 @@ class Doors(sn_types.Assembly):
         for i, shelf in enumerate(self.shelves):
             self.add_to_wall_collection(shelf.obj_bp)
 
+
 class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
     bl_idname = "sn_closets.door_prompts"
     bl_label = "Door Prompt" 
@@ -563,6 +564,8 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
             ('1', 'Tall', 'Tall'),
             ('2', 'Upper', 'Upper')],
         default='2')
+
+    use_glass_shelves: BoolProperty(name="Use Glass Shelves", default=False)
 
     glass_thickness: EnumProperty(
         name="Glass Thickness",
@@ -599,10 +602,13 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
     plant_on_top_opening_height: EnumProperty(name="Height", items=common_lists.PLANT_ON_TOP_OPENING_HEIGHTS)    
     door_opening_height: EnumProperty(name="Height", items=common_lists.OPENING_HEIGHTS)
     use_shelves: BoolProperty(name="Use Shelves", default=False)
+    door_height_exceeded: BoolProperty(name="Door Height Exceeded", default=False)
 
     shelf_quantity_prompt = None
     door_type_prompt = None
-    cur_shelf_height = None   
+    cur_shelf_height = None
+    add_striker = False
+    door_style = ""
 
     @classmethod
     def poll(cls, context):
@@ -614,9 +620,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
         self.assembly.shelves.clear()
     
     def add_shelves(self):
-        glass_shelves = self.assembly.get_prompt("Glass Shelves")
-
-        if glass_shelves.get_value():
+        if self.use_glass_shelves:
             self.assembly.add_shelves(glass=True, amt=int(self.shelf_quantity))
         else:
             self.assembly.add_shelves(amt=int(self.shelf_quantity))
@@ -632,14 +636,17 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
         bpy.ops.object.select_all(action='DESELECT')
     
     def update_shelves(self, context):
-        glass_shelves = self.assembly.get_prompt("Glass Shelves")
         shelf_amt_changed = len(self.assembly.shelves) != int(self.shelf_quantity) - 1
         shelf_type_changed = False
 
         if self.assembly.shelves:
             shelf_bp = self.assembly.shelves[0].obj_bp
-            if shelf_bp.get("IS_GLASS_SHELF"):
-                shelf_type_changed != glass_shelves.get_value()
+            shelf_is_glass = shelf_bp.get("IS_GLASS_SHELF")
+
+            if not shelf_is_glass and self.use_glass_shelves:
+                shelf_type_changed = True
+            elif shelf_is_glass and not self.use_glass_shelves:
+                shelf_type_changed = True
 
         if self.use_shelves:
             if not self.assembly.shelves:
@@ -653,6 +660,21 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                 self.delete_shelves()
 
         context.view_layer.objects.active = self.assembly.obj_bp
+
+    def update_top_kd_shelf(self, context):
+        """Disable top KD shelf if door striker is being used"""
+        add_striker_ppt = self.assembly.get_prompt("Add Striker")
+        top_kd_ppt = self.assembly.get_prompt("Top KD")
+
+        if add_striker_ppt:
+            striker_updated = self.add_striker != add_striker_ppt.get_value()
+            if striker_updated:
+                if add_striker_ppt.get_value():
+                    top_kd_ppt.set_value(False)
+                else:
+                    top_kd_ppt.set_value(True)
+                
+                self.add_striker = add_striker_ppt.get_value()
 
     def set_prompts_from_properties(self):
         ''' This should be called in the check function to set the prompts
@@ -823,8 +845,38 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                     closest_hole_amt = self.closest_hole_amt(op_heights, sn_unit.meter_to_millimeter(height))
                     opening_height.set_value(sn_unit.millimeter(closest_hole_amt))
 
+    def check_door_size(self, context):
+        msg = "Door size too large!"
+        for obj in self.assembly.obj_bp.children:
+            if obj.get("IS_DOOR"):
+                door_assy = sn_types.Assembly(obj)
+                door_style = door_assy.get_prompt("Door Style")
+                if door_style and ("Traviso" in (door_style.get_value())):
+                    constraint = [c for c in door_assy.obj_x.constraints if c.type == 'LIMIT_LOCATION']
+
+                    if constraint:
+                        constraint = constraint[0]
+                        context.view_layer.update()
+                        self.door_height_exceeded = door_assy.obj_x.location.x > constraint.max_x
+                        height_exceeded_ppt = self.assembly.get_prompt("Door Height Exceeded")
+
+                        if not height_exceeded_ppt:
+                            height_exceeded_ppt = self.assembly.add_prompt("Door Height Exceeded", 'CHECKBOX', False)
+
+                        height_exceeded_ppt.set_value(self.door_height_exceeded)
+
+                        if self.door_height_exceeded:
+                            self.assembly.get_prompt("Fill Opening").set_value(False)
+                            self.assembly.get_prompt("Insert Height").set_value(sn_unit.millimeter(1485.392))
+                            for index, height in enumerate(common_lists.OPENING_HEIGHTS):
+                                if not 1485.392 >= float(height[0]):
+                                    self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
+                                    break
+
     def check(self, context):
         start_time = time.perf_counter()
+        self.check_door_size(context)
+        self.update_top_kd_shelf(context)
         self.set_prompts_from_properties()
         self.update_shelves(context)
         self.update_opening_heights()
@@ -864,7 +916,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
         if not obj_bp.get("SNAP_VERSION"):
             print("Found old lib data!")
             return bpy.ops.sn_closets.door_prompts_214('INVOKE_DEFAULT')
-        
+
         self.assembly = Doors(obj_bp)
         obj_assembly_bp = sn_utils.get_assembly_bp(obj)
         self.part = sn_types.Assembly(obj_assembly_bp)
@@ -872,8 +924,20 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
         self.calculators = []
         heights_calc = self.assembly.get_calculator('Opening Heights Calculator')
         if heights_calc:
-            self.calculators.append(heights_calc)        
+            self.calculators.append(heights_calc)
         
+        add_striker_ppt = self.assembly.get_prompt("Add Striker")
+        if add_striker_ppt:
+            self.add_striker = add_striker_ppt.get_value()
+
+        if self.assembly.shelves:
+            shelf_bp = self.assembly.shelves[0].obj_bp
+            shelf_is_glass = shelf_bp.get("IS_GLASS_SHELF")
+            if shelf_is_glass:
+                self.use_glass_shelves = True
+            else:
+                self.use_glass_shelves = False
+
         door_type_name = self.door_type_prompt.combobox_items[self.door_type_prompt.get_value()].name        
         fill_opening = self.assembly.get_prompt("Fill Opening").get_value()
 
@@ -1016,6 +1080,8 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                 if not child.visible_get():
                     door_assembly = sn_types.Assembly(child)
                     door_style = door_assembly.get_prompt("Door Style")
+                    if door_style:
+                        self.door_style = door_style.get_value()
                     is_melamine_door = self.assembly.get_prompt("Is Melamine Door")
                     has_center_rail = self.assembly.get_prompt("Has Center Rail")
                     prompts = [door_style,is_melamine_door,has_center_rail]
@@ -1026,8 +1092,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         else:
                             is_melamine_door.set_value(False)
                 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=375)
+        return super().invoke(context, event, width=375)
         
     def is_glass_door(self):
         if self.part:
@@ -1101,6 +1166,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                     self.draw_height_row(box, height, i+1)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
 
         if self.assembly.obj_bp:
@@ -1158,7 +1224,12 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         else:
                             insert_height.draw_prompt(row)
                             row.prop(insert_height, "distance_value", text=insert_height.name)
-                    
+
+                    if self.door_height_exceeded:
+                        box = box.box()
+                        row = box.row()
+                        row.label(text="Traviso door style not permitted in sizes above 47H!".format(self.door_style), icon='ERROR')
+
                     row = box.row()
                     if shelf_qty:
                         row.prop(shelf_qty, "quantity_value", text=shelf_qty.name)               
@@ -1275,7 +1346,8 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                             if glass_shelves:
                                 row = box.row()
                                 row.label(text="Glass Shelves: ")
-                                row.prop(glass_shelves, "checkbox_value", text="")
+                                row.prop(self, "use_glass_shelves", text="")
+                                
                                 if glass_shelves.get_value() and self.glass_thickness_prompt:
                                     row = box.row()
                                     row.label(text="Glass Shelf Thickness: ")

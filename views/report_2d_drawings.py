@@ -244,7 +244,7 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         if pull_quantity == 0:
             pull_type = "None"
         else:
-            pull_type = sn_closets.closet_options.pull_name
+            pull_type = sn_closets.closet_options.get_pull_style()
         return pull_type
 
     # RODS
@@ -337,6 +337,7 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         if len(cropped_ims) > 0:
             widths, heights = zip(*(i.size for i in cropped_ims))
             orig_widths, orig_heights = zip(*(i.size for i in original_ims))
+            # need to set keep_width = true when is custom view - SCC
             if keep_width:
                 total_width = sum(orig_widths) + border[0] + border[2]
                 x_offset = border[0] + int((sum(orig_widths) - sum(widths)) / 2)
@@ -484,9 +485,10 @@ class OPERATOR_create_pdf(bpy.types.Operator):
     # 1up3down - One image on upper half, three on the bottom half
     # 2up2down - Two images on upper half, two on the bottom half
     def __prepare_image_page__(self, sn_images_list, page_paper_size, option):
+        custom_width = sn_images_list[0].is_custom_view
         if option == "full":
             return self.join_images_horizontal([bpy.app.tempdir + sn_images_list[0].name + ".jpg"],
-                                               self.random_string(6))
+                                               self.random_string(6),keep_width=custom_width)
         if option == "two":
             sn_images_list = sn_images_list[:2]
             image_files = [(bpy.app.tempdir + image.name + ".jpg")
@@ -837,6 +839,7 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         plan_view = [view for view in image_views if view.is_plan_view]
         elevations = [view for view in image_views if view.is_elv_view]
         islands = [view for view in image_views if view.is_island_view]
+        customs = [view for view in image_views if view.is_custom_view]
         accordions =\
             [view for view in image_views if view.is_acc_view]
         just_islands = len(accordions) == 0 and\
@@ -897,9 +900,11 @@ class OPERATOR_create_pdf(bpy.types.Operator):
             if page_layout != '1_ACCORD' and pages_walls.get(0):
                 pages_walls[0] += ['Island']
         # Remove pages with no walls from pages_walls
-        removal = [k for k, v in pages_walls.items() if len(v) == 0]
-        for key in removal:
-            del pages_walls[key]
+        if len(customs) == 0:
+            removal = [k for k, v in pages_walls.items() if len(v) == 0]
+            for key in removal:
+                del pages_walls[key]
+
         return (pages, pages_walls)
 
     @staticmethod

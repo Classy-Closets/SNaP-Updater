@@ -26,7 +26,7 @@ class Standard_Pull(sn_types.Assembly):
                 closet_paths.get_root_dir(),
                 closet_props.PULL_FOLDER_NAME,
                 props.pull_category,
-                props.pull_name + ".blend"))
+                props.get_pull_style() + ".blend"))
 
         self.add_prompt("Hide", 'CHECKBOX', False)
         self.add_prompt("Pull Length", 'DISTANCE', pull.dimensions.x)
@@ -42,9 +42,9 @@ class Standard_Pull(sn_types.Assembly):
         Pull_Rotation = self.get_prompt("Pull Rotation").get_var("Pull_Rotation")
         Hide = self.get_prompt("Hide").get_var("Hide")
 
-        self.set_name(props.pull_name)
-        pull.name = props.pull_name
-        pull.snap.name_object = props.pull_name
+        self.set_name(props.get_pull_style())
+        pull.name = props.get_pull_style()
+        pull.snap.name_object = props.get_pull_style()
         pull.snap.type_mesh = "HARDWARE"
         pull.snap.loc_x('Width-Pull_Z_Location', [Width, Pull_Z_Location])
         pull.snap.loc_y('Depth+IF(Depth<0,Pull_X_Location,-Pull_X_Location)', [Depth, Pull_X_Location, Pull_Z_Location])

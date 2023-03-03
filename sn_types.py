@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import math
 import bpy
 from bpy.types import Operator
+from bpy.props import IntProperty, BoolProperty
 from snap import sn_utils, sn_unit, sn_props
 
 
@@ -573,11 +574,14 @@ class Assembly:
             grp1_z_dim = 0
             tk_height = self.get_prompt("Toe Kick Height")
             floored_openings = 0
-            for i in range(1, opening_qty.get_value() + 1):
-                is_floored = self.get_prompt("Opening " + str(i) + " Floor Mounted")
-                if is_floored:
-                    if is_floored.get_value():
-                        floored_openings += 1
+
+            if opening_qty:
+                for i in range(1, opening_qty.get_value() + 1):
+                    is_floored = self.get_prompt("Opening " + str(i) + " Floor Mounted")
+                    if is_floored:
+                        if is_floored.get_value():
+                            floored_openings += 1
+
             if opening_qty and opening_height:
                 for i in range(1, opening_qty.get_value() + 1):
                     opening_height = self.get_prompt("Opening " + str(i) + " Height")
@@ -711,9 +715,7 @@ class Assembly:
                             if corner_product:
                                 prev_group_depth += right_filler_amt.get_value()
 
-                        matrix_world = obj_bp.matrix_world.translation
-
-                        return matrix_world.x + prev_group_depth
+                        return obj_bp.location.x + prev_group_depth
 
                 # CHECK NEXT WALL
                 left_wall = wall.get_connected_wall('LEFT')
@@ -1256,14 +1258,25 @@ class Wall(Assembly):
         if len(all_walls) > 1:
             if direction == 'LEFT':
                 obj_bp = all_walls[current_index - 1]
-                return Wall(obj_bp=obj_bp)
+                wall_assy = Wall(obj_bp)
+                global_loc = self.obj_bp.matrix_world.translation
+                left_wall_x_global_loc = wall_assy.obj_x.matrix_world.translation
+
+                if global_loc == left_wall_x_global_loc:
+                    return Wall(obj_bp=obj_bp)
 
             if direction == 'RIGHT':
                 if current_index + 1 >= len(all_walls):
                     obj_bp = all_walls[0]
                 else:
                     obj_bp = all_walls[current_index + 1]
-                return Wall(obj_bp=obj_bp)
+
+                wall_assy = Wall(obj_bp)
+                global_loc = self.obj_x.matrix_world.translation
+                right_wall_x_global_loc = wall_assy.obj_bp.matrix_world.translation
+
+                if global_loc == right_wall_x_global_loc:
+                    return Wall(obj_bp=obj_bp)
 
 class Dimension():
     anchor = None
@@ -1484,6 +1497,33 @@ class MV_XML():
 
 
 class Prompts_Interface(Operator):
+    DEFAULT_WIDTH = 600
+
+    window_width: IntProperty(default=DEFAULT_WIDTH)
+    mouse_snap : BoolProperty(default=False)
+    first_mouse_x: IntProperty(default=0)
+    first_mouse_y: IntProperty(default=0)
+    target_mouse_x: IntProperty(default=0)
+    target_mouse_y: IntProperty(default=0)
+
+    def invoke(self, context, event, width=None):
+        wm = context.window_manager
+        self.first_mouse_x = event.mouse_x
+        self.first_mouse_y = event.mouse_y
+        self.mouse_snap = False
+        self.window_width = self.DEFAULT_WIDTH
+
+        if width:
+            self.window_width = width
+
+        context.window.cursor_warp(0, context.window.height)
+
+        return wm.invoke_props_dialog(self, width=self.window_width)
+
+    def draw(self, context):
+        if not self.mouse_snap:
+            self.mouse_snap = True
+            context.window.cursor_warp(self.first_mouse_x, self.first_mouse_y)
 
     def get_product(self):
         obj = bpy.data.objects[bpy.context.object.name]

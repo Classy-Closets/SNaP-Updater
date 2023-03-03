@@ -36,8 +36,8 @@ class Pants_Rack(sn_types.Assembly):
 
 class Single_Pull_Out_Hamper(sn_types.Assembly):
 
-    id_prompt = ""
-    drop_id = "sn_closets.place_single_part"
+    id_prompt = "sn_closets.pull_out_hamper"
+    drop_id = "sn_closets.place_single_pull_out_hamper"
     show_in_library = True
     insert_type = "Interior"
     placement_type = "INTERIOR"
@@ -49,21 +49,27 @@ class Single_Pull_Out_Hamper(sn_types.Assembly):
     def draw(self):
         self.create_assembly()
         self.obj_bp.sn_closets.is_accessory_bp = True
+
+        self.add_prompt("Basket Color", 'COMBOBOX', 0, ['Black', 'Matt Aluminum', 'Matt Nickel', 'Polished Chrome'])
+
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+        Basket_Color = self.get_prompt("Basket Color").get_var('Basket_Color')
+
         hamper = common_parts.add_single_pull_out_canvas_hamper(self)
         hamper.obj_bp.snap.type_mesh = 'HARDWARE'
-        hamper.loc_y('Depth', [Depth])
-        hamper.dim_x('Width', [Width])
-        hamper.dim_y('-Depth', [Depth])
+        hamper.loc_y('INCH(14)', [])
+        hamper.dim_x('INCH(18)', [])
+        hamper.dim_y('INCH(14)', [])
+        hamper.get_prompt("Basket Color").set_formula("Basket_Color", [Basket_Color])
 
         self.update()
 
 
 class Double_Pull_Out_Hamper(sn_types.Assembly):
 
-    id_prompt = ""
-    drop_id = "sn_closets.place_single_part"
+    id_prompt = "sn_closets.pull_out_hamper"
+    drop_id = "sn_closets.place_double_pull_out_hamper"
     show_in_library = True
     insert_type = "Interior"
     placement_type = "INTERIOR"
@@ -75,13 +81,19 @@ class Double_Pull_Out_Hamper(sn_types.Assembly):
     def draw(self):
         self.create_assembly()
         self.obj_bp.sn_closets.is_accessory_bp = True
+
+        self.add_prompt("Basket Color", 'COMBOBOX', 0, ['Black', 'Matt Aluminum', 'Matt Nickel', 'Polished Chrome'])
+
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+        Basket_Color = self.get_prompt("Basket Color").get_var('Basket_Color')
+
         hamper = common_parts.add_double_pull_out_canvas_hamper(self)
         hamper.obj_bp.snap.type_mesh = 'HARDWARE'
-        hamper.loc_y('Depth', [Depth])
-        hamper.dim_x('Width', [Width])
-        hamper.dim_y('-Depth', [Depth])
+        hamper.loc_y('INCH(14)', [])
+        hamper.dim_x('IF(Width<=INCH(29.99),INCH(24),INCH(30))', [Width])
+        hamper.dim_y('INCH(14)', [])
+        hamper.get_prompt("Basket Color").set_formula("Basket_Color", [Basket_Color])
         self.update()
 
 
@@ -368,13 +380,9 @@ class Valet_Rod(sn_types.Assembly):
 
         Valet_Length = self.get_prompt("Valet Length").get_var("Valet_Length")
 
-
-        # valet_rod = self.add_assembly_from_file(self.object_path)
         valet_rod = sn_types.Part(self.add_assembly_from_file(self.object_path))
         self.add_assembly(valet_rod)
-        # valet_rod.create_assembly()
         valet_rod.set_name(self.accessory_name)
-        valet_rod.loc_x('IF(Valet_Length==0, INCH(12), INCH(14))', [Valet_Length])
         valet_rod.dim_x('IF(Valet_Length==0, INCH(12), INCH(14))* -1', [Valet_Length])
 
         self.update()
@@ -567,10 +575,10 @@ class PROMPTS_Single_Hanging_Rod_Prompts(sn_types.Prompts_Interface):
     def invoke(self, context, event):
         self.insert = Hanging_Rod(self.get_insert().obj_bp)
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
+        return super().invoke(context, event, width=330)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.insert.obj_bp:
             if self.insert.obj_bp.name in context.scene.objects:
@@ -591,11 +599,9 @@ class PROMPTS_Single_Hanging_Rod_Prompts(sn_types.Prompts_Interface):
                     row.label(text="", icon='BLANK1')
                     row.prop(add_top_rod, "checkbox_value", text="Rod at Top")
 
-
                     row = box.row()
                     row.label(text="", icon='BLANK1')
                     row.prop(self, 'top_rod_location', text="")
-                    row.label(text="", icon='TRIA_DOWN')
 
                     row = box.row()
                     if(extra_deep_pard and self.insert.obj_y.location.y >= extra_deep_pard.get_value()):
@@ -732,8 +738,7 @@ class PROMPTS_Valet_Rod_Prompts(sn_types.Prompts_Interface):
     def invoke(self, context, event):
         self.assembly = self.get_insert()
         self.set_properties_from_prompts()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
+        return super().invoke(context, event, width=330)
 
     def set_properties_from_prompts(self):
         valet_category = self.assembly.get_prompt("Valet Category")
@@ -768,6 +773,7 @@ class PROMPTS_Valet_Rod_Prompts(sn_types.Prompts_Interface):
                 metal_color.set_value(int(self.metal_color))
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
@@ -950,10 +956,10 @@ class PROMPTS_Wire_Baskets_Prompts(sn_types.Prompts_Interface):
         
     def invoke(self,context,event):
         self.assembly = self.get_insert()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
-        
+        return super().invoke(context, event, width=330)
+
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
@@ -972,6 +978,74 @@ class PROMPTS_Wire_Baskets_Prompts(sn_types.Prompts_Interface):
                 row = box.row()
                 row.label(text="Basket Location")
                 row.prop(self.assembly.obj_bp, 'location', index=2, text="")
+
+class PROMPTS_Pull_Out_Hamper_Prompts(sn_types.Prompts_Interface):
+    bl_idname = "sn_closets.pull_out_hamper"
+    bl_label = "Pull Out Hamper Prompts" 
+    bl_description = "This shows all of the available pull out hamper options"
+    bl_options = {'UNDO'}
+    
+    object_name: StringProperty(name="Object Name")
+
+    basket_color: EnumProperty(
+        name="Basket Color",
+        items=[
+            ('0', 'Black', 'Black'),
+            ('1', 'Matt Aluminum', 'Matt Aluminum'),
+            ('2', 'Matt Nickel', 'Matt Nickel'),
+            ('3', 'Chrome', 'Chrome')],
+        default='0')
+    
+    assembly = None
+    
+    @classmethod
+    def poll(cls, context):
+        return True
+        
+    def check(self, context):
+        if self.assembly.get_prompt("Basket Color"):
+            self.assembly.get_prompt("Basket Color").set_value(int(self.basket_color))
+        closet_props.update_render_materials(self, context)
+        return True
+        
+    def execute(self, context):
+        return {'FINISHED'}
+        
+    def invoke(self,context,event):
+        self.assembly = self.get_insert()
+        if self.assembly.get_prompt("Basket Color"):
+            self.basket_color = str(self.assembly.get_prompt("Basket Color").get_value())
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=330)
+        
+    def draw(self, context):
+        layout = self.layout
+        if self.assembly.obj_bp:
+            if self.assembly.obj_bp.name in context.scene.objects:
+                basket_color = self.assembly.get_prompt("Basket Color")
+
+                box = layout.box()
+                if self.assembly.obj_x.location.x < sn_unit.inch(23.99):
+                    row = box.row()
+                    row.label(text="Basket Dimensions")
+                    row.label(text="18w x 14d x 21.5h")
+                elif self.assembly.obj_x.location.x < sn_unit.inch(29.99):
+                    row = box.row()
+                    row.label(text="Basket Dimensions")
+                    row.label(text="24w x 14d x 21.5h")
+                else:
+                    row = box.row()
+                    row.label(text="Basket Dimensions")
+                    row.label(text="30w x 14d x 21.5h")
+
+                row = box.row()
+                row.label(text="Hamper Location")
+                row.prop(self.assembly.obj_bp, 'location', index=2, text="")
+
+                if basket_color:
+                    row = box.row()
+                    row.label(text="Basket Color")
+                    row.prop(self, 'basket_color', text="")
 
 
 class PROMPTS_Shoe_Shelf_Prompts(sn_types.Prompts_Interface):
@@ -1425,26 +1499,26 @@ class OPERATOR_Place_Valet_Rod(bpy.types.Operator, PlaceClosetInsert):
 
                     if selected_assembly.obj_z.location.z < 0:  # LEFT PANEL
                         if dist_to_bp > dist_to_z:  # PLACE ON RIGHT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(0)
                             self.asset.obj_bp.rotation_euler.z = math.radians(270)
                             self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
                         else:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y + self.asset.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(180)
                             self.asset.obj_bp.rotation_euler.z = math.radians(90)
                             self.asset.obj_bp.location.z = 0
                     else:  # CENTER AND RIGHT PANEL
                         if dist_to_bp > dist_to_z:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(180)
                             self.asset.obj_bp.rotation_euler.z = math.radians(90)
                             self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
                         else:  # PLACE ON RIGHT SIDE
-                            self.asset.obj_bp.location.y = 0
+                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
                             self.asset.obj_bp.rotation_euler.y = math.radians(0)
                             self.asset.obj_bp.rotation_euler.z = math.radians(270)
@@ -1483,6 +1557,407 @@ class OPERATOR_Place_Valet_Rod(bpy.types.Operator, PlaceClosetInsert):
         return self.accessory_drop(context, event)
 
 
+class OPERATOR_Place_Single_Pull_Out_Hamper(bpy.types.Operator, PlaceClosetInsert):
+    """ This will be called when you drop a single pull out hamper into the scene"""
+    bl_idname = "sn_closets.place_single_pull_out_hamper"
+    bl_label = "Place Single Pull Out Hamper"
+    bl_description = "This will allow the user to place a single pull out hamper into the scene"
+
+    object_name: StringProperty(name="Object Name")
+
+    product_name: StringProperty(name="Product Name")
+    category_name: StringProperty(name="Category Name")
+    library_name: StringProperty(name="Library Name")
+    filepath: StringProperty(name="Filepath") #MAYBE DONT NEED THIS?
+
+    insert = None
+    default_z_loc = 0.0
+    default_height = 0.0
+    default_depth = 0.0
+    
+    openings = []
+    objects = []
+    
+    def execute(self, context):
+        context.window.cursor_set('WAIT')
+
+        if self.obj_bp_name in bpy.data.objects:
+            obj_bp = bpy.data.objects[self.obj_bp_name]
+            self.insert = sn_types.Assembly(obj_bp=obj_bp)
+            self.asset = self.insert
+        else:
+            self.draw_asset()
+            self.get_insert(context)
+
+        if self.show_openings:
+            self.show_openings()
+            self.include_objects = self.openings
+
+        if self.insert is None:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT',
+                message="Could Not Find Insert Class: " + self.object_name)
+            return {'CANCELLED'}
+
+        self.set_wire_and_xray(self.insert.obj_bp, True)
+        self.run_asset_calculators()
+        context.window.cursor_set('PAINT_BRUSH')
+        if self.header_text:
+            context.area.header_text_set(text=self.header_text)        
+        context.view_layer.update()  # THE SCENE MUST BE UPDATED FOR RAY CAST TO WORK
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def show_openings(self):
+        # Clear  to avoid old/duplicate openings
+        self.openings.clear()
+        insert_type = self.insert.obj_bp.snap.placement_type
+        insert_op_num = self.insert.obj_bp.sn_closets.opening_name
+
+        for obj in bpy.context.scene.objects:
+            # Check to avoid opening that is part of the dropped insert
+            if sn_utils.get_parent_assembly_bp(obj) == self.insert.obj_bp:
+                continue
+
+            opening = None
+            opening_width = 0
+            if obj.parent:
+                if obj.parent.get("IS_BP_CLOSET"):
+                    closet_assembly = sn_types.Assembly(obj.parent)
+                    opening_width_ppt = closet_assembly.get_prompt("Opening " + str(obj.sn_closets.opening_name) + " Width")
+                    if opening_width_ppt:
+                        opening_width = round(sn_unit.meter_to_inch(opening_width_ppt.get_value()), 2)
+            if obj.snap.type_group == 'OPENING' and opening_width == 18:
+                
+                wall = sn_types.Wall(obj_bp=sn_utils.get_wall_bp(obj))
+
+                # Ensure opening status is set correctly
+                product_bp = sn_utils.get_closet_bp(obj)
+                if product_bp:
+                    op_num = obj.sn_closets.opening_name
+                    op_inserts = [o for o in product_bp.children if o.snap.type_group == 'INSERT' and o.sn_closets.opening_name == op_num]
+                    if not op_inserts:
+                        obj.snap.interior_open = True
+                        obj.snap.exterior_open = True
+
+                wall_hidden = False
+                collections = bpy.data.collections
+                wall_bp = sn_utils.get_wall_bp(obj)
+                if wall_bp:
+                    wall_name = wall_bp.snap.name_object
+                    if wall_name in collections:
+                        wall_coll = collections[wall_name]
+                        wall_hidden = wall_coll.hide_viewport
+                if wall and sn_utils.get_wall_bp(obj) and wall_hidden:
+                    continue
+                if insert_type in ('INTERIOR', 'SPLITTER'):
+                    opening = sn_types.Assembly(obj) if obj.snap.interior_open else None
+                if insert_type == 'EXTERIOR':
+                    opening = sn_types.Assembly(obj) if obj.snap.exterior_open else None
+                if opening:
+                    cage = opening.get_cage()
+                    cage.display_type = 'WIRE'
+                    cage.hide_select = False
+                    cage.hide_viewport = False
+                    self.openings.append(cage)
+    
+    def modal(self, context, event):
+        self.run_asset_calculators()
+        bpy.ops.object.select_all(action='DESELECT')
+        context.area.tag_redraw()
+        self.reset_selection()
+
+        if len(self.openings) == 0:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT', message='There are no 18" wide openings in this scene.')
+            context.area.header_text_set(None)
+            return self.cancel_drop(context)
+
+        self.selected_point, self.selected_obj, _ = sn_utils.get_selection_point(
+            context,
+            event,
+            objects=self.include_objects,
+            exclude_objects=self.exclude_objects)
+
+        self.position_asset(context)
+
+        if self.adjacent_cant_be_deeper and self.is_between_deeper():
+            bpy.context.preferences.themes[0].view_3d.object_active = (1, 0, 0)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (1, 0, 0)
+
+        elif self.adjacent_cant_be_deeper:
+            bpy.context.preferences.themes[0].view_3d.object_active = (0.14902, 1, 0.6)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (0.14902, 1, 0.6)
+
+        if self.event_is_place_first_point(event) and self.selected_opening:
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
+
+            if self.adjacent_cant_be_deeper and self.is_between_deeper():
+                bpy.ops.snap.message_box(
+                    'INVOKE_DEFAULT',
+                    message="This assembly cannot be placed here because it can only \n "
+                            "be placed in openings with equal left and right partition depths.")
+                return self.cancel_drop(context)
+            self.confirm_placement(context)
+            return self.finish(context)
+
+
+
+        if self.event_is_cancel_command(event):
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
+            return self.cancel_drop(context)
+
+        if self.event_is_pass_through(event):
+            return {'PASS_THROUGH'}
+
+        return {'RUNNING_MODAL'}
+
+    def get_32mm_position(self,selected_point):
+        number_of_holes =  math.floor((selected_point / sn_unit.millimeter(32)))
+        return number_of_holes * sn_unit.millimeter(32)
+            
+    def set_opening_name(self,obj,name):
+        obj.sn_closets.opening_name = name
+        for child in obj.children:
+            self.set_opening_name(child, name)
+        
+    def confirm_placement(self, context):
+        super().confirm_placement(context)
+
+        if self.selected_opening:
+            loc_pos = self.selected_opening.obj_bp.matrix_world.inverted() @ self.selected_point
+            loc_z = self.get_32mm_position(loc_pos[2]) + self.selected_opening.obj_bp.location.z
+            
+            height = self.insert.obj_z.location.z
+            sn_utils.copy_assembly_drivers(self.selected_opening, self.insert)
+            self.insert.obj_bp.driver_remove('location', 2)
+            self.insert.obj_z.driver_remove('location', 2)
+            self.insert.obj_bp.location.z = loc_z
+            self.insert.obj_z.location.z = height
+            self.selected_opening.obj_bp.snap.interior_open = True
+            self.selected_opening.obj_bp.snap.exterior_open = True            
+
+    def position_asset(self, context):
+        super().position_asset(context)
+
+        if self.selected_obj and self.selected_opening:
+            if self.selected_opening.obj_bp.parent:
+                if self.insert.obj_bp.parent is not self.selected_opening.obj_bp.parent:
+                    self.insert.obj_bp.matrix_world = self.selected_opening.obj_bp.matrix_world
+                    loc_pos = self.selected_opening.obj_bp.matrix_world.inverted() @ self.selected_point
+                    loc_z = self.get_32mm_position(loc_pos[2])     
+                    self.insert.obj_bp.location.z += loc_z
+
+            edp = self.insert.get_prompt("Extra Deep Pard")
+            adrs = self.insert.get_prompt("Add Deep Rod Setback")
+            
+            if edp and adrs:
+                if self.insert.obj_y.location.y >= edp.get_value():
+                    adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
+
+class OPERATOR_Place_Double_Pull_Out_Hamper(bpy.types.Operator, PlaceClosetInsert):
+    """ This will be called when you drop a double pull out hamper into the scene"""
+    bl_idname = "sn_closets.place_double_pull_out_hamper"
+    bl_label = "Place Double Pull Out Hamper"
+    bl_description = "This will allow the user to place a double pull out hamper into the scene"
+
+    object_name: StringProperty(name="Object Name")
+
+    product_name: StringProperty(name="Product Name")
+    category_name: StringProperty(name="Category Name")
+    library_name: StringProperty(name="Library Name")
+    filepath: StringProperty(name="Filepath") #MAYBE DONT NEED THIS?
+
+    insert = None
+    default_z_loc = 0.0
+    default_height = 0.0
+    default_depth = 0.0
+    
+    openings = []
+    objects = []
+    
+    def execute(self, context):
+        context.window.cursor_set('WAIT')
+
+        if self.obj_bp_name in bpy.data.objects:
+            obj_bp = bpy.data.objects[self.obj_bp_name]
+            self.insert = sn_types.Assembly(obj_bp=obj_bp)
+            self.asset = self.insert
+        else:
+            self.draw_asset()
+            self.get_insert(context)
+
+        if self.show_openings:
+            self.show_openings()
+            self.include_objects = self.openings
+
+        if self.insert is None:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT',
+                message="Could Not Find Insert Class: " + self.object_name)
+            return {'CANCELLED'}
+
+        self.set_wire_and_xray(self.insert.obj_bp, True)
+        self.run_asset_calculators()
+        context.window.cursor_set('PAINT_BRUSH')
+        if self.header_text:
+            context.area.header_text_set(text=self.header_text)        
+        context.view_layer.update()  # THE SCENE MUST BE UPDATED FOR RAY CAST TO WORK
+        context.window_manager.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+
+    def show_openings(self):
+        # Clear  to avoid old/duplicate openings
+        self.openings.clear()
+        insert_type = self.insert.obj_bp.snap.placement_type
+        insert_op_num = self.insert.obj_bp.sn_closets.opening_name
+
+        for obj in bpy.context.scene.objects:
+            # Check to avoid opening that is part of the dropped insert
+            if sn_utils.get_parent_assembly_bp(obj) == self.insert.obj_bp:
+                continue
+
+            opening = None
+            opening_width = 0
+            if obj.parent:
+                if obj.parent.get("IS_BP_CLOSET"):
+                    closet_assembly = sn_types.Assembly(obj.parent)
+                    opening_width_ppt = closet_assembly.get_prompt("Opening " + str(obj.sn_closets.opening_name) + " Width")
+                    if opening_width_ppt:
+                        opening_width = round(sn_unit.meter_to_inch(opening_width_ppt.get_value()), 2)
+            if obj.snap.type_group == 'OPENING' and (opening_width == 24 or opening_width == 30):
+                
+                wall = sn_types.Wall(obj_bp=sn_utils.get_wall_bp(obj))
+
+                # Ensure opening status is set correctly
+                product_bp = sn_utils.get_closet_bp(obj)
+                if product_bp:
+                    op_num = obj.sn_closets.opening_name
+                    op_inserts = [o for o in product_bp.children if o.snap.type_group == 'INSERT' and o.sn_closets.opening_name == op_num]
+                    if not op_inserts:
+                        obj.snap.interior_open = True
+                        obj.snap.exterior_open = True
+
+                wall_hidden = False
+                collections = bpy.data.collections
+                wall_bp = sn_utils.get_wall_bp(obj)
+                if wall_bp:
+                    wall_name = wall_bp.snap.name_object
+                    if wall_name in collections:
+                        wall_coll = collections[wall_name]
+                        wall_hidden = wall_coll.hide_viewport
+                if wall and sn_utils.get_wall_bp(obj) and wall_hidden:
+                    continue
+                if insert_type in ('INTERIOR', 'SPLITTER'):
+                    opening = sn_types.Assembly(obj) if obj.snap.interior_open else None
+                if insert_type == 'EXTERIOR':
+                    opening = sn_types.Assembly(obj) if obj.snap.exterior_open else None
+                if opening:
+                    cage = opening.get_cage()
+                    cage.display_type = 'WIRE'
+                    cage.hide_select = False
+                    cage.hide_viewport = False
+                    self.openings.append(cage)
+    
+    def modal(self, context, event):
+        self.run_asset_calculators()
+        bpy.ops.object.select_all(action='DESELECT')
+        context.area.tag_redraw()
+        self.reset_selection()
+
+        if len(self.openings) == 0:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT', message='There are no 24" or 30" wide openings in this scene.')
+            context.area.header_text_set(None)
+            return self.cancel_drop(context)
+
+        self.selected_point, self.selected_obj, _ = sn_utils.get_selection_point(
+            context,
+            event,
+            objects=self.include_objects,
+            exclude_objects=self.exclude_objects)
+
+        self.position_asset(context)
+
+        if self.adjacent_cant_be_deeper and self.is_between_deeper():
+            bpy.context.preferences.themes[0].view_3d.object_active = (1, 0, 0)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (1, 0, 0)
+
+        elif self.adjacent_cant_be_deeper:
+            bpy.context.preferences.themes[0].view_3d.object_active = (0.14902, 1, 0.6)
+            bpy.context.preferences.themes[0].view_3d.object_selected = (0.14902, 1, 0.6)
+
+        if self.event_is_place_first_point(event) and self.selected_opening:
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
+
+            if self.adjacent_cant_be_deeper and self.is_between_deeper():
+                bpy.ops.snap.message_box(
+                    'INVOKE_DEFAULT',
+                    message="This assembly cannot be placed here because it can only \n "
+                            "be placed in openings with equal left and right partition depths.")
+                return self.cancel_drop(context)
+            self.confirm_placement(context)
+            return self.finish(context)
+
+
+
+        if self.event_is_cancel_command(event):
+            bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
+            bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
+            return self.cancel_drop(context)
+
+        if self.event_is_pass_through(event):
+            return {'PASS_THROUGH'}
+
+        return {'RUNNING_MODAL'}
+
+    def get_32mm_position(self,selected_point):
+        number_of_holes =  math.floor((selected_point / sn_unit.millimeter(32)))
+        return number_of_holes * sn_unit.millimeter(32)
+            
+    def set_opening_name(self,obj,name):
+        obj.sn_closets.opening_name = name
+        for child in obj.children:
+            self.set_opening_name(child, name)
+        
+    def confirm_placement(self, context):
+        super().confirm_placement(context)
+
+        if self.selected_opening:
+            loc_pos = self.selected_opening.obj_bp.matrix_world.inverted() @ self.selected_point
+            loc_z = self.get_32mm_position(loc_pos[2]) + self.selected_opening.obj_bp.location.z
+            
+            height = self.insert.obj_z.location.z
+            sn_utils.copy_assembly_drivers(self.selected_opening, self.insert)
+            self.insert.obj_bp.driver_remove('location', 2)
+            self.insert.obj_z.driver_remove('location', 2)
+            self.insert.obj_bp.location.z = loc_z
+            self.insert.obj_z.location.z = height
+            self.selected_opening.obj_bp.snap.interior_open = True
+            self.selected_opening.obj_bp.snap.exterior_open = True            
+
+    def position_asset(self, context):
+        super().position_asset(context)
+
+        if self.selected_obj and self.selected_opening:
+            if self.selected_opening.obj_bp.parent:
+                if self.insert.obj_bp.parent is not self.selected_opening.obj_bp.parent:
+                    self.insert.obj_bp.matrix_world = self.selected_opening.obj_bp.matrix_world
+                    loc_pos = self.selected_opening.obj_bp.matrix_world.inverted() @ self.selected_point
+                    loc_z = self.get_32mm_position(loc_pos[2])     
+                    self.insert.obj_bp.location.z += loc_z
+
+            edp = self.insert.get_prompt("Extra Deep Pard")
+            adrs = self.insert.get_prompt("Add Deep Rod Setback")
+            
+            if edp and adrs:
+                if self.insert.obj_y.location.y >= edp.get_value():
+                    adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
+
+
 bpy.utils.register_class(PROMPTS_Pants_Rack_Prompts)
 bpy.utils.register_class(PROMPTS_Single_Hanging_Rod_Prompts)
 bpy.utils.register_class(PROMPTS_Single_Hamper_Prompts)
@@ -1492,7 +1967,10 @@ bpy.utils.register_class(PROMPTS_Wire_Baskets_Prompts)
 bpy.utils.register_class(PROMPTS_Accessory_Prompts)
 bpy.utils.register_class(PROMPTS_Valet_Rod_Prompts)
 bpy.utils.register_class(PROMPTS_Shoe_Shelf_Prompts)
+bpy.utils.register_class(PROMPTS_Pull_Out_Hamper_Prompts)
 bpy.utils.register_class(OPERATOR_Drop_Single_Part)
 bpy.utils.register_class(OPERATOR_Place_Panel_Accessory_Y)
 bpy.utils.register_class(OPERATOR_Place_Panel_Accessory_X)
 bpy.utils.register_class(OPERATOR_Place_Valet_Rod)
+bpy.utils.register_class(OPERATOR_Place_Single_Pull_Out_Hamper)
+bpy.utils.register_class(OPERATOR_Place_Double_Pull_Out_Hamper)

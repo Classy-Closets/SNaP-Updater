@@ -411,6 +411,9 @@ class SNAP_OT_Open_Room(Operator):
         if len(props.projects) > 0:
             project = props.projects[props.project_index]
 
+        if bpy.data.is_saved:
+            bpy.ops.wm.save_mainfile()
+
         room_path = os.path.join(project.dir_path, os.path.basename(self.file_path))
         bpy.ops.wm.open_mainfile(filepath=room_path)
         sn_utils.update_accordions_prompt()
@@ -514,7 +517,7 @@ class SNAP_OT_Import_Room(Operator, ImportHelper):
         self.project = proj_wm.projects[proj_wm.project_index]
 
         if pathlib.Path(self.filename).suffix == ".blend":
-            room = self.project.add_room(self.filename.replace(".blend", ""))
+            room = self.project.add_room(self.filename.replace(".blend", ""), save_room_file=False)
             new_filepath = os.path.join(self.project.dir_path, room.name + ".blend")
             copyfile(self.filepath, new_filepath)
 

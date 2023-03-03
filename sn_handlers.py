@@ -123,11 +123,12 @@ def assign_material_pointers(scene=None):
             if part_mesh:
                 use_unique_material = part_mesh.sn_closets.use_unique_material
                 if not use_unique_material:
-                    bottom_mat_ptr = part_mesh.snap.material_slots["Bottom"].pointer_name
-                    if bottom_mat_ptr == "Garage_Interior_Surface":
-                        is_garage_material = True
-                    room_mat_color = part_mesh.snap.material_slots["Top"].item_name
-                    break
+                    bottom_mat_ptr = part_mesh.snap.material_slots.get("Bottom")
+                    if bottom_mat_ptr:
+                        if bottom_mat_ptr.pointer_name == "Garage_Interior_Surface":
+                            is_garage_material = True
+                        room_mat_color = part_mesh.snap.material_slots["Top"].item_name
+                        break
 
         if room_mat_color and current_mat_color:
             if room_mat_color in mat_props.color_conversions:

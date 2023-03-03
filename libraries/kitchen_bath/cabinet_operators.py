@@ -5,6 +5,8 @@ from os import path
 from snap import sn_types, sn_unit, sn_utils
 from bpy.app.handlers import persistent
 from . import cabinet_properties
+from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
+
 
 def get_carcass_insert(product):
     new_list = []
@@ -152,6 +154,8 @@ def add_rectangle_molding(product,is_crown=True):
         toe_kick_setback = carcass.get_prompt("Toe Kick Setback")
         left_fin_end = carcass.get_prompt("Left Fin End")
         right_fin_end = carcass.get_prompt("Right Fin End")
+        left_end_condition = carcass.get_prompt("Left End Condition")
+        right_end_condition = carcass.get_prompt("Right End Condition")
         left_side_wall_filler = carcass.get_prompt("Left Side Wall Filler")
         right_side_wall_filler = carcass.get_prompt("Right Side Wall Filler")
         setback = 0
@@ -159,11 +163,13 @@ def add_rectangle_molding(product,is_crown=True):
             setback = toe_kick_setback.get_value()
         
         points = []
-        
+
         #LEFT
         if left_side_wall_filler.get_value() > 0:
             points.append((-left_side_wall_filler.get_value(),depth+setback,0))
-        
+        elif left_end_condition.get_value() == 1:  # End Panel
+            points.append((0,0,0))
+            points.append((0,depth+setback,0))
         elif left_fin_end.get_value() == True:
             points.append((0,0,0))
             points.append((0,depth+setback,0))
@@ -173,7 +179,9 @@ def add_rectangle_molding(product,is_crown=True):
         #RIGHT
         if right_side_wall_filler.get_value() > 0:
             points.append((width + right_side_wall_filler.get_value(),depth+setback,0))
-        
+        elif right_end_condition.get_value() == 1:  # End Panel
+            points.append((width,depth+setback,0))
+            points.append((width,0,0))
         elif right_fin_end.get_value() == True:
             points.append((width,depth+setback,0))
             points.append((width,0,0))
@@ -189,6 +197,8 @@ def add_inside_molding(product,is_crown=True,is_notched=True):
     toe_kick_setback = carcass.get_prompt("Toe Kick Setback")
     left_fin_end = carcass.get_prompt("Left Fin End")
     right_fin_end = carcass.get_prompt("Right Fin End")
+    left_end_condition = carcass.get_prompt("Left End Condition")
+    right_end_condition = carcass.get_prompt("Right End Condition")
     left_side_wall_filler = carcass.get_prompt("Left Side Wall Filler")
     right_side_wall_filler = carcass.get_prompt("Right Side Wall Filler")
     cabinet_depth_left = carcass.get_prompt("Cabinet Depth Left")
@@ -203,7 +213,9 @@ def add_inside_molding(product,is_crown=True,is_notched=True):
     #LEFT
     if left_side_wall_filler.get_value() > 0:
         points.append((cabinet_depth_left.get_value()-setback,depth-left_side_wall_filler.get_value(),0))
-    
+    elif left_end_condition.get_value() == 1:  # End Panel
+        points.append((0,depth,0))
+        points.append((cabinet_depth_left.get_value()-setback,depth,0))
     elif left_fin_end.get_value() == True:
         points.append((0,depth,0))
         points.append((cabinet_depth_left.get_value()-setback,depth,0))
@@ -217,7 +229,9 @@ def add_inside_molding(product,is_crown=True,is_notched=True):
     #RIGHT
     if right_side_wall_filler.get_value() > 0:
         points.append((width + right_side_wall_filler.get_value(),-cabinet_depth_right.get_value()+setback,0))
-    
+    elif right_end_condition.get_value() == 1:  # End Panel
+        points.append((width,-cabinet_depth_right.get_value()+setback,0))
+        points.append((width,0,0))
     elif right_fin_end.get_value() == True:
         points.append((width,-cabinet_depth_right.get_value()+setback,0))
         points.append((width,0,0))
@@ -233,6 +247,8 @@ def add_transition_molding(product,is_crown=True):
         toe_kick_setback = carcass.get_prompt("Toe Kick Setback")
         left_fin_end = carcass.get_prompt("Left Fin End")
         right_fin_end = carcass.get_prompt("Right Fin End")
+        left_end_condition = carcass.get_prompt("Left End Condition")
+        right_end_condition = carcass.get_prompt("Right End Condition")
         left_side_wall_filler = carcass.get_prompt("Left Side Wall Filler")
         right_side_wall_filler = carcass.get_prompt("Right Side Wall Filler")
         cabinet_depth_left = carcass.get_prompt("Cabinet Depth Left")
@@ -250,7 +266,10 @@ def add_transition_molding(product,is_crown=True):
         if left_side_wall_filler.get_value() > 0:
             points.append((-left_side_wall_filler.get_value(),-cabinet_depth_left.get_value()+setback,0))
             points.append((left_side_thickness.get_value(),-cabinet_depth_left.get_value()+setback,0))
-            
+        elif left_end_condition.get_value() == 1:  # End Panel
+            points.append((0,0,0))
+            points.append((0,-cabinet_depth_left.get_value()+setback,0))
+            points.append((left_side_thickness.get_value(),-cabinet_depth_left.get_value()+setback,0))    
         elif left_fin_end.get_value() == True:
             points.append((0,0,0))
             points.append((0,-cabinet_depth_left.get_value()+setback,0))
@@ -263,7 +282,10 @@ def add_transition_molding(product,is_crown=True):
         if right_side_wall_filler.get_value() > 0:
             points.append((width - right_side_thickness.get_value() + right_side_wall_filler.get_value(),-cabinet_depth_right.get_value()+setback,0))
             points.append((width + right_side_wall_filler.get_value(),-cabinet_depth_right.get_value()+setback,0))
-        
+        elif right_end_condition.get_value() == 1:  # End Panel
+            points.append((width - right_side_thickness.get_value() + right_side_wall_filler.get_value(),-cabinet_depth_right.get_value()+setback,0))
+            points.append((width,-cabinet_depth_right.get_value()+setback,0))
+            points.append((width,0,0))
         elif right_fin_end.get_value() == True:
             points.append((width - right_side_thickness.get_value() + right_side_wall_filler.get_value(),-cabinet_depth_right.get_value()+setback,0))
             points.append((width,-cabinet_depth_right.get_value()+setback,0))
@@ -280,7 +302,8 @@ class OPERATOR_Frameless_Standard_Draw_Plan(bpy.types.Operator):
     bl_description = "Creates the plan view for cabinets"
     
     object_name: bpy.props.StringProperty(name="Object Name",default="")
-    
+    scene_name: bpy.props.StringProperty(name="Scene Name",default="")
+
     product = None
 
     left_filler_amount = 0
@@ -335,6 +358,7 @@ class OPERATOR_Frameless_Standard_Draw_Plan(bpy.types.Operator):
 
         assembly_mesh.matrix_world = self.product.obj_bp.matrix_world
         assembly_mesh.snap.type = 'CAGE'
+        assembly_mesh['IS_BP_CABINET'] = True
         
         if self.left_filler_amount > 0:
             l_filler_mesh = sn_utils.create_cube_mesh(self.product.obj_bp.snap.name_object,
@@ -355,7 +379,9 @@ class OPERATOR_Frameless_Standard_Draw_Plan(bpy.types.Operator):
             
 
         wall_bp = sn_utils.get_wall_bp(self.product.obj_bp)
-        parent_rot = wall_bp.rotation_euler.z
+        parent_rot = 0
+        if wall_bp:
+            parent_rot = wall_bp.rotation_euler.z
         
         dim_lbl = sn_types.Dimension()
         dim_lbl.parent(assembly_mesh)
@@ -363,21 +389,38 @@ class OPERATOR_Frameless_Standard_Draw_Plan(bpy.types.Operator):
         scene.snap.opengl_dim.gl_font_size = 15.5
 
         dim_lbl.anchor.rotation_euler = (0, -parent_rot, 0)
+        dim_lbl.anchor["IS_KB_LABEL"] = True
+        dim_lbl.end_point["IS_KB_LABEL"] = True
         dim_lbl.start_x(value=assembly_mesh.dimensions.x/2)
 
-        assembly_above = self.product.get_adjacent_assembly(direction='ABOVE')
-        if self.product.obj_bp.location.z > 1:  # if this is an upper...
-            y_offset = 0.45
-        elif not assembly_above:
-            y_offset = 0.5
+        if wall_bp:
+            assembly_above = self.product.get_adjacent_assembly(direction='ABOVE')
+            if self.product.obj_bp.location.z > 1:  # if this is an upper...
+                y_offset = 0.45
+            elif not assembly_above:
+                y_offset = 0.5
+            else:
+                y_offset = 0.73
         else:
-            y_offset = 0.73
+            y_offset = 0.5
         dim_lbl.start_y(value=-assembly_mesh.dimensions.y*y_offset)
         dim_lbl.start_z(value=math.fabs(assembly_mesh.dimensions.z))
 
         product_label = get_product_components(self.product)
         dim_lbl.set_label(product_label)
 
+        if self.scene_name:
+            scene = bpy.data.scenes[self.scene_name]
+            scene.collection.objects.link(assembly_mesh)
+            context.scene.collection.objects.unlink(assembly_mesh)
+            for child in assembly_mesh.children:
+                scene.collection.objects.link(child)
+                context.scene.collection.objects.unlink(child)
+                if child.get('IS_VISDIM_A'):
+                    for subchild in child.children:
+                        scene.collection.objects.link(subchild)
+                        context.scene.collection.objects.unlink(subchild)
+            
 
         return {'FINISHED'}
 
@@ -456,29 +499,56 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
     
     tall_cabinet_switch = sn_unit.inch(60)
     
-    def get_profile(self):
+    def get_profile(self, context):
         props = cabinet_properties.get_scene_props()
+        scene_coll = context.scene.collection
+        molding_coll = scene_coll.children.get("Molding Profiles")
+
+        if  not molding_coll:
+            molding_coll = bpy.data.collections.new("Molding Profiles")
+            scene_coll.children.link(molding_coll)
+
         if self.molding_type == 'Base':
-            self.profile = sn_utils.get_object(path.join(path.dirname(__file__),
-                                                      cabinet_properties.MOLDING_FOLDER_NAME,
-                                                      cabinet_properties.BASE_MOLDING_FOLDER_NAME,
-                                                      props.base_molding_category,
-                                                      props.base_molding+".blend"))
+            self.profile = molding_coll.objects.get(props.base_molding)
+
+            if not self.profile:
+                self.profile_exists = False
+                self.profile = sn_utils.get_object(
+                    path.join(path.dirname(__file__),
+                    cabinet_properties.MOLDING_FOLDER_NAME,
+                    cabinet_properties.BASE_MOLDING_FOLDER_NAME,
+                    props.base_molding_category,
+                    props.base_molding + ".blend"))
+                molding_coll.objects.link(self.profile)
+
         elif self.molding_type == 'Light':
-            self.profile = sn_utils.get_object(path.join(path.dirname(__file__),
-                                                      cabinet_properties.MOLDING_FOLDER_NAME,
-                                                      cabinet_properties.LIGHT_MOLDING_FOLDER_NAME,
-                                                      props.light_rail_molding_category,
-                                                      props.light_rail_molding+".blend"))
+            self.profile = molding_coll.objects.get(props.light_rail_molding)
+
+            if not self.profile:
+                self.profile_exists = False
+                self.profile = sn_utils.get_object(
+                    path.join(path.dirname(__file__),
+                    cabinet_properties.MOLDING_FOLDER_NAME,
+                    cabinet_properties.LIGHT_MOLDING_FOLDER_NAME,
+                    props.light_rail_molding_category,
+                    props.light_rail_molding + ".blend"))
+                molding_coll.objects.link(self.profile)
+
         else:
-            self.profile = sn_utils.get_object(path.join(path.dirname(__file__),
-                                                      cabinet_properties.MOLDING_FOLDER_NAME,
-                                                      cabinet_properties.CROWN_MOLDING_FOLDER_NAME,
-                                                      props.crown_molding_category,
-                                                      props.crown_molding+".blend"))
+            profile_name = props.crown_molding + " Molding Profile"
+            self.profile = molding_coll.objects.get(profile_name)
+
+            if not self.profile:
+                self.profile = sn_utils.get_object(
+                    path.join(path.dirname(__file__),
+                    cabinet_properties.MOLDING_FOLDER_NAME,
+                    cabinet_properties.CROWN_MOLDING_FOLDER_NAME,
+                    props.crown_molding_category,
+                    props.crown_molding + ".blend"))
+                self.profile.name = profile_name
+                molding_coll.objects.link(self.profile)
 
         self.profile['IS_MOLDING_PROFILE'] = True
-        bpy.context.scene.collection.objects.link(self.profile)
 
     def get_products(self):
         products = []
@@ -488,30 +558,37 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                 products.append(product)
         return products
         
-    def create_extrusion(self,points,is_crown=True,is_light_rail=False,product=None):
+    def create_extrusion(self, context, points, is_crown=True, is_light_rail=False, product=None):
         if self.profile is None:
-            self.get_profile()
+            self.get_profile(context)
         
         bpy.ops.curve.primitive_bezier_curve_add(enter_editmode=False)
         obj_curve = bpy.context.active_object
         obj_curve.modifiers.new("Edge Split",type='EDGE_SPLIT')
         obj_props = cabinet_properties.get_object_props(obj_curve)
+
         if is_crown:
             obj_props.is_crown_molding = True
+            name = context.scene.lm_cabinets.crown_molding
         elif is_light_rail:
+            obj_props.is_crown_molding = True
             obj_props.is_light_rail_molding = True
+            name = context.scene.lm_cabinets.light_rail_molding
+            if "L01" in context.scene.lm_cabinets.light_rail_molding:
+                name = "Light Rail"
         else:
             obj_props.is_base_molding = True
+            name = context.scene.lm_cabinets.base_molding
+
         obj_curve.data.splines.clear()
         spline = obj_curve.data.splines.new('BEZIER')
-        spline.bezier_points.add(count=len(points) - 1)        
-        # obj_curve.data.show_handles = False
+        spline.bezier_points.add(count=len(points) - 1)
         obj_curve.data.bevel_object = self.profile
         obj_curve.data.bevel_mode = 'OBJECT'
         obj_curve.snap.type_mesh = 'SOLIDSTOCK'
         obj_curve.snap.solid_stock = self.profile.name
-        obj_curve.snap.name_object = self.molding_type + " Molding"
-        obj_curve.name = self.molding_type + " Molding"
+        obj_curve.snap.name_object = name
+        obj_curve.name = name
         
         bpy.ops.sn_object.add_material_slot(object_name=obj_curve.name)
         bpy.ops.sn_material.sync_material_slots(object_name=obj_curve.name)
@@ -527,30 +604,40 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
         bpy.ops.curve.handle_type_set(type='VECTOR')
         bpy.ops.object.editmode_toggle()
         obj_curve.data.dimensions = '2D'
+        obj_curve.data.use_fill_caps = True
         sn_utils.assign_materials_from_pointers(obj_curve)
         return obj_curve
-        
-    def clean_up_room(self):
+
+    def get_curve_assy_objs(self, del_objs, curve_obj):
+        assy_bp = sn_utils.get_assembly_bp(curve_obj)
+        if assy_bp:
+            for child in sn_utils.get_child_objects(assy_bp):
+                del_objs.append(child)
+
+    def clean_up_room(self, context):
         """ Removes all of the Dimensions and other objects
             That were added to the scene from this command
             We dont want multiple objects added on top of each other
             So we must clean up the scene before running this command 
         """
         objs = []
-        for obj in bpy.data.objects:
-            obj_props = cabinet_properties.get_object_props(obj)
-            if self.is_crown:
-                if obj_props.is_crown_molding == True:
-                    objs.append(obj)
-            elif self.is_light_rail:
-                if obj_props.is_light_rail_molding == True:
-                    objs.append(obj)
-            else:
-                if obj_props.is_base_molding == True:
-                    objs.append(obj)
+        for obj in context.visible_objects:
+            molding_profile = 'IS_MOLDING_PROFILE' in obj
+            if obj.type == "CURVE" and not molding_profile:
+                obj_props = cabinet_properties.get_object_props(obj)
+                if self.molding_type == 'Crown':
+                    if obj_props.is_crown_molding == True:
+                        self.get_curve_assy_objs(objs, obj)
+                elif self.molding_type == 'Base':
+                    if obj_props.is_base_molding == True:
+                        self.get_curve_assy_objs(objs, obj)
+                else:
+                    if obj_props.is_light_rail_molding == True:
+                        self.get_curve_assy_objs(objs, obj)
+
         sn_utils.delete_obj_list(objs)
 
-    def set_curve_location(self,product,curve,is_crown):
+    def set_curve_location(self, context, product, curve, is_crown):
         curve.parent = product.obj_bp
         if self.is_base:
             curve.location.z = 0
@@ -564,11 +651,39 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
 
         empty_assembly = sn_types.Assembly()
         empty_assembly.create_assembly()
-        empty_assembly.obj_bp.snap.type_mesh = 'CUTPART'
+        empty_assembly.set_name(curve.name)
+        empty_assembly.obj_bp["IS_KB_MOLDING"] = True
+        empty_assembly.add_prompt("Exposed Left", 'CHECKBOX', False)
+        empty_assembly.add_prompt("Exposed Right", 'CHECKBOX', False)
+        empty_assembly.add_prompt("Exposed Back", 'CHECKBOX', False)
+
+        if self.is_crown:
+            if "Flat Crown" in context.scene.lm_cabinets.crown_molding:
+                empty_assembly.obj_bp.snap.comment_2 = "1078"
+                empty_assembly.obj_bp["IS_BP_FLAT_CROWN"] = True
+                empty_assembly.obj_bp.sn_closets.flat_crown_bp = True
+            
+        if self.is_light_rail:
+            if "Light Rail" in curve.name:
+                empty_assembly.obj_bp["IS_BP_LIGHT_RAIL"] = True
+                empty_assembly.obj_bp.snap.comment_2 = "1040"
+                empty_assembly.set_name("Light Rail")
+                empty_assembly.get_prompt("Exposed Left").set_value(value=True)
+                empty_assembly.get_prompt("Exposed Right").set_value(value=True)
+                empty_assembly.get_prompt("Exposed Back").set_value(value=True)
+
+        empty_assembly.obj_bp.sn_closets.flat_crown_bp = True
+        empty_assembly.obj_bp["IS_BP_FLAT_CROWN"] = True
+        empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
+        curve.snap.type_mesh = 'CUTPART'
+        # curve.snap.use_multiple_edgeband_pointers = True
+
         empty_assembly.obj_x.hide_set(True)
         empty_assembly.obj_y.hide_set(True)
         empty_assembly.obj_z.hide_set(True)
         empty_assembly.obj_bp.parent = product.obj_bp
+        empty_assembly.obj_y.location.y = curve.dimensions[2]
+        empty_assembly.obj_z.location.z = sn_unit.inch(0.75)
         
         curve.parent = empty_assembly.obj_bp
         
@@ -582,13 +697,12 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                 default_coll = bpy.data.collections["Collection"]
                 sn_utils.remove_assembly_from_collection(empty_assembly.obj_bp, default_coll, recursive=True)
 
-
     def execute(self, context):
         self.is_base = True if self.molding_type == 'Base' else False
         self.is_crown = True if self.molding_type == 'Crown' else False
         self.is_light_rail = True if self.molding_type == 'Light' else False        
         
-        self.clean_up_room()
+        self.clean_up_room(context)
         self.profile = None
         products = self.get_products()
         for product in products:
@@ -612,20 +726,20 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             if shape == 'RECTANGLE':
                 points = add_rectangle_molding(product,self.is_crown)
                 if points:
-                    curve = self.create_extrusion(points,self.is_crown,self.is_light_rail,product)
-                    self.set_curve_location(product,curve,self.is_crown)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    self.set_curve_location(context, product, curve, self.is_crown)
                     
             if shape == 'INSIDE_NOTCH':
                 points = add_inside_molding(product,self.is_crown,True)
                 if points:
-                    curve = self.create_extrusion(points,self.is_crown,self.is_light_rail,product)
-                    self.set_curve_location(product,curve,self.is_crown)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    self.set_curve_location(context, product, curve, self.is_crown)
                 
             if shape == 'INSIDE_DIAGONAL':
                 points = add_inside_molding(product,self.is_crown,False)
                 if points:
-                    curve = self.create_extrusion(points,self.is_crown,self.is_light_rail,product)
-                    self.set_curve_location(product,curve,self.is_crown)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    self.set_curve_location(context, product, curve, self.is_crown)
                 
             if shape == 'OUTSIDE_DIAGONAL':
                 pass #TODO
@@ -636,8 +750,8 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             if shape == 'TRANSITION':
                 points = add_transition_molding(product,self.is_crown)
                 if points:
-                    curve = self.create_extrusion(points,self.is_crown,self.is_light_rail,product)
-                    self.set_curve_location(product,curve,self.is_crown)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    self.set_curve_location(context, product, curve, self.is_crown)
 
         return {'FINISHED'}
 
@@ -648,20 +762,29 @@ class OPERATOR_Delete_Molding(bpy.types.Operator):
 
     molding_type: bpy.props.StringProperty(name="Molding Type")
 
+    def get_curve_assy_objs(self, del_objs, curve_obj):
+        assy_bp = sn_utils.get_assembly_bp(curve_obj)
+        if assy_bp:
+            for child in sn_utils.get_child_objects(assy_bp):
+                del_objs.append(child)
+
     def execute(self, context):
         is_crown = True if self.molding_type == 'Crown' else False
         objs = []
-        for obj in context.scene.objects:
+
+        for obj in context.visible_objects:
             obj_props = cabinet_properties.get_object_props(obj)
+
             if self.molding_type == 'Crown':
                 if obj_props.is_crown_molding == True:
-                    objs.append(obj)
+                    self.get_curve_assy_objs(objs, obj)
             elif self.molding_type == 'Base':
                 if obj_props.is_base_molding == True:
-                    objs.append(obj)
+                    self.get_curve_assy_objs(objs, obj)
             else:
                 if obj_props.is_light_rail_molding == True:
-                    objs.append(obj)
+                    self.get_curve_assy_objs(objs, obj)
+
         sn_utils.delete_obj_list(objs)
         return {'FINISHED'}
     
@@ -745,14 +868,14 @@ class OPERATOR_Update_Door_Selection(bpy.types.Operator):
     
     def execute(self, context):
         props = cabinet_properties.get_scene_props()
-        
-        for obj_bp in self.get_door_selection():    
+
+        for obj_bp in self.get_door_selection():
             door_assembly = sn_types.Assembly(obj_bp)
             
             group_bp = sn_utils.get_group(path.join(path.dirname(__file__),
                                                  cabinet_properties.DOOR_FOLDER_NAME,
                                                  props.door_category,
-                                                 props.door_style+".blend"))
+                                                 props.get_door_style() + ".blend"))
             new_door = sn_types.Assembly(group_bp)
             new_door.obj_bp.snap.name_object = door_assembly.obj_bp.snap.name_object
             new_door.obj_bp.parent = door_assembly.obj_bp.parent
@@ -780,7 +903,7 @@ class OPERATOR_Update_Door_Selection(bpy.types.Operator):
                     child.hide
                 if child.type == 'MESH':
                     child.draw_type = 'TEXTURED'
-                    child.snap.comment = props.door_style
+                    child.snap.comment = props.get_door_style()
                     sn_utils.assign_materials_from_pointers(child)
                 if child.snap.type == 'CAGE':
                     child.hide = True
@@ -906,7 +1029,7 @@ class OPERATOR_Place_Applied_Panel(bpy.types.Operator):
         bp = sn_utils.get_group(path.join(path.dirname(__file__),
                                        cabinet_properties.DOOR_FOLDER_NAME,
                                        props.door_category,
-                                       props.door_style+".blend"))
+                                       props.get_door_style() + ".blend"))
         self.assembly = sn_types.Assembly(bp)
         
     def set_xray(self,turn_on=True):
@@ -1035,6 +1158,290 @@ class OPERATOR_Place_Applied_Panel(bpy.types.Operator):
         
         return self.door_panel_drop(context,event)
 
+
+class DROP_OPERATOR_Place_Toe_Kick_Assembly(bpy.types.Operator, PlaceClosetInsert):
+    bl_idname = cabinet_properties.LIBRARY_NAME_SPACE + ".place_toe_kick_assembly"
+    bl_label = "Place Toe Kick Assembly"
+    bl_description = "This places the toe kick assembly"
+    bl_options = {'UNDO'}
+
+    # READONLY
+    object_name: bpy.props.StringProperty(name="Object Name")
+
+    product = None
+    objects = []
+    cages = []
+    selected_obj = None
+    selected_point = None
+    selected_cab_1 = None
+    max_length = 96.0
+    panel_bps = []
+    sel_product_bp = None
+    valid_cabinet_types = ["Base", "Tall", "Sink"]
+    valid_cabinets = None
+    valid_cabinet_bps = None
+
+    def get_child_products(self, obj, reverse_order=False):
+        products = []
+
+        for child in obj.children:
+            if "IS_BP_CABINET" in child:
+                child.snap.comment = obj.snap.name_object
+                products.append(child)
+
+        products.sort(key=lambda obj: obj.location.x, reverse=reverse_order)
+
+        return products
+
+    def show_cages(self, context):
+        """Show cages for all valid cabinets available for first selection"""
+        self.cages.clear()
+        targets = [sn_types.Assembly(obj) for obj in context.scene.objects if "CARCASS_TYPE" in obj and "IS_BP_CABINET" in obj]
+
+        for assembly in targets:
+            is_corner = assembly.obj_bp.get("IS_CORNER")
+            wall = sn_utils.get_wall_bp(assembly.obj_bp)
+            floor = sn_utils.get_floor_parent(assembly.obj_bp)
+            floor_vis = False
+            wall_vis = False
+
+            if wall:
+                for child in wall.children:
+                    if child.type =='MESH':
+                        wall_vis = child.visible_get()
+                        break
+            if floor:
+                floor_vis = floor.visible_get()
+
+            if floor_vis or wall_vis:
+                if assembly.obj_bp.get("CARCASS_TYPE") in self.valid_cabinet_types and not is_corner:
+                    cage = assembly.get_cage()
+                    cage.display_type = 'WIRE'
+                    cage.hide_select = False
+                    cage.hide_viewport = False
+                    self.cages.append(cage)
+
+    def update_cages(self):
+        """Hide cages that are no longer valid selections after the first cabinet has been selected"""
+        for cage in self.cages:
+            if cage.parent not in self.valid_cabinet_bps:
+                cage.hide_viewport = True
+                cage.hide_select = True
+
+    def get_valid_cabinets(self):
+        """
+        Get valid cabinets based on first cabinet selection. Selection is made left-to-right.
+        Only adjoining cabinets are valid and the toe kick may not be longer than 96 inches.
+        This initializes self.valid_cabinets and self.valid_cabinet_bps then updates cage selection.
+        """
+        self.valid_cabinets = []
+
+        if self.selected_cab_1:
+            self.wall_bp = sn_utils.get_wall_bp(self.selected_cab_1.obj_bp)
+            self.floor = sn_utils.get_floor_parent(self.selected_cab_1.obj_bp)
+            rot_180 = round(math.degrees(self.selected_cab_1.obj_bp.rotation_euler.z)) == 180
+
+            if self.floor:
+                bp = self.floor
+            else:
+                bp = self.wall_bp
+
+            if bp:
+                if self.floor and rot_180:
+                    cabinet_bps = self.get_child_products(bp, reverse_order=True)
+                else:
+                    cabinet_bps = self.get_child_products(bp)
+
+                spanned_length = self.selected_cab_1.obj_x.location.x
+                prv_cab_dim_x = None
+
+                for bp in cabinet_bps:
+                    if bp.rotation_euler.z != self.selected_cab_1.obj_bp.rotation_euler.z:
+                        continue
+                    if bp is self.selected_cab_1.obj_bp:
+                        assy = sn_types.Assembly(bp)
+                        self.valid_cabinets.append(assy)
+                        prv_cab_dim_x = assy.obj_x.matrix_world.translation.x
+                    if prv_cab_dim_x:
+                        if bp.matrix_world.translation.x == prv_cab_dim_x:
+                            assy = sn_types.Assembly(bp)
+                            spanned_length += assy.obj_x.matrix_world.translation.x - assy.obj_bp.matrix_world.translation.x
+                            if spanned_length > sn_unit.inch(96):
+                                break
+                            else:
+                                self.valid_cabinets.append(assy)
+                                prv_cab_dim_x = assy.obj_x.matrix_world.translation.x
+
+                self.valid_cabinet_bps = [c.obj_bp for c in self.valid_cabinets]
+                self.update_cages()
+
+    def execute(self, context):
+        self.is_log_shown = False
+        self.toe_kick = self.asset
+        self.show_cages(context)
+        self.include_objects = self.cages
+
+        return super().execute(context)
+
+    def toe_kick_drop(self, context, event):
+        if self.selected_obj:
+            self.sel_product_bp = sn_utils.get_bp(self.selected_obj, 'PRODUCT')
+            product = sn_types.Assembly(self.sel_product_bp)
+            hover_product_bp = sn_utils.get_cabinet_bp(self.selected_obj)
+            tk_setback = context.scene.lm_cabinets.carcass_defaults.toe_kick_setback
+            tk_visible = False
+            tk_len = 0
+
+            if hover_product_bp:
+                carcass_type = hover_product_bp.get("CARCASS_TYPE")
+                if carcass_type in self.valid_cabinet_types:
+                    hover_product = sn_types.Assembly(hover_product_bp)
+                    rot_180 = False
+                    if not tk_visible:
+                        self.set_wire_and_xray(self.toe_kick.obj_bp, False)
+                        tk_visible = True
+
+                    for child in hover_product.obj_bp.children:
+                        if child.get('IS_CAGE'):
+                            cage = child
+                            cage.hide_select = False
+                            cage.select_set(True)
+
+                    if not self.selected_cab_1:
+                        self.toe_kick.obj_bp.parent = hover_product.obj_bp
+                        self.toe_kick.obj_x.location.x = hover_product.obj_x.location.x
+                        self.toe_kick.obj_y.location.y = hover_product.obj_y.location.y + tk_setback
+
+                    elif hover_product.obj_bp == self.selected_cab_1.obj_bp or not self.valid_cabinets:
+                        self.toe_kick.obj_x.location.x = self.selected_cab_1.obj_x.location.x
+                        self.toe_kick.obj_y.location.y = self.selected_cab_1.obj_y.location.y + tk_setback
+
+                    elif hover_product.obj_bp in self.valid_cabinet_bps:
+                        rot_180 = round(math.degrees(self.selected_cab_1.obj_bp.rotation_euler.z)) == 180
+                        cab_1_matrix_loc_x = self.selected_cab_1.obj_bp.matrix_world.translation.x
+                        cab_2_matrix_obj_x = hover_product.obj_x.matrix_world.translation.x
+
+                        if self.floor and rot_180:
+                            self.toe_kick.obj_x.location.x = cab_1_matrix_loc_x - cab_2_matrix_obj_x
+                        else:
+                            self.toe_kick.obj_x.location.x = cab_2_matrix_obj_x - cab_1_matrix_loc_x
+
+                        self.toe_kick.obj_y.location.y = self.selected_cab_1.obj_y.location.y + tk_setback
+
+                    if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+                        if self.selected_cab_1:
+                            if hover_product and hover_product.obj_bp:
+                                Cabinet_Width = self.selected_cab_1.obj_x.snap.get_var("location.x", "Cabinet_Width")
+                                driver_vars = [Cabinet_Width]
+                                formula = "Cabinet_Width"
+
+                                if len(self.valid_cabinets) > 1:
+                                    for i, cab in enumerate(self.valid_cabinets):
+                                        exclude_cabinet = cab.obj_bp.matrix_world.translation.x > hover_product_bp.matrix_world.translation.x
+                                        if cab.obj_bp is self.selected_cab_1.obj_bp:
+                                            continue
+                                        elif not self.floor and not rot_180 and exclude_cabinet:
+                                            continue
+                                        else:
+                                            eval("driver_vars.append(cab.obj_x.snap.get_var('location.x', 'Cab_Width_{}'))".format(str(i+1), str(i+1)))
+                                            formula += "+Cab_Width_{}".format(str(i+1))
+
+                                self.toe_kick.dim_x(formula, driver_vars)
+                                sn_utils.set_wireframe(self.toe_kick.obj_bp, False)
+                                bpy.context.window.cursor_set('DEFAULT')
+                                bpy.ops.object.select_all(action='DESELECT')
+                                context.view_layer.objects.active = self.toe_kick.obj_bp
+                                self.toe_kick.obj_bp.select_set(True)
+                                self.toe_kick.obj_y["IS_MIRROR"] = True
+
+                                if self.floor:
+                                    collections = bpy.data.collections
+                                    scene_coll = context.scene.collection
+                                    floor_coll = collections["Floor"]
+
+                                    if floor_coll:
+                                        if self.floor.name in scene_coll.objects:
+                                            scene_coll.objects.unlink(self.floor)
+                                        sn_utils.add_assembly_to_collection(self.toe_kick.obj_bp, floor_coll, recursive=True)
+                                        sn_utils.remove_assembly_from_collection(self.toe_kick.obj_bp, scene_coll, recursive=True)
+
+                                return self.finish(context)
+                            else:
+                                return {'RUNNING_MODAL'}
+
+                    if event.type == 'LEFTMOUSE' and event.value == 'PRESS' and self.selected_cab_1 == None:
+                        self.selected_cab_1 = hover_product
+                        self.get_valid_cabinets()
+                        bpy.context.window.cursor_set('DEFAULT')
+                        bpy.ops.object.select_all(action='DESELECT')
+                        context.view_layer.objects.active = self.toe_kick.obj_bp
+                        self.toe_kick.obj_bp.parent =  self.selected_cab_1.obj_bp
+
+                        for child in self.selected_cab_1.obj_bp.children:
+                            if child.get("IS_BP_CARCASS"):
+                                carcass = sn_types.Assembly(child)
+
+                        tk_setback = context.scene.lm_cabinets.carcass_defaults.toe_kick_setback
+                        dim_y = self.selected_cab_1.obj_y.location.y + tk_setback
+                        self.toe_kick.obj_y.location.y = dim_y
+
+                        toe_kick_height = carcass.get_prompt("Toe Kick Height").distance_value
+                        self.toe_kick.get_prompt("Toe Kick Height").set_value(toe_kick_height)
+
+                        if self.toe_kick.get_prompt("Toe Kick Setback"):
+                            self.toe_kick.get_prompt("Toe Kick Setback").set_value(tk_setback)
+
+                        self.toe_kick.obj_x.location.x = hover_product.obj_x.location.x
+                        self.toe_kick.obj_bp.location.z = 0
+
+                        self.toe_kick.obj_bp.snap.type_group = 'INSERT'
+                        self.toe_kick.obj_bp.snap.export_as_subassembly = True
+                        self.toe_kick.obj_bp["IS_BP_TOE_KICK_INSERT"] = True
+                        self.toe_kick.obj_bp.sn_closets.is_toe_kick_insert_bp = True
+
+                    return {'RUNNING_MODAL'}
+
+        return {'RUNNING_MODAL'}
+    
+    def modal(self, context, event):
+        context.area.tag_redraw()
+        self.reset_selection()
+        bpy.ops.object.select_all(action='DESELECT')
+        self.selected_point, self.selected_obj, _ = sn_utils.get_selection_point(context, event, objects=self.objects)
+
+        if not self.toe_kick:
+            self.toe_kick = self.asset
+
+        if self.event_is_cancel_command(event):
+            context.area.header_text_set(None)
+            return self.cancel_drop(context)
+
+        if self.event_is_pass_through(event):
+            return {'PASS_THROUGH'}
+        
+        return self.toe_kick_drop(context, event)
+
+class OPERATOR_Remove_Location_Constraint(bpy.types.Operator):
+    """ This will remove a cabinet's location constraint.
+    """
+    bl_idname = cabinet_properties.LIBRARY_NAME_SPACE + ".remove_location_constraint"
+    bl_label = "Remove Location Constraint"
+    bl_description = "This will remove a cabinet's location constraint."
+    bl_options = {'UNDO'}
+    obj_bp_name: bpy.props.StringProperty(name="Cabinet Base Point Name")
+
+    def execute(self, context):
+        obj_bp = bpy.data.objects.get(self.obj_bp_name)
+        obj_bp_matrix_local_x = obj_bp.matrix_local.translation.x
+        if obj_bp and obj_bp.constraints:
+            for constraint in obj_bp.constraints:
+                if constraint.type == "COPY_LOCATION":
+                    obj_bp.constraints.remove(constraint)
+
+        obj_bp.location.x = obj_bp_matrix_local_x
+
+        return {'FINISHED'}
+    
 bpy.utils.register_class(OPERATOR_Frameless_Standard_Draw_Plan)
 #bpy.utils.register_class(OPERATOR_Cabinet_Update)
 bpy.utils.register_class(OPERATOR_Auto_Add_Molding)
@@ -1043,3 +1450,5 @@ bpy.utils.register_class(OPERATOR_Update_Door_Selection)
 bpy.utils.register_class(OPERATOR_Update_Pull_Selection)
 bpy.utils.register_class(OPERATOR_Update_Column_Selection)
 bpy.utils.register_class(OPERATOR_Place_Applied_Panel)
+bpy.utils.register_class(DROP_OPERATOR_Place_Toe_Kick_Assembly)
+bpy.utils.register_class(OPERATOR_Remove_Location_Constraint)

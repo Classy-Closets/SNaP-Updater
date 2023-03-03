@@ -1288,8 +1288,7 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             if door_type.get_value() == 0:
                 remove_bottom_shelf.set_value(True)
 
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=350)
+        return super().invoke(context, event, width=350)
 
     def execute(self, context):
         return {'FINISHED'}
@@ -1363,6 +1362,7 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             self.draw_opening_row(i + 1, box, last_height, opening_heights)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
@@ -1435,10 +1435,10 @@ class PROMPTS_Horizontal_Splitter_Prompts(sn_types.Prompts_Interface):
 
     def invoke(self, context, event):
         self.assembly = self.get_insert()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=330)
+        return super().invoke(context, event, width=330)
 
     def draw(self, context):
+        super().draw(context)
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:

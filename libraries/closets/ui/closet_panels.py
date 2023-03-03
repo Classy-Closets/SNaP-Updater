@@ -24,18 +24,22 @@ def draw_unique_mats(layout, assembly):
             if props.is_countertop_bp:
                 island_bp = sn_utils.get_island_bp(assembly.obj_bp)
                 island_assy = sn_types.Assembly(island_bp)
-                countertop_type = island_assy.get_prompt("Countertop Type")
+                island_countertop_type = island_assy.get_prompt("Countertop Type")
 
-                if countertop_type:
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                parent_countertop_type = parent_assembly.get_prompt("Countertop Type")
+
+                if island_countertop_type:
                     ct_types = {
                         '0': 'Melamine',
                         '1': 'Custom',
                         '2': 'Granite',
                         '3': 'HPL',
                         "4": "Quartz",
-                        "5": "Wood"}
+                        "5": "Standard Quartz",
+                        "6": "Wood"}
 
-                    ct_type = ct_types[str(countertop_type.get_value())]
+                    ct_type = ct_types[str(island_countertop_type.get_value())]
 
                     if ct_type == "Custom":
                         col = layout.column()
@@ -44,6 +48,10 @@ def draw_unique_mats(layout, assembly):
                         col.prop(props, "custom_countertop_vendor", text="Vendor")
                         col.prop(props, "custom_countertop_color_code", text="Color Code")
                         col.prop(props, "custom_countertop_price", text="Price")
+                        return
+                    if ct_type == "Standard Quartz":
+                        layout.label(text="Standard Quartz Color:")
+                        layout.prop(props, "unique_countertop_standard_quartz", text="")
                         return
 
                 if "COUNTERTOP_MELAMINE" in assembly.obj_bp:
@@ -67,13 +75,35 @@ def draw_unique_mats(layout, assembly):
                     return
 
                 if "COUNTERTOP_QUARTZ" in assembly.obj_bp:
-                    layout.label(text="Quartz Manufactuer:")
-                    layout.prop(props, "unique_countertop_quartz_mfg", text="")
-                    layout.label(text="Quartz Color:")
-                    layout.prop(props, "unique_countertop_quartz", text="")
-                    return
+                    if parent_countertop_type:
+                        if parent_countertop_type.get_value() == 5:
+                            layout.label(text="Standard Quartz Color:")
+                            layout.prop(props, "unique_countertop_standard_quartz", text="")
+                            return
+                        else:
+                            layout.label(text="Quartz Manufactuer:")
+                            layout.prop(props, "unique_countertop_quartz_mfg", text="")
+                            layout.label(text="Quartz Color:")
+                            layout.prop(props, "unique_countertop_quartz", text="")
+                            return
+                    else:
+                        layout.label(text="Quartz Manufactuer:")
+                        layout.prop(props, "unique_countertop_quartz_mfg", text="")
+                        layout.label(text="Quartz Color:")
+                        layout.prop(props, "unique_countertop_quartz", text="")
+                        return
 
-                if "COUNTERTOP_WOOD" in assembly.obj_bp:
+                if parent_countertop_type:
+                    if "COUNTERTOP_WOOD" in assembly.obj_bp and parent_countertop_type.get_value() != 5:
+                        row = layout.row()
+                        row.label(text="Countertop Type")
+                        layout.prop(props, "wood_countertop_types", text="")
+
+                        if not props.wood_countertop_types == 'Butcher Block':
+                            layout.label(text="Wood Color:")
+                            layout.prop(props, "unique_countertop_wood", text="")
+                        return
+                elif "COUNTERTOP_WOOD" in assembly.obj_bp:
                     row = layout.row()
                     row.label(text="Countertop Type")
                     layout.prop(props, "wood_countertop_types", text="")

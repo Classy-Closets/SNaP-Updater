@@ -157,7 +157,7 @@ def get_basket_price(assembly):
 
 def get_pull_price(assembly):
     pull_cat = bpy.context.scene.sn_closets.closet_options.pull_category
-    pull_name = bpy.context.scene.sn_closets.closet_options.pull_name
+    pull_name = bpy.context.scene.sn_closets.closet_options.get_pull_style()
     item_name = assembly.obj_bp.snap.name_object
     vendor_id = item_name[:10] # use vendor code in item name for lookup (123.45.678)
 
@@ -446,7 +446,7 @@ def get_hardware_price(assembly, item_name):
     #Pull
     if assembly.obj_bp.sn_closets.is_handle:
         pull_cat = bpy.context.scene.sn_closets.closet_options.pull_category
-        pull_name = bpy.context.scene.sn_closets.closet_options.pull_name
+        pull_name = bpy.context.scene.sn_closets.closet_options.get_pull_style()
         vendor_id = item_name[:10] # use vendor code in item name for lookup (123.45.678)
 
         cursor.execute(

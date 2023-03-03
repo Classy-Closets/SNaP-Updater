@@ -164,11 +164,11 @@ class PROMPTS_Prompts_Bottom_Support(sn_types.Prompts_Interface):
     def invoke(self, context, event):
         """ This is called before the interface is displayed """
         self.insert = self.get_insert()
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(400))
+        return super().invoke(context, event, width=400)
 
     def draw(self, context):
         """ This is where you draw the interface """
+        super().draw(context)
         layout = self.layout
         box = layout.box()
 
