@@ -1249,8 +1249,8 @@ def generate_retail_parts_list():
             sheet4["H" + str((i + 1) + 1)] = quantity                                          #QUANTITY
 
             if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
+                if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
+                    if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
                         sheet4["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
                     else:
                         sheet4["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
@@ -1880,8 +1880,8 @@ def generate_franchise_parts_list():
             sheet4["H" + str((i + 1) + 1)] = quantity                                          #QUANTITY
 
             if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
+                if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
+                    if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
                         sheet4["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
                     else:
                         sheet4["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
