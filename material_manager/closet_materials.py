@@ -1182,20 +1182,22 @@ class SnapMaterialSceneProps(PropertyGroup):
         else:
             return "Unknown"
 
-    def get_mat_inventory_name(self, sku=""):
+    def get_mat_inventory_name(self, sku="", display_name=True):
         if sku:
             mat_sku = sku
         else:
             mat_sku = self.get_mat_sku(None, None, None)
 
+        search_col = "DisplayName" if display_name else "Name"
+
         mat_name = sn_db.query_db(
             "SELECT\
-                DisplayName\
+                {col}\
             FROM\
                 {CCItems}\
             WHERE\
                 SKU == '{sku}';\
-            ".format(sku=mat_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(col=search_col,sku=mat_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
 
         if len(mat_name) == 0:

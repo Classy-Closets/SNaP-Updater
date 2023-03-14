@@ -3240,8 +3240,9 @@ class SNAP_OT_Auto_Dimension(Operator):
                 self.lock_labeling(assembly)
 
             # Jewelry Drawer Labels
-            if scene_props.double_jewelry and props.is_drawer_stack_bp:
-                self.jewelry_drawer_labeling(assembly)
+            if not cabinet_product:
+                if scene_props.double_jewelry and props.is_drawer_stack_bp:
+                    self.jewelry_drawer_labeling(assembly)
 
             # Countertop Insert Overhang Labels
             if scene_props.ct_overhang and props.is_counter_top_insert_bp:

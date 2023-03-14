@@ -2330,7 +2330,7 @@ class OPS_Export_XML(Operator):
             part_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.namev
             closet_materials = bpy.context.scene.closet_materials
             mat_sku = closet_materials.get_mat_sku(obj, assembly, part_name)
-            mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
+            mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku, display_name=False)
             mat_id = self.write_material(mat_inventory_name, mat_sku)
             elm_part = self.xml.add_element(
                 node,
@@ -3115,7 +3115,7 @@ class OPS_Export_XML(Operator):
         closet_materials = bpy.context.scene.closet_materials
 
         mat_sku = closet_materials.get_mat_sku(obj, assembly, part_name)
-        mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
+        mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku, display_name=False)
         
         mat_id = self.write_material(mat_inventory_name, mat_sku)
 
@@ -4346,13 +4346,18 @@ class OPS_Export_XML(Operator):
                 elif mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond":
                     mat_inventory_name = "Almond Paper 11300"
                     mat_sku = "PM-0000001"
+            elif part_name == "Inverted Base":
+                mat_inventory_name = "BASE ALDER 3 1/4X1/2 WM633"
+                mat_sku = "MD-0000025"
+            elif part_name == "File Rail":
+                    mat_inventory_name = "White Paper 12310"
+                    mat_sku = "PM-0000004"
+            else:
+                mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku, display_name=False)
 
             if assembly.obj_bp.get('IS_BP_LAYERED_CROWN'):
                 part_name = 'Layered Crown'
 
-            if(part_name == "File Rail"):
-                    mat_inventory_name = "White Paper 12310"
-                    mat_sku = "PM-0000004"
             if obj_props.is_countertop_bp:
                 l_assembly_end_cond = assembly.get_prompt("Exposed Left")
                 r_assembly_end_cond = assembly.get_prompt("Exposed Right")
@@ -4361,9 +4366,6 @@ class OPS_Export_XML(Operator):
                         assembly.obj_x.location.x += sn_unit.inch(3)
                 if r_assembly_end_cond and r_assembly_end_cond.get_value() != True:
                     assembly.obj_x.location.x += sn_unit.inch(3)
-            if(part_name == "Inverted Base"):
-                mat_inventory_name = "BASE ALDER 3 1/4X1/2 WM633"
-                mat_sku = "MD-0000025"
 
             # Shoe Shelf Lip
             if assembly.obj_bp.get("IS_SHOE_SHELF"):
@@ -4403,13 +4405,18 @@ class OPS_Export_XML(Operator):
             self.xml.add_element_with_text(elm_part,'FinishedWidth', self.get_part_width(assembly))           
             self.xml.add_element_with_text(elm_part,'Length', self.get_part_length(assembly))
             self.xml.add_element_with_text(elm_part,'FinishedLength', self.get_part_length(assembly))
-            if(part_name == "Cover Cleat"):
-                if(mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Almond Paper 11300"):
-                    self.xml.add_element_with_text(elm_part,'Thickness','0.375')
-                    self.xml.add_element_with_text(elm_part,'FinishedThickness','0.375')
+
+            is_cover_cleat = part_name == "Cover Cleat"
+            is_white_paper = mat_inventory_name == "White Paper 11300"
+            is_almond_paper = mat_inventory_name == "Almond Paper 11300"
+
+            if is_cover_cleat and (is_white_paper or is_almond_paper):
+                self.xml.add_element_with_text(elm_part,'Thickness','0.375')
+                self.xml.add_element_with_text(elm_part,'FinishedThickness','0.375')
             else:
                 self.xml.add_element_with_text(elm_part,'Thickness',self.distance(sn_utils.get_part_thickness(obj)))
                 self.xml.add_element_with_text(elm_part,'FinishedThickness', self.distance(sn_utils.get_part_thickness(obj)))
+
             if(part_name == "Cover Cleat"):
                 if(mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Almond Paper 11300"):
                     self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
@@ -4417,6 +4424,7 @@ class OPS_Export_XML(Operator):
                 else:
                     self.xml.add_element_with_text(elm_part, 'Routing', "SK1")  # Str literal okay
                     self.xml.add_element_with_text(elm_part, 'Class', "make")  # Str literal okay
+
             elif(part_name == "Toe Kick Stringer"):
                 self.xml.add_element_with_text(elm_part, 'Routing', "No_Cut")  # Str literal okay
                 self.xml.add_element_with_text(elm_part, 'Class', "draw")  # Str literal okay
