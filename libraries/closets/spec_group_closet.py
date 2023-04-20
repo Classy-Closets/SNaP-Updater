@@ -4,12 +4,12 @@ from bpy.types import Panel, UIList
 
 from snap import sn_types, sn_unit
 
-EXPOSED_MATERIAL = ("Closet Materials V2", "Winter White (Oxford White)")
+EXPOSED_MATERIAL = ("Closet Materials V2", "Snow Drift")
 CHROME_MATERIAL = ("Finished Metals", "Chrome")
 GLASS_MATERIAL = ("Glass", "Glass")
 MIRROR_MATERIAL = ("Glass", "Mirror")
 LUCITE_MATERIAL = ("Glass", "Lucite")
-COUNTERTOP_MATERIAL = ("Closet Materials V2", "Winter White (Oxford White)")
+COUNTERTOP_MATERIAL = ("Closet Materials V2", "Snow Drift")
 COUNTERTOP_HPL_MATERIAL = ("Countertop Materials", "Butterum Granite")
 COUNTERTOP_GRANITE_MATERIAL = ("Countertop Materials", "Alpine White")
 COUNTERTOP_QUARTZ_MATERIAL = ("Countertop Materials", "Airy Concrete")
@@ -26,10 +26,11 @@ ALUMINUM_MATERIAL = ("Finished Metals", "Aluminum")
 GOLD_MATERIAL = ("Finished Metals", "Matte Gold")
 SLATE_MATERIAL = ("Finished Metals", "Gray Anodized Metal")
 BRONZE_MATERIAL = ("Finished Metals", "Oil Rubbed Bronze")
-WHITE = ("Closet Materials V2", "Winter White (Oxford White)")
+WHITE = ("Closet Materials V2", "Snow Drift")
 CEDAR_AROMATIC_VENEER = ("Closet Materials", "CEDAR AROMATIC VEN250 G1")
+MOLDING_PAINT_MATERIAL = ("Closet Materials V2", "Winter White")
 
-EXPOSED_INTERIOR_MATERIAL = ("Closet Materials V2", "Winter White (Oxford White)")
+EXPOSED_INTERIOR_MATERIAL = ("Closet Materials V2", "Snow Drift")
 EXPOSED_EXTERIOR_MATERIAL = ("Closet Materials", "Duraply Almond")
 
 
@@ -69,7 +70,7 @@ class Material_Pointers():
     Aluminum = sn_types.Material_Pointer(ALUMINUM_MATERIAL)
     Bronze = sn_types.Material_Pointer(BRONZE_MATERIAL)
     White = sn_types.Material_Pointer(WHITE)
-    Molding = sn_types.Material_Pointer(EXPOSED_MATERIAL)
+    Molding = sn_types.Material_Pointer(MOLDING_PAINT_MATERIAL)
     Lucite = sn_types.Material_Pointer(LUCITE_MATERIAL)
     Core = sn_types.Material_Pointer(CORE)
     Entry_Door_Surface = sn_types.Material_Pointer(WHITE)

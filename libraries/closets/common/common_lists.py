@@ -524,6 +524,66 @@ DRAWER_SIZES_DICT = {
     '379.984': '12 H'
 }
 
+FIVE_HOLE_FRONT_HEIGHTS = [
+    ('155.956', '5H-6.14"', '5H-6.14"'),
+    ('187.96', '6H-7.40"', '6H-7.40"'),
+    ('219.964', '7H-8.66"', '7H-8.66"'),
+    ('251.968', '8H-9.92"', '8H-9.92"'),
+    ('283.972', '9H-11.18"', '9H-11.18"'),
+    ('315.976', '10H-12.44"', '10H-12.44"'),
+    ('347.98', '11H-13.70"', '11H-13.70"'),
+    ('379.984', '12H-14.96"', '12H-14.96"')
+    ]
+
+SIX_HOLE_FRONT_HEIGHTS = [
+    ('187.96', '6H-7.40"', '6H-7.40"'),
+    ('219.964', '7H-8.66"', '7H-8.66"'),
+    ('251.968', '8H-9.92"', '8H-9.92"'),
+    ('283.972', '9H-11.18"', '9H-11.18"'),
+    ('315.976', '10H-12.44"', '10H-12.44"'),
+    ('347.98', '11H-13.70"', '11H-13.70"'),
+    ('379.984', '12H-14.96"', '12H-14.96"')
+    ]
+
+EIGHT_HOLE_FRONT_HEIGHTS = [
+    ('251.968', '8H-9.92"', '8H-9.92"'),
+    ('283.972', '9H-11.18"', '9H-11.18"'),
+    ('315.976', '10H-12.44"', '10H-12.44"'),
+    ('347.98', '11H-13.70"', '11H-13.70"'),
+    ('379.984', '12H-14.96"', '12H-14.96"')
+    ]
+
+FIVE_HOLE_DRAWER_STYLE_LIST = [
+    'Pisa',
+    'Verona',
+    'Volterra',
+    'Carrara',
+    'Portofino',
+    'Napoli',
+    'Merano',
+    'Milano',
+    'Venice',
+    'Siena',
+    'San Marino',
+    'Capri',
+    'Moderno'
+]
+
+SIX_HOLE_DRAWER_STYLE_LIST = [
+    'Aviano',
+    'Florence',
+    'Colina',
+    'Rome',
+    'Bergamo',
+    'Palermo',
+    'Molino Vecchio',
+    'Traviso'
+]
+
+EIGHT_HOLE_DRAWER_STYLE_LIST = [
+    'Miramare'
+]
+
 HAMPER_SIZES_DICT = {
     '557.276': '18 H',
     '589.28': '19 H',
@@ -830,24 +890,6 @@ JEWELRY_INSERTS_24IN_DICT = {
     4: 'Velvet Liner - Black',
     5: 'Velvet Liner - Burgundy',
     6: 'Velvet Liner - Sterling Grey'
-}
-
-SLIDING_INSERTS_18IN_DICT = {
-    0: 'Jewelry 18in Black Sliding',
-    1: 'Jewelry 18in Maroon Sliding',
-    2: 'Jewelry 18in Sterling Grey Sliding',
-}
-
-SLIDING_INSERTS_21IN_DICT = {
-    0: 'Jewelry 21in Black Sliding',
-    1: 'Jewelry 21in Maroon Sliding',
-    2: 'Jewelry 21in Sterling Grey Sliding',
-}
-
-SLIDING_INSERTS_24IN_DICT = {
-    0: 'Jewelry 24in Black Sliding',
-    1: 'Jewelry 24in Maroon Sliding',
-    2: 'Jewelry 24in Sterling Grey Sliding',
 }
 
 JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT = {

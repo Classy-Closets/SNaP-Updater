@@ -155,7 +155,11 @@ def add_rectangle_molding(product,is_crown=True):
         left_fin_end = carcass.get_prompt("Left Fin End")
         right_fin_end = carcass.get_prompt("Right Fin End")
         left_end_condition = carcass.get_prompt("Left End Condition")
+        if not left_end_condition:
+            left_end_condition = carcass.add_prompt("Left End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
         right_end_condition = carcass.get_prompt("Right End Condition")
+        if not right_end_condition:
+            right_end_condition = carcass.add_prompt("Right End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
         left_side_wall_filler = carcass.get_prompt("Left Side Wall Filler")
         right_side_wall_filler = carcass.get_prompt("Right Side Wall Filler")
         setback = 0
@@ -558,7 +562,7 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                 products.append(product)
         return products
         
-    def create_extrusion(self, context, points, is_crown=True, is_light_rail=False, product=None):
+    def create_extrusion(self, context, points, is_crown=True, is_light_rail=False, is_base=False, product=None):
         if self.profile is None:
             self.get_profile(context)
         
@@ -571,7 +575,6 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             obj_props.is_crown_molding = True
             name = context.scene.lm_cabinets.crown_molding
         elif is_light_rail:
-            obj_props.is_crown_molding = True
             obj_props.is_light_rail_molding = True
             name = context.scene.lm_cabinets.light_rail_molding
             if "L01" in context.scene.lm_cabinets.light_rail_molding:
@@ -592,7 +595,15 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
         
         bpy.ops.sn_object.add_material_slot(object_name=obj_curve.name)
         bpy.ops.sn_material.sync_material_slots(object_name=obj_curve.name)
-        obj_curve.snap.material_slots[0].pointer_name = "Molding"
+
+        if is_crown and "Flat Crown" in context.scene.lm_cabinets.crown_molding:
+            obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
+        elif is_light_rail and "L01" in context.scene.lm_cabinets.light_rail_molding:
+            obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
+        elif is_base and "BA23" in context.scene.lm_cabinets.base_molding:
+            obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
+        else:
+            obj_curve.snap.material_slots[0].pointer_name = "Molding"
         
         obj_curve.location = (0,0,0)
         
@@ -659,6 +670,7 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
 
         if self.is_crown:
             if "Flat Crown" in context.scene.lm_cabinets.crown_molding:
+                empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
                 empty_assembly.obj_bp.snap.comment_2 = "1078"
                 empty_assembly.obj_bp["IS_BP_FLAT_CROWN"] = True
                 empty_assembly.obj_bp.sn_closets.flat_crown_bp = True
@@ -672,10 +684,7 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                 empty_assembly.get_prompt("Exposed Right").set_value(value=True)
                 empty_assembly.get_prompt("Exposed Back").set_value(value=True)
 
-        empty_assembly.obj_bp.sn_closets.flat_crown_bp = True
-        empty_assembly.obj_bp["IS_BP_FLAT_CROWN"] = True
-        empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
-        curve.snap.type_mesh = 'CUTPART'
+        # curve.snap.type_mesh = 'CUTPART'
         # curve.snap.use_multiple_edgeband_pointers = True
 
         empty_assembly.obj_x.hide_set(True)
@@ -726,19 +735,19 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             if shape == 'RECTANGLE':
                 points = add_rectangle_molding(product,self.is_crown)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
                     
             if shape == 'INSIDE_NOTCH':
                 points = add_inside_molding(product,self.is_crown,True)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
                 
             if shape == 'INSIDE_DIAGONAL':
                 points = add_inside_molding(product,self.is_crown,False)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
                 
             if shape == 'OUTSIDE_DIAGONAL':
@@ -750,7 +759,7 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             if shape == 'TRANSITION':
                 points = add_transition_molding(product,self.is_crown)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, product)
+                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
 
         return {'FINISHED'}

@@ -83,6 +83,7 @@ SHELF_SUPPORT = path.join(OBJECT_DIR, "Shelf Support 10x12.blend")
 def add_panel(assembly, island_panel=False):
     if island_panel:
         panel = sn_types.Part(assembly.add_assembly_from_file(ISLAND_PANEL))
+        panel.obj_bp['IS_BP_ISLAND_PANEL'] = True
     else:
         panel = sn_types.Part(assembly.add_assembly_from_file(CLOSET_PANEL))
     assembly.add_assembly(panel)

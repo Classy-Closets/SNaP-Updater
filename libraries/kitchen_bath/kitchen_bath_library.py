@@ -214,7 +214,7 @@ class PRODUCT_Dishwasher_Base(cabinets.Standard):
     def __init__(self):
         props = cabinet_properties.get_scene_props().size_defaults
         self.library_name = LIBRARY_NAME
-        self.category_name = STARTER_CATEGORY_NAME
+        self.category_name = BASE_CATEGORY_NAME
         self.width = props.width_dishwasher
         self.height = props.base_cabinet_height
         self.depth = props.base_cabinet_depth
@@ -1154,6 +1154,119 @@ class PRODUCT_Suspended_Starter(cabinets.Standard):
         self.interior = None
         self.height_above_floor = props.base_cabinet_height
 
+# class PRODUCT_Appliance_Starter(cabinets.Standard):
+    
+#     def __init__(self):
+#         props = cabinet_properties.get_scene_props().size_defaults
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = STARTER_CATEGORY_NAME
+#         self.width = props.width_dishwasher
+#         self.height = props.base_cabinet_height
+#         self.depth = props.base_cabinet_depth
+#         self.carcass = carcass_simple.INSERT_Appliance_Carcass()
+#         self.add_empty_opening = True
+#         self.exterior = None
+
+class PRODUCT_Island_1_Opening(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width
+        self.height = props.island_cabinet_height
+        self.depth = props.island_cabinet_depth
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.opening_qty = 1
+
+class PRODUCT_Island_1_Opening_Dbl(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width
+        self.height = props.island_cabinet_height
+        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.double_sided = True
+        self.carcass.opening_qty = 2
+        
+class PRODUCT_Island_2_Opening(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 2
+        self.height = props.island_cabinet_height
+        self.depth = props.island_cabinet_depth 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.double_sided = False
+        self.carcass.opening_qty = 2
+
+class PRODUCT_Island_2_Opening_Dbl(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 2
+        self.height = props.island_cabinet_height
+        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.double_sided = True
+        self.carcass.opening_qty = 4
+
+class PRODUCT_Island_3_Opening(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 3
+        self.height = props.island_cabinet_height
+        self.depth = props.island_cabinet_depth 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.opening_qty = 3
+
+class PRODUCT_Island_3_Opening_Dbl(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 3
+        self.height = props.island_cabinet_height
+        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.double_sided = True
+        self.carcass.opening_qty = 6
+
+class PRODUCT_Island_4_Opening(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 4
+        self.height = props.island_cabinet_height
+        self.depth = props.island_cabinet_depth 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.opening_qty = 4
+
+class PRODUCT_Island_4_Opening_Dbl(cabinets.Island):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = STARTER_CATEGORY_NAME
+        self.width = props.island_cabinet_width * 4
+        self.height = props.island_cabinet_height
+        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.carcass = carcass_simple.INSERT_Island_Carcass()
+        self.carcass.double_sided = True
+        self.carcass.opening_qty = 8
 
 class PRODUCT_Toe_Kick(data_base_assembly.Base_Assembly):
 

@@ -1,8 +1,10 @@
 import bpy
+from bpy.types import Operator
 from snap import sn_unit, sn_types, sn_utils, sn_paths
 from . import drawer_boxes
 from . import cabinet_properties
 from snap.libraries.closets import closet_paths
+from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
 from os import path
 import math
 
@@ -35,7 +37,7 @@ class Simple_Shelves(sn_types.Assembly):
     placement_type = "INTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_interior_drop"
 
     mirror_y = False
 
@@ -111,7 +113,10 @@ class Simple_Shelves(sn_types.Assembly):
         self.create_assembly()
         self.obj_bp["IS_BP_SHELVES"] = True
         self.obj_bp['PLACEMENT_TYPE'] = "Interior"
-        self.obj_bp['OPENING_NBR'] = 1
+        if self.obj_bp.parent:
+            opening_nbr = self.obj_bp.parent.get("OPENING_NBR")
+            if opening_nbr:
+                self.obj_bp['OPENING_NBR'] = opening_nbr
         props = self.obj_bp.sn_closets
         props.is_shelf_bp = True
         
@@ -248,7 +253,7 @@ class Dividers(sn_types.Assembly):
     placement_type = "INTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_interior_drop"
 
     mirror_y = False
     
@@ -339,7 +344,7 @@ class Divisions(sn_types.Assembly):
     placement_type = "INTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_interior_drop"
 
 
     mirror_y = False
@@ -475,7 +480,7 @@ class Rollouts(sn_types.Assembly):
     placement_type = "INTERIOR"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_interior_drop"
 
 
     mirror_y = False
@@ -604,7 +609,23 @@ class Rollouts(sn_types.Assembly):
         rollout_4.prompt('Hide','IF(Rollout_Quantity>3,False,True)',[Rollout_Quantity])
         
         self.update()
-        
+#---------INTERIOR OPERATORS
+class OPS_KB_Interior_Drop(Operator, PlaceClosetInsert):
+    bl_idname = "lm_cabinets.insert_interior_drop"
+    bl_label = "Custom drag and drop for interior inserts"
+
+
+    def execute(self, context):
+        return super().execute(context)    
+
+    def confirm_placement(self, context):
+        super().confirm_placement(context)
+
+        insert = sn_types.Assembly(self.insert.obj_bp)
+        if self.selected_opening.obj_bp['OPENING_NBR']:
+                insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+
+bpy.utils.register_class(OPS_KB_Interior_Drop)         
 #---------INSERTS
 class INSERT_Shelves(Simple_Shelves):
     
@@ -617,31 +638,7 @@ class INSERT_Shelves(Simple_Shelves):
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(23)
         self.shelf_qty = 1 
-
-# class INSERT_Simple_Shelves(Simple_Shelves):
-    
-#     def __init__(self):
-#         self.library_name = LIBRARY_NAME
-#         self.category_name = INSERT_SHELF_CATEGORY_NAME
-#         self.assembly_name = "Simple Shelves"
-#         self.carcass_type = "Base"
-#         self.width = sn_unit.inch(18)
-#         self.height = sn_unit.inch(34)
-#         self.depth = sn_unit.inch(23)
-#         self.shelf_qty = 1        
-        
-# class INSERT_Shelves(Shelves):
-    
-#     def __init__(self):
-#         self.library_name = LIBRARY_NAME
-#         self.category_name = INSERT_SHELF_CATEGORY_NAME
-#         self.assembly_name = "Shelves"
-#         self.carcass_type = "Base"
-#         self.width = sn_unit.inch(18)
-#         self.height = sn_unit.inch(34)
-#         self.depth = sn_unit.inch(23)
-#         self.shelf_qty = 1
-        
+       
 class INSERT_Base_Dividers(Dividers):
     
     def __init__(self):

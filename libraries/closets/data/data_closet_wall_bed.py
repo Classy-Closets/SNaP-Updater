@@ -33,6 +33,9 @@ class Wall_Bed(sn_types.Assembly):
         self.add_prompt("Wall Bed Panel Thickness", 'DISTANCE', sn_unit.inch(0.75))
         self.add_prompt("Wall Bed Height", 'DISTANCE', sn_unit.inch(82.13))
         self.add_prompt("Wall Bed Depth", 'DISTANCE', sn_unit.inch(24))
+        self.add_prompt("Nuvola Twin Backing Width", 'DISTANCE', sn_unit.inch(43.88))
+        self.add_prompt("Nuvola Double Backing Width", 'DISTANCE', sn_unit.inch(58.88))
+        self.add_prompt("Nuvola Queen Backing Width", 'DISTANCE', sn_unit.inch(65))
         self.add_prompt("Open", 'CHECKBOX', False)
         self.add_prompt("False Door Type", "COMBOBOX", 0, ['Melamine', 'Wood'])
         self.add_prompt("Add Doors And Drawers", 'CHECKBOX', False)
@@ -385,11 +388,13 @@ class Wall_Bed(sn_types.Assembly):
 
     def add_nuvola_parts(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
-        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Height = self.obj_z.snap.get_var('location.z', 'Height')
         Wall_Bed_Depth = self.get_prompt("Wall Bed Depth").get_var()
         Wall_Bed_Height = self.get_prompt("Wall Bed Height").get_var()
         Bed_Type = self.get_prompt("Bed Type").get_var()
+        Backing_Width_Twin = self.get_prompt("Nuvola Twin Backing Width").get_var('Backing_Width_Twin')
+        Backing_Width_Double = self.get_prompt("Nuvola Double Backing Width").get_var('Backing_Width_Double')
+        Backing_Width_Queen = self.get_prompt("Nuvola Queen Backing Width").get_var('Backing_Width_Queen')
         ST = self.get_prompt("Shelf Thickness").get_var('ST')
         Open = self.get_prompt("Open").get_var()
 
@@ -473,11 +478,15 @@ class Wall_Bed(sn_types.Assembly):
 
         slab_door_panel = common_parts.add_door(self)
         slab_door_panel.set_name("Backing Panel")
-        slab_door_panel.loc_x('Width-ST', [Width, ST])
+        slab_door_panel.loc_x(
+            "Width/2+IF(Bed_Type==0,Backing_Width_Twin/2,IF(Bed_Type==1,Backing_Width_Double/2,Backing_Width_Queen/2))",
+            [Width, Bed_Type, Backing_Width_Twin, Backing_Width_Double, Backing_Width_Queen])
         slab_door_panel.loc_y("-Wall_Bed_Depth", [Wall_Bed_Depth])
         slab_door_panel.loc_z(value=sn_unit.inch(0.75))
         slab_door_panel.dim_x("IF(Bed_Type==2,INCH(84.31),INCH(79.25))", [Bed_Type])
-        slab_door_panel.dim_y("Width-(ST*2)", [Width, ST])
+        slab_door_panel.dim_y(
+            "IF(Bed_Type==0,Backing_Width_Twin,IF(Bed_Type==1,Backing_Width_Double,Backing_Width_Queen))",
+            [Bed_Type, Backing_Width_Twin, Backing_Width_Double, Backing_Width_Queen])
         slab_door_panel.dim_z("-ST", [ST])
         slab_door_panel.rot_y("IF(Open,radians(-180),radians(-90))", [Open])
         slab_door_panel.rot_z(value=math.radians(90))
@@ -505,10 +514,7 @@ class Wall_Bed(sn_types.Assembly):
         return door
 
     def add_door_and_drawer_fronts(self, assembly):
-        Width = self.obj_x.snap.get_var('location.x', 'Width')
-        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
-        Height = self.obj_z.snap.get_var('location.z', 'Height')
-        Bed_Type = self.get_prompt("Bed Type").get_var()
+        Width = assembly.obj_y.snap.get_var('location.y', 'Width')
         BM = self.get_prompt("Bed Make").get_var('BM')
         PT = self.get_prompt("Wall Bed Panel Thickness").get_var('PT')
         ST = self.get_prompt("Shelf Thickness").get_var('ST')
@@ -529,7 +535,7 @@ class Wall_Bed(sn_types.Assembly):
         top_left_door.loc_x("IF(SROD,(Backing_Panel_Length-TDH-DSH),Btm_Gap)+DSH", [SROD, Backing_Panel_Length, DSH, TDH, Btm_Gap])
         top_left_door.loc_y("Backing_Panel_Width/2", [Backing_Panel_Width])
         top_left_door.dim_x("IF(SROD,TDH,Backing_Panel_Length-DSH-Btm_Gap)", [SROD, TDH, Backing_Panel_Length, DSH, Btm_Gap])
-        top_left_door.dim_y("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+        top_left_door.dim_y("Width/2", [Width])
         top_left_door.dim_z("ST", [ST])
         top_left_door.get_prompt('Hide').set_formula("IF(AND(ADAD,False_Door_Type==1),False,True)", [ADAD, False_Door_Type])
 
@@ -537,7 +543,7 @@ class Wall_Bed(sn_types.Assembly):
         top_right_door.set_name("False Door Front")
         top_right_door.loc_x("IF(SROD,(Backing_Panel_Length-TDH-DSH),Btm_Gap)+DSH", [SROD, DS, DSH, TDH, Backing_Panel_Length, Btm_Gap])
         top_right_door.dim_x("IF(SROD,TDH,Backing_Panel_Length-DSH-Btm_Gap)", [SROD, TDH, Backing_Panel_Length, DSH, Btm_Gap])
-        top_right_door.dim_y("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+        top_right_door.dim_y("Width/2", [Width])
         top_right_door.dim_z("ST", [ST])
         top_right_door.get_prompt('Hide').set_formula("IF(AND(ADAD,False_Door_Type==1),False,True)", [ADAD, False_Door_Type])
 
@@ -546,7 +552,7 @@ class Wall_Bed(sn_types.Assembly):
         bottom_left_door.loc_x("Btm_Gap+DSH", [Btm_Gap, DSH])
         bottom_left_door.loc_y("Backing_Panel_Width/2", [Backing_Panel_Width])
         bottom_left_door.dim_x("(Backing_Panel_Length-Btm_Gap-TDH-DSH)", [SROD, TDH, Backing_Panel_Length, Btm_Gap, DSH])
-        bottom_left_door.dim_y("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+        bottom_left_door.dim_y("Width/2", [Width])
         bottom_left_door.dim_z("ST", [ST])
         bottom_left_door.get_prompt('Hide').set_formula("IF(AND(ADAD,SROD,False_Door_Type==1),False,True)", [ADAD, False_Door_Type, SROD])
 
@@ -554,7 +560,7 @@ class Wall_Bed(sn_types.Assembly):
         bottom_right_door.set_name("False Door Front")
         bottom_right_door.loc_x("Btm_Gap+DSH", [Btm_Gap, DSH])
         bottom_right_door.dim_x("(Backing_Panel_Length-Btm_Gap-TDH-DSH)", [SROD, TDH, Backing_Panel_Length, Btm_Gap, DSH])
-        bottom_right_door.dim_y("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+        bottom_right_door.dim_y("Width/2", [Width])
         bottom_right_door.dim_z("ST", [ST])
         bottom_right_door.get_prompt('Hide').set_formula("IF(AND(ADAD,SROD,False_Door_Type==1),False,True)", [ADAD, False_Door_Type, SROD])
 
@@ -579,7 +585,7 @@ class Wall_Bed(sn_types.Assembly):
 
         middle_decoration_piece = common_parts.add_wall_bed_decoration(assembly)
         middle_decoration_piece.obj_bp["IS_BP_WALLBED_DECO"] = True
-        middle_decoration_piece.set_name("M Melamine Decoration")
+        middle_decoration_piece.set_name("Melamine Decoration")
         middle_decoration_piece.loc_x("Btm_Gap+DW+DSH", [DW, DSH, Btm_Gap])
         middle_decoration_piece.loc_y("Backing_Panel_Width/2-DW/2", [Backing_Panel_Width, DW])
         middle_decoration_piece.dim_x("Backing_Panel_Length-Btm_Gap-(DW*2)-DSH", [Backing_Panel_Length, Btm_Gap, DW, DSH])
@@ -593,7 +599,7 @@ class Wall_Bed(sn_types.Assembly):
         top_decoration_piece.loc_x("Backing_Panel_Length", [Backing_Panel_Length])
         top_decoration_piece.loc_y("DW", [DW])
         top_decoration_piece.rot_z(value=math.radians(90))
-        top_decoration_piece.dim_x("(Width-(IF(BM==2,ST,PT)*2))-(DW*2)", [Width, DW, BM, ST, PT])
+        top_decoration_piece.dim_x("Width-DW*2", [Width, DW])
         top_decoration_piece.dim_y("DW", [DW])
         top_decoration_piece.dim_z("ST", [ST])
         top_decoration_piece.get_prompt('Hide').set_formula("IF(ADAD,IF(False_Door_Type==0,False,True),True)", [ADAD, False_Door_Type])
@@ -604,7 +610,7 @@ class Wall_Bed(sn_types.Assembly):
         bottom_decoration_piece.loc_x("Btm_Gap+DW+DSH", [DW, DSH, Btm_Gap])
         bottom_decoration_piece.loc_y("DW", [DW])
         bottom_decoration_piece.rot_z(value=math.radians(90))
-        bottom_decoration_piece.dim_x("(Width-(IF(BM==2,ST,PT)*2))-(DW*2)", [Width, DW, BM, ST, PT])
+        bottom_decoration_piece.dim_x("Width-DW*2", [Width, DW])
         bottom_decoration_piece.dim_y("DW", [DW])
         bottom_decoration_piece.dim_z("ST", [ST])
         bottom_decoration_piece.get_prompt('Hide').set_formula("IF(ADAD,IF(False_Door_Type==0,False,True),True)", [ADAD, False_Door_Type])
@@ -615,7 +621,7 @@ class Wall_Bed(sn_types.Assembly):
         left_middle_decoration_piece.loc_x("Backing_Panel_Length-TDH+DW/2", [TDH, Backing_Panel_Length, DW])
         left_middle_decoration_piece.loc_y("DW", [DW])
         left_middle_decoration_piece.rot_z(value=math.radians(90))
-        left_middle_decoration_piece.dim_x("((Width-(IF(BM==2,ST,PT)*2))/2)-(DW*1.5)", [Width, DW, BM, ST, PT])
+        left_middle_decoration_piece.dim_x("Width/2-(DW*1.5)", [Width, DW])
         left_middle_decoration_piece.dim_y("DW", [DW])
         left_middle_decoration_piece.dim_z("ST", [ST])
         left_middle_decoration_piece.get_prompt('Hide').set_formula("IF(AND(ADAD,False_Door_Type==0,SROD),False,True)", [ADAD, SROD, False_Door_Type])
@@ -624,9 +630,9 @@ class Wall_Bed(sn_types.Assembly):
         right_middle_decoration_piece.obj_bp["IS_BP_WALLBED_DECO"] = True
         right_middle_decoration_piece.set_name("Melamine Decoration")
         right_middle_decoration_piece.loc_x("Backing_Panel_Length-TDH+DW/2", [TDH, Backing_Panel_Length, DW])
-        right_middle_decoration_piece.loc_y("((Width-(IF(BM==2,ST,PT)*2))+DW)/2", [Width, DW, BM, ST, PT])
+        right_middle_decoration_piece.loc_y("Width/2+DW/2", [Width, DW])
         right_middle_decoration_piece.rot_z(value=math.radians(90))
-        right_middle_decoration_piece.dim_x("((Width-(IF(BM==2,ST,PT)*2))/2)-(DW*1.5)", [Width, DW, BM, ST, PT])
+        right_middle_decoration_piece.dim_x("Width/2-(DW*1.5)", [Width, DW])
         right_middle_decoration_piece.dim_y("DW", [DW])
         right_middle_decoration_piece.dim_z("ST", [ST])
         right_middle_decoration_piece.get_prompt('Hide').set_formula("IF(AND(ADAD,False_Door_Type==0,SROD),False,True)", [ADAD, SROD, False_Door_Type])
@@ -650,7 +656,7 @@ class Wall_Bed(sn_types.Assembly):
             left_front.loc_x('df_y_loc', [df_y_loc])
             left_front.loc_y('Backing_Panel_Width', [Backing_Panel_Width])
             left_front.rot_z(value=math.radians(-90))
-            left_front.dim_x("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+            left_front.dim_x("Width/2", [Width])
             left_front.dim_y('-DF_Height', [DF_Height])
             left_front.dim_z('ST', [ST])
             left_front.get_prompt('Hide').set_formula("IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True)", [ADAD, DSQ])
@@ -681,9 +687,9 @@ class Wall_Bed(sn_types.Assembly):
             right_front.set_name("False Drawer Front")
             right_front.obj_bp["DRAWER_NUM"] = i
             right_front.loc_x('df_y_loc', [df_y_loc])
-            right_front.loc_y("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+            right_front.loc_y("Width/2", [Width])
             right_front.rot_z(value=math.radians(-90))
-            right_front.dim_x("((Width-(IF(BM==2,ST,PT)*2))/2)", [Width, BM, ST, PT])
+            right_front.dim_x("Width/2", [Width])
             right_front.dim_y('-DF_Height', [DF_Height])
             right_front.dim_z('ST', [ST])
             right_front.get_prompt('Hide').set_formula("IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True)", [ADAD, DSQ])

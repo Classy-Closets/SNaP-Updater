@@ -129,7 +129,6 @@ class Melamine_Drawer_Box(sn_types.Assembly):
     mirror_y = False
 
     def draw(self):
-        print("Adding 3/4 Melamine Drawer Box")
         self.create_assembly()
         self.obj_bp.snap.export_as_subassembly = True
 
@@ -162,8 +161,9 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         self.add_prompt("Nine Hole", 'DISTANCE', sn_unit.millimeter(283.972))
         self.add_prompt("Ten Hole", 'DISTANCE', sn_unit.millimeter(315.976))
         self.add_prompt("Drawer Front Height", 'DISTANCE', sn_unit.millimeter(91.948))
-        # self.add_prompt("Slide Type", 'COMBOBOX', 0, ["Sidemount", "Undermount"])
         self.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
+        self.add_prompt("Double Drawer Box", 'CHECKBOX', False)
+        self.add_prompt("Double Box Height", 'DISTANCE', sn_unit.inch(2))
 
         Drawer_Width = self.obj_x.snap.get_var('location.x', 'Drawer_Width')
         Drawer_Depth = self.obj_y.snap.get_var('location.y', 'Drawer_Depth')
@@ -175,7 +175,6 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         HSF = self.get_prompt('Hide Drawer Sub Front').get_var('HSF')
         Applied_Bottom = self.get_prompt('Applied Bottom').get_var('Applied_Bottom')
         Hide = self.get_prompt('Hide').get_var('Hide')
-        Use_Dovetail_Construction = self.get_prompt('Use Dovetail Construction').get_var('Use_Dovetail_Construction')
         Four_Hole = self.get_prompt('Four Hole').get_var('Four_Hole')
         Five_Hole = self.get_prompt('Five Hole').get_var('Five_Hole')
         Six_Hole = self.get_prompt('Six Hole').get_var('Six_Hole')
@@ -184,8 +183,8 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         Nine_Hole = self.get_prompt('Nine Hole').get_var('Nine_Hole')
         Ten_Hole = self.get_prompt('Ten Hole').get_var('Ten_Hole')
         DFH = self.get_prompt('Drawer Front Height').get_var('DFH')
-        # Slide_Type = self.get_prompt('Slide Type').get_var('Slide_Type')
         Box_Type = self.get_prompt("Box Type").get_var('Box_Type')
+        Dbl_Box = self.get_prompt("Double Drawer Box").get_var('Dbl_Box')
 
         self.get_prompt('Drawer Side Thickness').set_value(value=sn_unit.inch(0.75))
         self.get_prompt('Front Back Thickness').set_value(value=sn_unit.inch(0.75))
@@ -194,14 +193,15 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         # 3/4" Melamine Drawer Box
         left_side = common_parts.add_drawer_side(self)
         left_side.set_name("Left Drawer Side")
-        left_side.loc_x(value=0)
-        left_side.loc_y(value=0)
         left_side.rot_x(value=math.radians(90))
         left_side.rot_z(value=math.radians(90))
         left_side.dim_x('IF(Override_Depth>0,Override_Depth,Drawer_Depth)', [Override_Depth, Drawer_Depth])
         left_side.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         left_side.dim_z('Drawer_Side_Thickness', [Drawer_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('Hide', [Hide])
         left_side.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])
@@ -209,15 +209,17 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         right_side = common_parts.add_drawer_side(self)
         right_side.set_name("Right Drawer Side")
         right_side.loc_x('Drawer_Width+INCH(0.375)/2', [Drawer_Width])
-        right_side.loc_y(value=0)
         right_side.rot_x(value=math.radians(90))
         right_side.rot_z(value=math.radians(90))
         right_side.dim_x(
             'IF(Override_Depth>0,Override_Depth,Drawer_Depth)',
             [Override_Depth, Drawer_Depth, Drawer_Depth])
         right_side.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         right_side.dim_z('-Drawer_Side_Thickness', [Drawer_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('Hide', [Hide])
         right_side.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])
@@ -227,8 +229,11 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         front.rot_x(value=math.radians(90))
         front.dim_x('Drawer_Width-(Drawer_Side_Thickness*2)', [Drawer_Width, Drawer_Side_Thickness])
         front.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         front.dim_z('-Front_Back_Thickness', [Front_Back_Thickness])
         front.get_prompt('Hide').set_formula('IF(HSF,True,Hide)', [HSF, Hide])
         front.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])
@@ -240,8 +245,11 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         back.rot_x(value=math.radians(90))
         back.dim_x('Drawer_Width-(Drawer_Side_Thickness*2)', [Drawer_Width, Drawer_Side_Thickness])
         back.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         back.dim_z('Front_Back_Thickness', [Front_Back_Thickness])
         back.get_prompt('Hide').set_formula('Hide', [Hide])
         back.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])
@@ -254,13 +262,10 @@ class Melamine_Drawer_Box(sn_types.Assembly):
         bottom.dim_x(
             'IF(Override_Depth>0,Override_Depth,Drawer_Depth)-Drawer_Side_Thickness',
             [Override_Depth, Drawer_Depth, Drawer_Side_Thickness])
-        bottom.dim_y(
-            '(Drawer_Width-Drawer_Side_Thickness)*-1',
-            [Drawer_Width, Drawer_Side_Thickness])
+        bottom.dim_y('(Drawer_Width-Drawer_Side_Thickness)*-1', [Drawer_Width, Drawer_Side_Thickness])
         bottom.dim_z(value=sn_unit.inch(0.375))
         bottom.get_prompt('Hide').set_formula('Hide', [Hide])
-        bottom.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])\
-
+        bottom.get_prompt('Box Type').set_formula('Box_Type', [Box_Type])
 
 
 class Wood_Drawer_Box(sn_types.Assembly):
@@ -269,7 +274,6 @@ class Wood_Drawer_Box(sn_types.Assembly):
     mirror_y = False
 
     def draw(self):
-        print("Adding Dovetail Drawer Box")
         self.create_assembly()
         self.obj_bp.snap.export_as_subassembly = True
 
@@ -302,8 +306,9 @@ class Wood_Drawer_Box(sn_types.Assembly):
         self.add_prompt("Nine Hole", 'DISTANCE', sn_unit.millimeter(283.972))
         self.add_prompt("Ten Hole", 'DISTANCE', sn_unit.millimeter(315.976))
         self.add_prompt("Drawer Front Height", 'DISTANCE', sn_unit.millimeter(91.948))
-        # self.add_prompt("Slide Type", 'COMBOBOX', 0, ["Sidemount", "Undermount"])
         self.add_prompt("Box Type", 'COMBOBOX', 0, ['White Melamine', '3/4" Melamine', 'Dovetail'])
+        self.add_prompt("Double Drawer Box", 'CHECKBOX', False)
+        self.add_prompt("Double Box Height", 'DISTANCE', sn_unit.inch(2.75))
 
         Drawer_Width = self.obj_x.snap.get_var('location.x', 'Drawer_Width')
         Drawer_Depth = self.obj_y.snap.get_var('location.y', 'Drawer_Depth')
@@ -324,8 +329,8 @@ class Wood_Drawer_Box(sn_types.Assembly):
         Nine_Hole = self.get_prompt('Nine Hole').get_var('Nine_Hole')
         Ten_Hole = self.get_prompt('Ten Hole').get_var('Ten_Hole')
         DFH = self.get_prompt('Drawer Front Height').get_var('DFH')
-       # Slide_Type = self.get_prompt('Slide Type').get_var('Slide_Type')
         Box_Type = self.get_prompt("Box Type").get_var('Box_Type')
+        Dbl_Box = self.get_prompt("Double Drawer Box").get_var('Dbl_Box')
 
         self.get_prompt('Drawer Side Thickness').set_value(value=sn_unit.inch(0.5))
         self.get_prompt('Front Back Thickness').set_value(value=sn_unit.inch(0.5))
@@ -340,8 +345,11 @@ class Wood_Drawer_Box(sn_types.Assembly):
         left_side.rot_z(value=math.radians(90))
         left_side.dim_x('IF(Override_Depth>0,Override_Depth,Drawer_Depth)-INCH(.25)', [Override_Depth, Drawer_Depth])
         left_side.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         left_side.dim_z('Drawer_Side_Thickness', [Drawer_Side_Thickness])
         left_side.get_prompt('Hide').set_formula('Hide', [Hide])
         left_side.get_prompt('Use Dovetail Construction').set_formula('Use_Dovetail_Construction', [Use_Dovetail_Construction])
@@ -357,8 +365,11 @@ class Wood_Drawer_Box(sn_types.Assembly):
             'IF(Override_Depth>0,Override_Depth,Drawer_Depth)-INCH(.25)',
             [Override_Depth, Drawer_Depth, Drawer_Depth])
         right_side.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         right_side.dim_z('-Drawer_Side_Thickness', [Drawer_Side_Thickness])
         right_side.get_prompt('Hide').set_formula('Hide', [Hide])
         right_side.get_prompt('Use Dovetail Construction').set_formula('Use_Dovetail_Construction', [Use_Dovetail_Construction])
@@ -370,8 +381,12 @@ class Wood_Drawer_Box(sn_types.Assembly):
         front.rot_x(value=math.radians(90))
         front.dim_x('Drawer_Width+INCH(0.375)',
                     [Drawer_Width, Drawer_Side_Thickness])
-        front.dim_y('IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-                    [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+        front.dim_y(
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         front.dim_z('-Front_Back_Thickness', [Front_Back_Thickness])
         front.get_prompt('Hide').set_formula('IF(HSF,True,Hide)', [HSF, Hide])
         front.get_prompt('Use Dovetail Construction').set_formula('Use_Dovetail_Construction', [Use_Dovetail_Construction])
@@ -384,8 +399,11 @@ class Wood_Drawer_Box(sn_types.Assembly):
         back.rot_x(value=math.radians(90))
         back.dim_x('Drawer_Width+INCH(0.375)', [Drawer_Width, Drawer_Side_Thickness])
         back.dim_y(
-            'IF(DFH==Four_Hole,INCH(2.75),CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))',
-            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole, Ten_Hole])
+            "IF(OR(DFH==Four_Hole,Dbl_Box),"
+            "INCH(2.75),"
+            "CHECK(DFH,Five_Hole,Six_Hole,Seven_Hole,Eight_Hole,Nine_Hole,Ten_Hole)-INCH(1.45))",
+            [Drawer_Height, DFH, Four_Hole, Five_Hole, Six_Hole, Seven_Hole, Eight_Hole, Nine_Hole,
+             Ten_Hole, Dbl_Box])
         back.dim_z('Front_Back_Thickness', [Front_Back_Thickness])
         back.get_prompt('Hide').set_formula('Hide', [Hide])
         back.get_prompt('Use Dovetail Construction').set_formula('Use_Dovetail_Construction', [Use_Dovetail_Construction])

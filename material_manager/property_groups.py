@@ -344,10 +344,7 @@ class MaterialType(PropertyGroup):
         if mat_type.name == "Garage Material":
             scene_props.garage_color_index = index
         if mat_type.name == "Oversized Material":
-            try:
-                bpy.ops.closet_materials.poll_assign_materials()
-            except Exception:
-                pass
+            scene_props.oversized_color_index = index
 
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
@@ -373,7 +370,7 @@ class MaterialType(PropertyGroup):
         if self.name == "Garage Material":
             return self.colors[scene_props.garage_color_index]
         if self.name == "Oversized Material":
-            return self.colors[0]
+            return self.colors[scene_props.oversized_color_index]
 
     def get_inventory_material_name(self):
         return "{} {}".format(self.name, self.type_code)
@@ -501,10 +498,16 @@ class Materials(PropertyGroup):
         box = layout.box()
         box.label(text="Material Selection:")
         scene_props = bpy.context.scene.closet_materials
+        inventory_name = scene_props.materials.get_mat_color().name
 
         if scene_props.discontinued_color:
             warning_box = box.box()
             msg = '"{}" is no longer available to order!'.format(scene_props.discontinued_color)
+            warning_box.label(text=msg, icon='ERROR')
+
+        if "Δ" in inventory_name:
+            warning_box = box.box()
+            msg = 'Discontinued. Not available for new customers.'
             warning_box.label(text=msg, icon='ERROR')
 
         if len(self.mat_types) > 0:
@@ -529,16 +532,50 @@ class DoorDrawerMaterialType(PropertyGroup):
 
     def set_color_index(self, index):
         scene_props = bpy.context.scene.closet_materials
-        scene_props.door_drawer_mat_color_index = index
+        mat_type = scene_props.door_drawer_materials.get_mat_type()
+
+        if mat_type.name == "Solid Color Smooth Finish":
+            scene_props.dd_solid_color_index = index
+        if mat_type.name == "Grain Pattern Smooth Finish":
+            scene_props.dd_grain_color_index = index
+        if mat_type.name == "Solid Color Textured Finish":
+            scene_props.dd_solid_tex_color_index = index
+        if mat_type.name == "Grain Pattern Textured Finish":
+            scene_props.dd_grain_tex_color_index = index
+        if mat_type.name == "Linen Pattern Linen Finish":
+            scene_props.dd_linen_color_index = index
+        if mat_type.name == "Solid Color Matte Finish":
+            scene_props.dd_matte_color_index = index
+        if mat_type.name == "Garage Material":
+            scene_props.dd_garage_color_index = index
+        if mat_type.name == "Oversized Material":
+            scene_props.dd_oversized_color_index = index
 
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
         if self.name == "Upgrade Options":
             upgrade_type = scene_props.upgrade_options.get_type()
-            if upgrade_type.name == 'Paint':
+            if upgrade_type.name == "Paint":
                 return scene_props.paint_colors[scene_props.paint_color_index]
             else:
                 return scene_props.stain_colors[scene_props.stain_color_index]
+        elif scene_props.use_custom_color_scheme:
+            if self.name == "Solid Color Smooth Finish":
+                return self.colors[scene_props.dd_solid_color_index]
+            if self.name == "Grain Pattern Smooth Finish":
+                return self.colors[scene_props.dd_grain_color_index]
+            if self.name == "Solid Color Textured Finish":
+                return self.colors[scene_props.dd_solid_tex_color_index]
+            if self.name == "Grain Pattern Textured Finish":
+                return self.colors[scene_props.dd_grain_tex_color_index]
+            if self.name == "Linen Pattern Linen Finish":
+                return self.colors[scene_props.dd_linen_color_index]
+            if self.name == "Solid Color Matte Finish":
+                return self.colors[scene_props.dd_matte_color_index]
+            if self.name == "Garage Material":
+                return self.colors[scene_props.dd_garage_color_index]
+            if self.name == "Oversized Material":
+                return self.colors[scene_props.dd_oversized_color_index]
         else:
             return self.colors[scene_props.door_drawer_mat_color_index]
 

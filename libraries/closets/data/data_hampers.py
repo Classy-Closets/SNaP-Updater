@@ -479,7 +479,6 @@ class OPS_Hamper_Drop(Operator, PlaceClosetInsert):
         # Clear  to avoid old/duplicate openings
         self.openings.clear()
         insert_type = self.insert.obj_bp.snap.placement_type
-        insert_op_num = self.insert.obj_bp.sn_closets.opening_name
 
         for obj in bpy.context.scene.objects:
             # Check to avoid opening that is part of the dropped insert
@@ -487,51 +486,61 @@ class OPS_Hamper_Drop(Operator, PlaceClosetInsert):
                 continue
 
             opening = None
-
             opening_width = 0
             opening_depth = 0
-            if obj.parent:
-                if obj.parent.get("IS_BP_CLOSET"):
-                    closet_assembly = sn_types.Assembly(obj.parent)
-                    opening_width_ppt = closet_assembly.get_prompt("Opening " + str(obj.sn_closets.opening_name) + " Width")
+
+            if obj.snap.type_group == 'OPENING':
+                closet_bp = sn_utils.get_closet_bp(obj)
+                island_bp = sn_utils.get_island_bp(obj)
+                opening_num = str(obj.sn_closets.opening_name)
+
+                if closet_bp:
+                    closet_assembly = sn_types.Assembly(closet_bp)
+                    opening_width_ppt = closet_assembly.get_prompt("Opening " + opening_num + " Width")
                     if opening_width_ppt:
                         opening_width = round(sn_unit.meter_to_inch(opening_width_ppt.get_value()), 2)
-                    opening_depth_ppt = closet_assembly.get_prompt("Opening " + str(obj.sn_closets.opening_name) + " Depth")
+                    opening_depth_ppt = closet_assembly.get_prompt("Opening " + opening_num + " Depth")
                     if opening_depth_ppt:
                         opening_depth = round(sn_unit.meter_to_inch(opening_depth_ppt.get_value()), 2)
-            if obj.snap.type_group == 'OPENING' and opening_width >= 18 and opening_depth >= 14:
 
-                wall = sn_types.Wall(obj_bp=sn_utils.get_wall_bp(obj))
+                if island_bp:
+                    island_assembly = sn_types.Assembly(island_bp)
+                    opening_width_ppt = island_assembly.get_prompt("Opening " + opening_num + " Width")
+                    if opening_width_ppt:
+                        opening_width = round(sn_unit.meter_to_inch(opening_width_ppt.get_value()), 2)
+                    opening_depth = round(sn_unit.meter_to_inch(abs(island_assembly.obj_y.location.y)), 2)
 
-                # Ensure opening status is set correctly
-                product_bp = sn_utils.get_closet_bp(obj)
-                if product_bp:
-                    op_num = obj.sn_closets.opening_name
-                    op_inserts = [o for o in product_bp.children if o.snap.type_group == 'INSERT' and o.sn_closets.opening_name == op_num]
-                    if not op_inserts:
-                        obj.snap.interior_open = True
-                        obj.snap.exterior_open = True
+                if opening_width >= 18 and opening_depth >= 14:
+                    wall = sn_types.Wall(obj_bp=sn_utils.get_wall_bp(obj))
+                    # Ensure opening status is set correctly
+                    product_bp = sn_utils.get_closet_bp(obj)
+                    if product_bp:
+                        op_num = obj.sn_closets.opening_name
+                        op_inserts = [o for o in product_bp.children if o.snap.type_group == 'INSERT' and o.sn_closets.opening_name == op_num]
+                        if not op_inserts:
+                            obj.snap.interior_open = True
+                            obj.snap.exterior_open = True
 
-                wall_hidden = False
-                collections = bpy.data.collections
-                wall_bp = sn_utils.get_wall_bp(obj)
-                if wall_bp:
-                    wall_name = wall_bp.snap.name_object
-                    if wall_name in collections:
-                        wall_coll = collections[wall_name]
-                        wall_hidden = wall_coll.hide_viewport
-                if wall and sn_utils.get_wall_bp(obj) and wall_hidden:
-                    continue
-                if insert_type in ('INTERIOR', 'SPLITTER'):
-                    opening = sn_types.Assembly(obj) if obj.snap.interior_open else None
-                if insert_type == 'EXTERIOR':
-                    opening = sn_types.Assembly(obj) if obj.snap.exterior_open else None
-                if opening:
-                    cage = opening.get_cage()
-                    cage.display_type = 'WIRE'
-                    cage.hide_select = False
-                    cage.hide_viewport = False
-                    self.openings.append(cage)
+                    wall_hidden = False
+                    collections = bpy.data.collections
+                    wall_bp = sn_utils.get_wall_bp(obj)
+                    if wall_bp:
+                        wall_name = wall_bp.snap.name_object
+                        if wall_name in collections:
+                            wall_coll = collections[wall_name]
+                            wall_hidden = wall_coll.hide_viewport
+                    if wall and sn_utils.get_wall_bp(obj) and wall_hidden:
+                        continue
+                    if insert_type in ('INTERIOR', 'SPLITTER'):
+                        opening = sn_types.Assembly(obj) if obj.snap.interior_open else None
+                    if insert_type == 'EXTERIOR':
+                        opening = sn_types.Assembly(obj) if obj.snap.exterior_open else None
+                    if opening:
+                        cage = opening.get_cage()
+                        cage.display_type = 'WIRE'
+                        cage.hide_select = False
+                        cage.hide_viewport = False
+                        self.openings.append(cage)
 
     def modal(self, context, event):
         self.run_asset_calculators()
@@ -655,11 +664,11 @@ class OPS_Hamper_Drop(Operator, PlaceClosetInsert):
         hamper_assembly = sn_types.Assembly(insert_bp)
         carcass_assembly = sn_types.Assembly(carcass_bp)
         opening_width_ppt = carcass_assembly.get_prompt("Opening " + str(opening_name) + " Width")
-        opening_depth_ppt = carcass_assembly.get_prompt("Opening " + str(opening_name) + " Depth")
         hamper_type = hamper_assembly.get_prompt("Hamper Type")
-        prompts = (opening_width_ppt, opening_depth_ppt, hamper_type)
-        if all(prompts):
-            if opening_depth_ppt.get_value() >= sn_unit.inch(15.999) and opening_width_ppt.get_value() >= sn_unit.inch(29.999):
+        prompts = (opening_width_ppt, hamper_type)
+        depth = selected_opening.obj_y.location.y
+        if all(prompts) and depth:
+            if depth >= sn_unit.inch(15.999) and opening_width_ppt.get_value() >= sn_unit.inch(29.999):
                 hamper_type.set_value(1)
 
 

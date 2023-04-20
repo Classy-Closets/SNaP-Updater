@@ -67,7 +67,6 @@ def get_slide_size(slide_type, assembly):
     if closet_props.is_hamper_insert_bp:
         material_props = bpy.context.scene.closet_materials
         material_sku = material_props.get_mat_sku(assembly.obj_bp, assembly)
-        material_name = material_props.get_mat_inventory_name(sku=material_sku)
         hamper_assembly = sn_types.Assembly(assembly.obj_bp.parent)
         drawer_depth = sn_unit.meter_to_inch(assembly.obj_y.location.y)
         drawer_depth1 = sn_unit.meter_to_inch(hamper_assembly.obj_y.location.y)
@@ -75,7 +74,6 @@ def get_slide_size(slide_type, assembly):
     if closet_props.is_basket_bp:
         material_props = bpy.context.scene.closet_materials
         material_sku = material_props.get_mat_sku(assembly.obj_bp, assembly)
-        material_name = material_props.get_mat_inventory_name(sku=material_sku)
         drawer_depth = sn_unit.meter_to_inch(assembly.obj_y.location.y)
 
 
@@ -127,7 +125,6 @@ def get_basket_price(assembly):
     if assembly.obj_bp.sn_closets.is_basket_bp:
         material_props = bpy.context.scene.closet_materials
         material_sku = material_props.get_mat_sku(assembly.obj_bp, assembly)
-        material_name = material_props.get_mat_inventory_name(sku=material_sku)
         hamper_insert_bp = assembly.obj_bp.parent
         basket_color = material_props.wire_basket_colors
         basket_width = sn_unit.meter_to_inch(assembly.obj_x.location.x)
@@ -306,7 +303,6 @@ def calculate_hamper_price(insert, slide_price):
 def get_material_price(assembly):
     material_props = bpy.context.scene.closet_materials
     material_sku = material_props.get_mat_sku(assembly.obj_bp, assembly)
-    material_name = material_props.get_mat_inventory_name(sku=material_sku)
     rows = sn_db.query_db(
         "SELECT\
             SKU,\

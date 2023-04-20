@@ -441,7 +441,7 @@ class SN_CLOSET_OT_Place_Top(Operator, PlaceClosetInsert):
                             P2_X_Loc = self.selected_panel_2.obj_bp.snap.get_var('location.x', 'P2_X_Loc')
                             Panel_Thickness = product.get_prompt('Panel Thickness').get_var()
 
-                            if "IS_BP_ISLAND" in product.obj_bp:
+                            if "IS_BP_ISLAND" in product.obj_bp or "IS_BP_WALL_BED" in product.obj_bp:
                                 self.place_on_island(product, P1_X_Loc, P2_X_Loc, Panel_Thickness)
                             else:
                                 self.place_on_hanging_section(product, P1_X_Loc, P2_X_Loc, Panel_Thickness)

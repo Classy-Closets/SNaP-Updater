@@ -1226,7 +1226,9 @@ class Wall(Assembly):
         for child in self.obj_bp.children:
             if child.type == 'MESH' and len(child.data.vertices) != 1:
                 if child.get('ID_PROMPT') == "room_builder.wall_prompts":
-                    return child
+                    view_layer = bpy.context.view_layer
+                    if child.name in view_layer.objects:
+                        return child
 
     def refresh_hook_modifiers(self):
         for child in self.obj_bp.children:

@@ -61,9 +61,11 @@ def PERCENTAGE(value, min, max):
 def CHECK(value, *vars):
     """ 
     """
+    from . import sn_unit
     val = 0
+
     for var in vars:
-        if value >= var:
+        if round(sn_unit.meter_to_inch(value), 2) >= sn_unit.meter_to_inch(var):
             if var > val:
                 val = var
     return val

@@ -221,6 +221,16 @@ class SNAP_OT_move_closet(Operator):
                 default_coll = bpy.data.collections["Collection"]
                 sn_utils.remove_assembly_from_collection(self.closet.obj_bp, default_coll, recursive=True)
 
+        has_floor_parent = False
+        if self.closet:
+            floor_parent = sn_utils.get_floor_parent(self.closet.obj_bp)
+            if floor_parent:
+                has_floor_parent = True
+
+        if self.selected_obj.sn_roombuilder.is_floor or has_floor_parent:
+            floor = self.selected_obj
+            self.closet.obj_bp.parent = floor
+
         if self.placement == 'LEFT':
             self.closet.obj_bp.parent = self.selected_closet.obj_bp.parent
             constraint_obj = self.closet.obj_x
@@ -378,9 +388,24 @@ class SNAP_OT_delete_closet(Delete_Closet_Assembly):
             self.obj_bp = sn_utils.get_cabinet_bp(context.object)
         return super().invoke(context, event)
 
+    def delete_object_from_constraints(self, obj_bp):
+        product = sn_types.Assembly(obj_bp)
+        
+        if obj_bp.parent:
+            for child in obj_bp.parent.children:
+                for constraint in child.constraints:
+                    if constraint.type == 'COPY_LOCATION':
+                        if constraint.target == product.obj_x:
+                            bpy.ops.lm_cabinets.remove_location_constraint(obj_bp_name=child.name)
+
     def execute(self, context):
         has_bool = 'IS_BP_WINDOW' in self.obj_bp or 'IS_BP_ENTRY_DOOR' in self.obj_bp
         wall = self.obj_bp.parent
+
+        is_cabinet = 'IS_BP_CABINET' in self.obj_bp
+        if is_cabinet:
+            self.delete_object_from_constraints(self.obj_bp)
+
         sn_utils.delete_object_and_children(self.obj_bp)
 
         # if it is an entry window or door, we need to remove the bool modifier
@@ -416,28 +441,48 @@ class SNAP_OT_delete_closet_insert(Delete_Closet_Assembly):
 
     def make_opening_available(self, obj_bp):
         insert = sn_types.Assembly(obj_bp)
-        is_cabinet = insert.obj_bp.parent.get('IS_BP_CABINET')
+        obj_product_bp = sn_utils.get_bp(obj_bp, 'PRODUCT')
+        is_cabinet = obj_product_bp.get('IS_BP_CABINET')
 
-        if obj_bp.parent:
-            for child in obj_bp.parent.children:
-                op_num = child.sn_closets.opening_name
-                insert_op_num = insert.obj_bp.sn_closets.opening_name
-                if child.snap.type_group == 'OPENING' and op_num == insert_op_num:
-                    if insert.obj_bp.snap.placement_type == 'SPLITTER':
-                        child.snap.interior_open = True
-                        child.snap.exterior_open = True
-                        break
-                    if insert.obj_bp.snap.placement_type == 'INTERIOR':
-                        child.snap.interior_open = True
-                        break
-                    if insert.obj_bp.snap.placement_type == 'EXTERIOR':
-                        if insert.obj_bp.get('IS_BP_DOOR_INSERT') and not is_cabinet:
+        if not is_cabinet:
+            if obj_bp.parent:
+                for child in obj_bp.parent.children:
+                    op_num = child.sn_closets.opening_name
+                    insert_op_num = insert.obj_bp.sn_closets.opening_name
+                    if child.snap.type_group == 'OPENING' and op_num == insert_op_num:
+                        if insert.obj_bp.snap.placement_type == 'SPLITTER':
                             child.snap.interior_open = True
-                        child.snap.exterior_open = True
-                        break
-                elif child.get('IS_BP_SHELVES'):
-                    opening = child.parent
-                    opening.snap.interior_open = True
+                            child.snap.exterior_open = True
+                            break
+                        if insert.obj_bp.snap.placement_type == 'INTERIOR':
+                            child.snap.interior_open = True
+                            break
+                        if insert.obj_bp.snap.placement_type == 'EXTERIOR':
+                            if insert.obj_bp.get('IS_BP_DOOR_INSERT') and not is_cabinet:
+                                child.snap.interior_open = True
+                            child.snap.exterior_open = True
+                            break
+                    elif child.get('IS_BP_SHELVES'):
+                        opening = child.parent
+                        opening.snap.interior_open = True
+        else:
+            if obj_bp.parent:
+                opening_nbr = insert.obj_bp.get("OPENING_NBR")
+                for child in obj_bp.parent.children:
+                    if child.get('IS_BP_OPENING') and child.get('OPENING_NBR') == opening_nbr:
+                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Splitter':
+                            child.snap.interior_open = True
+                            child.snap.exterior_open = True
+                            break
+                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Interior':
+                            child.snap.interior_open = True
+                            break
+                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Exterior':
+                            child.snap.exterior_open = True
+                            break
+                    elif child.get('IS_BP_SHELVES'):
+                        opening = child.parent
+                        opening.snap.interior_open = True
                        
     def delete_insert_and_children(self, obj_bp):
         insert = sn_types.Assembly(obj_bp)
@@ -1274,8 +1319,8 @@ class SNAP_OT_update_door_selection(Operator):
                 return child
 
     # def invoke(self, context, event):
-        # wm = context.window_manager
-        # return wm.invoke_props_dialog(self, width=400)
+    #     wm = context.window_manager
+    #     return wm.invoke_props_dialog(self, width=400)
 
     # def draw(self, context):
         # layout = self.layout
@@ -1352,30 +1397,70 @@ class SNAP_OT_update_door_selection(Operator):
                         child.snap.type_mesh = 'CUTPART'
 
             else:
-                group_bp = sn_utils.get_group(
-                    os.path.join(closet_paths.get_asset_folder_path(),
-                                 closet_props.DOOR_FOLDER_NAME,
-                                 props.door_category,
-                                 props.get_door_style() + ".blend"))
+                small_face_needed = False
+                slab_face_needed = False
+                if door_assembly.obj_bp.get('IS_BP_DRAWER_FRONT'):
+                    drawer_height = door_assembly.obj_x.location.x
+                    if (('Traviso' in props.get_door_style() or 'Molino Vecchio' in props.get_door_style()) and drawer_height < sn_unit.millimeter(187.95)) or (('Capri' in props.get_door_style() or 'San Marino' in props.get_door_style()) and drawer_height < sn_unit.millimeter(155.955)):
+                        slab_face_needed = True
+                        new_door = common_parts.add_door(sn_types.Assembly(obj_bp.parent))
+                        new_door.obj_bp.snap.name_object = door_assembly.obj_bp.snap.name_object
+                        new_door.obj_bp.name = door_assembly.obj_bp.name
+                        new_door.obj_bp.location = door_assembly.obj_bp.location
+                        new_door.obj_bp.rotation_euler = door_assembly.obj_bp.rotation_euler
+                        new_door.obj_bp.sn_closets.use_unique_material = False
+                        for child in new_door.obj_bp.children:
+                            if child.type == 'MESH':
+                                child.snap.type_mesh = 'CUTPART'
+                    else:
+                        for style in common_lists.FIVE_HOLE_DRAWER_STYLE_LIST:
+                            if (style in props.get_door_style()) and drawer_height < sn_unit.millimeter(155.955) and '5' not in props.get_door_style():
+                                small_face_needed = True
+                                group_bp = sn_utils.get_group(
+                                    os.path.join(closet_paths.get_asset_folder_path(),
+                                                'Small Drawer Faces',
+                                                props.get_door_style() + " 5.blend"))
+                                
+                        for style in common_lists.SIX_HOLE_DRAWER_STYLE_LIST:
+                            if (style in props.get_door_style()) and drawer_height < sn_unit.millimeter(187.95) and '6' not in props.get_door_style():
+                                small_face_needed = True
+                                group_bp = sn_utils.get_group(
+                                    os.path.join(closet_paths.get_asset_folder_path(),
+                                                'Small Drawer Faces',
+                                                props.get_door_style() + " 6.blend"))
+                                
+                        for style in common_lists.EIGHT_HOLE_DRAWER_STYLE_LIST:
+                            if (style in props.get_door_style()) and drawer_height < sn_unit.millimeter(251.967) and '8' not in props.get_door_style():
+                                small_face_needed = True
+                                group_bp = sn_utils.get_group(
+                                    os.path.join(closet_paths.get_asset_folder_path(),
+                                                'Small Drawer Faces',
+                                                props.get_door_style() + " 8.blend"))  
+                if not small_face_needed and not slab_face_needed:
+                    group_bp = sn_utils.get_group(
+                        os.path.join(closet_paths.get_asset_folder_path(),
+                                    closet_props.DOOR_FOLDER_NAME,
+                                    props.door_category,
+                                    props.get_door_style() + ".blend"))
+                if not slab_face_needed:
+                    new_door = sn_types.Assembly(group_bp)
 
-                new_door = sn_types.Assembly(group_bp)
+            if props.door_category == '5 Piece Doors':
+                new_door.obj_bp.snap.comment_2 == '1111'
+            if props.door_category == 'Deco Panels':
+                new_door.obj_bp.snap.comment_2 == '2222'
 
-                if props.door_category == '5 Piece Doors':
-                    new_door.obj_bp.snap.comment_2 == '1111'
-                if props.door_category == 'Deco Panels':
-                    new_door.obj_bp.snap.comment_2 == '2222'
-
-                new_door.obj_bp.snap.name_object = door_assembly.obj_bp.snap.name_object
-                if "left" in door_assembly.obj_bp.name.lower():
-                    new_door.obj_bp.name = "Left " + new_door.obj_bp.name
-                if "right" in door_assembly.obj_bp.name.lower():
-                    new_door.obj_bp.name = "Right " + new_door.obj_bp.name
-                new_door.obj_bp.parent = door_assembly.obj_bp.parent
-                new_door.obj_bp.location = door_assembly.obj_bp.location
-                new_door.obj_bp.rotation_euler = door_assembly.obj_bp.rotation_euler
-                for child in new_door.obj_bp.children:
-                    if child.type == 'MESH':
-                        child.snap.type_mesh = 'BUYOUT'
+            new_door.obj_bp.snap.name_object = door_assembly.obj_bp.snap.name_object
+            if "left" in door_assembly.obj_bp.name.lower():
+                new_door.obj_bp.name = "Left " + new_door.obj_bp.name
+            if "right" in door_assembly.obj_bp.name.lower():
+                new_door.obj_bp.name = "Right " + new_door.obj_bp.name
+            new_door.obj_bp.parent = door_assembly.obj_bp.parent
+            new_door.obj_bp.location = door_assembly.obj_bp.location
+            new_door.obj_bp.rotation_euler = door_assembly.obj_bp.rotation_euler
+            for child in new_door.obj_bp.children:
+                if child.type == 'MESH':
+                    child.snap.type_mesh = 'BUYOUT'
 
             id_prompt = door_assembly.obj_bp.get("ID_PROMPT")
 
@@ -1434,7 +1519,19 @@ class SNAP_OT_update_door_selection(Operator):
 
             if(door_style):
                 door_style.set_value(props.get_door_style())
-                if "Traviso" in (door_style.get_value()):
+                if new_door.obj_bp.get('IS_BP_DRAWER_FRONT'):
+                    drawer_height = new_door.obj_x.location.x
+                    for style in common_lists.FIVE_HOLE_DRAWER_STYLE_LIST:
+                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(155.955):
+                            door_style.set_value(props.get_door_style() + ' 5')
+                    for style in common_lists.SIX_HOLE_DRAWER_STYLE_LIST:
+                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(187.95):
+                            door_style.set_value(props.get_door_style() + ' 6')
+                    for style in common_lists.EIGHT_HOLE_DRAWER_STYLE_LIST:
+                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(251.967):
+                            door_style.set_value(props.get_door_style() + ' 8')
+                
+                if "Traviso" in (door_style.get_value()) and not new_door.obj_bp.get('IS_BP_DRAWER_FRONT'):
                     door_height = new_door.obj_x.location.x
                     if door_height > sn_unit.inch(60):
                         msg = "Traviso door style not permitted in sizes above 47H!"

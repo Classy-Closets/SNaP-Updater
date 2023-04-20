@@ -3,6 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 import filecmp
 import re
+from os import path
 
 import bpy
 import bmesh
@@ -15,6 +16,7 @@ from snap import sn_xml
 from snap import sn_db
 from snap.libraries.closets.data import data_drawers
 from ..libraries.closets.common import common_lists
+from snap.libraries.closets import closet_paths
 
 try:
     from ..developer_utils import debug_xml_export
@@ -276,11 +278,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     # Wire Basket
     if "Wire Basket" in item_name:
-        basket_width = sn_unit.meter_to_inch(assembly.obj_x.location.x)
-        if basket_width > 18.0:
-            return 'AC-0000004'
-        else:
-            return 'AC-0000002'
+        return 'SO-0000001'
 
     # Hamper Basket
     if "Hamper Basket" in item_name:
@@ -466,8 +464,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             cup_color = "Matt Gold"
         if "Slate" in rod_name:
             cup_color = "Slate"
-        if "Oil Rubbed Bronze" in rod_name:
-            cup_color = "ORB"
+        # if "Oil Rubbed Bronze" in rod_name:
+        #     cup_color = "ORB"
         if "Polished Chrome" in rod_name:
             cup_color = "Pol Chrome"
 
@@ -606,10 +604,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             elif metal_color.get_value() == 3:
                 metal_color_name = 'Matt Gold'
             elif metal_color.get_value() == 4:
-                metal_color_name = 'ORB'
-            elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
-            elif metal_color.get_value() == 6:
+            elif metal_color.get_value() == 5:
                 metal_color_name = 'Matte Black'
 
             if valet_category.get_value() == 1:
@@ -679,10 +675,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             elif metal_color.get_value() == 3:
                 metal_color_name = 'Matt Gold'
             elif metal_color.get_value() == 4:
-                metal_color_name = 'ORB'
-            elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
-            elif metal_color.get_value() == 6:
+            elif metal_color.get_value() == 5:
                 metal_color_name = 'Matte Black'
 
             if tie_rack_category.get_value() == 1:
@@ -745,10 +739,8 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             elif metal_color.get_value() == 3:
                 metal_color_name = 'Matt Gold'
             elif metal_color.get_value() == 4:
-                metal_color_name = 'ORB'
-            elif metal_color.get_value() == 5:
                 metal_color_name = 'Slate'
-            elif metal_color.get_value() == 6:
+            elif metal_color.get_value() == 5:
                 metal_color_name = 'Matte Black'
 
             if belt_rack_category.get_value() == 1:
@@ -919,6 +911,7 @@ class OPS_Export_XML(Operator):
 
     cover_cleat_lengths = []
     cover_cleat_bp = None
+    backing_assembly = None
 
     single_exposed_flat_crown = []
     top_edgebanded_flat_crown = []
@@ -2059,7 +2052,7 @@ class OPS_Export_XML(Operator):
 
     def get_shelf_kd_drilling(self, assembly, token, token_name, circles):
         #Two Left Holes For KD Shelf
-        if token_name == 'Left Drilling':                      
+        if token_name == 'Left Drilling':
             normal_z = 1
             org_displacement = 0
 
@@ -2081,6 +2074,7 @@ class OPS_Export_XML(Operator):
             cir = {}
             cir['cen_x'] = -float(dim_in_x_2)
             cir['cen_y'] = float(dim_in_y)
+            print("get_shelf_kd_drilling", dim_in_y)
             cir['cen_z'] = float(bore_depth)
             cir['diameter'] = sn_unit.meter_to_inch(sn_unit.millimeter(float(cam_hole_dia)))
             cir['normal_z'] = normal_z
@@ -2649,6 +2643,23 @@ class OPS_Export_XML(Operator):
         self.item_count += 1
 
     def write_full_sized_cover_cleat(self,elm_parts,spec_group):
+        if self.backing_assembly and not self.cover_cleat_bp:
+            # If there is no cover cleat in the room, I do my best to make the backing into a cover cleat
+            dummy_backing_assembly = self.backing_assembly
+            dummy_cleat_assembly = sn_types.Part(dummy_backing_assembly.add_assembly_from_file(path.join(closet_paths.get_closet_assemblies_path(), "Part with Front Edgebanding.blend")))
+            self.backing_assembly = None
+            # dummy_cleat_assembly = sn_types.Assembly(dummy_cleat_obj_bp)
+            dummy_cleat_assembly.obj_bp["IS_BACK"] = False
+            dummy_cleat_assembly.obj_bp["IS_COVER_CLEAT"] = True
+            dummy_cleat_assembly.obj_bp["IS_CLEAT"] = True
+            dummy_cleat_assembly.obj_bp.sn_closets.is_back_bp = False
+            dummy_cleat_assembly.obj_bp.sn_closets.is_cleat_bp = True
+            dummy_cleat_assembly.obj_bp.sn_closets.is_cover_cleat_bp = True
+            dummy_cleat_assembly.set_name("Cover Cleat")
+            dummy_cleat_assembly.obj_x.location.x = sn_unit.inch(96)
+            dummy_cleat_assembly.obj_y.location.y = sn_unit.inch(3.68)
+            dummy_cleat_assembly.obj_z.location.z = sn_unit.inch(0.375)
+            self.cover_cleat_bp = dummy_cleat_assembly.obj_bp
         if self.cover_cleat_bp:
             closet_materials = bpy.context.scene.closet_materials
             cover_cleat = sn_types.Assembly(self.cover_cleat_bp)
@@ -2662,7 +2673,7 @@ class OPS_Export_XML(Operator):
                 needed_full_lengths = 1
             else:
                 needed_full_lengths = (total_cover_cleat/96)/2 #96
-                if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White"):
+                if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White" or mat_inventory_name == "Winter White" or mat_inventory_name == "Mountain Peak" or mat_inventory_name == "Snow Drift"):
                     needed_full_lengths = needed_full_lengths * 2
                 needed_full_lengths = math.ceil(needed_full_lengths)
                 if(needed_full_lengths < 3):
@@ -2860,7 +2871,7 @@ class OPS_Export_XML(Operator):
             mat_sku = closet_materials.get_mat_sku(cleat_assembly.obj_bp, cleat_assembly)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
 
-            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White"):
+            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White" or mat_inventory_name == "Winter White" or mat_inventory_name == "Mountain Peak" or mat_inventory_name == "Snow Drift"):
                 if self.is_wrap_around:
                     for child in cleat_assembly.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
@@ -3002,10 +3013,15 @@ class OPS_Export_XML(Operator):
             for child in obj_bp.children:
                 if child.get("IS_DOOR"):
                     for nchild in child.children:
-                        for nnchild in nchild.children:
-                            if nnchild.snap.type_mesh in {'CUTPART','SOLIDSTOCK','BUYOUT'}:
-                                if not nnchild.hide_viewport:
-                                    self.write_part_node(elm_subassembly, nchild, spec_group)
+                        if "IS_BP_ASSEMBLY":
+                            for nnchild in nchild.children:
+                                if nnchild.type == 'MESH':
+                                    if nnchild.snap.type_mesh in ('CUTPART','SOLIDSTOCK','BUYOUT'):
+                                        if not nnchild.hide_viewport:
+                                            self.write_part_node(elm_subassembly, nnchild, spec_group)
+                                    if nnchild.snap.type_mesh in ('HARDWARE'):
+                                        if not nnchild.hide_viewport:
+                                            self.write_hardware_node(elm_subassembly, nnchild)
                     continue
                 for nchild in child.children:
                     if nchild.snap.type_mesh in {'CUTPART','SOLIDSTOCK','BUYOUT'}:
@@ -3172,9 +3188,9 @@ class OPS_Export_XML(Operator):
             edge_1 = "1L"
             edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
-        edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name))
-        secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name))
-        door_drawer_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name))
+        edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name), display_name=False)
+        secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name), display_name=False)
+        door_drawer_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name), display_name=False)
 
         if obj_props.is_cleat_bp:
             edge_1_color_name = secondary_edge_color_name
@@ -3296,6 +3312,16 @@ class OPS_Export_XML(Operator):
             kb_molding = child.get("IS_KB_MOLDING")
             closet_base_molding = child.sn_closets.is_base_molding
             closet_crown_molding = child.sn_closets.is_crown_molding
+
+            if child.get("IS_BACK"):
+                for nchild in child.children:
+                    if nchild.snap.type_mesh == 'CUTPART':
+                        if not nchild.hide_viewport:
+                            backing_assembly = sn_types.Assembly(child)
+                            if abs(sn_unit.meter_to_inch(backing_assembly.obj_z.location.z)) == 0.75:
+                                self.backing_assembly = backing_assembly
+                                self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
+                                self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
 
             if closet_crown_molding or closet_base_molding or kb_molding:
                 if child.sn_closets.is_empty_molding:
@@ -3762,12 +3788,12 @@ class OPS_Export_XML(Operator):
                 
                 # This is needed for specific single parts. We need them to export as hardware with sku numbers, they were exporting as products.
                 if needed_hardware == 1:
-                    if child.name == 'Sliding Panels Rack':
+                    if 'Sliding Panels Rack' in child.name:
                         self.write_hardware_node(elm_parts, child, 'Pants Rack')
-                    elif child.name == 'Single Pull Out Canvas Hamper':
+                    elif 'Single Pull Out Canvas Hamper' in child.name:
                         print("Found Single Pull Out")
                         self.write_hardware_node(elm_parts, child, name="Single Pull Out Canvas Hamper")
-                    elif child.name == 'Double Pull Out Canvas Hamper':
+                    elif 'Double Pull Out Canvas Hamper' in child.name:
                         print("Found Double Pull Out")
                         self.write_hardware_node(elm_parts, child, name="Double Pull Out Canvas Hamper")
                     continue
@@ -3796,49 +3822,34 @@ class OPS_Export_XML(Operator):
         drawers_dict = {}
         dad = obj_bp.parent
         dad_assy = sn_types.Assembly(dad)
-        insert_indexes = []
         dad_width = round(sn_unit.meter_to_inch(dad_assy.obj_x.location.x))
-        insert_indexes = []
+        dad_depth = round(sn_unit.meter_to_inch(dad_assy.obj_y.location.y))
         dad_dict = dad_assy.get_prompt_dict()
         dad_pmpts = dad_dict.items()
         dd_query = 'Use Double Drawer'
         dd_prompts = [v for v in dad_pmpts if dd_query in v[0] and v[1] == True]
         ji_query = 'Has Jewelry Insert'
         ji_prompts = [v for v in dad_pmpts if ji_query in v[0] and v[1] == True]
-        si_query = 'Has Sliding Insert'
-        si_prompts = [v for v in dad_pmpts if si_query in v[0] and v[1] == True]
-        if len(dd_prompts) > 0:
-            self.iterate_dbl_drawers(obj_bp, drawers_dict, dad, dad_assy,
-                                     insert_indexes, dad_width, dd_prompts)
-        if len(ji_prompts) > 0:
-            self.iterate_inserts(obj_bp, drawers_dict, dad, dad_assy,
-                                 insert_indexes, dad_width,
-                                 ji_prompts, "jewelry")
-        if len(si_prompts) > 0:
-            self.iterate_inserts(obj_bp, drawers_dict, dad, dad_assy,
-                                 insert_indexes, dad_width,
-                                 si_prompts, "sliding")
+
+        if dd_prompts:
+            self.iterate_dbl_drawers(obj_bp, drawers_dict, dad, dad_assy, dad_width, dad_depth)
+
+        if ji_prompts:
+            self.iterate_inserts(obj_bp, drawers_dict, dad, dad_assy, dad_width, dad_depth)
+
         return drawers_dict
 
-    def iterate_inserts(self, obj_bp, drawers_dict, dad, dad_assy, 
-                        insert_indexes, dad_width, prompts, insert_category):
-        if insert_category not in ["jewelry", "sliding"]:
-            return
-        is_jewelry = insert_category == "jewelry"
-        is_sliding = insert_category == "sliding"
-
+    def iterate_inserts(self, obj_bp, drawers_dict, dad, dad_assy, dad_width, dad_depth):
         for obj in dad.children:
             drw_num = obj.get("DRAWER_NUM")
             if drw_num:
                 insert_pmpt = dad_assy.get_prompt(f"Jewelry Insert Type {drw_num}")
                 double_drawer_pmpt = dad_assy.get_prompt(f"Use Double Drawer {drw_num}")
                 has_ji = dad_assy.get_prompt(f'Has Jewelry Insert {drw_num}').get_value()
-                has_si = dad_assy.get_prompt(f'Has Sliding Insert {drw_num}').get_value()
                 insert_type = insert_pmpt.get_value()
                 is_drawer = obj.sn_closets.is_drawer_box_bp
                 is_given_obj = obj_bp == obj
-                is_ji = is_drawer and is_given_obj and is_jewelry and has_ji
-                is_si = is_drawer and is_given_obj and is_sliding and has_si
+                is_ji = is_drawer and is_given_obj and has_ji
 
                 # Jewelry settings may not have been initialized. Reset jewelry insert type if it has become out of sync
                 if has_ji and double_drawer_pmpt:
@@ -3848,13 +3859,13 @@ class OPS_Export_XML(Operator):
                         is_std_opng = width_in in [18, 21, 24]
                         insert_type = 1 if is_std_opng else 2
 
-                        jewelry_insert_18 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 18in {drw_num}')
+                        jewelry_insert_18 = dad_assy.get_prompt(f'Jewelry Insert 18in {drw_num}')
                         if jewelry_insert_18:
                             jewelry_insert_18.set_value(value=1)
-                        jewelry_insert_21 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 21in {drw_num}')
+                        jewelry_insert_21 = dad_assy.get_prompt(f'Jewelry Insert 21in {drw_num}')
                         if jewelry_insert_21:
                             jewelry_insert_21.set_value(value=1)
-                        jewelry_insert_24 = dad_assy.get_prompt(f'Lower Jewelry Insert Velvet Liner 24in {drw_num}')
+                        jewelry_insert_24 = dad_assy.get_prompt(f'Jewelry Insert 24in {drw_num}')
                         if jewelry_insert_24:
                             jewelry_insert_24.set_value(value=1)
 
@@ -3869,6 +3880,8 @@ class OPS_Export_XML(Operator):
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    if dad_depth > 16:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
                 elif is_ji and std_jwl_ins and dad_width == 21:
                     qry_ji = f'Jewelry Insert 21in {drw_num}'
@@ -3877,6 +3890,8 @@ class OPS_Export_XML(Operator):
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    if dad_depth > 16:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
                 elif is_ji and std_jwl_ins and dad_width == 24:
                     qry_ji = f'Jewelry Insert 24in {drw_num}'
@@ -3885,68 +3900,45 @@ class OPS_Export_XML(Operator):
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    if dad_depth > 16:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
 
-                # Standard Sliding Inserts
-                elif is_si and std_jwl_ins and dad_width == 18:
-                    qry_si = f'Sliding Insert 18in {drw_num}'
-                    si = dad_assy.get_prompt(qry_si).get_value()
-                    si_label = common_lists.SLIDING_INSERTS_18IN_DICT.get(si)
-                    if drawers_dict.get(obj_bp) is None:
-                        drawers_dict[obj_bp] = []
-                    drawers_dict[obj_bp].append(si_label)
-                    return
-                elif is_si and std_jwl_ins and dad_width == 21:
-                    qry_si = f'Sliding Insert 21in {drw_num}'
-                    si = dad_assy.get_prompt(qry_si).get_value()
-                    si_label = common_lists.SLIDING_INSERTS_21IN_DICT.get(si)
-                    if drawers_dict.get(obj_bp) is None:
-                        drawers_dict[obj_bp] = []
-                    drawers_dict[obj_bp].append(si_label)
-                    return
-                elif is_si and std_jwl_ins and dad_width == 24:
-                    qry_si = f'Sliding Insert 24in {drw_num}'
-                    si = dad_assy.get_prompt(qry_si).get_value()
-                    si_label = common_lists.SLIDING_INSERTS_24IN_DICT.get(si)
-                    if drawers_dict.get(obj_bp) is None:
-                        drawers_dict[obj_bp] = []
-                    drawers_dict[obj_bp].append(si_label)
-                    return
-                
                 # Non-Standard Jewelry Inserts deeper than 16 inches
                 elif is_ji and notstd_jwl_ins_gt16 and 18 <= dad_width < 21:
-                    qry_ji = f'Lower Jewelry Insert Velvet Liner 18in {drw_num}'
+                    qry_ji = f'Jewelry Insert 18in {drw_num}'
                     ji = dad_assy.get_prompt(qry_ji).get_value()
-                    ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT.get(ji)
+                    ji_label = common_lists.JEWELRY_INSERTS_18IN_DICT.get(ji)
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    exact_fit = dad_depth == 16 and dad_width == 18
+                    if not exact_fit:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
                 elif is_ji and notstd_jwl_ins_gt16 and 21 <= dad_width < 24:
-                    qry_ji = f'Lower Jewelry Insert Velvet Liner 21in {drw_num}'
+                    qry_ji = f'Jewelry Insert 21in {drw_num}'
                     ji = dad_assy.get_prompt(qry_ji).get_value()
-                    ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT.get(ji)
+                    ji_label = common_lists.JEWELRY_INSERTS_21IN_DICT.get(ji)
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
+                    exact_fit = dad_depth == 16 and dad_width == 21
+                    if not exact_fit:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
                 elif is_ji and notstd_jwl_ins_gt16 and 24 <= dad_width:
-                    qry_ji = f'Lower Jewelry Insert Velvet Liner 24in {drw_num}'
+                    qry_ji = f'Jewelry Insert 24in {drw_num}'
                     ji = dad_assy.get_prompt(qry_ji).get_value()
-                    ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT.get(ji)
+                    ji_label = common_lists.JEWELRY_INSERTS_24IN_DICT.get(ji)
                     if drawers_dict.get(obj_bp) is None:
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
-                    if ji == 1 or ji == 2:
-                        ji_label = common_lists.VELVET_LINERS_DICT.get(0)
-                        drawers_dict[obj_bp].append(ji_label)
-                    if ji == 3:
-                        ji_label = common_lists.VELVET_LINERS_DICT.get(1)
-                        drawers_dict[obj_bp].append(ji_label)
-                    if ji == 4:
-                        ji_label = common_lists.VELVET_LINERS_DICT.get(2)
-                        drawers_dict[obj_bp].append(ji_label)
+                    exact_fit = dad_depth == 16 and dad_width == 24
+                    if not exact_fit:
+                        self.add_jewelry_liner(obj_bp, ji, drawers_dict)
                     return
+
                 # Velvet Liners
                 elif is_ji and notstd_jwl_ins_lt16:
                     qry_ji = f'Velvet Liner {drw_num}'
@@ -3956,148 +3948,84 @@ class OPS_Export_XML(Operator):
                         drawers_dict[obj_bp] = []
                     drawers_dict[obj_bp].append(ji_label)
                     return
+                
+    def add_jewelry_liner(self, obj_bp, ji, drawers_dict):
+        if ji == 0:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(0)  # Black
+            drawers_dict[obj_bp].append(ji_label)
+        if ji == 1:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(1)  # Burgundy
+            drawers_dict[obj_bp].append(ji_label)
+        if ji == 2:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(2)  # Sterling Grey
+            drawers_dict[obj_bp].append(ji_label)
 
+    def add_dbl_jewelry_liner(self, obj_bp, ji, drawers_dict):
+        if ji == 1:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(0)  # Black
+            drawers_dict[obj_bp].append(ji_label)
+        if ji == 2:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(1)  # Burgundy
+            drawers_dict[obj_bp].append(ji_label)
+        if ji == 3:
+            ji_label = common_lists.VELVET_LINERS_DICT.get(2)  # Sterling Grey
+            drawers_dict[obj_bp].append(ji_label)
 
-    def iterate_dbl_drawers(self, obj_bp, drawers_dict, dad, dad_assy, 
-                            insert_indexes, dad_width, dd_prompts):
-        # for obj in dad.children:
-        #     drw_num = obj.get("DRAWER_NUM")
-        #     dbl_drw = obj.get("IS_BP_DBL_DRAWER_BOX")
-        #     if dbl_drw == 1:
-        #         print(f'Obj.: {obj.name} Drawer Number {drw_num} Double Drawer !')
-        for prompt in dd_prompts:
-            siblings = {}
-            siblings_by_idx = {}
-            insert_number = re.findall(r'\d{1}', prompt[0])[0]
-            insert_indexes.append(int(insert_number))
-            for obj in dad.children:
-                if obj.sn_closets.is_drawer_box_bp:
-                    loc_z_metric = sn_unit.meter_to_inch(obj.location[2])
-                    loc_z = round(loc_z_metric, 2)
-                    siblings[loc_z] = obj
-            for i, key in enumerate(sorted(siblings.keys())):
-                siblings_by_idx[i + 1] = siblings[key]
-            
-            for index in insert_indexes:
-                if siblings_by_idx[index].name == obj_bp.name:
-                    insert_pmpt = dad_assy.get_prompt(
-                        f"Jewelry Insert Type {index}")
-                    if insert_pmpt is not None:
-                        insert_type = insert_pmpt.get_value()
-                        if insert_type == 0:
-                            qry_dict = None
-                            insert_width = 0
-                            if 18 <= dad_width < 21:
-                                insert_width = 18
-                            elif 21 <= dad_width < 24:
-                                insert_width = 21
-                            elif 24 <= dad_width:
-                                insert_width = 24
-                            qry_up = f'Upper Jewelry Insert Velvet Liner {insert_width}in {insert_number}'
-                            qry_down = f'Lower Jewelry Insert Velvet Liner {insert_width}in {insert_number}'
-                            up = dad_assy.get_prompt(qry_up).get_value()
-                            down = dad_assy.get_prompt(qry_down).get_value()
-                            if insert_width == 18:
-                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT
-                            elif insert_width == 21:
-                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT
-                            elif insert_width == 24:
-                                qry_dict = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT
-                            if qry_dict is not None:
-                                if up != 0 or down != 0:
-                                    drawers_dict[obj_bp] = []
-                                if up != 0:
-                                    up_label = qry_dict.get(up)
-                                    drawers_dict[obj_bp].append(up_label)
-                                if down != 0:
-                                    down_label = qry_dict.get(down)
-                                    drawers_dict[obj_bp].append(down_label)
+    def get_jewelry_insert(self, obj_bp, drawers_dict, prompt_name, dad_assy, insert_list):
+        dad_width = round(sn_unit.meter_to_inch(dad_assy.obj_x.location.x))
+        dad_depth = round(sn_unit.meter_to_inch(dad_assy.obj_y.location.y))
+        ji = dad_assy.get_prompt(prompt_name).get_value()
+        ji_label = insert_list.get(ji)
+        if drawers_dict.get(obj_bp) is None:
+            drawers_dict[obj_bp] = []
+        drawers_dict[obj_bp].append(ji_label)
 
-    def iterate_jwl_inserts(self, obj_bp, drawers_dict, dad, dad_assy, 
-                            insert_indexes, dad_width, ji_prompts, si_prompts):
-        has_sld_ins = len(si_prompts) > 0
-        for prompt in ji_prompts:
-            siblings = {}
-            siblings_by_idx = {}
-            insert_number = re.findall(r'\d{1}', prompt[0])[0]
-            insert_indexes.append(int(insert_number))
-            for obj in dad.children:
-                if obj.sn_closets.is_drawer_box_bp:
-                    loc_z_metric = sn_unit.meter_to_inch(obj.location[2])
-                    loc_z = round(loc_z_metric, 2)
-                    siblings[loc_z] = obj
-            for i, key in enumerate(sorted(siblings.keys())):
-                siblings_by_idx[i + 1] = siblings[key]
-            for index in insert_indexes:
-                if siblings_by_idx[index].name == obj_bp.name:
-                    insert_pmpt = dad_assy.get_prompt(
-                        f"Jewelry Insert Type {index}")
-                    if insert_pmpt is not None:
-                        insert_type = insert_pmpt.get_value()
-                        if insert_type == 1:
-                            # Standard Opening
-                            qry_ji = f'Jewelry Insert {dad_width}in {insert_number}'
-                            qry_si = f'Sliding Insert {dad_width}in {insert_number}'
-                            ji = dad_assy.get_prompt(qry_ji).get_value()
-                            si = dad_assy.get_prompt(qry_si).get_value()
-                            if dad_width == 18:
-                                ji_label = common_lists.JEWELRY_INSERTS_18IN_DICT.get(ji)
-                                si_label = common_lists.SLIDING_INSERTS_18IN_DICT.get(si)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                if has_sld_ins:
-                                    drawers_dict[obj_bp].append(si_label)
-                                    return
-                                return
-                            elif dad_width == 21:
-                                ji_label = common_lists.JEWELRY_INSERTS_21IN_DICT.get(ji)
-                                si_label = common_lists.SLIDING_INSERTS_21IN_DICT.get(si)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                if has_sld_ins:
-                                    drawers_dict[obj_bp].append(si_label)
-                                    return
-                                return
-                            elif dad_width == 24:
-                                ji_label = common_lists.JEWELRY_INSERTS_24IN_DICT.get(ji)
-                                si_label = common_lists.SLIDING_INSERTS_24IN_DICT.get(si)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                if has_sld_ins:
-                                    drawers_dict[obj_bp].append(si_label)
-                                    return
-                                return
-                        elif insert_type == 2:
-                            # Non-Standard, Great than 16" deep
-                            if 18 <= dad_width < 21:
-                                qry_ji = f'Lower Jewelry Insert Velvet Liner 18in {insert_number}'
-                                ji = dad_assy.get_prompt(qry_ji).get_value()
-                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT.get(ji)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                return
-                            elif 21 <= dad_width < 24:
-                                qry_ji = f'Lower Jewelry Insert Velvet Liner 21in {insert_number}'
-                                ji = dad_assy.get_prompt(qry_ji).get_value()
-                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT.get(ji)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                return
-                            elif 24 <= dad_width:
-                                qry_ji = f'Lower Jewelry Insert Velvet Liner 24in {insert_number}'
-                                ji = dad_assy.get_prompt(qry_ji).get_value()
-                                ji_label = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT.get(ji)
-                                drawers_dict[obj_bp] = []
-                                drawers_dict[obj_bp].append(ji_label)
-                                return
-                        elif insert_type == 3:
-                            # Non-Standard, Lower than 16" deep
-                            qry_vl = f'Velvet Liner {insert_number}'
-                            vl = dad_assy.get_prompt(qry_vl).get_value()
-                            vl_label = common_lists.VELVET_LINERS_DICT.get(vl)
-                            drawers_dict[obj_bp] = []
-                            drawers_dict[obj_bp].append(vl_label)
-                            return
+        exact_fit_depth = dad_depth == 16
+        exact_fit_width = dad_width in (18, 21, 24)
+        if not exact_fit_depth or not exact_fit_width:
+            self.add_dbl_jewelry_liner(obj_bp, ji, drawers_dict)
+
+    def iterate_dbl_drawers(self, obj_bp, drawers_dict, dad, dad_assy, dad_width, dad_depth):
+        for obj in dad.children:
+            drw_num = obj.get("DRAWER_NUM")
+            if drw_num:
+                insert_pmpt = dad_assy.get_prompt(f"Jewelry Insert Type {drw_num}")
+                double_drawer_pmpt = dad_assy.get_prompt(f"Use Double Drawer {drw_num}")
+                insert_type = insert_pmpt.get_value()
+                is_drawer = obj.sn_closets.is_drawer_box_bp
+                is_given_obj = obj_bp == obj
+                is_dbl_ji = is_drawer and is_given_obj and double_drawer_pmpt
+                dbl_jwl_ins = insert_type == 0
+                exact_fit_depth = dad_depth == 16
+
+                if dad_depth >= 16:
+                    if is_dbl_ji and dbl_jwl_ins and 18 <= dad_width < 21:
+                        insert_list = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_DICT
+                        if obj.get("IS_BP_DBL_DRAWER_BOX"):
+                            prompt_name = f'Upper Jewelry Insert Velvet Liner 18in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
+                        else:
+                            prompt_name = f'Lower Jewelry Insert Velvet Liner 18in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
+
+                    if is_dbl_ji and dbl_jwl_ins and  21 <= dad_width < 24:
+                        exact_fit_width = dad_width == 21
+                        insert_list = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_DICT
+                        if obj.get("IS_BP_DBL_DRAWER_BOX"):
+                            prompt_name = f'Upper Jewelry Insert Velvet Liner 21in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
+                        else:
+                            prompt_name = f'Lower Jewelry Insert Velvet Liner 21in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
+
+                    if is_dbl_ji and dbl_jwl_ins and  24 <= dad_width:
+                        insert_list = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_DICT
+                        if obj.get("IS_BP_DBL_DRAWER_BOX"):
+                            prompt_name = f'Upper Jewelry Insert Velvet Liner 24in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
+                        else:
+                            prompt_name = f'Lower Jewelry Insert Velvet Liner 24in {drw_num}'
+                            self.get_jewelry_insert(obj_bp, drawers_dict, prompt_name, dad_assy, insert_list)
 
     def write_parts_for_nested_subassembly(self,elm_parts,obj_bp,spec_group):
         for child in obj_bp.children:
@@ -4340,7 +4268,7 @@ class OPS_Export_XML(Operator):
                         part_name += " with Insert - Slab"
             
             if part_name == "Cover Cleat":
-                if mat_inventory_name == "Winter White (Oxford White)" or  mat_inventory_name == "Duraply White":
+                if mat_inventory_name == "Winter White (Oxford White)" or  mat_inventory_name == "Duraply White" or mat_inventory_name == "Winter White" or mat_inventory_name == "Mountain Peak" or mat_inventory_name == "Snow Drift":
                     mat_inventory_name = "White Paper 11300"
                     mat_sku = "PM-0000002"
                 elif mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond":
@@ -4459,9 +4387,9 @@ class OPS_Export_XML(Operator):
             edge_3_sku = ''
             edge_4_sku = ''
 
-            edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name))
-            secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name))
-            door_drawer_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name))
+            edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name), display_name=False)
+            secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name), display_name=False)
+            door_drawer_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name), display_name=False)
 
             if obj_props.is_cleat_bp:
                 edge_1_color_name = secondary_edge_color_name
@@ -4507,16 +4435,26 @@ class OPS_Export_XML(Operator):
 
             #Panel, Shelf
             if (obj_props.is_panel_bp or obj_props.is_shelf_bp) and (not obj_props.is_glass_shelf_bp or obj.get('IS_GLASS_SHELF')):
-                #If the Panels/Shelves are attached to an Island
-                if(obj.parent.parent and obj.parent.parent.sn_closets.is_island and sn_types.Assembly(obj.parent.parent).get_prompt("Depth 2")):
-                    if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
-                        edge_2 = "L1"
-                        edge_4 = "L2"
-                    else:
-                        edge_2 = "S1"
-                        edge_4 = "S2"
-                    edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                island_bp = sn_utils.get_bp(obj, 'PRODUCT')
+                #If the Panels/Shelves are attached to a Double Island
+                if island_bp and island_bp.sn_closets.is_island and sn_types.Assembly(island_bp).get_prompt("Depth 2"):
+                    is_kd_shelf = False
+                    if assembly.obj_bp.get("IS_SHELF"):
+                        is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
+                        if is_locked_shelf and is_locked_shelf.get_value():
+                            is_kd_shelf = True
+
+                    if "IS_BP_ISLAND_PANEL" in assembly.obj_bp or is_kd_shelf:
+                        if math.isclose(abs(assembly.obj_bp.rotation_euler.y), math.pi/2, rel_tol=1e-5):
+                            edge_1 = "L1"
+                            edge_3 = "L2"
+                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        else:
+                            edge_2 = "S1"
+                            edge_4 = "S2"
+                            edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 else:
                     if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                         edge_2 = "L1"
@@ -4642,7 +4580,7 @@ class OPS_Export_XML(Operator):
                         edge_2 = "L1"
                     else:
                         edge_2 = "S1"
-                    if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Duraply White" or mat_inventory_name == "White Paper 11300"):
+                    if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Duraply White" or mat_inventory_name == "White Paper 11300" or mat_inventory_name == "Winter White" or mat_inventory_name == "Mountain Peak" or mat_inventory_name == "Snow Drift"):
                         edge_2_sku = "EB-0000316"
                     elif(mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Almond Paper 11300"):
                         edge_2_sku = "EB-0000315"
@@ -5095,16 +5033,18 @@ class OPS_Export_XML(Operator):
                         # If the Toe Kick is Attached to an Island
                         if(obj.parent.parent and obj.parent.parent.sn_closets.is_island):
                             if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
-                                edge_1 = "S1"
-                                edge_3 = "S2"
+                                edge_2 = "S1"
+                                edge_4 = "S2"
+                                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                                
                             else:
                                 edge_1 = "L1"
                                 edge_3 = "L2"
-                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                            edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         else:                          
                             if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
-                                edge_1 = "S1"
+                                edge_2 = "S1"
                             else:
                                 edge_1 = "L1"
                             edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
@@ -5145,6 +5085,17 @@ class OPS_Export_XML(Operator):
                                 edge_4 = "L2"
                                 edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                                 self.top_edgebanded_flat_crown.pop()
+
+            # Island capping back
+            if "IS_BP_CAPPING_BACK" in assembly.obj_bp:
+                edge_1 = "L1"
+                edge_2 = "S1"
+                edge_3 = "L2"
+                edge_4 = "S2"
+                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             # Capping Base
             if "IS_BP_TOE_KICK_CAPPING_BASE" in assembly.obj_bp:
@@ -5660,6 +5611,7 @@ class OPS_Export_XML(Operator):
         self.xml.add_element_with_text(lbl_node, "Value", item[2])
 
     def execute(self, context):
+        sn_utils.set_main_scene(context)
         bpy.ops.closet_machining.prepare_closet_for_export()
         bpy.ops.sn_closets.update_drawer_boxes(add=True)
         debug_mode = context.preferences.addons["snap"].preferences.debug_mode

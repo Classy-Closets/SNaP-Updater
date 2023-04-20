@@ -1895,15 +1895,13 @@ class SNAP_OT_Auto_Dimension(Operator):
                 # STD Insert
                 elif insert_type == 1:
                     jwl_ins = f'Jewelry Insert {insert_width}in {drawer_num}'
-                    sld_ins = f'Sliding Insert {insert_width}in {drawer_num}'
                     j_choice = drawer_stack.get_prompt(jwl_ins).get_value()
-                    s_choice = drawer_stack.get_prompt(sld_ins).get_value()
-                    drawer_stack.get_prompt(sld_ins)
-                    if insert_width == 18 and (j_choice in vl18 or s_choice in vl18):
+
+                    if insert_width == 18 and (j_choice in vl18):
                         return True
-                    elif insert_width == 21 and (j_choice in vl21 or s_choice in vl21):
+                    elif insert_width == 21 and (j_choice in vl21):
                         return True
-                    elif insert_width == 24 and (j_choice in vl24 or s_choice in vl24):
+                    elif insert_width == 24 and (j_choice in vl24):
                         return True
                 # Non-STD Insert GT 16
                 elif insert_type == 2:
@@ -1929,22 +1927,17 @@ class SNAP_OT_Auto_Dimension(Operator):
             use_dbl_drawer = drawer_stack.get_prompt("Use Double Drawer " + str(drawer_num))
             is_dbl_drawer = use_dbl_drawer.get_value()
             has_jwl_insert_pmpt = drawer_stack.get_prompt(f'Has Jewelry Insert {drawer_num}')
-            has_sld_insert_pmpt = drawer_stack.get_prompt(f'Has Sliding Insert {drawer_num}')
             has_velvet_liner = self.query_velvet_liner(drawer_stack, drawer_num)
 
-            if has_jwl_insert_pmpt and has_sld_insert_pmpt:
+            if has_jwl_insert_pmpt:
                 has_jwl_insert = has_jwl_insert_pmpt.get_value()
-                has_sld_insert = has_sld_insert_pmpt.get_value()
 
                 if is_dbl_drawer and not has_velvet_liner:
                     self.apply_drawer_lbl(drawer_stack, drawer_num, 'Db Jwlry')
                 elif not is_dbl_drawer and not has_velvet_liner:
-                    if has_jwl_insert and not has_sld_insert:
+                    if has_jwl_insert:
                         self.apply_drawer_lbl(drawer_stack, drawer_num, 'Jwlry')
-                    elif not has_jwl_insert and has_sld_insert:
-                        self.apply_drawer_lbl(drawer_stack, drawer_num, 'SLD')
-                    elif has_jwl_insert and has_sld_insert:
-                        self.apply_drawer_lbl(drawer_stack, drawer_num, 'Jwlry + SLD')
+
                 elif has_velvet_liner:
                     self.apply_drawer_lbl(drawer_stack, drawer_num, 'VL')
 
@@ -3034,17 +3027,15 @@ class SNAP_OT_Auto_Dimension(Operator):
         door_assy = sn_types.Assembly(door_obj)
         if not door_assy:
             return
-        door_height = door_assy.obj_y.location.y + diff_prompts_and_height
-        door_width = door_assy.obj_x.location.x
+        door_height = door_assy.obj_x.location.x + diff_prompts_and_height
+        door_width = abs(door_assy.obj_y.location.y)
         label = self.get_wallbed_door_size(door_height)
         dim = self.add_tagged_dimension(door_obj)
-        dim.start_x(
-            value=(door_width / 4) * 3)
-        dim.start_y(value=(door_height / 5) * 4)
-        dim.start_z(value=0)
-        if 'H' in label:
+        dim.start_x(value=(door_width / 4) * 3)
+        dim.start_y(value=(door_width / 5) * 4)
+        if 'H' in str(label):
             dim.set_label(label)
-        elif 'H' not in label:
+        elif 'H' not in str(label):
             lbl_value = self.to_inch_lbl(door_height)
             dim.set_label(lbl_value)
 
@@ -3077,6 +3068,7 @@ class SNAP_OT_Auto_Dimension(Operator):
 
     def execute(self, context):
         self.clean_up_scene(context)
+        bpy.ops.closet_machining.prepare_closet_for_export()
         scene_props = get_dimension_props()
         self.font = opengl_dim.get_custom_font()
         self.font_bold = opengl_dim.get_custom_font_bold()
@@ -3123,8 +3115,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                     # General Options
                     if scene_props.variable:
                         self.variable_opening_label(child)
-                    if (scene_props.third_line_holes and
-                       'section' in child.name.lower()):
+                    if scene_props.third_line_holes and 'section' in child.name.lower():
                         self.extra_drilling_labeling(child)
 
                     # Dog Ear
@@ -3212,28 +3203,25 @@ class SNAP_OT_Auto_Dimension(Operator):
                 hamper_type = hamper_insert.get_prompt("Hamper Type")
                 hamper_height = hamper_insert.get_prompt("Hamper Height")
 
-                if hamper_type and hamper_height:
-                    """
-                    TODO: Implement complete hamper type labeling when
-                    prompts are fully updated
+                if not hamper_height:
                     type_index = hamper_type.get_value()
                     type_name = hamper_type.combobox_items[type_index].name
-                    dim_slide.set_label(f'Hamper|{type_name}')
-                    """
-                    dim_slide = self.add_tagged_dimension(assembly.obj_bp)
-                    dim_slide.start_x(value=hamper_insert.obj_x.location.x / 2)
-                    dim_slide.start_z(value=hamper_height.get_value() / 2)
-                    dim_slide.set_label('Hamper')
+                    if type_index == 0:
+                        hamper_height = hamper_insert.get_prompt("Wire Hamper Height")
+                    else:
+                        hamper_height = hamper_insert.get_prompt("Nylon Hamper Height")
 
-                    dim_hole_number = self.add_tagged_dimension(
-                        assembly.obj_bp)
-                    dim_hole_number.start_x(
-                        value=(hamper_insert.obj_x.location.x / 4) * 3)
-                    dim_hole_number.start_z(
-                        value=(hamper_height.get_value() / 4) * 3)
+                if hamper_type and hamper_height:
+                    dim_lbl = self.add_tagged_dimension(assembly.obj_bp)
+                    dim_lbl.start_x(value=hamper_insert.obj_x.location.x / 2)
+                    dim_lbl.start_z(value=hamper_height.get_value() / 2)
+                    dim_lbl.set_label('Hamper')
+
+                    dim_hole_number = self.add_tagged_dimension(assembly.obj_bp)
+                    dim_hole_number.start_x(value=(hamper_insert.obj_x.location.x / 4) * 3)
+                    dim_hole_number.start_z(value=(hamper_height.get_value() / 4) * 3)
                     dim_hole_number.start_y(value=sn_unit.inch(100))
-                    dim_hole_number.set_label(
-                        common_lists.HAMPER_SIZES_DICT[str(round(hamper_height.get_value() * 1000, 3))])
+                    dim_hole_number.set_label(common_lists.HAMPER_SIZES_DICT[str(round(hamper_height.get_value() * 1000, 3))])
 
             # Locks Labels
             if scene_props.locks and 'lock' in assembly.obj_bp.name.lower():

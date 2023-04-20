@@ -18,7 +18,7 @@ from snap.sn_unit import inch
 
 from snap import sn_paths, sn_utils, sn_unit, sn_types
 from snap.libraries.closets import closet_library
-from snap.libraries.kitchen_bath import cabinet_interiors, frameless_exteriors, frameless_splitters, kitchen_bath_library
+from snap.libraries.kitchen_bath import cabinet_interiors, frameless_exteriors, frameless_splitters, frameless_appliances, kitchen_bath_library
 from snap.libraries.doors_and_windows import doors_and_windows_library
 from snap.libraries.appliances import appliance_library
 from . import addon_updater_ops
@@ -30,7 +30,8 @@ ASSET_LIBRARIES = (
     (kitchen_bath_library, "Kitchen Bath Library"),
     (frameless_splitters, "Kitchen Bath Library"),
     (frameless_exteriors, "Kitchen Bath Library"),
-    (cabinet_interiors, "Kitchen Bath Library"))
+    (cabinet_interiors, "Kitchen Bath Library"),
+    (frameless_appliances, "Kitchen Bath Library"))
 
 DEV_TOOLS_AVAILABLE = False
 

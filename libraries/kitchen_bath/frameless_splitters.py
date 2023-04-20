@@ -21,18 +21,7 @@ PART_WITH_EDGEBANDING = path.join(closet_paths.get_closet_assemblies_path(), "Pa
 def get_splitter_count(product):
     count = 0
 
-    splitters = sn_utils.get_tagged_bp_list(product, "IS_BP_SPLITTER", [])
-
-    if splitters:
-        count = len(splitters)
-        
-    print("get_splitter_count.splitter_count=" + str(count))    
-    return count + 1
-
-def get_splitter_count(product):
-    count = 0
-
-    splitters = sn_utils.get_tagged_bp_list(product, "IS_BP_SPLITTER", [])
+    splitters = sn_utils.get_tagged_bp_list(product.obj_bp, "IS_BP_SPLITTER", [])
 
     if splitters:
         count = len(splitters)
@@ -51,16 +40,14 @@ class Vertical_Splitters(sn_types.Assembly):
     drop_id = "lm_cabinets.insert_splitters_drop"
 
     mirror_y = False
-
-    calculator = None
-    calculator_name = "Opening Heights Calculator"
-    calculator_obj_name = "Shelf Stack Calc Distance Obj"    
-  
     open_name = ""
-
     splitter_nbr = 1
     vertical_openings = 2 #1-10
 
+    calculator = None
+    calculator_name = "Opening Heights Calculator"
+    calculator_obj_name = "Opening Heights Calc Distance Obj"    
+    
     opening_1_height = 0
     opening_2_height = 0
     opening_3_height = 0
@@ -229,10 +216,12 @@ class Vertical_Splitters(sn_types.Assembly):
             else:
                 z_loc_vars.append(Height)
                 splitter.loc_z('Height-Opening_' + str(i) + '_Height',z_loc_vars)
+
             splitter.dim_x('Width',[Width])
             splitter.dim_y('Depth',[Depth])
             splitter.dim_z('-Thickness',[Thickness])
             remove_splitter = eval("self.remove_splitter_" + str(i))
+
             if remove_splitter:
                 splitter.get_prompt('Hide').set_fomula(value=True)
             
@@ -264,10 +253,14 @@ class Vertical_Splitters(sn_types.Assembly):
 
     def draw(self):
         self.create_assembly()
+        self.add_prompts()
+
+        self.splitter_nbr = get_splitter_count(self)
         self.obj_bp['IS_BP_SPLITTER'] = True
         self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
-        self.add_prompts()
+        self.obj_bp['PLACEMENT_TYPE'] = "Splitter"
         self.add_splitters()
+
         self.update()
 
     def export(self):
@@ -281,13 +274,17 @@ class Horizontal_Splitters(sn_types.Assembly):
     placement_type = "SPLITTER"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    drop_id = "sn_closets.drop_insert"
+    # drop_id = "sn_closets.drop_insert"
+    drop_id = "lm_cabinets.insert_splitters_drop"
     
     mirror_y = False
     open_name = ""
-
     splitter_nbr = 1
     horizontal_openings = 2 #1-10
+
+    calculator = None
+    calculator_name = "Opening Widths Calculator"
+    calculator_obj_name = "Opening Widths Distance Obj"   
 
     opening_1_width = 0
     opening_2_width = 0
@@ -335,10 +332,11 @@ class Horizontal_Splitters(sn_types.Assembly):
         # Thickness = self.get_prompts('Thickness').get_var()
         # self.calculator_deduction("Thickness*(" + str(self.horizontal_openings) +"-1)",[Thickness])
         
-    def add_insert(self,insert,index,x_loc_vars=[],x_loc_expression=""):
+    def add_insert(self,insert,index,x_loc_vars=[],x_loc_expression="", opening_nbr=""):
         Height = self.obj_z.snap.get_var("location.z","Height")
         Depth = self.obj_y.snap.get_var("location.y","Depth")
-        open_var = eval("self.get_prompt('Opening " + str(index) + " Width').get_var()")
+        width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(index)))
+        opening_width = eval("width_prompt.get_var(self.calculator.name, 'Opening_{}_Width')".format(str(index)))
         x_dim_expression = "Opening_" + str(index) + "_Width"
         
         if insert:
@@ -346,11 +344,14 @@ class Horizontal_Splitters(sn_types.Assembly):
                 insert.draw()
 
             insert.obj_bp.parent = self.obj_bp
+            insert.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
+            insert.obj_bp['OPENING_NBR'] = opening_nbr    
             if index == 1:
                 insert.loc_x(value = 0)
             else:
                 insert.loc_x(x_loc_expression,x_loc_vars)
-            insert.dim_x(x_dim_expression,[open_var])
+
+            insert.dim_x(x_dim_expression, [opening_width])
             insert.dim_y('Depth',[Depth])
             insert.dim_z('Height',[Height])
         
@@ -358,6 +359,7 @@ class Horizontal_Splitters(sn_types.Assembly):
         opening = self.add_opening()
         opening.set_name("Opening " + str(index))
         opening.obj_bp.name = "Opening " + str(index)
+        opening.obj_bp['IS_BP_OPENING'] = True
         opening.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
         opening.obj_bp['OPENING_NBR'] = index
         opening.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
@@ -378,72 +380,107 @@ class Horizontal_Splitters(sn_types.Assembly):
             
         return opening
         
+    def add_calculator(self, amt):
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Thickness = self.get_prompt('Thickness').get_var("Thickness")
+
+        calc_distance_obj = self.add_empty(self.calculator_obj_name)
+        calc_distance_obj.empty_display_size = .001
+        self.calculator = self.obj_prompts.snap.add_calculator(self.calculator_name, calc_distance_obj)
+        self.calculator.set_total_distance("Width-Thickness*{}".format(str(amt - 1)), [Width, Thickness])
+
+    def add_calculator_prompts(self, amt):
+        self.calculator.prompts.clear()
+        for i in range(1, amt + 1):
+            prompt = self.calculator.add_calculator_prompt("Opening " + str(i) + " Width")
+            size = eval("self.opening_" + str(i) + "_width")
+            if size > 0:
+                prompt.set_value(size)
+                prompt.equal = False
+
     def add_splitters(self):
         Height = self.obj_z.snap.get_var("location.z","Height")
         Depth = self.obj_y.snap.get_var("location.y","Depth")
         Thickness = self.get_prompt('Thickness').get_var()
-        
         previous_splitter = None
         
+        if not self.calculator:
+            self.add_calculator(self.horizontal_openings)
+
+        self.add_calculator_prompts(self.horizontal_openings) 
+        
         for i in range(1,self.horizontal_openings):
-            
+            width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
+            opening_width = eval("width_prompt.get_var(self.calculator.name, 'Opening_{}_Width')".format(str(i)))  
+
             x_loc_vars = []
-            open_var = eval("self.get_prompt('Opening " + str(i) + " Width').get_var()")
-            x_loc_vars.append(open_var)
+            x_loc_vars.append(opening_width)
             
             if previous_splitter:
-                x_loc = previous_splitter.obj_x.snap.get_var("loc_x","Splitter_X_Loc")
+                x_loc = previous_splitter.obj_bp.snap.get_var("location.x","Splitter_X_Loc")
                 x_loc_vars.append(x_loc)
-                x_loc_vars.append(Thickness)
 
             splitter = common_parts.add_kd_shelf(self)
             splitter.set_name("Splitter " + str(i))
             if previous_splitter:
+                x_loc_vars.append(Thickness)
                 splitter.loc_x("Splitter_X_Loc+Thickness+Opening_" + str(i) + "_Width",x_loc_vars)
             else:
-                splitter.loc_x("Opening_" + str(i) + "_Width",[open_var])
+                splitter.loc_x("Opening_" + str(i) + "_Width",x_loc_vars)
+
             splitter.rot_y(value=math.radians(-90))
             splitter.dim_x('Height',[Height])
             splitter.dim_y('Depth',[Depth])
             splitter.dim_z('-Thickness',[Thickness])
-            # splitter.cutpart("Cabinet_Shelf")
-            # splitter.edgebanding('Cabinet_Body_Edges',l2 = True)
-
+   
             previous_splitter = splitter
 
+            opening_x_loc_vars = []
+            opening_x_loc = previous_splitter.obj_bp.snap.get_var("location.x","Splitter_X_Loc")
+            opening_x_loc_vars.append(opening_x_loc)
+            opening_x_loc_vars.append(Thickness)
+            opening_x_loc_vars.append(opening_width)
+            x_loc_expression = "Splitter_X_Loc-Opening_" + str(i) + "_Width"
+
+            opening = self.get_opening(i)
+            self.add_insert(opening, i, opening_x_loc_vars, x_loc_expression, opening.obj_bp["OPENING_NBR"])
+
             exterior = eval('self.exterior_' + str(i))
-            self.add_insert(exterior, i, x_loc_vars, "Splitter_X_Loc+Thickness")
+            self.add_insert(exterior, i, opening_x_loc_vars, x_loc_expression, opening.obj_bp["OPENING_NBR"])
             
             interior = eval('self.interior_' + str(i))
-            self.add_insert(interior, i, x_loc_vars, "Splitter_X_Loc+Thickness")
-            
-            opening = self.get_opening(i)
-            self.add_insert(opening, i, x_loc_vars, "Splitter_X_Loc+Thickness")
-            
-        insert_x_loc_vars = []
-        insert_x_loc = previous_splitter.obj_x.snap.get_var("loc_x","Splitter_X_Loc")
-        insert_x_loc_vars.append(insert_x_loc)
-        insert_x_loc_vars.append(Thickness)
+            self.add_insert(interior, i, opening_x_loc_vars, x_loc_expression, opening.obj_bp["OPENING_NBR"])
 
         #ADD LAST INSERT
+        width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(self.horizontal_openings)))
+        opening_width = eval("width_prompt.get_var(self.calculator.name, 'Opening_{}_Width')".format(str(self.horizontal_openings)))  
+        last_opening = self.get_opening(self.horizontal_openings)
+        opening_x_loc_vars = []
+        opening_x_loc = previous_splitter.obj_bp.snap.get_var("location.x","Splitter_X_Loc")
+        opening_x_loc_vars.append(opening_x_loc)
+        opening_x_loc_vars.append(Thickness)
+        opening_x_loc_vars.append(opening_width)
+
+        x_loc_expression = "Splitter_X_Loc+Thickness"
+        self.add_insert(last_opening, self.horizontal_openings,opening_x_loc_vars, x_loc_expression, last_opening.obj_bp["OPENING_NBR"])
+
         last_exterior = eval('self.exterior_' + str(self.horizontal_openings))
-        self.add_insert(last_exterior, self.horizontal_openings,insert_x_loc_vars, "Splitter_X_Loc+Thickness")
+        self.add_insert(last_exterior, self.horizontal_openings,opening_x_loc_vars, x_loc_expression, last_opening.obj_bp["OPENING_NBR"])
           
         last_interior = eval('self.interior_' + str(self.horizontal_openings))
-        self.add_insert(last_interior, self.horizontal_openings,insert_x_loc_vars, "Splitter_X_Loc+Thickness")
+        self.add_insert(last_interior, self.horizontal_openings,opening_x_loc_vars, x_loc_expression, last_opening.obj_bp["OPENING_NBR"])
 
-        last_opening = self.get_opening(self.horizontal_openings)
-        self.add_insert(last_opening, self.horizontal_openings,insert_x_loc_vars, "Splitter_X_Loc+Thickness")
-        
     def draw(self):
         self.create_assembly()
+        self.add_prompts()
+        
         self.splitter_nbr = get_splitter_count(self)
         self.obj_bp['IS_BP_SPLITTER'] = True
         self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
-        self.add_prompts()
+        self.obj_bp['PLACEMENT_TYPE'] = "Splitter"
         self.add_splitters()
-        self.update()
 
+        self.update()
 
 #---------SPLITTER OPERATORS
 class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
@@ -458,12 +495,15 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
         super().confirm_placement(context)
 
         insert = sn_types.Assembly(self.insert.obj_bp)
-        product_bp = sn_utils.get_parent_assembly_bp(self.insert.obj_bp)
+        # product_bp = sn_utils.get_parent_assembly_bp(self.insert.obj_bp)
+        product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
 
         splitters = sn_utils.get_tagged_bp_list(product_bp, "IS_BP_SPLITTER", [])
         splitter_qty = len(splitters)
 
         insert.obj_bp["SPLITTER_NBR"] = splitter_qty
+        if self.selected_opening.obj_bp['OPENING_NBR']:
+                insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
 
         # opening_nbr = 1
         for obj_bp in insert.obj_bp.children:

@@ -671,23 +671,16 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                     if CTR.get_value() and CBT.get_value() == 1:  # 1 is 3/4"
                                         if Cleat_Loc:
                                             Cleat_Loc.set_value(2)
-                                    elif CTR.get_value() and CBT.get_value() == 0:  # 0 is 1/4"
+                                    elif CTR.get_value() and CBT.get_value() in (0, 2):  # 0 is 1/4"
                                         if Cleat_Loc:
                                             Cleat_Loc.set_value(0)
 
-                                    if "IS_BP_ROD_AND_SHELF" in obj_bp:
-                                        if (CTR.get_value() and CBT.get_value() == 0):
-                                            Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                        elif (CTR.get_value() and CBT.get_value() == 1):
-                                            Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                        else:
-                                            Shelf_Backing_Setback.set_value(sn_unit.inch(0))
-
-                                    if obj_props.is_splitter_bp:
-                                        if (CTR.get_value() and CBT.get_value() == 0):
-                                            Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                        elif (CTR.get_value() and CBT.get_value() == 1):
-                                            Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                    if "IS_BP_ROD_AND_SHELF" in obj_bp or obj_props.is_splitter_bp:
+                                        if CTR.get_value():
+                                            if CBT.get_value() == 1:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
@@ -697,10 +690,10 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                     if obj_props.is_hamper_insert_bp:
                                         if single_back:
                                             Cleat_Loc.set_value(2)
-                                            if CBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                            if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         elif TOP.get_value() and TBT.get_value() == 1:
                                             Cleat_Loc.set_value(2)
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
@@ -728,42 +721,37 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         use_bottom_kd_setback = door_insert.get_prompt("Use Bottom KD Setback")
                                         if use_bottom_kd_setback:
                                             use_bottom_kd_setback.set_value(single_back)
-                                        if single_back:
-                                            if CBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                        if single_back or TOP.get_value():
+                                            if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                        elif TOP.get_value():
-                                            if TBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                             else:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
                                     if "IS_BP_ROD_AND_SHELF" in obj_bp:
                                         if single_back:
-                                            if CBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                            if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         elif TOP.get_value():
-                                            if TBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                            if TBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
 
                                     if obj_props.is_splitter_bp:
                                         if single_back:
-                                            if CBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                            if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         elif TOP.get_value():
-                                            if TBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-                                            else:
+                                            if TBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
@@ -790,10 +778,10 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                     if obj_props.is_hamper_insert_bp:
                                         if full_back or btm_ctr_back:
                                             Cleat_Loc.set_value(2)
-                                            if CBT.get_value() == 0:
-                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                            else:
+                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         elif top_ctr_back and CBT.get_value() == 1:
                                             Cleat_Loc.set_value(2)
                                         elif CTR.get_value() and CBT.get_value() == 1:
@@ -814,12 +802,12 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         if full_back or top_ctr_back:
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                            elif CBT.get_value() == 0:
+                                            else:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         elif top_back:
                                             if TBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                            elif TBT.get_value() == 0:
+                                            else:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
@@ -828,7 +816,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         if full_back or top_ctr_back:
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                            elif CBT.get_value() == 0:
+                                            else:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
@@ -837,7 +825,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         if full_back or top_ctr_back:
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
-                                            elif CBT.get_value() == 0:
+                                            else:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))

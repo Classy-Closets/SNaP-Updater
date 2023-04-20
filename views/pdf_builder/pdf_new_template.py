@@ -11,7 +11,7 @@ registerFont(TTFont('Calibri', 'calibri.ttf'))
 GREY = (0.851, 0.851, 0.851)
 REDWINE = (0.435, 0.078, 0.0)
 BLACK = (0.0, 0.0, 0.0)
-FORBIDDEN_STRINGS = ["Δ "]
+FORBIDDEN_STRINGS = [" Δ"]
 
 
 class New_Template_Builder(Pdf_Builder):

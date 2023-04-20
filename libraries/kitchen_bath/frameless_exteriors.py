@@ -19,6 +19,7 @@ from snap.libraries.closets.common import common_lists
 from snap.views import opengl_dim
 from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
 from snap.libraries.closets.common import common_parts as closet_common_parts
+from snap.libraries.kitchen_bath.carcass_simple import Island_Carcass
 
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
@@ -26,6 +27,11 @@ LIBRARY_NAME = "Cabinets"
 INSERT_DOOR_CATEGORY_NAME = "Starter Inserts"
 INSERT_DRAWER_CATEGORY_NAME = "Starter Inserts"
 
+ISLAND_FRONT_ROW = 0
+ISLAND_BACK_ROW = 1
+ISLAND_BASE_CARCASS = 0
+ISLAND_APPLIANCE_CARCASS = 1
+ISLAND_SINK_CARCASS = 2
 
 PART_WITH_FRONT_EDGEBANDING = path.join(closet_paths.get_closet_assemblies_path(), "Part with Front Edgebanding.blend")
 DOOR = path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
@@ -255,7 +261,7 @@ class Doors(sn_types.Assembly):
         add_common_door_prompts(self)
         add_frameless_overlay_prompts(self)
         if self.false_front_qty > 0:
-            self.add_prompt("False Front Height", 'DISTANCE', sn_unit.inch(6))
+            self.add_prompt("False Front Height", 'DISTANCE', sn_unit.inch(4.875))
 
     def set_standard_drivers(self,assembly):
         Height = self.obj_z.snap.get_var('location.z','Height')
@@ -719,6 +725,7 @@ class Vertical_Drawers(sn_types.Assembly):
         self.obj_bp.sn_closets.is_drawer_stack_bp = True
         self.obj_bp['VERTICAL_DRAWERS'] = True
         self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
+        
         self.add_common_prompts()
 
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -925,42 +932,48 @@ class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
 
     def confirm_placement(self, context):
         super().confirm_placement(context)
-
+        
         insert = sn_types.Assembly(self.insert.obj_bp)
-        if self.selected_opening.obj_bp['OPENING_NBR']:
-                insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+        opening = self.selected_opening
+        if opening.obj_bp.get('OPENING_NBR'):
+                insert.obj_bp['OPENING_NBR'] = opening.obj_bp.get('OPENING_NBR')
 
-        product = sn_types.Assembly(self.insert.obj_bp.parent)
-
+        obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
+        product = sn_types.Assembly(obj_product_bp)
+        
         carcass = None
-        inserts = sn_utils.get_insert_bp_list(product.obj_bp, [])
-        for obj_bp in inserts:
-            if "IS_BP_CARCASS" in obj_bp:
-                carcass = sn_types.Assembly(obj_bp)
-            
-        if not carcass:
-            product = sn_types.Assembly(product.obj_bp.parent)
-            inserts = sn_utils.get_insert_bp_list(product.obj_bp, [])
-            for obj_bp in inserts:
-                if "IS_BP_CARCASS" in obj_bp:
-                    carcass = sn_types.Assembly(obj_bp)
+        for child in product.obj_bp.children:
+            if "IS_BP_CARCASS" in child:
+                carcass = sn_types.Assembly(child)
+                break
+        # ALLOW DOOR TO EXTEND WHEN SUB FRONT IS FOUND
+        if carcass:
+            sub_front_height_ppt = carcass.get_prompt("Sub Front Height")
+            top_reveal_ppt = insert.get_prompt("Top Reveal")
 
-         # ALLOW DOOR TO EXTEND WHEN SUB FRONT IS FOUND
-        sub_front_height = carcass.get_prompt("Sub Front Height")
-        top_reveal = insert.get_prompt("Top Reveal")
+            if sub_front_height_ppt:
+                Sub_Front_Height = sub_front_height_ppt.get_var()
+            if top_reveal_ppt:
+                Top_Reveal = top_reveal_ppt.get_var()
 
-        if sub_front_height and top_reveal:
-            Sub_Front_Height = carcass.get_prompt("Sub Front Height").get_var()
-            Top_Reveal = top_reveal.get_var()
+            is_Island_Section_Opening = opening.obj_bp.get("ISLAND_ROW_NBR")
+            is_Splitter_Opening = opening.obj_bp.get("SPLITTER_NBR")
 
-            insert.get_prompt('Extend Top Amount').set_formula('Sub_Front_Height-Top_Reveal',[Sub_Front_Height,Top_Reveal])
-
+            if is_Island_Section_Opening:
+                opening_nbr = self.selected_opening.obj_bp.get("OPENING_NBR")
+                Carcass_Subtype = carcass.get_prompt("Carcass Subtype " + str(opening_nbr)).get_var("Carcass_Subtype")
+                insert.get_prompt('Extend Top Amount').set_formula('IF(Carcass_Subtype==' + str(ISLAND_SINK_CARCASS) +',Sub_Front_Height+Top_Reveal,Top_Reveal)',
+                                                                   [Carcass_Subtype,Sub_Front_Height,Top_Reveal])
+            elif is_Splitter_Opening:
+                pass
+            else:
+                if sub_front_height_ppt and top_reveal_ppt:
+                    insert.get_prompt('Extend Top Amount').set_formula('Sub_Front_Height-Top_Reveal',[Sub_Front_Height,Top_Reveal])
+                # elif top_reveal_ppt:
+                #     insert.get_prompt('Extend Top Amount').set_formula('Top_Reveal',[Top_Reveal])
 
         # if door being dropped in opening with empty interior, add default shelves and mark interior filled
-        opening = self.selected_opening
-
         if opening:
-
             if opening.obj_bp.snap.interior_open == True:
                 shelf_insert = cabinet_interiors.INSERT_Shelves()
                 shelf_insert = product.add_assembly(shelf_insert)
@@ -993,7 +1006,6 @@ class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
 
 bpy.utils.register_class(OPS_KB_Doors_Drop)
 
-
 class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
     bl_idname = "lm_cabinets.insert_drawers_drop"
     bl_label = "Custom drag and drop for drawers insert"
@@ -1004,38 +1016,33 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
     def confirm_placement(self, context):
         super().confirm_placement(context)
 
-        has_splitter = False
-        drawer_qty = 0
-        opening_qty = 0
-        splitter = None
-        
         insert = sn_types.Assembly(self.insert.obj_bp)
-        product = sn_types.Assembly(self.insert.obj_bp.parent)
-        carcass = None
-        opening = None
+        parent = sn_types.Assembly(self.insert.obj_bp.parent)
+        opening = self.selected_opening
 
-        if "IS_BP_SPLITTER" in product.obj_bp:
-            has_splitter = True
-            opening_qty = product.obj_bp
+        has_splitter = parent.obj_bp.get("IS_BP_SPLITTER")
 
-        for obj_bp in insert.obj_bp.children:
-            if "IS_BP_DRAWER_FRONT" in obj_bp:
-                drawer_qty += 1
-        
-        # if insert is single drawer and there is no splitter, create splitte and set size to default for top drawer...
-        if not has_splitter and drawer_qty == 1:
+        insert_ppt = insert.get_prompt("Drawer Quantity")
+        if insert_ppt:
+            drawer_qty = insert_ppt.get_value()
+
+        if self.selected_opening.obj_bp.get('OPENING_NBR'):
+            insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+
+        # if insert is single drawer and there is no splitter, create splitter and set size to default for top drawer...
+        if not has_splitter and drawer_qty and drawer_qty == 1:
+            obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
+            product = sn_types.Assembly(obj_product_bp)
             for obj_bp in product.obj_bp.children:
                 if "IS_BP_CARCASS" in obj_bp:
                     carcass = sn_types.Assembly(obj_bp)
-                if "IS_BP_OPENING" in obj_bp:
-                    opening = sn_types.Assembly(obj_bp)
+                    break
 
             splitter = frameless_splitters.INSERT_2_Vertical_Openings()
             drawer = INSERT_1_Drawer()
 
             if carcass.obj_bp['CARCASS_TYPE'] != 'Suspended':
                 self.insert.obj_bp["DEFAULT_OVERRIDE"] = True
-                # splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) # - sn_unit.inch(0.8)
                 if carcass.obj_bp['CARCASS_TYPE'] in {'Upper','Suspended'}:
                     splitter.opening_2_height = sn_unit.inch(4.29)
                     splitter.exterior_2 = drawer
@@ -1045,25 +1052,51 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
                     splitter.exterior_1 = drawer
                     splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
 
-                splitter = product.add_assembly(splitter)
+                splitter = parent.add_assembly(splitter)
+                splitter.obj_bp['OPENING_NBR'] = insert.obj_bp.get('OPENING_NBR')
                 opening.obj_bp.snap.interior_open = False
                 opening.obj_bp.snap.exterior_open = False
                 splitter.run_all_calculators()
                 
-                Width = product.obj_x.snap.get_var('location.x', 'Width')
-                Height = product.obj_z.snap.get_var('location.z', 'Height')
-                Depth = product.obj_y.snap.get_var('location.y', 'Depth')
+                Height = parent.obj_z.snap.get_var('location.z', 'Height')
                 Left_Side_Thickness = carcass.get_prompt("Left Side Thickness").get_var()
                 Right_Side_Thickness = carcass.get_prompt("Right Side Thickness").get_var()
                 Top_Inset = carcass.get_prompt("Top Inset").get_var()
                 Bottom_Inset = carcass.get_prompt("Bottom Inset").get_var()
                 Back_Inset = carcass.get_prompt("Back Inset").get_var()
 
-                splitter.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
-                splitter.loc_y('Depth',[Depth])
+                island_row_nbr = opening.obj_bp.get("ISLAND_ROW_NBR")    
+                if carcass.obj_bp.get('CARCASS_TYPE') == 'Island' and island_row_nbr:
+                    island_row_nbr -= 1
+                    opening_nbr = opening.obj_bp.get("OPENING_NBR")
+                    loc_x_exp, loc_x_vars, opening_width = Island_Carcass.get_calculator_widths(carcass, island_row_nbr, opening_nbr)
+                    loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness])
 
-                splitter.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
-                splitter.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])
+                    Front_Row_Depth = carcass.get_prompt('Front Row Depth').get_var()
+                    Back_Row_Depth = carcass.get_prompt('Back Row Depth').get_var()
+                    Chase_Depth = carcass.get_prompt('Chase Depth').get_var()
+
+                    if island_row_nbr == ISLAND_FRONT_ROW:
+                        splitter.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        splitter.dim_x('Opening_' + str(opening_nbr) + '_Width-(Left_Side_Thickness+Right_Side_Thickness)',loc_x_vars)
+                        if carcass.obj_bp.get("DOUBLE_SIDED"):
+                            splitter.loc_y('-Front_Row_Depth-Back_Row_Depth-Chase_Depth',[Front_Row_Depth,Back_Row_Depth,Chase_Depth])
+                            splitter.dim_y('Front_Row_Depth-Back_Inset',[Front_Row_Depth,Back_Inset])
+                        else:
+                            splitter.loc_y('-Front_Row_Depth',[Front_Row_Depth])
+                            splitter.dim_y('Back_Row_Depth-Back_Inset',[Back_Row_Depth,Back_Inset])
+                    elif island_row_nbr == ISLAND_BACK_ROW:
+                        splitter.loc_x(loc_x_exp + '-Left_Side_Thickness+Opening_' + str(opening_nbr) + '_Width', loc_x_vars)
+                        splitter.dim_x('Opening_' + str(opening_nbr) + '_Width-(Left_Side_Thickness+Right_Side_Thickness)',loc_x_vars)
+                        splitter.dim_y('Back_Row_Depth-Back_Inset',[Back_Row_Depth,Back_Inset])
+                        splitter.rot_z(value=math.radians(180))
+                else:
+                    Width = parent.obj_x.snap.get_var('location.x', 'Width')
+                    Depth = parent.obj_y.snap.get_var('location.y', 'Depth')
+                    splitter.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+                    splitter.loc_y('Depth',[Depth])
+                    splitter.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+                    splitter.dim_y('fabs(Depth)-Back_Inset',[Depth,Back_Inset])
 
                 if carcass.obj_bp['CARCASS_TYPE'] in {'Upper','Suspended'}:
                     splitter.loc_z('Height+Bottom_Inset',[Height,Bottom_Inset])

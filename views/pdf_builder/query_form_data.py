@@ -91,9 +91,7 @@ class Query_PDF_Form_Data:
     def __get_hampers(self, page_walls_dict):
         mat_props = bpy.context.scene.closet_materials
         basket_color = mat_props.wire_basket_colors
-        hamper_types = {
-            0 : "Wire", 1: "Hafele Nylon"
-        }
+        hamper_types = {0 : "Wire", 1: "Hafele Nylon"}
         scene_hampers = []
         pages_hampers = {}
         hampers_walls = {}
@@ -106,6 +104,7 @@ class Query_PDF_Form_Data:
             hamper_ins_assy = sn_types.Assembly(hmp.parent)
             hidden = hamper_assy.get_prompt("Hide").get_value()
             hamper_type_pmpt = hamper_ins_assy.get_prompt("Hamper Type")
+            hamper_color_pmpt = hamper_ins_assy.get_prompt("Wire Basket Color")
             hamper_pmpt = None
             if hamper_type_pmpt:
                 hamper_pmpt = hamper_type_pmpt.get_value()
@@ -117,19 +116,18 @@ class Query_PDF_Form_Data:
             wall_letter = wall_name.replace("Wall ", "")
             unseen = hmp.name not in seen
             if unseen and not hidden and hamper_type == "Wire" and really_basket:
-                basket_width = sn_unit.meter_to_inch(
-                    hamper_assy.obj_x.location.x)
-                basket_depth = sn_unit.meter_to_inch(
-                    hamper_assy.obj_y.location.y)
-                color_id = 2 if basket_color == 'CHROME' else 7
+                if hamper_color_pmpt:
+                    basket_color = hamper_color_pmpt.get_value()
+                    color_id = 2 if basket_color == 0 else 7
+                basket_width = sn_unit.meter_to_inch(hamper_assy.obj_x.location.x)
+                basket_depth = sn_unit.meter_to_inch(hamper_assy.obj_y.location.y)
                 width_id = 1 if basket_width == 18.0 else 2
                 depth_id = 3 if basket_depth == 14.0 else 4
-                vendor_id = '547.42.{}{}{}'.format(color_id,depth_id,width_id)
+                vendor_id = '547.42.{}{}{}'.format(color_id, depth_id, width_id)
                 scene_hampers.append((wall_letter, vendor_id))
                 seen.append(hmp.name)
             elif unseen and not hidden and hamper_type == "Hafele Nylon" and really_canvas:
-                basket_width = round(
-                    sn_unit.meter_to_inch(hamper_ins_assy.obj_x.location.x), 2)
+                basket_width = round(sn_unit.meter_to_inch(hamper_ins_assy.obj_x.location.x), 2)
                 if 24.0 > basket_width >= 18.0:
                     # HAMPER TILT OUT 18" 20H 
                     vendor_id = '547.43.311'
@@ -466,10 +464,16 @@ class Query_PDF_Form_Data:
 
     def __write_int_color(self):
         data_dict = {}
+        kb_products = sn_utils.get_kitchen_bath_products()
+
+        if kb_products:
+            return data_dict
+
         scene_props = self.context.scene.closet_materials
         mat_types = scene_props.materials.mat_types
         type_index = scene_props.mat_type_index
         material_type = mat_types[type_index]
+
         if material_type.name == "Upgrade Options":
             if scene_props.upgrade_options.get_type().name == "Paint":
                 colors = scene_props.paint_colors
@@ -497,6 +501,9 @@ class Query_PDF_Form_Data:
     def __write_trim_color(self):
         data_dict = {}
         scene_props = self.context.scene.closet_materials
+        mat_types = scene_props.materials.mat_types
+        mat_type_index = scene_props.mat_type_index
+        material_type = mat_types[mat_type_index]
         edge_types = scene_props.edges.edge_types
         type_index = scene_props.edge_type_index
         edge_type = edge_types[type_index]
@@ -504,6 +511,11 @@ class Query_PDF_Form_Data:
         color_index = scene_props.edge_color_index
         color = colors[color_index]
         data_dict["trim_color"] = color.name
+
+        # Stain/Paint EB
+        if material_type.name == "Upgrade Options":
+            data_dict["trim_color"] = ""
+
         if "white" in color.name.lower():
             data_dict["trim_white"] = True
         elif "almond" in color.name.lower():
@@ -513,7 +525,7 @@ class Query_PDF_Form_Data:
         elif "pvc" in edge_type.name.lower():
             data_dict["edge_3m_pvc"] = True
         return data_dict
-        
+
     def process(self):
         return self.data_dict
 
@@ -685,6 +697,7 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["side_lock"] = ''
         self.data_dict[page]["door_latch_qty"] = ''
         self.data_dict[page]["door_latch"] = ''
+
         # Hamper basket / bags
         for key, value in hmp_baskets_results.items():
             form_hmp_qty = self.data_dict[page]["hamper_qty"]
@@ -716,6 +729,7 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["misc_style"] += ' / '
                 self.data_dict[page]["misc_qty"] += qty
                 self.data_dict[page]["misc_style"] += key
+
         for key, value in rod_result.items():
             qty = str(value.get("qty", 0))
             if self.data_dict[page]["rod_qty"] != '':
@@ -796,7 +810,7 @@ class Query_PDF_Form_Data:
                 for item in for_hamper:
                     qty = str(part_numbers[item])
                     self.data_dict[page]["hamper_qty"] = qty
-                    # self.data_dict[page]["hamper"] = item
+                    self.data_dict[page]["hamper"] = item
                 for item in for_misc:
                     qty = str(part_numbers[item])
                     if self.data_dict[page]["misc_qty"] != '':

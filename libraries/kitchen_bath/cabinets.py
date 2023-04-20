@@ -1,7 +1,7 @@
 import bpy
 import snap
 from snap import sn_unit, sn_types, sn_paths, sn_utils
-from snap.libraries.kitchen_bath.carcass_simple import Inside_Corner_Carcass, Standard_Carcass
+from snap.libraries.kitchen_bath.carcass_simple import Inside_Corner_Carcass, Standard_Carcass, Island_Carcass
 from . import cabinet_properties
 from . import cabinet_countertops
 from . import common_parts
@@ -16,6 +16,12 @@ MICROWAVE =  os.path.join(os.path.dirname(__file__),"Appliances","Conventional M
 VENT =  os.path.join(os.path.dirname(__file__),"Appliances","Wall Mounted Range Hood.blend")
 REFRIGERATOR = os.path.join(os.path.dirname(__file__),"Appliances", "Professional Refrigerator Generic.blend")
 BLIND_PANEL = os.path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
+
+ISLAND_FRONT_ROW = 0
+ISLAND_BACK_ROW = 1
+ISLAND_BASE_CARCASS = 0
+ISLAND_APPLIANCE_CARCASS = 1
+ISLAND_SINK_CARCASS = 2
 
 def add_product_width_dimension(product):
     carcass = product.carcass
@@ -180,6 +186,8 @@ def update_dimensions(assembly):
         if "IS_BP_CARCASS" in obj_bp:
             if "STANDARD_CARCASS" in obj_bp:
                 carcass = Standard_Carcass(obj_bp)
+            elif "ISLAND_CARCASS" in obj_bp:
+                carcass = Island_Carcass(obj_bp)
             elif "INSIDE_CORNER_CARCASS" in obj_bp:
                 carcass = Inside_Corner_Carcass(obj_bp)
             carcass.update_dimensions()
@@ -201,7 +209,10 @@ def add_countertop(product):
     Countertop_Overhang_Front = product.get_prompt('Countertop Overhang Front').get_var()
     Countertop_Overhang_Left = product.get_prompt('Countertop Overhang Left').get_var()
     Countertop_Overhang_Right = product.get_prompt('Countertop Overhang Right').get_var()
-    Countertop_Overhang_Back = product.get_prompt('Countertop Overhang Back').get_var()
+    Countertop_Overhang_Back = product.get_prompt('Countertop Overhang Back').get_var() 
+
+ 
+
 
     Width = product.obj_x.snap.get_var('location.x', 'Width')
     Height = product.obj_z.snap.get_var('location.z', 'Height')
@@ -212,17 +223,42 @@ def add_countertop(product):
     ctop.obj_bp.snap.type_group = 'INSERT'
     
     ctop.obj_bp.parent = product.obj_bp
-    ctop.loc_x('-Countertop_Overhang_Left',[Countertop_Overhang_Left])
+    Add_Left_Waterfall = ctop.get_prompt('Add Left Waterfall').get_var()
+    Add_Right_Waterfall = ctop.get_prompt('Add Right Waterfall').get_var()
+
+    # ctop.loc_x('-Countertop_Overhang_Left',[Countertop_Overhang_Left])
+    ctop.loc_x('IF(Add_Left_Waterfall,0,-Countertop_Overhang_Left)',[Add_Left_Waterfall,Countertop_Overhang_Left])
     ctop.loc_y('Countertop_Overhang_Back',[Countertop_Overhang_Back])
     if product.carcass.carcass_type == "Suspended":
         ctop.loc_z(value = 0)
     else:
         ctop.loc_z('Height',[Height])
 
-    ctop.dim_x('Width+Countertop_Overhang_Left+Countertop_Overhang_Right',
-               [Width,Countertop_Overhang_Left,Countertop_Overhang_Right])
-    ctop.dim_y('Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',[Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
+    # ctop.dim_x('Width+Countertop_Overhang_Left+Countertop_Overhang_Right',
+    #            [Width,Countertop_Overhang_Left,Countertop_Overhang_Right])
+    ctop.dim_x('Width+IF(Add_Left_Waterfall,0,Countertop_Overhang_Left)+IF(Add_Right_Waterfall,0,Countertop_Overhang_Right)',
+               [Width,Add_Left_Waterfall,Countertop_Overhang_Left,Add_Right_Waterfall,Countertop_Overhang_Right])
+
+    if product.carcass.obj_bp.get("CARCASS_TYPE") == 'Island':
+        Front_Row_Depth = product.carcass.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = product.carcass.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = product.carcass.get_prompt('Chase Depth').get_var()
+        if product.carcass.double_sided == True:
+            ctop.dim_y('-Front_Row_Depth-Back_Row_Depth-Chase_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',
+                    [Front_Row_Depth,Back_Row_Depth,Chase_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
+        else:
+            ctop.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',
+                    [Front_Row_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
+    else:
+        ctop.dim_y('Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',[Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
     ctop.dim_z(value = sn_unit.inch(4))
+
+    # Add waterfall heights based on proeduct height...
+    for child in ctop.obj_bp.children:
+        if child.get('IS_BP_WATERFALL'):
+            waterfall = sn_types.Assembly(child)
+            waterfall.loc_z('-Height',[Height])
+            waterfall.dim_y('Height',[Height])
     return ctop
 
 def create_cabinet(product):
@@ -349,6 +385,7 @@ def add_opening(product):
     opening = product.add_opening()
     opening.obj_bp.name = "Opening 1"
     opening.obj_bp['IS_BP_OPENING'] = True
+    opening.obj_bp.snap.type_group = 'OPENING'
     opening.obj_bp['OPENING_NBR'] = 1
     opening.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
     opening.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
@@ -910,6 +947,187 @@ class Inside_Corner(sn_types.Assembly):
                 self.add_diagonal_doors()
 
         # self.obj_bp.lm_cabinets.product_shape = 'RECTANGLE'
+        add_product_width_dimension(self)
+        add_product_depth_dimension(self)
+        add_product_filler_dimension(self, 'Left')
+        add_product_filler_dimension(self, 'Right')
+
+        self.update()
+
+class Island(sn_types.Assembly):
+    """ Island Frameless Cabinet
+    """
+    type_assembly = "PRODUCT"
+    category_name = "Island Cabinets"
+    show_in_library = True
+    id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
+    id_update = cabinet_properties.LIBRARY_NAME_SPACE + ".update"
+
+    """ Type:sn_types.Assembly - The main carcass used
+        The carcass must implement These Prompts:
+        Left Side Thickness
+        Right Side Thickness
+        Top Thickness
+        Bottom Thickness
+        Top Inset
+        Bottom Inset
+        Back Inset 
+        Left Side Wall Filler
+        Right Side Wall Filler
+    """
+    carcass = None
+
+    """ Type:sn_types.Assembly - Splitter insert to add to the cabinet """
+    splitter = None
+
+    """ Type:sn_types.Assembly - Interior insert to add to the cabinet """
+    interior = None
+
+    """ Type:sn_types.Assembly - Exterior insert to add to the cabinet """
+    exterior = None
+
+
+    """ Type:bool - This adds an empty opening to the carcass for starter products """
+    add_empty_opening = False
+
+    """ Type:bool - This adds a microwave below the cabinet.
+                        This is typically only used for upper cabinets """
+    add_microwave = False
+
+    """ Type:bool - This adds a vent below the cabinet.
+                        This is typically only used for upper cabinets """
+    add_vent_hood = False
+
+    """ Type:bool - This adds a countertop to the product. """
+    add_countertop = True
+
+    """ Type:float - This is the base price for the product. """
+    product_price = 0
+
+    def update_dimensions(self):
+        update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
+
+    def update(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        carcass_props = cabinet_properties.get_scene_props().carcass_defaults
+        
+        super().update()
+
+        # if hasattr(self, "mirror_z") and self.mirror_z:
+        #     self.obj_z['IS_MIRROR'] = True
+        # if self.carcass.carcass_type == "Upper":
+        #     self.obj_bp.location.z = props.height_above_floor
+        # elif self.carcass.carcass_type == "Suspended":
+        #     self.obj_bp.location.z = sn_unit.millimeter(float(props.base_cabinet_height)) + carcass_props.toe_kick_height
+
+        self.obj_bp.lm_cabinets.product_shape = 'RECTANGLE'
+ 
+        self.obj_bp["IS_BP_CLOSET"] = True
+        self.obj_bp["IS_BP_CABINET"] = True
+        self.obj_bp["IS_BP_ISLAND"] = True
+        self.obj_bp['ISLAND_INDEX'] = 1   #replace this with island count + 1...
+        self.obj_y['IS_MIRROR'] = True
+        self.obj_bp.snap.type_group = self.type_assembly
+
+    def add_openings(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.carcass.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.carcass.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.carcass.get_prompt('Chase Depth').get_var()
+        
+        Double_Sided = self.carcass.get_prompt('Double Sided').get_var()
+        Left_Side_Thickness = self.carcass.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.carcass.get_prompt('Right Side Thickness').get_var()
+        Top_Inset = self.carcass.get_prompt('Top Inset').get_var()
+        Bottom_Inset = self.carcass.get_prompt('Bottom Inset').get_var()
+        Back_Inset = self.carcass.get_prompt('Back Inset').get_var()
+        Back_Thickness = self.carcass.get_prompt('Back Thickness').get_var()
+        Bottom_Thickness = self.carcass.get_prompt('Bottom Thickness').get_var()
+        Top_Thickness = self.carcass.get_prompt('Top Thickness').get_var()
+        Remove_Back = self.carcass.get_prompt('Remove Back').get_var()
+        Remove_Bottom = self.carcass.get_prompt('Remove Bottom').get_var()
+        Toe_Kick_Height = self.carcass.get_prompt('Toe Kick Height').get_var()
+        Sub_Front_Height = self.carcass.get_prompt('Sub Front Height').get_var()
+        
+        cols = int(self.carcass.opening_qty / 2) if self.carcass.double_sided else self.carcass.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.carcass.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    loc_x_exp, loc_x_vars, opening_width = Island_Carcass.get_calculator_widths(self.carcass, row, part_nbr)
+                    Carcass_Subtype = self.carcass.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    Remove_Left_Side = self.carcass.get_prompt("Remove Left Side " + part_nbr).get_var("Remove_Left_Side")
+                    Remove_Right_Side = self.carcass.get_prompt("Remove Right Side " + part_nbr).get_var("Remove_Right_Side")
+
+                    opening = self.add_opening()
+                    opening.set_name("Opening " + part_nbr)
+                    opening.obj_bp['IS_BP_OPENING'] = True
+                    opening.obj_bp['OPENING_NBR'] = int(part_nbr)
+                    opening.obj_bp['ISLAND_ROW_NBR'] = row + 1
+                    
+                    opening.dim_z('fabs(Height)-IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Bottom_Inset+Top_Inset,0)'
+                                              '-IF(Carcass_Subtype==' + str(ISLAND_SINK_CARCASS) + ',Sub_Front_Height,0)', 
+                                                [Height,Bottom_Inset,Top_Inset,Carcass_Subtype,Sub_Front_Height])
+
+                    loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness, Carcass_Subtype, Remove_Left_Side, Remove_Right_Side])
+                    if row == ISLAND_FRONT_ROW:
+                        opening.dim_y('Front_Row_Depth-Back_Inset',[Front_Row_Depth,Back_Inset])
+                        opening.loc_x(loc_x_exp + '+IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Left_Side,0,Left_Side_Thickness)', loc_x_vars)
+                        opening.dim_x('Opening_' + part_nbr + '_Width-IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Left_Side,0,Left_Side_Thickness)'
+                                      '-IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Right_Side,0,Right_Side_Thickness)'
+                                      ,loc_x_vars)
+                    elif row == ISLAND_BACK_ROW:
+                        opening.dim_y('Back_Row_Depth-Back_Inset',[Back_Row_Depth,Back_Inset])
+                        opening.loc_x(loc_x_exp + '+Opening_' + part_nbr + '_Width-IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Left_Side,0,Left_Side_Thickness)', loc_x_vars)
+                        opening.dim_x('Opening_' + part_nbr + '_Width-IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Left_Side,0,Left_Side_Thickness)'
+                                      '-IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ' and Remove_Right_Side,0,Right_Side_Thickness)'
+                                      ,loc_x_vars)
+                        
+                        opening.rot_z(value=math.radians(180))
+
+                    if self.carcass.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            opening.loc_y('-Front_Row_Depth-Back_Row_Depth-Chase_Depth',[Front_Row_Depth,Back_Row_Depth,Chase_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            pass
+                    else:
+                        opening.loc_y('-Front_Row_Depth',[Front_Row_Depth])
+                        
+                    opening.loc_z('Bottom_Inset',[Bottom_Inset])
+                    opening.loc_z('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Bottom_Inset,0)', [Carcass_Subtype, Bottom_Inset])
+
+    def draw(self):
+        create_cabinet(self)
+        add_carcass(self)
+        self.add_openings()
+
+        ctop = add_countertop(self)
+        Countertop_Overhang_Front = self.get_prompt('Countertop Overhang Front')
+        Countertop_Overhang_Left = self.get_prompt('Countertop Overhang Left')
+        Countertop_Overhang_Right = self.get_prompt('Countertop Overhang Right')
+        Countertop_Overhang_Back = self.get_prompt('Countertop Overhang Back')
+        Add_Backsplash = ctop.get_prompt('Add Backsplash')
+        Add_Left_Backsplash = ctop.get_prompt('Add Left Backsplash')
+        Add_Right_Backsplash = ctop.get_prompt('Add Right Backsplash')
+
+        Countertop_Overhang_Front.set_value(sn_unit.inch(1.5))
+        Countertop_Overhang_Left.set_value(sn_unit.inch(1.5))
+        Countertop_Overhang_Right.set_value(sn_unit.inch(1.5))
+        Countertop_Overhang_Back.set_value(sn_unit.inch(1.5))
+        Add_Backsplash.set_value(False)
+        Add_Left_Backsplash.set_value(False)
+        Add_Right_Backsplash.set_value(False)
+
+        if self.splitter:
+            add_insert(self,self.splitter)
+
+        if self.interior:
+            add_insert(self,self.interior)
+
+        if self.exterior:
+            add_insert(self, self.exterior)
+
         add_product_width_dimension(self)
         add_product_depth_dimension(self)
         add_product_filler_dimension(self, 'Left')

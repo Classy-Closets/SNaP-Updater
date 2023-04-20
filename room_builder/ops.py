@@ -660,9 +660,6 @@ class ROOM_BUILDER_OT_Add_Obstacle(Operator):
         self.wall_item = context.scene.sn_roombuilder.walls[context.scene.sn_roombuilder.wall_index]
         wall_bp = context.scene.view_layers[0].objects[self.wall_item.bp_name]
         self.wall = sn_types.Wall(obj_bp=wall_bp)
-        self.wall.obj_bp['ID_PROMPT'] = 'room_builder.wall_prompts'
-        for child in self.wall.obj_bp.children:
-            child["ID_PROMPT"] = self.wall.obj_bp["ID_PROMPT"]
         self.set_draw_type(context)
 
         self.obstacle_height = sn_unit.inch(4)

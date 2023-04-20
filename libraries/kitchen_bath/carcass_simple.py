@@ -17,6 +17,11 @@ NOTCHED_SIDE = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES, "Notched Side.blend")
 LEG_LEVELERS = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES, "Leg Levelers.blend")
 CHAMFERED_PART = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES,"Chamfered Part.blend")
 CORNER_NOTCH_PART = path.join(sn_paths.KITCHEN_BATH_ASSEMBLIES,"Corner Notch Part.blend")
+ISLAND_FRONT_ROW = 0
+ISLAND_BACK_ROW = 1
+ISLAND_BASE_CARCASS = 0
+ISLAND_APPLIANCE_CARCASS = 1
+ISLAND_SINK_CARCASS = 2
 
 
 def add_side_height_dimension(original_part):
@@ -141,7 +146,12 @@ class Standard_Carcass(sn_types.Assembly):
     # Updated
     def add_base_assembly_prompts(self):
         props = cabinet_properties.get_scene_props().carcass_defaults
-        self.add_prompt("Toe Kick Height",'DISTANCE', props.toe_kick_height)
+        toe_kick_height = 0
+        if self.carcass_type == 'Appliance':
+            # self.add_prompt("Toe Kick Height",'DISTANCE', 0)
+            self.add_prompt("Toe Kick Height",'DISTANCE', props.toe_kick_height)
+        else:
+            self.add_prompt("Toe Kick Height",'DISTANCE', props.toe_kick_height)
         self.add_prompt("Toe Kick Setback",'DISTANCE', props.toe_kick_setback)
         self.add_prompt("Toe Kick Thickness", 'DISTANCE', sn_unit.inch(.75))
         self.add_prompt("Left Toe Kick Filler", 'DISTANCE', 0.0)
@@ -1148,6 +1158,782 @@ class Inside_Corner_Carcass(sn_types.Assembly):
 
         self.update()
 
+class Island_Carcass(sn_types.Assembly):
+
+    type_assembly = "INSERT"
+    id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
+    library_name = "Carcasses"
+    placement_type = ""
+
+    carcass_type = ""  # {Base, Sink, Appliance?}
+    carcass_shape = 'RECTANGLE'
+    open_name = ""
+
+    opening_qty = 1
+    double_sided = False
+
+    front_calculator = None
+    front_calculator_name = "Front Row Widths Calculator"
+    front_calculator_obj_name = "Front Row Widths Distance Obj"   
+    back_calculator = None
+    back_calculator_name = "Back Row Widths Calculator"
+    back_calculator_obj_name = "Back Row Widths Distance Obj" 
+
+    opening_1_width = 0
+    opening_2_width = 0
+    opening_3_width = 0
+    opening_4_width = 0
+    opening_5_width = 0
+    opening_6_width = 0
+    opening_7_width = 0
+    opening_8_width = 0
+
+    def create_dimensions(self):
+        create_dimensions(self) # Call module level function to create/recreate door dim labels
+
+    def update_dimensions(self):
+        update_dimensions(self)  # Call module level function to find and update door dim labels
+
+    def add_calculator(self, amt):
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+
+        calc_distance_obj = self.add_empty(self.front_calculator_obj_name)
+        calc_distance_obj.empty_display_size = .001
+        self.front_calculator = self.obj_prompts.snap.add_calculator(self.front_calculator_name, calc_distance_obj)
+        self.front_calculator.set_total_distance("Width-(Left_Side_Thickness-Right_Side_Thickness)*{}".format(str(amt - 1)), [Width, Left_Side_Thickness, Right_Side_Thickness])
+
+        if self.double_sided:
+            calc_distance_obj = self.add_empty(self.back_calculator_obj_name)
+            calc_distance_obj.empty_display_size = .001
+            self.back_calculator = self.obj_prompts.snap.add_calculator(self.back_calculator_name, calc_distance_obj)
+            self.back_calculator.set_total_distance("Width-(Left_Side_Thickness-Right_Side_Thickness)*{}".format(str(amt - 1)), [Width, Left_Side_Thickness, Right_Side_Thickness])
+
+    def add_calculator_prompts(self, amt):
+        self.front_calculator.prompts.clear()
+        if self.double_sided:
+            self.back_calculator.prompts.clear()
+
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    opening_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    if row == ISLAND_FRONT_ROW:
+                        prompt = self.front_calculator.add_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                    else:
+                        prompt = self.back_calculator.add_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                    size = eval("self.opening_" + str(opening_nbr) + "_width")
+                    if size > 0:
+                        prompt.set_value(size)
+                        prompt.equal = False
+
+    def get_calculator_widths(self, row, part_nbr):
+        opening_width = 0
+        loc_x_exp = ""
+        loc_x_vars = []
+
+        if int(row) == ISLAND_FRONT_ROW:
+            calculator = self.get_calculator('Front Row Widths Calculator')
+            start_col = 1
+        else:
+            calculator = self.get_calculator('Back Row Widths Calculator')
+            opening_qty = len(calculator.prompts)*2
+            start_col = int(opening_qty / 2 + 1)
+        
+        width_prompt = calculator.get_calculator_prompt('Opening {} Width'.format(part_nbr))
+        opening_width = width_prompt.get_var(calculator.name, 'Opening_{}_Width'.format(part_nbr))
+
+        for col in range(start_col, int(part_nbr)):
+            loc_x_exp += "Opening_{}_Width".format(col)
+            if col != int(part_nbr) - 1: 
+                loc_x_exp += "+"
+            temp_prompt = eval("calculator.get_calculator_prompt('Opening {} Width')".format(str(col)))
+            temp_width = eval("temp_prompt.get_var(calculator.name, 'Opening_{}_Width')".format(str(col)))  
+            loc_x_vars.append(temp_width)
+       
+        return loc_x_exp, loc_x_vars, opening_width
+
+    def update(self):
+        super().update()
+        self.obj_bp["IS_BP_CARCASS"] = True
+        self.obj_bp["ISLAND_CARCASS"] = True
+        self.obj_bp["PROFILE_SHAPE_RECTANGLE"] = True 
+        self.obj_bp["CARCASS_TYPE"] = 'Island'
+        if self.double_sided:
+            self.obj_bp["DOUBLE_SIDED"] = True
+
+    def add_common_carcass_prompts(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        size_props = cabinet_properties.get_scene_props().size_defaults
+        self.add_prompt("Double Sided", 'CHECKBOX', self.double_sided)
+        self.add_prompt("Chase Depth", 'DISTANCE', size_props.island_chase_depth)
+        self.add_prompt("Chase Cap Thickness", 'DISTANCE', sn_unit.inch(.75))
+        for i in range(1, self.opening_qty + 1):
+            self.add_prompt("Carcass Subtype " + str(i), 'COMBOBOX', 0)
+
+        self.add_prompt("Opening Width", 'DISTANCE', size_props.island_cabinet_width)
+        self.add_prompt("Front Row Depth", 'DISTANCE', size_props.island_cabinet_depth)
+        self.add_prompt("Back Row Depth", 'DISTANCE', size_props.island_cabinet_depth)
+
+        self.add_prompt("Left Fin End", 'CHECKBOX', False)
+        self.add_prompt("Right Fin End", 'CHECKBOX', False)
+        self.add_prompt("Left Side Wall Filler", 'DISTANCE', 0.0)
+        self.add_prompt("Right Side Wall Filler", 'DISTANCE', 0.0)
+        self.add_prompt("Use Nailers", 'CHECKBOX', props.use_nailers)
+        self.add_prompt("Nailer Width", 'DISTANCE', props.nailer_width)
+        self.add_prompt("Center Nailer Switch", 'DISTANCE', props.center_nailer_switch)
+        self.add_prompt("Use Thick Back", 'CHECKBOX', props.use_thick_back)
+        self.add_prompt("Remove Back", 'CHECKBOX', props.remove_back)
+        self.add_prompt("Remove Bottom", 'CHECKBOX', False)
+
+        if self.carcass_type in {'Base'} and not props.use_full_tops:
+            self.add_prompt("Stretcher Width", 'DISTANCE', props.stretcher_width)
+
+        self.add_prompt("Left Side Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Right Side Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Top Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Bottom Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Back Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Thick Back Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Filler Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Nailer Thickness", 'DISTANCE', sn_unit.inch(.75))
+        self.add_prompt("Edgebanding Thickness", 'DISTANCE', sn_unit.inch(.02))
+
+        # Create separate prompts obj for insets
+        ppt_obj_insets = self.add_prompt_obj("Backing_Config")
+        self.add_prompt("Back Inset", 'DISTANCE', sn_unit.inch(0), prompt_obj=ppt_obj_insets)
+        self.add_prompt("Top Inset", 'DISTANCE', sn_unit.inch(0), prompt_obj=ppt_obj_insets)
+        self.add_prompt("Bottom Inset", 'DISTANCE', sn_unit.inch(0), prompt_obj=ppt_obj_insets)
+
+    def add_base_assembly_prompts(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.add_prompt("Toe Kick Height",'DISTANCE', props.toe_kick_height)
+        self.add_prompt("Toe Kick Setback",'DISTANCE', props.toe_kick_setback)
+        self.add_prompt("Toe Kick Thickness", 'DISTANCE', sn_unit.inch(.75))
+
+    def add_sink_prompts(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.add_prompt("Sub Front Height",'DISTANCE', props.sub_front_height)
+        self.add_prompt("Sub Front Thickness",'DISTANCE',sn_unit.inch(.75))
+    
+    def add_appliance_prompts(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        for i in range(1, self.opening_qty + 1):
+            self.add_prompt("Remove Left Side " + str(i), 'CHECKBOX', False)
+            self.add_prompt("Remove Right Side " + str(i), 'CHECKBOX', False)
+
+    def add_prompt_formulas(self):
+        tt = self.get_prompt("Top Thickness").get_var('tt')
+        bt = self.get_prompt("Bottom Thickness").get_var('bt')
+        use_nailers = self.get_prompt("Use Nailers").get_var('use_nailers')
+        nt = self.get_prompt("Nailer Thickness").get_var('nt')
+        bkt = self.get_prompt("Back Thickness").get_var('bkt')
+        tbkt = self.get_prompt("Thick Back Thickness").get_var('tbkt')
+        use_thick_back = self.get_prompt("Use Thick Back").get_var('use_thick_back')
+        remove_back = self.get_prompt("Remove Back").get_var('remove_back')
+        Remove_Bottom = self.get_prompt('Remove Bottom').get_var('Remove_Bottom')
+        kick_height = self.get_prompt("Toe Kick Height").get_var('kick_height')
+
+        # Used to calculate the exterior opening for doors
+        self.get_prompt('Top Inset').set_formula('tt',[tt])
+        self.get_prompt('Bottom Inset').set_formula('kick_height+bt',[kick_height,bt])
+
+        self.get_prompt('Back Inset').set_formula('IF(use_nailers,nt,0)+IF(remove_back,0,IF(use_thick_back,tbkt,bkt))',[use_nailers,nt,bkt,tbkt,use_thick_back,remove_back])
+
+    def add_base_sides(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+
+                    left_side = common_parts.add_panel(self)
+                    left_side.obj_bp["IS_BP_PANEL"] = True
+                    part_label = "Base Left Side " + part_nbr if row == ISLAND_FRONT_ROW else "Base Right Side " + part_nbr
+                    left_side.set_name(part_label)
+                    left_side.add_prompt("Is Cutpart",'CHECKBOX',True)
+
+                    if row == ISLAND_FRONT_ROW:
+                        left_side.loc_x(loc_x_exp,loc_x_vars)
+                    elif row == ISLAND_BACK_ROW:
+                        loc_x_vars.append(Left_Side_Thickness)
+                        left_side.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        left_side.rot_z(value=math.radians(180))
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            left_side.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                            left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            left_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                            left_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+
+                    left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+                    left_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
+                    left_side.rot_y(value=math.radians(-90))
+                    left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
+                    left_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)', [Carcass_Subtype])
+
+                    add_side_height_dimension(left_side)
+                    
+                    right_side = common_parts.add_panel(self)
+                    right_side.obj_bp["IS_BP_PANEL"] = True
+                    part_label = "Base Right Side " + part_nbr if row == ISLAND_FRONT_ROW else "Base Left Side " + part_nbr
+                    right_side.set_name(part_label)
+                    right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
+
+                    if row == ISLAND_FRONT_ROW:
+                        loc_x_vars.append(opening_width)
+                        right_side.loc_x(loc_x_exp + '+Opening_' + part_nbr + '_Width',loc_x_vars)
+                    else:
+                        loc_x_vars.extend([opening_width, Right_Side_Thickness])
+                        right_side.loc_x(loc_x_exp + '-Right_Side_Thickness+Opening_' + part_nbr + '_Width', loc_x_vars)
+                        right_side.rot_z(value=math.radians(180))
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            right_side.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                            right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            right_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                            right_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                    right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+                    right_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
+                    right_side.rot_y(value=math.radians(-90))
+                    right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
+                    right_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)', [Carcass_Subtype])
+
+    def add_appliance_sides(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    Remove_Left_Side = self.get_prompt("Remove Left Side " + part_nbr).get_var("Remove_Left_Side")
+                    Remove_Right_Side = self.get_prompt("Remove Right Side " + part_nbr).get_var("Remove_Right_Side")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+
+                    left_side = common_parts.add_panel(self)
+                    left_side.obj_bp["IS_BP_PANEL"] = True
+                    part_label = "Appliance Left Side " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Right Side " + part_nbr
+                    left_side.set_name(part_label)
+                    left_side.add_prompt("Is Cutpart",'CHECKBOX',True)
+                    
+                    if row == ISLAND_FRONT_ROW:
+                        left_side.loc_x(loc_x_exp,loc_x_vars)
+                    elif row == ISLAND_BACK_ROW:
+                        loc_x_vars.append(Left_Side_Thickness)
+                        left_side.loc_x(loc_x_exp + "+Left_Side_Thickness", loc_x_vars)
+                        left_side.rot_z(value=math.radians(180))
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            left_side.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                            left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            left_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                            left_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+
+                    left_side.dim_x('Height', [Height])
+                    left_side.rot_y(value=math.radians(-90))
+                    left_side.dim_z('-Left_Side_Thickness', [Left_Side_Thickness])
+                    
+                    removal_prompt = "Remove_Left_Side" if row == ISLAND_FRONT_ROW else "Remove_Right_Side"
+                    left_side.get_prompt('Hide').set_formula(
+                        'IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',IF(' + removal_prompt + ',True,False),True)', [Carcass_Subtype,Remove_Left_Side,Remove_Right_Side])
+                    
+                    # add_side_height_dimension(left_side)
+            
+                    right_side = common_parts.add_panel(self)
+                    right_side.obj_bp["IS_BP_PANEL"] = True
+                    part_label = "Appliance Right Side " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Left Side " + part_nbr
+                    right_side.set_name(part_label)
+                    right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
+
+                    if row == ISLAND_FRONT_ROW:
+                        loc_x_vars.append(opening_width)
+                        right_side.loc_x(loc_x_exp + "+Opening_" + part_nbr + "_Width",loc_x_vars)
+                    else:
+                        loc_x_vars.extend([opening_width, Right_Side_Thickness])
+                        right_side.loc_x(loc_x_exp + "-Right_Side_Thickness+Opening_" + part_nbr + "_Width", loc_x_vars)
+                        right_side.rot_z(value=math.radians(180))
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            right_side.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                            right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            right_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                            right_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+
+                    right_side.dim_x('Height', [Height])
+                    right_side.rot_y(value=math.radians(-90))
+                    right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
+                    
+                    removal_prompt = "Remove_Right_Side" if row == ISLAND_FRONT_ROW else "Remove_Left_Side"
+                    right_side.get_prompt('Hide').set_formula(
+                        'IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',IF(' + removal_prompt + ',True,False),True)', [Carcass_Subtype,Remove_Left_Side,Remove_Right_Side])
+
+    def add_chase_caps(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var() 
+
+        Chase_Cap_Thickness = self.get_prompt("Chase Cap Thickness").get_var()
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+
+        left_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        left_chase_cap.set_name("Left Chase Cap")
+        left_chase_cap.dim_x('Height',[Height])
+        left_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
+        left_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
+        left_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+        left_chase_cap.rot_y(value=math.radians(-90))
+        left_chase_cap.get_prompt('Hide').set_formula('IF(Chase_Depth>0,False,True)', [Chase_Depth])
+
+        right_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        right_chase_cap.set_name("Right Chase Cap")
+        right_chase_cap.dim_x('Height',[Height])
+        right_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
+        right_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
+        right_chase_cap.loc_x('Width-Chase_Cap_Thickness',[Width, Chase_Cap_Thickness])
+        right_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+        right_chase_cap.rot_y(value=math.radians(-90))
+        right_chase_cap.get_prompt('Hide').set_formula('IF(Chase_Depth>0,False,True)', [Chase_Depth])
+
+    def add_backing_cap(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+
+        Chase_Cap_Thickness = self.get_prompt("Chase Cap Thickness").get_var()
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+
+        backing_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        backing_cap.set_name("Backing Cap")
+        backing_cap.dim_x('Height',[Height])
+        backing_cap.dim_y('-Chase_Cap_Thickness',[Chase_Cap_Thickness])
+        backing_cap.dim_z('-Width', [Width])
+
+        backing_cap.loc_y('Chase_Cap_Thickness',[Chase_Cap_Thickness])
+        backing_cap.rot_y(value=math.radians(-90))
+    
+    def add_full_top(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+        
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Top_Thickness = self.get_prompt('Top Thickness').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+        Top_Inset = self.get_prompt('Top Inset').get_var()
+        
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+
+                    top = common_parts.add_kd_shelf(self)
+                    top.set_name(self.carcass_type + " Top " + part_nbr)
+                    
+                    top.dim_z('-Top_Thickness',[Top_Thickness])
+                    loc_x_vars.extend([opening_width,Left_Side_Thickness,Right_Side_Thickness])
+                    if row == ISLAND_FRONT_ROW:
+                        loc_x_vars.append(Left_Side_Thickness)
+                        top.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        top.dim_x('Opening_' + part_nbr + '_Width-(Left_Side_Thickness+Right_Side_Thickness)',loc_x_vars)
+                        top.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                    elif row == ISLAND_BACK_ROW:
+                        loc_x_vars.extend([opening_width, Left_Side_Thickness])
+                        top.loc_x(loc_x_exp + '-Left_Side_Thickness+Opening_' + part_nbr + '_Width', loc_x_vars)
+                        top.dim_x('Opening_' + part_nbr + '_Width-(Left_Side_Thickness+Right_Side_Thickness)',loc_x_vars)
+                        top.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                        top.rot_z(value=math.radians(180))
+
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            top.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            top.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                    top.loc_z('IF(Height>0,Height-Top_Inset+Top_Thickness,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness])
+                  
+                    top.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_BASE_CARCASS) + ',False,True)', [Carcass_Subtype])
+
+    def add_sink_top(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+        Sub_Front_Height = self.get_prompt('Sub Front Height').get_var()
+        Sub_Front_Thickness = self.get_prompt('Sub Front Thickness').get_var()
+        
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+                    
+                    front_s = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+                    front_s.set_name(self.carcass_type + " Front Stretcher " + part_nbr)
+                    
+                    front_s.dim_y('-Sub_Front_Height',[Sub_Front_Height])
+                    front_s.dim_z('-Sub_Front_Thickness',[Sub_Front_Thickness])
+
+                    loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness])    
+                    if row == ISLAND_FRONT_ROW:
+                        front_s.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        front_s.dim_x('Opening_' + part_nbr + '_Width-Left_Side_Thickness-Right_Side_Thickness',loc_x_vars)
+                    elif row == ISLAND_BACK_ROW:
+                        front_s.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        front_s.dim_x('-Opening_' + part_nbr + '_Width+Left_Side_Thickness+Right_Side_Thickness',loc_x_vars)
+                        front_s.rot_z(value=math.radians(180))
+
+                    if self.double_sided and row == ISLAND_FRONT_ROW:
+                        front_s.loc_y('-Front_Row_Depth-Back_Row_Depth-Chase_Depth',[Front_Row_Depth,Back_Row_Depth,Chase_Depth])
+                    elif row == ISLAND_FRONT_ROW:
+                        front_s.loc_y('-Front_Row_Depth',[Front_Row_Depth])
+                    
+                    front_s.loc_z('IF(Height>0,Height,0)',[Height])
+                    front_s.rot_x(value=math.radians(90))
+
+                    front_s.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_SINK_CARCASS) + ',False,True)', [Carcass_Subtype])
+
+    def add_bottom(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+        
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+        Bottom_Thickness = self.get_prompt('Bottom Thickness').get_var()
+        Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
+
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+
+                    bottom = common_parts.add_kd_shelf(self)
+                    bottom.set_name(self.carcass_type + " Bottom " + part_nbr)
+
+                    loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness])
+                    if row == ISLAND_FRONT_ROW:
+                        bottom.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        bottom.dim_x('Opening_' + part_nbr + '_Width-Left_Side_Thickness-Right_Side_Thickness',loc_x_vars)
+                    elif row == ISLAND_BACK_ROW:
+                        bottom.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        bottom.dim_x('-Opening_' + part_nbr + '_Width+Left_Side_Thickness+Right_Side_Thickness',loc_x_vars)
+                        bottom.rot_z(value=math.radians(180))
+
+                    if row == ISLAND_FRONT_ROW:
+                        bottom.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                    else:
+                        bottom.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    bottom.dim_z('Bottom_Thickness',[Bottom_Thickness])
+
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            bottom.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                            bottom.dim_y('-Front_Row_Depth',[Front_Row_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            bottom.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                            bottom.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+  
+                    Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+                    bottom.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
+                    
+                    bottom.get_prompt('Hide').set_formula('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',False,True)', [Carcass_Subtype])
+            
+    def get_row_opening_nbrs(self, row_nbr):
+        if row_nbr == ISLAND_FRONT_ROW:
+            start_nbr = 1
+            if self.double_sided:
+                end_nbr = int(self.opening_qty/2)
+            else:
+                end_nbr = int(self.opening_qty)
+        elif row_nbr == ISLAND_BACK_ROW:
+            start_nbr = int(self.opening_qty/2)+1
+            end_nbr = int(self.opening_qty)
+    
+        return start_nbr, end_nbr
+
+    def create_toe_kick(self, row_nbr, start_nbr, end_nbr):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.add_prompt("Toe Kick Height", 'DISTANCE', props.toe_kick_height)
+        self.add_prompt("Toe Kick Setback", 'DISTANCE', props.toe_kick_setback)
+
+        Width = self.obj_x.snap.get_var('location.x', 'Width')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+
+        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var('Toe_Kick_Setback')
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+    
+        tk_path = path.join(closet_paths.get_library_path(), "/Products - Basic/Toe Kick.png")
+        wm_props = bpy.context.window_manager.snap
+        
+        if row_nbr == ISLAND_FRONT_ROW:
+            calculator = self.get_calculator('Front Row Widths Calculator')
+        else:
+            calculator = self.get_calculator('Back Row Widths Calculator')
+
+        Carcass_Subtype_1 = self.get_prompt("Carcass Subtype " + str(start_nbr)).get_var("Carcass_Subtype_1")
+        loc_x_exp, loc_x_vars, opening_width_1 = self.get_calculator_widths(row_nbr, start_nbr)
+
+        if end_nbr > start_nbr:
+            Carcass_Subtype_2 = self.get_prompt("Carcass Subtype " + str(end_nbr)).get_var("Carcass_Subtype_2")
+            width_prompt = calculator.get_calculator_prompt('Opening {} Width'.format(str(end_nbr)))
+            opening_width_2 = width_prompt.get_var(calculator.name, 'Opening_{}_Width'.format(str(end_nbr)))
+
+        
+        toe_kick = wm_props.get_asset(tk_path)
+        toe_kick.draw()
+        toe_kick.obj_bp.parent = self.obj_bp
+        # toe_kick.obj_bp["ID_PROMPT"] = toe_kick.id_prompt
+        toe_kick.obj_bp.snap.comment_2 = "1034"
+
+        if start_nbr != end_nbr:
+            loc_x_vars.extend([opening_width_1,opening_width_2,Left_Side_Thickness,Right_Side_Thickness,Carcass_Subtype_1,Carcass_Subtype_2])
+            if row_nbr == ISLAND_FRONT_ROW:
+                if self.double_sided:
+                    toe_kick.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                toe_kick.dim_y('-Front_Row_Depth+Toe_Kick_Setback', [Front_Row_Depth,Toe_Kick_Setback])
+                toe_kick.loc_x(loc_x_exp + '-INCH(0.75)/2'
+                                            '+IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)', loc_x_vars)
+                toe_kick.dim_x('IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)'
+                                '+IF(Carcass_Subtype_2!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(end_nbr) +'_Width,0)'
+                                '+Left_Side_Thickness',loc_x_vars)
+            elif row_nbr == ISLAND_BACK_ROW:
+                toe_kick.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                toe_kick.dim_y('-Back_Row_Depth+Toe_Kick_Setback', [Back_Row_Depth,Toe_Kick_Setback])
+                toe_kick.loc_x(loc_x_exp + 
+                                '+IF(Carcass_Subtype_2!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(end_nbr) +'_Width+Opening_' + str(start_nbr) + '_Width,'
+                                    'IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0))'
+                                '+INCH(0.75)/2',loc_x_vars)
+                toe_kick.dim_x('IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)'
+                                '+IF(Carcass_Subtype_2!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(end_nbr) +'_Width,0)'
+                                '+Left_Side_Thickness',loc_x_vars)
+                toe_kick.rot_z(value=math.radians(180))    
+
+            toe_kick.get_prompt("Hide").set_formula('IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + 
+                                                            ' and Carcass_Subtype_2==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)',
+                                                     [Carcass_Subtype_1,Carcass_Subtype_2])
+        else:
+            loc_x_vars.extend([opening_width_1,Left_Side_Thickness,Carcass_Subtype_1])
+            if row_nbr == ISLAND_FRONT_ROW:
+                if self.double_sided:
+                    toe_kick.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                toe_kick.dim_y('-Front_Row_Depth+Toe_Kick_Setback', [Front_Row_Depth,Toe_Kick_Setback])
+                toe_kick.loc_x(loc_x_exp + '-INCH(0.75)/2'
+                                            '+IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)', loc_x_vars)
+                toe_kick.dim_x('IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)'
+                                '+Left_Side_Thickness',loc_x_vars)
+            elif row_nbr == ISLAND_BACK_ROW:
+                toe_kick.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                toe_kick.dim_y('-Back_Row_Depth+Toe_Kick_Setback', [Back_Row_Depth,Toe_Kick_Setback])
+                toe_kick.loc_x(loc_x_exp + 
+                                '+IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)'
+                                '+INCH(0.75)/2',loc_x_vars)
+                toe_kick.dim_x('IF(Carcass_Subtype_1!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)'
+                                '+Left_Side_Thickness',loc_x_vars)
+                toe_kick.rot_z(value=math.radians(180))   
+
+            toe_kick.get_prompt('Hide').set_formula('IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)', [Carcass_Subtype_1])
+
+        toe_kick.get_prompt('Toe Kick Height').set_formula('Toe_Kick_Height', [Toe_Kick_Height])
+  
+
+    def add_toe_kick(self):
+        row_start_nbr, row_end_nbr = self.get_row_opening_nbrs(ISLAND_FRONT_ROW)
+
+        tk_start_nbr = 1
+        tk_end_nbr = row_start_nbr + 1 if row_start_nbr < row_end_nbr else row_start_nbr
+        self.create_toe_kick(ISLAND_FRONT_ROW, tk_start_nbr, tk_end_nbr)
+
+        if tk_end_nbr < row_end_nbr:
+            tk_start_nbr = tk_end_nbr + 1
+            tk_end_nbr = tk_start_nbr + 1 if tk_start_nbr < row_end_nbr else tk_start_nbr
+            self.create_toe_kick(ISLAND_FRONT_ROW, tk_start_nbr, tk_end_nbr)
+
+        if self.double_sided:
+            row_start_nbr, row_end_nbr = self.get_row_opening_nbrs(ISLAND_BACK_ROW)
+
+            tk_start_nbr = row_start_nbr
+            tk_end_nbr = row_start_nbr + 1 if row_start_nbr < row_end_nbr else row_start_nbr
+            self.create_toe_kick(ISLAND_BACK_ROW, tk_start_nbr, tk_end_nbr)
+
+            if tk_end_nbr < row_end_nbr:
+                tk_start_nbr = tk_end_nbr + 1
+                tk_end_nbr = tk_start_nbr + 1 if tk_start_nbr < row_end_nbr else tk_start_nbr
+                self.create_toe_kick(ISLAND_BACK_ROW, tk_start_nbr, tk_end_nbr)
+
+    def add_leg_levelers(self):
+        Width = self.get_prompt('Opening Width').get_var('Width')
+        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
+
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW):
+                    legs = add_part(self, LEG_LEVELERS)
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    legs.set_name("Leg Levelers " + part_nbr)
+                    # legs.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
+                    legs.loc_x('Left_Side_Thickness+Width*' + str(col),[Left_Side_Thickness,Width])
+                    legs.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
+                    legs.dim_y('Depth+Toe_Kick_Setback',[Depth,Toe_Kick_Setback])
+                    legs.dim_z('Toe_Kick_Height',[Toe_Kick_Height])
+    
+    def add_back(self):
+        Height = self.obj_z.snap.get_var('location.z', 'Height')
+        Front_Row_Depth = self.get_prompt('Front Row Depth').get_var()
+        Back_Row_Depth = self.get_prompt('Back Row Depth').get_var()
+        Chase_Depth = self.get_prompt('Chase Depth').get_var()
+
+        Double_Sided = self.get_prompt('Double Sided').get_var()
+        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
+        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
+        Top_Inset = self.get_prompt('Top Inset').get_var()
+        Bottom_Inset = self.get_prompt('Bottom Inset').get_var()
+        Back_Thickness = self.get_prompt('Back Thickness').get_var()
+        Bottom_Thickness = self.get_prompt('Bottom Thickness').get_var()
+        Top_Thickness = self.get_prompt('Top Thickness').get_var()
+        Remove_Back = self.get_prompt('Remove Back').get_var()
+        Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
+        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
+        
+        cols = int(self.opening_qty / 2) if self.double_sided else self.opening_qty
+
+        for col in range(0, cols):
+            for row in range (0,2):
+                if row == ISLAND_FRONT_ROW or (self.double_sided and row == ISLAND_BACK_ROW): 
+                    part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
+                    Remove_Left_Side = self.get_prompt("Remove Left Side " + part_nbr).get_var("Remove_Left_Side")
+                    Remove_Right_Side = self.get_prompt("Remove Right Side " + part_nbr).get_var("Remove_Right_Side")
+                    loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
+
+                    back = common_parts.add_back(self)
+                    back.set_name(self.carcass_type + " Back " + part_nbr)
+
+                    back.rot_y(value=math.radians(-90))
+                    
+                    loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness, Carcass_Subtype, Remove_Left_Side, Remove_Right_Side])
+                    if row == ISLAND_FRONT_ROW:
+                        back.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        back.dim_y('Opening_' + part_nbr + '_Width-Left_Side_Thickness-Right_Side_Thickness',loc_x_vars)
+                       
+                        back.rot_z(value=math.radians(-90))
+                    elif row == ISLAND_BACK_ROW:
+                        back.loc_x(loc_x_exp + '+Left_Side_Thickness', loc_x_vars)
+                        back.dim_y('-Opening_' + part_nbr + '_Width+Left_Side_Thickness+Right_Side_Thickness',loc_x_vars)
+
+                        back.rot_z(value=math.radians(90))
+                    
+                    back.dim_x('fabs(Height)-Top_Thickness-Bottom_Thickness-IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Toe_Kick_Height,0)',
+                               [Height,Top_Thickness,Toe_Kick_Height,Bottom_Thickness,Remove_Bottom,Carcass_Subtype])
+                    back.dim_z('-Back_Thickness',[Back_Thickness])
+                    
+                    if self.double_sided:
+                        if row == ISLAND_FRONT_ROW:
+                            back.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                        elif row == ISLAND_BACK_ROW:
+                            back.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                    back.loc_z('IF(Remove_Bottom,0,Toe_Kick_Height+Bottom_Thickness)',[Remove_Bottom,Toe_Kick_Height,Bottom_Thickness])
+
+                    back.get_prompt('Hide').set_formula('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',False,True)', [Carcass_Subtype])
+        
+    def draw(self):
+        props = cabinet_properties.get_scene_props().carcass_defaults
+        self.create_assembly()
+        
+        self.add_common_carcass_prompts()
+        self.add_base_assembly_prompts()
+        self.add_appliance_prompts()
+        self.add_sink_prompts()
+
+        self.add_calculator(self.opening_qty)
+        self.add_calculator_prompts(self.opening_qty) 
+
+        self.add_base_sides()
+        self.add_appliance_sides()
+        
+        self.add_full_top()
+        self.add_sink_top()
+                
+        if self.double_sided:
+            self.add_chase_caps()
+        else:
+            self.add_backing_cap()
+
+        self.add_back()
+        self.add_bottom()
+        
+        self.add_toe_kick()
+
+        self.add_prompt_formulas()
+
+        self.update()
+
 #---------Standard Carcasses
         
 class INSERT_Base_Carcass(Standard_Carcass):
@@ -1259,3 +2045,15 @@ class INSERT_Upper_Inside_Corner_Diagonal_Carcass(Inside_Corner_Carcass):
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(12)
         self.left_right_depth = sn_unit.inch(12)
+
+#---------Island Carcasses
+
+class INSERT_Island_Carcass(Island_Carcass):
+    
+    def __init__(self):
+        self.category_name = "Carcasses"
+        self.assembly_name = "Island Carcass"
+        self.carcass_type = "Base"
+        self.width = sn_unit.inch(18)
+        self.height = sn_unit.inch(34)
+        self.depth = sn_unit.inch(23)

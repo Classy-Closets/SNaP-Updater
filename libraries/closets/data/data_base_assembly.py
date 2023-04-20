@@ -47,6 +47,7 @@ class Base_Assembly(sn_types.Assembly):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Height = self.get_prompt("Toe Kick Height").get_var("Height")
+        Hide_Insert = self.get_prompt("Hide").get_var("Hide_Insert")
         Cleat_Width = self.get_prompt('Cleat Width').get_var()
         Toe_Kick_Thickness = self.get_prompt('Toe Kick Thickness').get_var()
         Extend_Left_Amount = self.get_prompt('Extend Left Amount').get_var()
@@ -95,6 +96,7 @@ class Base_Assembly(sn_types.Assembly):
             [Toe_Kick_Thickness, Extend_Left_Amount, TK_Skin_Thickness, Left_Return, DTKL, ACB])
         toe_kick_front.loc_y('Depth-Extend_Depth_Amount-IF(ACB,TKS,0)', [Depth, Extend_Depth_Amount, ACB, TKS])
         toe_kick_front.rot_x(value=math.radians(-90))
+        toe_kick_front.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         toe_kick = common_parts.add_toe_kick(self)
         toe_kick.set_name("Toe Kick Back")
@@ -110,6 +112,7 @@ class Base_Assembly(sn_types.Assembly):
             "+IF(DTKL,-TK_Skin_Thickness,IF(Left_Return,TK_Skin_Thickness,0))",
             [Extend_Left_Amount, Toe_Kick_Thickness, TK_Skin_Thickness, Left_Return, DTKL, ACB])
         toe_kick.rot_x(value=math.radians(-90))
+        toe_kick.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         left_toe_kick = common_parts.add_toe_kick_end_cap(self)
         left_toe_kick.dim_x('-Height', [Height])
@@ -121,6 +124,7 @@ class Base_Assembly(sn_types.Assembly):
             [Extend_Left_Amount, Toe_Kick_Thickness, Left_Return, TK_Skin_Thickness, DTKL, ACB])
         left_toe_kick.loc_y('Depth-Extend_Depth_Amount-IF(ACB,TKS,0)', [Depth, Extend_Depth_Amount, ACB, TKS])
         left_toe_kick.rot_y(value=math.radians(90))
+        left_toe_kick.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         right_toe_kick_limit_x = "INCH(96)-EL_Amt+2.5*TK_Thk"
         right_tk_x_loc =\
@@ -138,6 +142,7 @@ class Base_Assembly(sn_types.Assembly):
         right_toe_kick.rot_x(value=math.radians(90))
         right_toe_kick.rot_y(value=math.radians(-90))
         right_toe_kick.rot_z(value=math.radians(-90))
+        right_toe_kick.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         toe_kick_stringer = common_parts.add_toe_kick_stringer(self)
         toe_kick_stringer.dim_x(
@@ -154,6 +159,7 @@ class Base_Assembly(sn_types.Assembly):
             'Depth+Toe_Kick_Thickness-Extend_Depth_Amount-IF(ACB,TKS,0)',
             [Depth, Toe_Kick_Thickness, Extend_Depth_Amount, ACB, TKS])
         toe_kick_stringer.loc_z('Height-Toe_Kick_Thickness', [Height, Toe_Kick_Thickness])
+        toe_kick_stringer.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         toe_kick_stringer = common_parts.add_toe_kick_stringer(self)
         toe_kick_stringer.dim_x(
@@ -167,6 +173,7 @@ class Base_Assembly(sn_types.Assembly):
             "+IF(DTKL,-TK_Skin_Thickness,IF(Left_Return,TK_Skin_Thickness,0))",
             [Extend_Left_Amount, Toe_Kick_Thickness, TK_Skin_Thickness, Left_Return, DTKL, ACB])
         toe_kick_stringer.loc_y('-Toe_Kick_Thickness', [Toe_Kick_Thickness])
+        toe_kick_stringer.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         toe_kick_skin = common_parts.add_toe_kick_skin(self)
         tk_skin_x =\
@@ -185,7 +192,8 @@ class Base_Assembly(sn_types.Assembly):
         toe_kick_skin.loc_y('Depth-Extend_Depth_Amount-TK_Skin_Thickness',
                             [Depth, Extend_Depth_Amount, TK_Skin_Thickness])
         toe_kick_skin.rot_x(value=math.radians(-90))
-        toe_kick_skin.get_prompt('Hide').set_formula("IF(Add_TK_Skin,False,True)", [Add_TK_Skin])
+        # toe_kick_skin.get_prompt('Hide').set_formula("IF(Add_TK_Skin,False,True)", [Add_TK_Skin])
+        toe_kick_skin.get_prompt('Hide').set_formula("IF(Add_TK_Skin,IF(Hide_Insert,True,False),True)", [Add_TK_Skin, Hide_Insert])
 
         left_skin_return = common_parts.add_toe_kick_skin(self)
         left_skin_return.set_name("Toe Kick Skin Left Return")
@@ -197,7 +205,8 @@ class Base_Assembly(sn_types.Assembly):
             [Extend_Left_Amount, Toe_Kick_Thickness, DTKL, TK_Skin_Thickness])
         left_skin_return.rot_x(value=math.radians(-90))
         left_skin_return.rot_z(value=math.radians(-90))
-        left_skin_return.get_prompt('Hide').set_formula("IF(Left_Return,False,True)", [Left_Return])
+        # left_skin_return.get_prompt('Hide').set_formula("IF(Left_Return,False,True)", [Left_Return])
+        left_skin_return.get_prompt('Hide').set_formula("IF(Left_Return,IF(Hide_Insert,True,False),True)", [Left_Return, Hide_Insert])
 
         right_skin_limit_x = "INCH(96)-EL_Amt+3.5*TK_Thk"
         right_skin_x_loc =\
@@ -215,7 +224,8 @@ class Base_Assembly(sn_types.Assembly):
              RR, TKST, DTKL, DTKR, ACB])
         right_skin_return.rot_x(value=math.radians(-90))
         right_skin_return.rot_z(value=math.radians(-90))
-        right_skin_return.get_prompt('Hide').set_formula("IF(Right_Return,False,True)", [Right_Return])
+        # right_skin_return.get_prompt('Hide').set_formula("IF(Right_Return,False,True)", [Right_Return])
+        right_skin_return.get_prompt('Hide').set_formula("IF(Right_Return,IF(Hide_Insert,True,False),True)", [Right_Return, Hide_Insert])
 
         capping_base = common_parts.add_toe_kick_capping_base(self)
         capping_base.set_name("Toe Kick Capping Base")
@@ -227,7 +237,8 @@ class Base_Assembly(sn_types.Assembly):
         capping_base.loc_x("-Extend_Left_Amount", [Extend_Left_Amount])
         capping_base.loc_y('Depth-Extend_Depth_Amount-TKS-Toe_Kick_Thickness', [Depth, Extend_Depth_Amount, ACB, TKS, Toe_Kick_Thickness])
         capping_base.rot_x(value=math.radians(-90))
-        capping_base.get_prompt('Hide').set_formula("IF(ACB,False,True)", [ACB])
+        # capping_base.get_prompt('Hide').set_formula("IF(ACB,False,True)", [ACB])
+        capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(Hide_Insert,True,False),True)", [ACB,Hide_Insert])
 
         left_capping_base = common_parts.add_toe_kick_capping_base(self)
         left_capping_base.dim_x('-Depth+Extend_Depth_Amount+TKS+(Toe_Kick_Thickness)', [Depth, Extend_Depth_Amount, Toe_Kick_Thickness, TKS])
@@ -238,7 +249,8 @@ class Base_Assembly(sn_types.Assembly):
         left_capping_base.rot_x(value=math.radians(-90))
         left_capping_base.rot_y(value=math.radians(180))
         left_capping_base.rot_z(value=math.radians(-90))
-        left_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(LCBR,False,True),True)", [ACB, LCBR])
+        # left_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(LCBR,False,True),True)", [ACB, LCBR])
+        left_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(LCBR,IF(Hide_Insert,True,False),True),True)", [ACB, LCBR, Hide_Insert])
 
         right_capping_base = common_parts.add_toe_kick_capping_base(self)
         right_capping_base.dim_x('-Depth+Extend_Depth_Amount+TKS+(Toe_Kick_Thickness)', [Depth, Extend_Depth_Amount, Toe_Kick_Thickness, TKS])
@@ -251,7 +263,8 @@ class Base_Assembly(sn_types.Assembly):
         right_capping_base.rot_x(value=math.radians(-90))
         right_capping_base.rot_y(value=math.radians(180))
         right_capping_base.rot_z(value=math.radians(-90))
-        right_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(RCBR,False,True),True)", [ACB, RCBR])
+        # right_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(RCBR,False,True),True)", [ACB, RCBR])
+        right_capping_base.get_prompt('Hide').set_formula("IF(ACB,IF(RCBR,IF(Hide_Insert,True,False),True),True)", [ACB, RCBR, Hide_Insert])
 
     def update(self):
         super().update()

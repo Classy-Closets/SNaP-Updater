@@ -254,6 +254,23 @@ def protect_pricing(parts_file):
             ws7["M" + str(row_start + (i+1))].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
             ws7["O" + str(row_start + (i+1))].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
+    if "Franchise Pricing Summary" in wb.sheetnames:
+        ws = wb["Franchise Pricing Summary"]
+        ws7 = wb["Special Order"]
+
+        # Add List of room names to Column N to create drop down list for special order parts and hide it
+        for i in range(len(F_ROOM_PRICING_LIST)):
+            ws["N" + str(i+1)] = F_ROOM_PRICING_LIST[i][0]
+        ws.column_dimensions['N'].hidden = True
+
+        data_val = openpyxl.worksheet.datavalidation.DataValidation(type="list", formula1="=OFFSET('Franchise Pricing Summary'!$N$1,0,0,COUNTA('Franchise Pricing Summary'!$N:$N),1)")
+        ws7.add_data_validation(data_val)
+        row_start = ws7.max_row
+        for i in range(30):
+            data_val.add(ws7["A" + str(row_start + (i+1))])
+            ws7["M" + str(row_start + (i+1))].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+            ws7["O" + str(row_start + (i+1))].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+
     if not COS_FLAG:
         wb.security.workbookPassword = 'Cla$$y123'
         wb.security.lockStructure = True
@@ -347,6 +364,7 @@ def generate_retail_pricing_summary(parts_file):
     cell2.fill = openpyxl.styles.PatternFill("solid", start_color="bcbcbc")
 
     erp_sheet = wb.create_sheet()
+    erp_sheet.sheet_state = 'hidden'
     erp_sheet.title = "ERP Pricing Summary"
     erp_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
     erp_sheet.HeaderFooter.oddHeader.center.text = "ERP Pricing Sheet\nJob Number: {}".format(JOB_NUMBER)
@@ -386,79 +404,79 @@ def generate_retail_pricing_summary(parts_file):
         pricing_sheet["C" + str(row_start + 2)] = "=COUNTIF('Special Order'!A:A," + "C" + str(row_start + 1) + ")"
         pricing_sheet["A" + str(row_start + 3)] = "Materials Price"
         pricing_sheet["A" + str(row_start + 3)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 3)] = "=ROUNDUP(" + str(R_ROOM_PRICING_LIST[i][3]) + ",0)"
+        pricing_sheet["C" + str(row_start + 3)] = R_ROOM_PRICING_LIST[i][3]
         pricing_sheet["C" + str(row_start + 3)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["I" + str(row_start + 3)] = 0
         pricing_sheet["I" + str(row_start + 3)].number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE
         pricing_sheet["I" + str(row_start + 3)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["I" + str(row_start + 3)].protection = openpyxl.styles.Protection(locked=False)
-        pricing_sheet["J" + str(row_start + 3)] = "=ROUNDUP(I" + str(row_start + 3) + "*C" + str(row_start + 3) + ",0)"
+        pricing_sheet["J" + str(row_start + 3)] = "=I" + str(row_start + 3) + "*C" + str(row_start + 3)
         pricing_sheet["J" + str(row_start + 3)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["J" + str(row_start + 3)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 4)] = "Hardware Price"
         pricing_sheet["A" + str(row_start + 4)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 4)] = "=ROUNDUP(" + str(R_ROOM_PRICING_LIST[i][4]) + ",0)"
+        pricing_sheet["C" + str(row_start + 4)] = R_ROOM_PRICING_LIST[i][4]
         pricing_sheet["C" + str(row_start + 4)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["I" + str(row_start + 4)] = 0
         pricing_sheet["I" + str(row_start + 4)].number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE
         pricing_sheet["I" + str(row_start + 4)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["I" + str(row_start + 4)].protection = openpyxl.styles.Protection(locked=False)
-        pricing_sheet["J" + str(row_start + 4)] = "=ROUNDUP(I" + str(row_start + 4) + "*C" + str(row_start + 4) + ",0)"
+        pricing_sheet["J" + str(row_start + 4)] = "=I" + str(row_start + 4) + "*C" + str(row_start + 4)
         pricing_sheet["J" + str(row_start + 4)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["J" + str(row_start + 4)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 5)] = "Accessories Price"
         pricing_sheet["A" + str(row_start + 5)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 5)] = "=ROUNDUP(" + str(R_ROOM_PRICING_LIST[i][5]) + ",0)"
+        pricing_sheet["C" + str(row_start + 5)] = R_ROOM_PRICING_LIST[i][5]
         pricing_sheet["C" + str(row_start + 5)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["I" + str(row_start + 5)] = 0
         pricing_sheet["I" + str(row_start + 5)].number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE
         pricing_sheet["I" + str(row_start + 5)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["I" + str(row_start + 5)].protection = openpyxl.styles.Protection(locked=False)
-        pricing_sheet["J" + str(row_start + 5)] = "=ROUNDUP(I" + str(row_start + 5) + "*C" + str(row_start + 5) + ",0)"
+        pricing_sheet["J" + str(row_start + 5)] = "=I" + str(row_start + 5) + "*C" + str(row_start + 5)
         pricing_sheet["J" + str(row_start + 5)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["J" + str(row_start + 5)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 6)] = "Upgraded Panels Price"
         pricing_sheet["A" + str(row_start + 6)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 6)] = "=ROUNDUP(" + str(R_ROOM_PRICING_LIST[i][6]) + ",0)"
+        pricing_sheet["C" + str(row_start + 6)] = R_ROOM_PRICING_LIST[i][6]
         pricing_sheet["C" + str(row_start + 6)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["I" + str(row_start + 6)] = 0
         pricing_sheet["I" + str(row_start + 6)].number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE
         pricing_sheet["I" + str(row_start + 6)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["I" + str(row_start + 6)].protection = openpyxl.styles.Protection(locked=False)
-        pricing_sheet["J" + str(row_start + 6)] = "=ROUNDUP(I" + str(row_start + 6) + "*C" + str(row_start + 6) + ",0)"
+        pricing_sheet["J" + str(row_start + 6)] = "=I" + str(row_start + 6) + "*C" + str(row_start + 6)
         pricing_sheet["J" + str(row_start + 6)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["J" + str(row_start + 6)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 7)] = "Glass Price"
         pricing_sheet["A" + str(row_start + 7)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 7)] = "=ROUNDUP(" + str(R_ROOM_PRICING_LIST[i][9]) + ",0)"
+        pricing_sheet["C" + str(row_start + 7)] = R_ROOM_PRICING_LIST[i][9]
         pricing_sheet["C" + str(row_start + 7)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["I" + str(row_start + 7)] = 0
         pricing_sheet["I" + str(row_start + 7)].number_format = openpyxl.styles.numbers.FORMAT_PERCENTAGE
         pricing_sheet["I" + str(row_start + 7)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["I" + str(row_start + 7)].protection = openpyxl.styles.Protection(locked=False)
-        pricing_sheet["J" + str(row_start + 7)] = "=ROUNDUP(I" + str(row_start + 7) + "*C" + str(row_start + 7) + ",0)"
+        pricing_sheet["J" + str(row_start + 7)] = "=I" + str(row_start + 7) + "*C" + str(row_start + 7)
         pricing_sheet["J" + str(row_start + 7)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["J" + str(row_start + 7)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 8)] = "Special Order Price"
         pricing_sheet["A" + str(row_start + 8)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 8)] = "=ROUNDUP(SUMIF('Special Order'!A:A," + "C" + str(row_start + 1) + ",'Special Order'!O:O),0)"
+        pricing_sheet["C" + str(row_start + 8)] = "=SUMIF('Special Order'!A:A," + "C" + str(row_start + 1) + ",'Special Order'!O:O)"
         pricing_sheet["C" + str(row_start + 8)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["A" + str(row_start + 9)] = "Adjustments"
         pricing_sheet["A" + str(row_start + 9)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 9)] = "=ROUNDUP(SUM(J" + str(row_start + 3) + ":J" + str(row_start + 7) + "),0)"
+        pricing_sheet["C" + str(row_start + 9)] = "=SUM(J" + str(row_start + 3) + ":J" + str(row_start + 7) + ")"
         pricing_sheet["C" + str(row_start + 9)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["C" + str(row_start + 9)].font = openpyxl.styles.Font(color="00339966")
         pricing_sheet["A" + str(row_start + 10)] = "Room Subtotal"
         pricing_sheet["A" + str(row_start + 10)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 10)] = "=ROUNDUP(SUM(C" + str(row_start + 3) + ":C" + str(row_start + 8) + ")" + "-" + "C" + str(row_start + 9) + ",0)"
+        pricing_sheet["C" + str(row_start + 10)] = "=SUM(C" + str(row_start + 3) + ":C" + str(row_start + 8) + ")" + "-" + "C" + str(row_start + 9)
         pricing_sheet["C" + str(row_start + 10)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["A" + str(row_start + 11)] = "Admin Fee (15%)"
         pricing_sheet["A" + str(row_start + 11)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 11)] = "=ROUNDUP(" + "C" + str(row_start + 10) + "*.150" + ",0)"
+        pricing_sheet["C" + str(row_start + 11)] = "=C" + str(row_start + 10) + "*.150"
         pricing_sheet["C" + str(row_start + 11)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["A" + str(row_start + 12)] = "Adjusted Room Subtotal"
         pricing_sheet["A" + str(row_start + 12)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 12)] = "=ROUNDUP(" + "C" + str(row_start + 10) + "+C" + str(row_start + 11) + ",0)"
+        pricing_sheet["C" + str(row_start + 12)] = "=C" + str(row_start + 10) + "+C" + str(row_start + 11)
         pricing_sheet["C" + str(row_start + 12)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["A" + str(row_start + 13)] = "O.D.C Price"
         pricing_sheet["A" + str(row_start + 13)].font = openpyxl.styles.Font(bold=True)
@@ -472,7 +490,7 @@ def generate_retail_pricing_summary(parts_file):
         pricing_sheet["C" + str(row_start + 14)].protection = openpyxl.styles.Protection(locked=False)
         pricing_sheet["A" + str(row_start + 15)] = "Room Grand Total"
         pricing_sheet["A" + str(row_start + 15)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 15)] = "=ROUNDUP(" + "C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14) + ",0)"
+        pricing_sheet["C" + str(row_start + 15)] = "=" + "C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14)
         pricing_sheet["C" + str(row_start + 15)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
 
         erp_sheet["A" + str(erp_row + 2)] = R_ROOM_PRICING_LIST[i][0]
@@ -481,7 +499,8 @@ def generate_retail_pricing_summary(parts_file):
         erp_sheet["B" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
         erp_sheet["C" + str(erp_row + 2)] = "='Retail Pricing Summary'!" + "C" + str(row_start + 15)
         erp_sheet["C" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        erp_sheet["D" + str(erp_row + 2)] = "=C" + str(erp_row + 2) + "*0.3"
+        # erp_sheet["D" + str(erp_row + 2)] = "=C" + str(erp_row + 2) + "*0.3"
+        erp_sheet["D" + str(erp_row + 2)] = F_ROOM_PRICING_LIST[i][3] + F_ROOM_PRICING_LIST[i][4] + F_ROOM_PRICING_LIST[i][5] + F_ROOM_PRICING_LIST[i][6] + F_ROOM_PRICING_LIST[i][9]
         erp_sheet["D" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
         erp_sheet["E" + str(erp_row + 2)] = "=D" + str(erp_row + 2) + "*0.5"
         erp_sheet["E" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
@@ -495,7 +514,7 @@ def generate_retail_pricing_summary(parts_file):
     pricing_sheet["A" + str(row_start + 3)] = "Unassigned Special Order Price"
     pricing_sheet["A" + str(row_start + 3)].font = openpyxl.styles.Font(bold=True)
     pricing_sheet["B" + str(row_start + 3)] = "See Special Order tab for details"
-    pricing_sheet["C" + str(row_start + 3)] = "=ROUNDUP(SUMIF('Special Order'!A:A," + '""' + ",'Special Order'!O:O),0)"
+    pricing_sheet["C" + str(row_start + 3)] = "=SUMIF('Special Order'!A:A," + '""' + ",'Special Order'!O:O)"
     pricing_sheet["C" + str(row_start + 3)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet.conditional_formatting.add("C" + str(row_start + 3), openpyxl.formatting.rule.FormulaRule(formula=["C" + str(row_start + 3) + "<>0"], stopIfTrue=True, fill=red_fill))
     pricing_sheet["D" + str(row_start + 3)] = "=IF(" + "C" + str(row_start + 3) + "," + '"Please assign Room Names for these items"' + "," + '""' + ")"
@@ -509,61 +528,61 @@ def generate_retail_pricing_summary(parts_file):
     pricing_sheet["A" + str(row_start + 8)] = "Special Order Items Count Total"
     pricing_sheet["A" + str(row_start + 8)].font = openpyxl.styles.Font(bold=True)
     # pricing_sheet["B" + str(row_start + 8)] = "See Special Order tab for details"
-    pricing_sheet["C" + str(row_start + 8)] = "=ROUNDUP(SUMIF('Special Order'!H:H," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 8)] = "=SUMIF('Special Order'!H:H," + '"' + ">0" + '"' + ")"
     pricing_sheet["A" + str(row_start + 9)] = "Materials Price Total"
     pricing_sheet["A" + str(row_start + 9)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 9)] = "=ROUNDUP(SUMIF('Materials'!P:P," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 9)] = "=SUMIF('Materials'!P:P," + '"' + ">0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 9)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 10)] = "Hardware Price Total"
     pricing_sheet["A" + str(row_start + 10)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 10)] = "=ROUNDUP(SUMIF('Hardware'!K:K," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 10)] = "=SUMIF('Hardware'!K:K," + '"' + ">0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 10)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 11)] = "Accessories Price Total"
     pricing_sheet["A" + str(row_start + 11)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 11)] = "=ROUNDUP(SUMIF('Accessories'!K:K," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 11)] = "=SUMIF('Accessories'!K:K," + '"' + ">0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 11)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 12)] = "Upgraded Panels Price Total"
     pricing_sheet["A" + str(row_start + 12)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 12)] = "=ROUNDUP(SUMIF('Upgraded Panels'!O:O," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 12)] = "=SUMIF('Upgraded Panels'!O:O," + '"' + ">0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 12)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 13)] = "Glass Price Total"
     pricing_sheet["A" + str(row_start + 13)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 13)] = "=ROUNDUP(SUMIF('Glass'!O:O," + '"' + ">0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 13)] = "=SUMIF('Glass'!O:O," + '"' + ">0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 13)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 14)] = "Special Order Price Total"
     pricing_sheet["A" + str(row_start + 14)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 14)] = "=ROUNDUP(SUMIF('Special Order'!O:O," + '"' + "<>0" + '"' + "),0)"
+    pricing_sheet["C" + str(row_start + 14)] = "=SUMIF('Special Order'!O:O," + '"' + "<>0" + '"' + ")"
     pricing_sheet["C" + str(row_start + 14)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 15)] = "Adjustments Total"
     pricing_sheet["A" + str(row_start + 15)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 15)] = "=ROUNDUP(SUM(J:J),0)"
+    pricing_sheet["C" + str(row_start + 15)] = "=SUM(J:J)"
     pricing_sheet["C" + str(row_start + 15)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["C" + str(row_start + 15)].font = openpyxl.styles.Font(color="00339966")
     pricing_sheet["A" + str(row_start + 16)] = "Project Subtotal"
     pricing_sheet["A" + str(row_start + 16)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 16)] = "=ROUNDUP(C" + str(row_start + 9) + "+C" + str(row_start + 10) + "+C" + str(row_start + 11) + "+C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14) +"-C" + str(row_start + 15) + ",0)"
+    pricing_sheet["C" + str(row_start + 16)] = "=C" + str(row_start + 9) + "+C" + str(row_start + 10) + "+C" + str(row_start + 11) + "+C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14) +"-C" + str(row_start + 15)
     pricing_sheet["C" + str(row_start + 16)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 17)] = "Admin Fee (15%)"
     pricing_sheet["A" + str(row_start + 17)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 17)] = "=ROUNDUP(" + "C" + str(row_start + 16) + "*.150" + ",0)"
+    pricing_sheet["C" + str(row_start + 17)] = "=C" + str(row_start + 16) + "*.150"
     pricing_sheet["C" + str(row_start + 17)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 18)] = "Adjusted Project Subtotal"
     pricing_sheet["A" + str(row_start + 18)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 18)] = "=ROUNDUP(" + "C" + str(row_start + 16) + "+C" + str(row_start + 17) + ",0)"
+    pricing_sheet["C" + str(row_start + 18)] = "=C" + str(row_start + 16) + "+C" + str(row_start + 17)
     pricing_sheet["C" + str(row_start + 18)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 19)] = "O.D.C Price Total"
     pricing_sheet["A" + str(row_start + 19)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 19)] = "=ROUNDUP(SUMIF(A:A," + '"O.D.C Price"' + ",C:C),0)"
+    pricing_sheet["C" + str(row_start + 19)] = "=SUMIF(A:A," + '"O.D.C Price"' + ",C:C)"
     pricing_sheet["C" + str(row_start + 19)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["C" + str(row_start + 19)].protection = openpyxl.styles.Protection(locked=False)
     pricing_sheet["A" + str(row_start + 20)] = "Tear Out Price Total"
     pricing_sheet["A" + str(row_start + 20)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 20)] = "=ROUNDUP(SUMIF(A:A," + '"Tear Out Price"' + ",C:C),0)"
+    pricing_sheet["C" + str(row_start + 20)] = "=SUMIF(A:A," + '"Tear Out Price"' + ",C:C)"
     pricing_sheet["C" + str(row_start + 20)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["C" + str(row_start + 20)].protection = openpyxl.styles.Protection(locked=False)
     pricing_sheet["A" + str(row_start + 21)] = "Grand Total"
     pricing_sheet["A" + str(row_start + 21)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 21)] = "=ROUNDUP(" + "C" + str(row_start + 18) + "+C" + str(row_start + 19) + "+C" + str(row_start + 20) + ",0)"
+    pricing_sheet["C" + str(row_start + 21)] = "=C" + str(row_start + 18) + "+C" + str(row_start + 19) + "+C" + str(row_start + 20)
     pricing_sheet["C" + str(row_start + 21)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
 
     set_column_width(pricing_sheet)
@@ -713,7 +732,7 @@ def generate_franchise_pricing_summary(parts_file):
         pricing_sheet["C" + str(row_start + 14)].protection = openpyxl.styles.Protection(locked=False)
         pricing_sheet["A" + str(row_start + 15)] = "Room Grand Total"
         pricing_sheet["A" + str(row_start + 15)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 15)] = "=ROUNDUP(" + "C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14) + ",0)"
+        pricing_sheet["C" + str(row_start + 15)] = "=" + "C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14)
         pricing_sheet["C" + str(row_start + 15)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
 
         pricing_sheet["A" + str(row_start + 17)] = ""
@@ -792,7 +811,7 @@ def generate_franchise_pricing_summary(parts_file):
     pricing_sheet["C" + str(row_start + 20)].protection = openpyxl.styles.Protection(locked=False)
     pricing_sheet["A" + str(row_start + 21)] = "Grand Total"
     pricing_sheet["A" + str(row_start + 21)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 21)] = "=ROUNDUP(" + "C" + str(row_start + 18) + "+C" + str(row_start + 19) + "+C" + str(row_start + 20) + ",0)"
+    pricing_sheet["C" + str(row_start + 21)] = "=C" + str(row_start + 18) + "+C" + str(row_start + 19) + "+C" + str(row_start + 20)
     pricing_sheet["C" + str(row_start + 21)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
 
     set_column_width(pricing_sheet)
@@ -820,7 +839,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                         and (PART_NAME.str.contains("Drawer Sub Front")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Back")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Bottom")==False)', engine='python')
-            if not df_materials.empty:
+            if df_materials.shape[0] > 0:
                 materials_summary = pandas.pivot_table(df_materials,
                                                         index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT'],
                                                         values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
@@ -841,7 +860,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                     or (PART_NAME.str.contains("Drawer Back")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Bottom")==True)', engine='python')
 
-            if not df_drawers.empty:
+            if df_drawers.shape[0] > 0:
                 drawers_summary = pandas.pivot_table(df_drawers, 
                                                         index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'LINEAR_FT'], 
                                                         values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
@@ -854,7 +873,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
         if hardware_sheet is not None:
             df_hardware = pandas.read_excel(parts_file, sheet_name='Hardware')
-            if not df_hardware.empty:
+            if df_hardware.shape[0] > 0:
                 hardware_summary = pandas.pivot_table(df_hardware, 
                                                         index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME', 'PART_PRICE'], 
                                                         values=['QUANTITY', 'TOTAL_PRICE'],
@@ -867,7 +886,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
             
         if accessories_sheet is not None:
             df_accessories = pandas.read_excel(parts_file, sheet_name='Accessories')
-            if not df_accessories.empty:
+            if df_accessories.shape[0] > 0:
                 accessories_summary = pandas.pivot_table(df_accessories, 
                                                             index=['ROOM_NAME', 'VENDOR_NAME', 'VENDOR_ITEM', 'PART_NAME', 'PART_DIMENSIONS', 'PART_PRICE'], 
                                                             values=['QUANTITY', 'TOTAL_PRICE'],
@@ -880,7 +899,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
         if upgraded_panel_sheet is not None:
             df_upgraded_panel = pandas.read_excel(parts_file, sheet_name='Upgraded Panels')
-            if not df_upgraded_panel.empty:
+            if df_upgraded_panel.shape[0] > 0:
                 upgraded_panel_summary = pandas.pivot_table(df_upgraded_panel, 
                                                             index=['ROOM_NAME', 'PAINT_STAIN_COLOR', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'PART_PRICE', 'SQUARE_FT'], 
                                                             values=['QUANTITY', 'TOTAL_PRICE'],
@@ -893,7 +912,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
         if glass_sheet is not None:
             df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
-            if not df_glass.empty:
+            if df_glass.shape[0] > 0:
                 glass_summary = pandas.pivot_table(df_glass, 
                                                     index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'PART_PRICE', 'SQUARE_FT'], 
                                                     values=['QUANTITY', 'TOTAL_PRICE'],
@@ -904,18 +923,18 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                 writer.sheets['Glass Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                 set_column_width(writer.sheets['Glass Summary'])
 
-        if so_sheet is not None:
-            df_so = pandas.read_excel(parts_file, sheet_name='Special Order')
-            if not df_so.empty:
-                so_summary = pandas.pivot_table(df_so, 
-                                                index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], 
-                                                values=['QUANTITY'], 
-                                                aggfunc=[numpy.sum])
-                so_summary.to_excel(writer, sheet_name='Special Order Summary')
-                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.center.text = "Special Order Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-                writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-                set_column_width(writer.sheets['Special Order Summary'])
+        # if so_sheet is not None:
+        #     df_so = pandas.read_excel(parts_file, sheet_name='Special Order')
+        #     if df_so.shape[0] > 0:
+        #         so_summary = pandas.pivot_table(df_so, 
+        #                                         index=['ROOM_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS'], 
+        #                                         values=['QUANTITY'], 
+        #                                         aggfunc=[numpy.sum])
+        #         so_summary.to_excel(writer, sheet_name='Special Order Summary')
+        #         writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+        #         writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.center.text = "Special Order Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+        #         writer.sheets['Special Order Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+        #         set_column_width(writer.sheets['Special Order Summary'])
 
     print("Parts Summary Created")
     display_parts_summary(parts_file)
@@ -967,6 +986,8 @@ def generate_retail_parts_list():
         for i in range(len(MATERIAL_PARTS_LIST)):
             room_name = MATERIAL_PARTS_LIST[i][0]
             wall_name = MATERIAL_PARTS_LIST[i][17]
+            if wall_name == "NA":
+                wall_name = "---"
             sku_num = MATERIAL_PARTS_LIST[i][1]
             vendor_name = MATERIAL_PARTS_LIST[i][2]
             vendor_item = MATERIAL_PARTS_LIST[i][3]
@@ -1023,6 +1044,10 @@ def generate_retail_parts_list():
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][2]) + "L"
                                 elif EDGEBANDING[index][1] == 1 and EDGEBANDING[index][2] == 0:
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S"
+                                elif EDGEBANDING[index][1] == 2 and EDGEBANDING[index][2] == 0:
+                                    sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S"
+                                elif EDGEBANDING[index][1] == 0 and EDGEBANDING[index][2] == 2:
+                                    sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][2]) + "L"
                                 else:
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S_" + str(EDGEBANDING[index][2]) + "L"
                 if 'LF' in uom:
@@ -1062,26 +1087,26 @@ def generate_retail_parts_list():
         sheet1.append(["ROOM_NAME", "WALL_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE", "EDGEBANDING"])
 
-        sheet1["A2"] = "---"                                          #ROOM_NAME
-        sheet1["B2"] = "---"                                          #WALL_NAME
-        sheet1["C2"] = "---"                                          #SKU_NUMBER 
-        sheet1["D2"] = "---"                                          #VENDOR_NAME
-        sheet1["E2"] = "---"                                          #VENDOR_ITEM
-        sheet1["F2"] = "---"                                          #PART LABELID
-        sheet1["G2"] = "---"                                          #MATERIAL
-        sheet1["H2"] = "---"                                          #PART_NAME    
-        sheet1["I2"] = 0                                              #QUANTITY
-        sheet1["J2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet1["K2"] = "---"                                          #THICKNESS
-        sheet1["L2"] = "---"                                           
-        sheet1["M2"] = "---"
-        sheet1["N2"] = 0                                              #PART_PRICE
-        sheet1["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["O2"] = 0                                              #LABOR
-        sheet1["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["P2"] = 0                                              #TOTAL_PRICE
-        sheet1["P2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["Q2"] = "---"
+        # sheet1["A2"] = "---"                                          #ROOM_NAME
+        # sheet1["B2"] = "---"                                          #WALL_NAME
+        # sheet1["C2"] = "---"                                          #SKU_NUMBER 
+        # sheet1["D2"] = "---"                                          #VENDOR_NAME
+        # sheet1["E2"] = "---"                                          #VENDOR_ITEM
+        # sheet1["F2"] = "---"                                          #PART LABELID
+        # sheet1["G2"] = "---"                                          #MATERIAL
+        # sheet1["H2"] = "---"                                          #PART_NAME    
+        # sheet1["I2"] = 0                                              #QUANTITY
+        # sheet1["J2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet1["K2"] = "---"                                          #THICKNESS
+        # sheet1["L2"] = 0                                           
+        # sheet1["M2"] = 0
+        # sheet1["N2"] = 0                                              #PART_PRICE
+        # sheet1["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["O2"] = 0                                              #LABOR
+        # sheet1["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["P2"] = 0                                              #TOTAL_PRICE
+        # sheet1["P2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["Q2"] = "---"
 
         sheet1.column_dimensions['Q'].hidden = True
         sheet1.column_dimensions['O'].hidden = True
@@ -1127,18 +1152,18 @@ def generate_retail_parts_list():
         sheet2.title = "Hardware"
         sheet2.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PART_NAME", "", "QUANTITY", "PART_PRICE", "TOTAL_PRICE"])
 
-        sheet2["A2"] = "---"                                          #ROOM_NAME
-        sheet2["B2"] = "---"                                          #WALL_NAME
-        sheet2["C2"] = "---"                                          #SKU_NUMBER 
-        sheet2["D2"] = "---"                                          #VENDOR_NAME
-        sheet2["E2"] = "---"                                          #VENDOR_ITEM
-        sheet2["F2"] = "---"                                          #PART LABELID
-        sheet2["H2"] = "---"                                          #PART_NAME    
-        sheet2["I2"] = 0                                              #LABOR
-        sheet2["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet2["J2"] = 0                                              #TOTAL_PRICE
-        sheet2["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet2["Q2"] = "---"
+        # sheet2["A2"] = "---"                                          #ROOM_NAME
+        # sheet2["B2"] = "---"                                          #SKU_NUMBER
+        # sheet2["C2"] = "---"                                          #VENDOR_NAME 
+        # sheet2["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet2["E2"] = "---"                                          #PART LABELID
+        # sheet2["F2"] = "---"                                          #PART_NAME
+        # sheet2["H2"] = 0                                          #QUANTITY   
+        # sheet2["I2"] = 0                                              #PART_PRICE
+        # sheet2["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet2["J2"] = 0                                              #TOTAL_PRICE
+        # sheet2["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet2["Q2"] = "---"
 
         set_column_width(sheet2)
 
@@ -1202,19 +1227,19 @@ def generate_retail_parts_list():
         sheet3.title = "Accessories"
         sheet3.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PART_NAME", "PART_DIMENSIONS", "QUANTITY", "PART_PRICE", "TOTAL_PRICE"])
 
-        sheet3["A2"] = "---"                                          #ROOM_NAME
-        sheet3["B2"] = "---"                                          #WALL_NAME
-        sheet3["C2"] = "---"                                          #SKU_NUMBER 
-        sheet3["D2"] = "---"                                          #VENDOR_NAME
-        sheet3["E2"] = "---"                                          #VENDOR_ITEM
-        sheet3["F2"] = "---"                                          #PART LABELID
-        sheet3["G2"] = "---"
-        sheet3["H2"] = "---"                                          #PART_NAME    
-        sheet3["I2"] = 0                                              #LABOR
-        sheet3["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet3["J2"] = 0                                              #TOTAL_PRICE
-        sheet3["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet3["Q2"] = "---"
+        # sheet3["A2"] = "---"                                          #ROOM_NAME
+        # sheet3["B2"] = "---"                                          #SKU_NUMBER
+        # sheet3["C2"] = "---"                                          #VENDOR_NAME 
+        # sheet3["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet3["E2"] = "---"                                          #PART LABELID
+        # sheet3["F2"] = "---"                                          #PART_NAME
+        # sheet3["G2"] = "---"                                          #PART_DIMENSIONS
+        # sheet3["H2"] = 0                                              #QUANTITY   
+        # sheet3["I2"] = 0                                              #LABOR
+        # sheet3["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet3["J2"] = 0                                              #TOTAL_PRICE
+        # sheet3["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet3["Q2"] = "---"
 
         set_column_width(sheet3)
 
@@ -1289,24 +1314,24 @@ def generate_retail_parts_list():
         sheet4.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PAINT_STAIN_COLOR", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
-        sheet4["A2"] = "---"                                          #ROOM_NAME
-        sheet4["B2"] = "---"                                          #SKU_NUMBER 
-        sheet4["C2"] = "---"                                          #VENDOR_NAME
-        sheet4["D2"] = "---"                                          #VENDOR_ITEM
-        sheet4["E2"] = "---"                                          #PART LABELID
-        sheet4["F2"] = "---"                                          #MATERIAL
-        sheet4["G2"] = "---"                                          #PART_NAME    
-        sheet4["H2"] = 0                                              #QUANTITY
-        sheet4["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet4["J2"] = "---"                                          #THICKNESS
-        sheet4["K2"] = "---"
-        sheet4["L2"] = "---"
-        sheet4["M2"] = 0                                              #PART_PRICE
-        sheet4["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet4["N2"] = 0                                              #LABOR
-        sheet4["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet4["O2"] = 0                                              #TOTAL_PRICE
-        sheet4["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["A2"] = "---"                                          #ROOM_NAME
+        # sheet4["B2"] = "---"                                          #SKU_NUMBER 
+        # sheet4["C2"] = "---"                                          #VENDOR_NAME
+        # sheet4["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet4["E2"] = "---"                                          #PART LABELID
+        # sheet4["F2"] = "---"                                          #MATERIAL
+        # sheet4["G2"] = "---"                                          #PART_NAME    
+        # sheet4["H2"] = 0                                              #QUANTITY
+        # sheet4["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet4["J2"] = "---"                                          #THICKNESS
+        # sheet4["K2"] = "---"
+        # sheet4["L2"] = "---"
+        # sheet4["M2"] = 0                                              #PART_PRICE
+        # sheet4["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["N2"] = 0                                              #LABOR
+        # sheet4["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["O2"] = 0                                              #TOTAL_PRICE
+        # sheet4["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
         sheet4.column_dimensions['N'].hidden = True
         set_column_width(sheet4)
@@ -1383,24 +1408,24 @@ def generate_retail_parts_list():
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
 
-        sheet5["A2"] = "---"                                          #ROOM_NAME
-        sheet5["B2"] = "---"                                          #SKU_NUMBER 
-        sheet5["C2"] = "---"                                          #VENDOR_NAME
-        sheet5["D2"] = "---"                                          #VENDOR_ITEM
-        sheet5["E2"] = "---"                                          #PART LABELID
-        sheet5["F2"] = "---"                                          #MATERIAL
-        sheet5["G2"] = "---"                                          #PART_NAME    
-        sheet5["H2"] = 0                                              #QUANTITY
-        sheet5["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet5["J2"] = "---"                                          #THICKNESS
-        sheet5["K2"] = "---"
-        sheet5["L2"] = "---"
-        sheet5["M2"] = 0                                              #PART_PRICE
-        sheet5["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet5["N2"] = 0                                              #LABOR
-        sheet5["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet5["O2"] = 0                                              #TOTAL_PRICE
-        sheet5["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["A2"] = "---"                                          #ROOM_NAME
+        # sheet5["B2"] = "---"                                          #SKU_NUMBER 
+        # sheet5["C2"] = "---"                                          #VENDOR_NAME
+        # sheet5["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet5["E2"] = "---"                                          #PART LABELID
+        # sheet5["F2"] = "---"                                          #MATERIAL
+        # sheet5["G2"] = "---"                                          #PART_NAME    
+        # sheet5["H2"] = 0                                              #QUANTITY
+        # sheet5["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet5["J2"] = "---"                                          #THICKNESS
+        # sheet5["K2"] = 0
+        # sheet5["L2"] = 0
+        # sheet5["M2"] = 0                                              #PART_PRICE
+        # sheet5["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["N2"] = 0                                              #LABOR
+        # sheet5["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["O2"] = 0                                              #TOTAL_PRICE
+        # sheet5["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
         sheet5.column_dimensions['N'].hidden = True
         set_column_width(sheet5)
@@ -1411,6 +1436,17 @@ def generate_retail_parts_list():
         sheet6.title = "Special Order"
         sheet6.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
+        
+        sheet6["Q1"] = "Be sure to note ALL material changes and special order additions on your plans"
+        sheet6["Q1"].fill = openpyxl.styles.PatternFill("solid", start_color="FFFF00")
+        sheet6["Q1"].font = openpyxl.styles.Font(bold=True)
+        sheet6["Q1"].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+        # sheet6.merge_cells(start_row=2, start_column=17, end_row=9, end_column=17)
+        # cell = sheet6.cell(row=2, column=17)
+        # cell.value = "Be sure to note ALL material changes and special order additions on your plans"
+        # cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+        # cell.fill = openpyxl.styles.PatternFill("solid", start_color="FFFF00")
+        # cell.font = openpyxl.styles.Font(bold=True)
 
         for i in range(len(SPECIAL_ORDER_PARTS_LIST)):
             room_name = SPECIAL_ORDER_PARTS_LIST[i][0]
@@ -1475,6 +1511,11 @@ def generate_retail_parts_list():
         sheet6.title = "Special Order"
         sheet6.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
+        
+        sheet6["Q1"] = "Be sure to note ALL material changes and special order additions on your plans"
+        sheet6["Q1"].fill = openpyxl.styles.PatternFill("solid", start_color="FFFF00")
+        sheet6["Q1"].font = openpyxl.styles.Font(bold=True)
+        sheet6["Q1"].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
         sheet6.column_dimensions['N'].hidden = True
         set_column_width(sheet6)
@@ -1600,6 +1641,8 @@ def generate_franchise_parts_list():
         for i in range(len(MATERIAL_PARTS_LIST)):
             room_name = MATERIAL_PARTS_LIST[i][0]
             wall_name = MATERIAL_PARTS_LIST[i][17]
+            if wall_name == "NA":
+                wall_name = "---"
             sku_num = MATERIAL_PARTS_LIST[i][1]
             vendor_name = MATERIAL_PARTS_LIST[i][2]
             vendor_item = MATERIAL_PARTS_LIST[i][3]
@@ -1654,6 +1697,10 @@ def generate_franchise_parts_list():
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][2]) + "L"
                                 elif EDGEBANDING[index][1] == 1 and EDGEBANDING[index][2] == 0:
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S"
+                                elif EDGEBANDING[index][1] == 2 and EDGEBANDING[index][2] == 0:
+                                    sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S"
+                                elif EDGEBANDING[index][1] == 0 and EDGEBANDING[index][2] == 2:
+                                    sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][2]) + "L"
                                 else:
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S_" + str(EDGEBANDING[index][2]) + "L"
     
@@ -1693,26 +1740,26 @@ def generate_franchise_parts_list():
         sheet1.append(["ROOM_NAME", "WALL_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE", "EDGEBANDING"])
 
-        sheet1["A2"] = "---"                                          #ROOM_NAME
-        sheet1["B2"] = "---"                                          #WALL_NAME
-        sheet1["C2"] = "---"                                          #SKU_NUMBER 
-        sheet1["D2"] = "---"                                          #VENDOR_NAME
-        sheet1["E2"] = "---"                                          #VENDOR_ITEM
-        sheet1["F2"] = "---"                                          #PART LABELID
-        sheet1["G2"] = "---"                                          #MATERIAL
-        sheet1["H2"] = "---"                                          #PART_NAME    
-        sheet1["I2"] = 0                                              #QUANTITY
-        sheet1["J2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet1["K2"] = "---"                                          #THICKNESS
-        sheet1["L2"] = "---"                                           
-        sheet1["M2"] = "---"
-        sheet1["N2"] = 0                                              #PART_PRICE
-        sheet1["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["O2"] = 0                                              #LABOR
-        sheet1["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["P2"] = 0                                              #TOTAL_PRICE
-        sheet1["P2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet1["Q2"] = "---"
+        # sheet1["A2"] = "---"                                          #ROOM_NAME
+        # sheet1["B2"] = "---"                                          #WALL_NAME
+        # sheet1["C2"] = "---"                                          #SKU_NUMBER 
+        # sheet1["D2"] = "---"                                          #VENDOR_NAME
+        # sheet1["E2"] = "---"                                          #VENDOR_ITEM
+        # sheet1["F2"] = "---"                                          #PART LABELID
+        # sheet1["G2"] = "---"                                          #MATERIAL
+        # sheet1["H2"] = "---"                                          #PART_NAME    
+        # sheet1["I2"] = 0                                              #QUANTITY
+        # sheet1["J2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet1["K2"] = "---"                                          #THICKNESS
+        # sheet1["L2"] = 0                                           
+        # sheet1["M2"] = 0
+        # sheet1["N2"] = 0                                              #PART_PRICE
+        # sheet1["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["O2"] = 0                                              #LABOR
+        # sheet1["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["P2"] = 0                                              #TOTAL_PRICE
+        # sheet1["P2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet1["Q2"] = "---"
 
         sheet1.column_dimensions['Q'].hidden = True
         sheet1.column_dimensions['O'].hidden = True
@@ -1758,18 +1805,18 @@ def generate_franchise_parts_list():
         sheet2.title = "Hardware"
         sheet2.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PART_NAME", "", "QUANTITY", "PART_PRICE", "TOTAL_PRICE"])
 
-        sheet2["A2"] = "---"                                          #ROOM_NAME
-        sheet2["B2"] = "---"                                          #WALL_NAME
-        sheet2["C2"] = "---"                                          #SKU_NUMBER 
-        sheet2["D2"] = "---"                                          #VENDOR_NAME
-        sheet2["E2"] = "---"                                          #VENDOR_ITEM
-        sheet2["F2"] = "---"                                          #PART LABELID
-        sheet2["H2"] = "---"                                          #PART_NAME    
-        sheet2["I2"] = 0                                              #LABOR
-        sheet2["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet2["J2"] = 0                                              #TOTAL_PRICE
-        sheet2["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet2["Q2"] = "---"
+        # sheet2["A2"] = "---"                                          #ROOM_NAME
+        # sheet2["B2"] = "---"                                          #WALL_NAME
+        # sheet2["C2"] = "---"                                          #SKU_NUMBER 
+        # sheet2["D2"] = "---"                                          #VENDOR_NAME
+        # sheet2["E2"] = "---"                                          #VENDOR_ITEM
+        # sheet2["F2"] = "---"                                          #PART LABELID
+        # sheet2["H2"] = 0                                          #PART_NAME    
+        # sheet2["I2"] = 0                                              #LABOR
+        # sheet2["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet2["J2"] = 0                                              #TOTAL_PRICE
+        # sheet2["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet2["Q2"] = "---"
 
         set_column_width(sheet2)
 
@@ -1833,19 +1880,19 @@ def generate_franchise_parts_list():
         sheet3.title = "Accessories"
         sheet3.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PART_NAME", "PART_DIMENSIONS", "QUANTITY", "PART_PRICE", "TOTAL_PRICE"])
 
-        sheet3["A2"] = "---"                                          #ROOM_NAME
-        sheet3["B2"] = "---"                                          #WALL_NAME
-        sheet3["C2"] = "---"                                          #SKU_NUMBER 
-        sheet3["D2"] = "---"                                          #VENDOR_NAME
-        sheet3["E2"] = "---"                                          #VENDOR_ITEM
-        sheet3["F2"] = "---"                                          #PART LABELID
-        sheet3["G2"] = "---"
-        sheet3["H2"] = "---"                                          #PART_NAME    
-        sheet3["I2"] = 0                                              #LABOR
-        sheet3["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet3["J2"] = 0                                              #TOTAL_PRICE
-        sheet3["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet3["Q2"] = "---"
+        # sheet3["A2"] = "---"                                          #ROOM_NAME
+        # sheet3["B2"] = "---"                                          #WALL_NAME
+        # sheet3["C2"] = "---"                                          #SKU_NUMBER 
+        # sheet3["D2"] = "---"                                          #VENDOR_NAME
+        # sheet3["E2"] = "---"                                          #VENDOR_ITEM
+        # sheet3["F2"] = "---"                                          #PART LABELID
+        # sheet3["G2"] = "---"
+        # sheet3["H2"] = 0                                          #PART_NAME    
+        # sheet3["I2"] = 0                                              #LABOR
+        # sheet3["I2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet3["J2"] = 0                                              #TOTAL_PRICE
+        # sheet3["J2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet3["Q2"] = "---"
 
         set_column_width(sheet3)
 
@@ -1920,24 +1967,24 @@ def generate_franchise_parts_list():
         sheet4.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "PAINT_STAIN_COLOR", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
-        sheet4["A2"] = "---"                                          #ROOM_NAME
-        sheet4["B2"] = "---"                                          #SKU_NUMBER 
-        sheet4["C2"] = "---"                                          #VENDOR_NAME
-        sheet4["D2"] = "---"                                          #VENDOR_ITEM
-        sheet4["E2"] = "---"                                          #PART LABELID
-        sheet4["F2"] = "---"                                          #MATERIAL
-        sheet4["G2"] = "---"                                          #PART_NAME    
-        sheet4["H2"] = 0                                              #QUANTITY
-        sheet4["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet4["J2"] = "---"                                          #THICKNESS
-        sheet4["K2"] = "---"
-        sheet4["L2"] = "---"
-        sheet4["M2"] = 0                                              #PART_PRICE
-        sheet4["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet4["N2"] = 0                                              #LABOR
-        sheet4["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet4["O2"] = 0                                              #TOTAL_PRICE
-        sheet4["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["A2"] = "---"                                          #ROOM_NAME
+        # sheet4["B2"] = "---"                                          #SKU_NUMBER 
+        # sheet4["C2"] = "---"                                          #VENDOR_NAME
+        # sheet4["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet4["E2"] = "---"                                          #PART LABELID
+        # sheet4["F2"] = "---"                                          #MATERIAL
+        # sheet4["G2"] = "---"                                          #PART_NAME    
+        # sheet4["H2"] = 0                                              #QUANTITY
+        # sheet4["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet4["J2"] = "---"                                          #THICKNESS
+        # sheet4["K2"] = "---"
+        # sheet4["L2"] = "---"
+        # sheet4["M2"] = 0                                              #PART_PRICE
+        # sheet4["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["N2"] = 0                                              #LABOR
+        # sheet4["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet4["O2"] = 0                                              #TOTAL_PRICE
+        # sheet4["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
         sheet4.column_dimensions['N'].hidden = True
         set_column_width(sheet4)
@@ -2012,24 +2059,24 @@ def generate_franchise_parts_list():
         sheet5.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
-        sheet5["A2"] = "---"                                          #ROOM_NAME
-        sheet5["B2"] = "---"                                          #SKU_NUMBER 
-        sheet5["C2"] = "---"                                          #VENDOR_NAME
-        sheet5["D2"] = "---"                                          #VENDOR_ITEM
-        sheet5["E2"] = "---"                                          #PART LABELID
-        sheet5["F2"] = "---"                                          #MATERIAL
-        sheet5["G2"] = "---"                                          #PART_NAME    
-        sheet5["H2"] = 0                                              #QUANTITY
-        sheet5["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
-        sheet5["J2"] = "---"                                          #THICKNESS
-        sheet5["K2"] = "---"
-        sheet5["L2"] = "---"
-        sheet5["M2"] = 0                                              #PART_PRICE
-        sheet5["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet5["N2"] = 0                                              #LABOR
-        sheet5["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
-        sheet5["O2"] = 0                                              #TOTAL_PRICE
-        sheet5["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["A2"] = "---"                                          #ROOM_NAME
+        # sheet5["B2"] = "---"                                          #SKU_NUMBER 
+        # sheet5["C2"] = "---"                                          #VENDOR_NAME
+        # sheet5["D2"] = "---"                                          #VENDOR_ITEM
+        # sheet5["E2"] = "---"                                          #PART LABELID
+        # sheet5["F2"] = "---"                                          #MATERIAL
+        # sheet5["G2"] = "---"                                          #PART_NAME    
+        # sheet5["H2"] = 0                                              #QUANTITY
+        # sheet5["I2"] = "---" + " x " + "---"                          #PART_DIMENSIONS           
+        # sheet5["J2"] = "---"                                          #THICKNESS
+        # sheet5["K2"] = 0
+        # sheet5["L2"] = 0
+        # sheet5["M2"] = 0                                              #PART_PRICE
+        # sheet5["M2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["N2"] = 0                                              #LABOR
+        # sheet5["N2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        # sheet5["O2"] = 0                                              #TOTAL_PRICE
+        # sheet5["O2"].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
         sheet5.column_dimensions['N'].hidden = True
         set_column_width(sheet5)
@@ -2105,6 +2152,11 @@ def generate_franchise_parts_list():
         sheet6.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
                         "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
+        sheet6["Q1"] = "Be sure to note ALL material changes and special order additions on your plans"
+        sheet6["Q1"].fill = openpyxl.styles.PatternFill("solid", start_color="FFFF00")
+        sheet6["Q1"].font = openpyxl.styles.Font(bold=True)
+        sheet6["Q1"].alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
+
         sheet6.column_dimensions['N'].hidden = True
         set_column_width(sheet6)
 
@@ -2151,6 +2203,10 @@ def generate_franchise_parts_list():
             ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
             ws["D" + str(sf_row_start+3)].border = thin_border
             ws["E" + str(sf_row_start+3)] = project_data
+            ws["D" + str(sf_row_start+4)] = "Project Materials Estimated Weight(lbs)"
+            ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
+            ws["D" + str(sf_row_start+4)].border = thin_border
+            ws["E" + str(sf_row_start+4)] = project_data * 3.5
         else:
             if not sf_materials.empty:
                 sf_materials.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=2)
@@ -2164,6 +2220,10 @@ def generate_franchise_parts_list():
                 ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+3)].border = thin_border
                 ws["E" + str(sf_row_start+3)] = project_materials
+                ws["D" + str(sf_row_start+4)] = "Project Material Estimated Weight(lbs)"
+                ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
+                ws["D" + str(sf_row_start+4)].border = thin_border
+                ws["E" + str(sf_row_start+4)] = project_materials * 3.5
             if not sf_glass.empty:
                 sf_glass.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=2)
                 sf_row_start = (sf_glass.shape[0] + 1) + 3
@@ -2176,6 +2236,11 @@ def generate_franchise_parts_list():
                 ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+3)].border = thin_border
                 ws["E" + str(sf_row_start+3)] = project_glass
+                ws["D" + str(sf_row_start+4)] = "Project Glass Estimated Weight(lbs)"
+                ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
+                ws["D" + str(sf_row_start+4)].border = thin_border
+                ws["E" + str(sf_row_start+4)] = project_glass * 3.5
+                
 
         set_column_width(writer.sheets['Franchise Pricing Summary'])
 
@@ -2308,6 +2373,24 @@ def get_mat_sku(mat_name):
     for row in rows:
         sku = row[0]
     return sku
+
+def get_mat_display_name(mat_sku):
+    rows = sn_db.query_db(
+        "SELECT\
+            DisplayName\
+        FROM\
+            {CCItems}\
+        WHERE\
+            SKU LIKE '%{mat_sku}%';\
+        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, mat_sku=mat_sku)
+    )
+    if len(rows) == 0:
+        display_name = 'Unknown'
+        print("No display name found for the following sku:  " + mat_sku)
+        print("Unknown display name given to:  " + mat_sku)
+    for row in rows:
+        display_name = row[0]
+    return display_name
 
 
 def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name='', eb_orientation=None, center_rail=None, upgrade_color=None):
@@ -2540,6 +2623,9 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
     if sku_num[:2] in special_order_types:
         R_SPECIAL_ORDER_PRICES.append((retail_price * int(qty)) + r_labor_price)
         F_SPECIAL_ORDER_PRICES.append((franchise_price * int(qty)) + f_labor_price)
+    
+    if ('SF' in uom and sku_num[:2] in material_types) or 'EB' in sku_num[:2]:  
+        name = get_mat_display_name(sku_num)
 
     return str(retail_price), str(franchise_price), name, vendor_name, vendor_item, style_name, r_labor_price, f_labor_price, uom
 
@@ -2700,7 +2786,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                                         if 'l' in eb_orientation or 'L' in eb_orientation:
                                             L_COUNT.append(eb_orientation)
                                         print(SKU_NUMBER + " :: " + eb_orientation)
-                                    if eb3 is not None and eb_counter == 3:
+                                    if eb3 is not None and eb_counter == 3 or eb3 is not None and eb_counter == 2:
                                         eb_orientation = eb3
                                         eb_counter = 4
                                         if 's' in eb_orientation or 'S' in eb_orientation:
@@ -2708,7 +2794,7 @@ def calculate_project_price(xml_file, cos_flag = False):
                                         if 'l' in eb_orientation or 'L' in eb_orientation:
                                             L_COUNT.append(eb_orientation)
                                         print(SKU_NUMBER + " :: " + eb_orientation)
-                                    if eb4 is not None and eb_counter == 4:
+                                    if eb4 is not None and eb_counter == 4 or eb4 is not None and eb_counter == 3:
                                         eb_orientation = eb4
                                         eb_counter = 1
                                         if 's' in eb_orientation or 'S' in eb_orientation:

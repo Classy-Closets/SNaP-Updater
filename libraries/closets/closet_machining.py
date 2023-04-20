@@ -110,6 +110,12 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                             tokens.remove(index)
                             break
 
+    def get_machine_token(self, part, name):
+        for child in part.obj_bp.children:
+            if child.type == 'MESH':
+                tokens = child.snap.mp.machine_tokens
+                return tokens.get(name)
+
     def add_associative_hinges(self,assembly):
         '''
             If drill for hinges is turned on then we need add hinges and hinge plates
@@ -637,7 +643,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         if right_depth.get_value() > 0:
                             token.dim_in_y = part_width - (dim_to_front + setback.get_value())
                         else:
-                            token.dim_in_y = part_width - (dim_to_front - setback.get_value())
+                            token.dim_in_y = part_width - dim_to_front - setback.get_value()
                         token.dim_in_z = drill_depth
                         token.end_dim_in_x = sn_unit.millimeter(9.5) if sdbl == 0 else sdbl
                         token.end_dim_in_y = dim_to_front + setback.get_value()
@@ -997,7 +1003,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             vector.y_loc = width - macp.slanted_shoe_shelf_machining_distance_from_rear
             vector.z_loc = sn_unit.inch(.125)                     
     
-    def add_lock_shelf_machining(self,assembly):
+    def add_lock_shelf_machining(self, assembly):
         '''
             This adds in the machining for locked shelves
             if use associative machining is turned on then either CAM or Dowel tokens will be added
@@ -1014,23 +1020,22 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         self.remove_machining_token(assembly, 'Right Drilling')
         self.remove_machining_token(assembly, 'Left Drilling')
         self.remove_machining_token(assembly, 'Right Drilling')
-        
+
         is_lock_shelf = assembly.get_prompt("Is Locked Shelf")
         if is_lock_shelf and is_lock_shelf.get_value():
             if macp.drill_cams_for_lock_shelves:
+                insert_bp = sn_utils.get_bp(assembly.obj_bp, 'INSERT')
+                backing_setback = None
+                if insert_bp:
+                    backing_setback = sn_types.Assembly(insert_bp).get_prompt("Shelf Backing Setback")
                 width = math.fabs(assembly.obj_y.location.y)
-                depth = math.fabs(assembly.obj_x.location.x)             
-                drill_on_top = assembly.get_prompt("Drill On Top")
+                depth = math.fabs(assembly.obj_x.location.x)
                 remove_left_holes = assembly.get_prompt("Remove Left Holes")
-                remove_right_holes = assembly.get_prompt("Remove Right Holes")                
-                
-                #for i in range(0,4):
-                    #hardware = self.add_hardware("KD FITTING", assembly)
-                    #hardware.snap.comment_2 = "1015"
+                remove_right_holes = assembly.get_prompt("Remove Right Holes")
 
                 if not remove_left_holes.get_value():
-                    if assembly.add_machine_token('Left Drilling' ,'CAMLOCK','5'):
-                        obj, token = assembly.add_machine_token('Left Drilling' ,'CAMLOCK','5')
+                    if assembly.add_machine_token('Left Drilling', 'CAMLOCK', '5'):
+                        obj, token = assembly.add_machine_token('Left Drilling', 'CAMLOCK', '5')
                         token.hole_locations[0] = macp.cam_backset
                         token.hole_locations[1] = depth - macp.cam_backset
                         token.edge_bore_depth = macp.cam_bore_edge_depth
@@ -1040,9 +1045,9 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         token.face_bore_depth_2 = macp.cam_depth
                         token.face_bore_dia_2 = macp.cam_dia
                         token.backset = width - macp.dim_to_front_system_hole
-                        token.cam_face = '5'  
-                    self.remove_machining_token(assembly, 'Left Drilling')                
-                
+                        token.cam_face = '5'
+                    self.remove_machining_token(assembly, 'Left Drilling')
+
                 if not remove_right_holes.get_value():
                     if assembly.add_machine_token('Right Drilling' ,'CAMLOCK','5'):
                         obj, token = assembly.add_machine_token('Right Drilling' ,'CAMLOCK','5')
@@ -1050,13 +1055,14 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         token.hole_locations[1] = depth - macp.cam_backset
                         token.edge_bore_depth = macp.cam_bore_edge_depth
                         token.edge_bore_dia = macp.cam_bore_edge_dia
-
                         token.face_bore_depth = macp.cam_bore_face_depth
-                        
                         token.face_bore_dia = macp.cam_bore_face_dia
                         token.face_bore_depth_2 = macp.cam_depth
                         token.face_bore_dia_2 = macp.cam_dia
-                        token.backset = macp.dim_to_rear_system_hole
+                        if backing_setback:
+                            token.backset = macp.dim_to_rear_system_hole - backing_setback.get_value()
+                        else:
+                            token.backset = macp.dim_to_rear_system_hole
                         token.cam_face = '5'
                     self.remove_machining_token(assembly, 'Right Drilling')
 
@@ -1234,10 +1240,10 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 token.face_bore_depth = macp.slide_face_bore_depth
                 token.face_bore_dia = macp.slide_face_bore_dia
                 token.drawer_slide_clearance = sn_unit.inch(.5)
-    
-    def update_drawer_machining(self,drawer_sides,drawer_backs,drawer_bottoms,drawer_fronts,drawer_boxes,drawer_stacks):
+
+    def update_drawer_machining(
+            self, drawer_sides, drawer_backs, drawer_bottoms, drawer_fronts, drawer_boxes, drawer_stacks):
         macp = get_machining_props()
-        defaults = bpy.context.scene.sn_closets.closet_defaults
         options = bpy.context.scene.sn_closets.closet_options
         box_type = options.box_type
 
@@ -1248,49 +1254,37 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             drawer_box_top_gap = drawer_stack.get_prompt("Drawer Box Top Gap")
 
             if box_type == 'MEL':
-                
-                drawer_box_slide_gap.set_value(sn_unit.inch(1.05/2))
-                drawer_box_top_gap.set_value(sn_unit.inch(1.3782))            
+                drawer_box_slide_gap.set_value(sn_unit.inch(1.05 / 2))
+                drawer_box_top_gap.set_value(sn_unit.inch(1.3782))
                 drawer_box_bottom_gap.set_value(sn_unit.inch(0.8218))
-                
-            else: #DOVETAIL
-                
-                drawer_box_top_gap.set_value(sn_unit.inch(0.6282))            
-                drawer_box_bottom_gap.set_value(sn_unit.inch(0.8218))                
-                
+
+            else:  # DOVETAIL
+                drawer_box_top_gap.set_value(sn_unit.inch(0.6282))
+                drawer_box_bottom_gap.set_value(sn_unit.inch(0.8218))
+
                 if "HBB" in options.dt_slide_name or "Mepla" in options.dt_slide_name:
                     drawer_box_slide_gap.set_value(sn_unit.inch(.5))
                 else:
-                    drawer_box_slide_gap.set_value(sn_unit.inch(.625/2))
-                    
-            
+                    drawer_box_slide_gap.set_value(sn_unit.inch(.625 / 2))
+
         for drawer_box in drawer_boxes:
             # change box prompts
             drawer_box_depth = drawer_box.obj_y.location.y
-            drawer_box_height = drawer_box.obj_z.location.z
             box_type_ppt = drawer_box.get_prompt("Box Type")
             use_dovetail_construction = drawer_box.get_prompt("Use Dovetail Construction")
-            override_depth = drawer_box.get_prompt("Override Depth")            
-            override_height = drawer_box.get_prompt("Override Height")  
-            
-            #OVERRIDE DRAWER BOX HEIGHT FOR SMALLER SIZES
-            #if drawer_box_height < sn_unit.inch(1.5):
-            #    override_height.set_value(sn_unit.inch(1.62))
-            #elif drawer_box_height < sn_unit.inch(2.75):
-            #    override_height.set_value(sn_unit.inch(2))
-            #else:
-            #    override_height.set_value(0)
+            override_depth = drawer_box.get_prompt("Override Depth")
+
             if box_type_ppt:
                 if box_type_ppt.get_value() == 0:
                     override_depth.set_value(0)
                 elif box_type_ppt.get_value() == 1:
-                    if drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(21):
+                    if drawer_box_depth - sn_unit.inch(1) >= sn_unit.inch(21):
                         override_depth.set_value(sn_unit.inch(21))
-                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(18):
+                    elif drawer_box_depth - sn_unit.inch(1) >= sn_unit.inch(18):
                         override_depth.set_value(sn_unit.inch(18))
-                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(15):
+                    elif drawer_box_depth - sn_unit.inch(1) >= sn_unit.inch(15):
                         override_depth.set_value(sn_unit.inch(15))
-                    elif drawer_box_depth-sn_unit.inch(1) >= sn_unit.inch(12):
+                    elif drawer_box_depth - sn_unit.inch(1) >= sn_unit.inch(12):
                         override_depth.set_value(sn_unit.inch(12))
                 else:
                     if drawer_box_depth >= sn_unit.inch(21):
@@ -1307,7 +1301,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 if box_type == 'MEL':
                     override_depth.set_value(0)
                     use_dovetail_construction.set_value(False)
-                else:  
+                else:
                     use_dovetail_construction.set_value(True)
                     if "Undermount" in options.dt_slide_name:
                         if drawer_box_depth >= sn_unit.inch(21):
@@ -1319,306 +1313,36 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         elif drawer_box_depth >= sn_unit.inch(12):
                             override_depth.set_value(sn_unit.inch(12))
                         elif drawer_box_depth >= sn_unit.inch(9):
-                            override_depth.set_value(sn_unit.inch(9))                        
+                            override_depth.set_value(sn_unit.inch(9))
                     else:
                         override_depth.set_value(0)
-                    
-            # slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()
 
-            # if options.box_type == 'DOVE':
-            #     slide_name = bpy.context.scene.closet_materials.get_drawer_slide_type()      
-                      
-            #     if slide_name == 'Mepla Partial Extension':
-            #         if drawer_box_depth >= sn_unit.inch(22):
-            #             self.add_hardware("Mepla PE 22",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(20):
-            #             self.add_hardware("Mepla PE 20",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("Mepla PE 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(16):
-            #             self.add_hardware("Mepla PE 16",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(14):
-            #             self.add_hardware("Mepla PE 14",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("Mepla PE 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(10):
-            #             self.add_hardware("Mepla PE 10",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
-
-            #     if slide_name == 'Mepla Full Extension':
-            #         if drawer_box_depth >= sn_unit.inch(22):
-            #             self.add_hardware("Mepla FE 22",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(20):
-            #             self.add_hardware("Mepla FE 20",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("Mepla FE 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(16):
-            #             self.add_hardware("Mepla FE 16",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(14):
-            #             self.add_hardware("Mepla FE 14",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("Mepla FE 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(10):
-            #             self.add_hardware("Mepla FE 10",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
-                        
-            #     if slide_name == 'HBB':
-            #         if drawer_box_depth >= sn_unit.inch(22):
-            #             self.add_hardware("HBB 22",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(20):
-            #             self.add_hardware("HBB 20",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("HBB 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(16):
-            #             self.add_hardware("HBB 16",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(14):
-            #             self.add_hardware("HBB 14",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("HBB 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(10):
-            #             self.add_hardware("HBB 10",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box)                                            
-                        
-            #     if slide_name == 'Blum Undermount':
-            #         if drawer_box_depth >= sn_unit.inch(21):
-            #             self.add_hardware("Blum 21",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("Blum 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(15):
-            #             self.add_hardware("Blum 15",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("Blum 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(9):
-            #             self.add_hardware("Blum 9",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
-                        
-            #     if slide_name == 'King Undermount':
-            #         if drawer_box_depth >= sn_unit.inch(21):
-            #             self.add_hardware("King 21",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("King 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(15):
-            #             self.add_hardware("King 15",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("King 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(9):
-            #             self.add_hardware("King 9",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box) 
-                        
-            #     if slide_name == 'Salice Undermount':
-            #         if drawer_box_depth >= sn_unit.inch(21):
-            #             self.add_hardware("Salice 21",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(18):
-            #             self.add_hardware("Salice 18",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(15):
-            #             self.add_hardware("Salice 15",drawer_box)
-            #         elif drawer_box_depth >= sn_unit.inch(12):
-            #             self.add_hardware("Salice 12",drawer_box) 
-            #         elif drawer_box_depth >= sn_unit.inch(9):
-            #             self.add_hardware("Salice 9",drawer_box)                         
-            #         else:
-            #             self.add_hardware("ERROR Drawer Too Small",drawer_box)                                                 
-                                             
-                        
-                                        
         for drawer_back in drawer_backs:
-
             pass
-                
+
         for drawer_bottom in drawer_bottoms:
             # Add Routing and/or drilling for drawer systems
-                        
+
             if box_type == 'MEL':
                 drawer_bottom.cutpart('Drawer_Bottom')
                 # self.set_manufacturing_material(drawer_bottom)
-                
+
         for drawer_front in drawer_fronts:
             # Add Drilling for drawer systems
             pass
-        
-        for drawer_side in drawer_sides: # SET THIS LAST TO MAKE SURE SIZE IS CORRECT FOR HEIGHT OF DRAWER SYSTEM
+
+        for drawer_side in drawer_sides:  # SET THIS LAST TO MAKE SURE SIZE IS CORRECT FOR HEIGHT OF DRAWER SYSTEM
             self.remove_machining_token(drawer_side, 'Slide Drilling')
 
-            depth = math.fabs(drawer_side.obj_x.location.x)
-            height = math.fabs(drawer_side.obj_y.location.y)     
-            
             for child in drawer_side.obj_bp.children:
-                
                 if child.type == 'MESH':
                     child.snap.type_mesh = 'CUTPART'
-                    child.snap.name_object = "Drawer Side"                    
-                    # if options.box_type == 'MEL':
-                    #     slide_name = options.mel_slide_name
-                    # else:
-                    #     slide_name = options.dt_slide_name
+                    child.snap.name_object = "Drawer Side"
 
-                    # slide_id = options.slide_name                    
-                    # rows = snap_db.query_db(
-                    #     "SELECT\
-                    #         *\
-                    #     FROM\
-                    #         SlideTypes\
-                    #     WHERE\
-                    #         ItemTypeCode == '{}'\
-                    #     ;".format(slide_id)
-                    # )        
-
-                    _, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    token.drawer_slide_clearance = sn_unit.inch(0.5)   
+                    _, token = drawer_side.add_machine_token('Slide Drilling', 'SLIDE', '1')
+                    token.drawer_slide_clearance = sn_unit.inch(0.5)
                     token.face_bore_depth = macp.slide_face_bore_depth
-                    token.face_bore_dia = macp.slide_face_bore_dia                    
-
-                    # for row in rows:
-                    #     #obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(float(row[3]))
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.5)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.inch(float(row[4]))
-                    #     token.dim_to_second_hole = sn_unit.inch(float(row[5]))
-                    #     token.dim_to_third_hole = sn_unit.inch(float(row[6]))
-                    #     token.dim_to_fourth_hole = sn_unit.inch(float(row[7]))
-                    #     token.dim_to_fifth_hole = sn_unit.inch(float(row[8]))
-                    #
-                    #rows.clear()                 
-
-                    #Mepla Partial Extension                    
-                    # if slide_name == 'Mepla Partial Extension':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(0.4378)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.5)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(22):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(517)
-                    #     elif depth >= sn_unit.inch(20):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(485)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(389)
-                    #     elif depth >= sn_unit.inch(16):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(14):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(325)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(261)  
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(165)      
-
-                    #Mepla Full Extension                    
-                    # if slide_name == 'Mepla Full Extension':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(1.6977)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.5)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(22):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(517)
-                    #     elif depth >= sn_unit.inch(20):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(485)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(389)
-                    #     elif depth >= sn_unit.inch(16):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(14):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(325)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(261)  
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(165)                             
-                    
-                    #HBB                    
-                    # if slide_name == 'HBB':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(1.6977)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.5)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(22):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(485)
-                    #     elif depth >= sn_unit.inch(20):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(485)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(389)
-                    #     elif depth >= sn_unit.inch(16):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(14):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(261)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(261)  
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(165)  
-                    
-                    #Salice Undermount                   
-                    # if slide_name == 'Salice Undermount':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(0.4378)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.625/2)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(21):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(517)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(453)
-                    #     elif depth >= sn_unit.inch(15):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(325)
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(229)                               
-
-                    #Blum Undermount                   
-                    # if slide_name == 'Blum Undermount':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(0.4378)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.625/2)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(21):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(517)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(453)
-                    #     elif depth >= sn_unit.inch(15):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(261)
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(229)   
-
-                    #King Undermount                   
-                    # if slide_name == 'King Undermount':
-                    #     obj, token = drawer_side.add_machine_token('Slide Drilling' ,'SLIDE','1')
-                    #     token.dim_from_drawer_bottom = sn_unit.inch(0.4378)  
-                    #     token.drawer_slide_clearance = sn_unit.inch(0.625/2)   
-                    #     token.face_bore_depth = macp.slide_face_bore_depth
-                    #     token.face_bore_dia = macp.slide_face_bore_dia
-                 
-                    #     token.dim_to_first_hole = sn_unit.millimeter(37)    
-                    #     if depth >= sn_unit.inch(21):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(517)
-                    #     elif depth >= sn_unit.inch(18):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(453)
-                    #     elif depth >= sn_unit.inch(15):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(357)
-                    #     elif depth >= sn_unit.inch(12):
-                    #         token.dim_to_second_hole = sn_unit.millimeter(278)
-                    #     else:
-                    #         token.dim_to_second_hole = sn_unit.millimeter(229)  
+                    token.face_bore_dia = macp.slide_face_bore_dia
 
     def set_manufacturing_material(self,assembly):
         """ Sets the cutpart_material_name property so the materials
@@ -1790,6 +1514,13 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             
             #PANELS
             if props.is_panel_bp:
+                #Remove system holes mid
+                mid_holes_r = self.get_machine_token(assembly, "System Holes Mid Right")
+                if mid_holes_r:
+                    self.remove_machining_token(assembly, 'System Holes Mid Right')
+                mid_holes_l = self.get_machine_token(assembly, "System Holes Mid Left")
+                if mid_holes_l:
+                    self.remove_machining_token(assembly, 'System Holes Mid Left')
                 panels.append(assembly)
             else:
                 pass
@@ -1886,6 +1617,19 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         #UPDATE ALL MATERIAL THICKNESSES
         bpy.ops.snap.update_scene_from_pointers()
         
+        return {'FINISHED'}
+
+
+class OPERATOR_Clear_Machining_Debug_Scenes(bpy.types.Operator):
+    bl_idname = MACHINING_PROPERTY_NAMESPACE + ".clear_machining_debug_scenes"
+    bl_label = "Clear debug scenes"
+    bl_description = "Clear debug scenes."
+
+    def execute(self, context):
+        for scene in bpy.data.scenes:
+            if scene.sn_closets.is_drill_scene == True:
+                bpy.data.scenes.remove(scene)
+            
         return {'FINISHED'}
 
 
@@ -2215,6 +1959,7 @@ class PROPS_Machining_Defaults(bpy.types.PropertyGroup):
             if mac_col:
                 label = "{} Drilling Info".format("Show" if mac_col.hide_viewport else "Hide")
                 col.prop(mac_col, "hide_viewport", text=label)
+                col.operator(MACHINING_PROPERTY_NAMESPACE + ".clear_machining_debug_scenes", text="Clear machining debug scenes")
 
             box = main_col.box()
             box.template_list(
@@ -2426,6 +2171,7 @@ class SN_PT_Closet_Machining_Setup(bpy.types.Panel):
 # REGISTER CLASSES
 bpy.utils.register_class(PROPS_Machining_Defaults)
 bpy.utils.register_class(OPERATOR_Prepare_Closet_For_Export)
+bpy.utils.register_class(OPERATOR_Clear_Machining_Debug_Scenes)
 bpy.utils.register_class(SN_PT_Closet_Machining_Setup)
 bpy.utils.register_class(SN_UL_Mac_Scenes)
 exec("bpy.types.Scene." + MACHINING_PROPERTY_NAMESPACE + "= PointerProperty(type = PROPS_Machining_Defaults)")

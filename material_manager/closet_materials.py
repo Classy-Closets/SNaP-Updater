@@ -36,6 +36,9 @@ def update_stain_color(self, context):
         if mat_color_name == "Cafe Au Lait (Cabinet Almond)":
             self.stain_color_index = self.stain_colors.find("Almond")
             return
+        elif mat_color_name == "Bridal Shower (Antique White) Δ":
+            self.stain_color_index = self.stain_colors.find("Warm Spring")
+            return
         else:
             self.stain_color_index = self.stain_colors.find("Winter White (Oxford White)")
             bpy.ops.snap.message_box(
@@ -61,14 +64,14 @@ def update_material_and_edgeband_colors(self, context):
         self.set_all_material_colors()
 
     if mat_type.name == "Garage Material":
-        if mat_color_name == "Steel Grey (Fog Grey)" and self.use_black_edge:
+        if mat_color_name == "Steel Grey" and self.use_black_edge:
             self.set_edge("Black")
-        if mat_color_name == "Cafe Au Lait (Cabinet Almond)" and not self.use_custom_color_scheme:
+        if mat_color_name == "Cafe Au Lait" and not self.use_custom_color_scheme:
             self.set_edge(mat_color_name)
-        if mat_color_name == "Danish Maple (Hard Rock Maple)" and not self.use_custom_color_scheme:
+        if mat_color_name == "Danish Maple" and not self.use_custom_color_scheme:
             self.set_edge("Hardrock Maple")
-        if mat_color_name == "Winter White (Ox White)" and not self.use_custom_color_scheme:
-            self.set_edge("Winter White (Oxford White)")
+        if mat_color_name == "Winter White" and not self.use_custom_color_scheme:
+            self.set_edge("Winter White")
 
     if self.use_custom_color_scheme:
         self.set_default_upgrade_selection()
@@ -78,11 +81,23 @@ def update_material_and_edgeband_colors(self, context):
         self.upgrade_type_index = 2
         self.stain_color_index = self.stain_colors.find(mat_color_name)
     else:
-        self.stain_color_index = self.stain_colors.find("Winter White (Oxford White)")
+        self.upgrade_type_index = 1
+        self.paint_color_index = self.paint_colors.find("Winter White")
 
+    if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak"):
+        self.upgrade_type_index = 1
+        self.paint_color_index = self.paint_colors.find("Winter White")
     if mat_color_name in paint_colors:
         self.upgrade_type_index = 1
         self.paint_color_index = self.paint_colors.find(mat_color_name)
+    
+    if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak") and not self.use_custom_color_scheme:
+        self.upgrade_type_index = 1
+        self.paint_color_index = self.paint_colors.find("Winter White")
+
+    if (mat_color_name == "Bridal Shower (Antique White) Δ") and not self.use_custom_color_scheme:
+        self.upgrade_type_index = 1
+        self.paint_color_index = self.paint_colors.find("Warm Spring")
 
     # Moderno
     if mat_color_name in moderno_colors:
@@ -254,8 +269,9 @@ class SnapMaterialSceneProps(PropertyGroup):
 
     prv_use_black_edge: BoolProperty(default=False)
 
-    default_color = "Winter White (Oxford White)"
-    default_edge_color = "Winter White (Oxford White)"
+    default_color = "Snow Drift"
+    default_edge_color = "Winter White"
+    default_paint_color = "Winter White"
     default_mat_type = "Solid Color Smooth Finish"
     default_edge_type = "1mm Dolce"
     default_glass_color = "Clear"
@@ -274,6 +290,7 @@ class SnapMaterialSceneProps(PropertyGroup):
     linen_color_index: IntProperty(name="Linen Material Color Index", default=0, update=update_material_and_edgeband_colors)
     matte_color_index: IntProperty(name="Matte Material Color Index", default=0, update=update_material_and_edgeband_colors)
     garage_color_index: IntProperty(name="Garage Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    oversized_color_index: IntProperty(name="Oversized Material Color Index", default=0, update=update_material_and_edgeband_colors)
 
     edges: PointerProperty(type=property_groups.Edges)
     edge_type_index: IntProperty(name="Edge Type Index", default=0)
@@ -290,6 +307,15 @@ class SnapMaterialSceneProps(PropertyGroup):
     door_drawer_materials: PointerProperty(type=property_groups.DoorDrawerMaterials)
     door_drawer_mat_type_index: IntProperty(name="Door/Drawer Material Type Index", default=0)
     door_drawer_mat_color_index: IntProperty(name="Door/Drawer Material Color Index", default=0, update=update_render_materials)
+
+    dd_solid_color_index: IntProperty(name="DD Solid Smooth Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_grain_color_index: IntProperty(name="DD Grain Smooth Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_solid_tex_color_index: IntProperty(name="DD Solid Textured Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_grain_tex_color_index: IntProperty(name="DD Grain Textured Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_linen_color_index: IntProperty(name="DD Linen Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_matte_color_index: IntProperty(name="DD Matte Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_garage_color_index: IntProperty(name="DD Garage Material Color Index", default=0, update=update_material_and_edgeband_colors)
+    dd_oversized_color_index: IntProperty(name="DD Oversized Material Color Index", default=0, update=update_material_and_edgeband_colors)
 
     countertops: PointerProperty(type=property_groups.Countertops)
     ct_type_index: IntProperty(name="Countertop Type Index", default=0, update=update_countertops)
@@ -413,6 +439,13 @@ class SnapMaterialSceneProps(PropertyGroup):
             obj_props.is_hamper_front_bp
         ]
 
+        drawer_box_parts = [
+            obj_props.is_drawer_back_bp,
+            obj_props.is_drawer_side_bp,
+            obj_props.is_drawer_bottom_bp,
+            obj_props.is_drawer_sub_front_bp
+        ]
+
         # There is no edgebanding for garage colors, so we have to hardcode in alternate edgebanding.
         if self.materials.get_mat_type().type_code == 1:
             sku = self.get_garage_edge_sku(obj, assembly, part_name)
@@ -423,22 +456,20 @@ class SnapMaterialSceneProps(PropertyGroup):
                 # Remove unicode characters from color name
                 color_name_clean = self.materials.get_mat_color().name.encode("ascii", "ignore").lstrip()
                 color_name = color_name_clean.decode()
-                if color_name == "Cafe Au Lait (Cabinet Almond)":
+                if color_name == "Cafe Au Lait":
                     return "EB-0000311"
-                elif color_name == "Steel Grey (Fog Grey)":
+                elif color_name == "Steel Grey":
                     return "EB-0000331" if not self.use_black_edge else "EB-0000324"
-                elif color_name == "Cosmic Dust (Graphite Spectrum)":
+                elif color_name == "Cosmic Dust":
                     return "EB-0000324"
-                elif color_name == "Danish Maple (Hard Rock Maple)":
+                elif color_name == "Danish Maple":
                     return "EB-0000333"
                 else:
                     return "EB-0000338"
 
-        # Stain EB
+        # Stain/Paint EB
         if self.materials.get_mat_type().name == "Upgrade Options":
-            upgrade_type = self.upgrade_options.types[self.upgrade_type_index]
-            if upgrade_type.name == 'Stain':
-                return "EB-0000433"  # EB Alder Veneer 1MM
+            return "EB-0000433"  # EB Alder Veneer 1MM
 
         if any(door_drawer_parts):
             type_code = self.door_drawer_edges.get_edge_type().type_code
@@ -453,6 +484,13 @@ class SnapMaterialSceneProps(PropertyGroup):
                 if type_code == 5: # Change EB typecode to old 1037 to locate in CCItems
                     type_code = 1037
                 color_code = mat_type.colors[mat_name].color_code
+
+        # 1/2 Melamine drawer box parts
+        if any(drawer_box_parts):
+            box_type_ppt = assembly.get_prompt("Box Type")
+            if box_type_ppt:
+                if box_type_ppt.get_value() == 0:
+                    return "EB-0000316"  # 1/2 White EB
 
         sku = sn_db.query_db(
             "SELECT\
@@ -498,11 +536,9 @@ class SnapMaterialSceneProps(PropertyGroup):
             else:
                 return "EB-0000338"
 
-        # Stain EB
+        # Stain/Paint EB
         if self.materials.get_mat_type().name == "Upgrade Options":
-            upgrade_type = self.upgrade_options.types[self.upgrade_type_index]
-            if upgrade_type.name == 'Stain':
-                return "EB-0000433"  # EB Alder Veneer 1MM
+            return "EB-0000433"  # EB Alder Veneer 1MM
 
         sku = sn_db.query_db(
             "SELECT\
@@ -523,7 +559,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             print(sku)
             return "Unknown"
 
-    def get_edge_inventory_name(self, sku=""):
+    def get_edge_inventory_name(self, sku="", display_name=True):
         if sku:
             edge_sku = sku
         else:
@@ -532,14 +568,16 @@ class SnapMaterialSceneProps(PropertyGroup):
         if sku == "EB-0000316":
             return "Winter White (Oxford White)"
 
+        search_col = "DisplayName" if display_name else "Name"
+
         edge_name = sn_db.query_db(
             "SELECT\
-                DisplayName\
+                {col}\
             FROM\
                 {CCItems}\
             WHERE\
                 SKU == '{sku}';\
-            ".format(sku=edge_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(sku=edge_sku, col=search_col, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
 
         if len(edge_name) == 0:
@@ -652,22 +690,27 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         if type_code == 10:  # Upgrade Options
             if not obj:
+                if self.upgrade_options.get_type().name == "Stain":
+                    prod_type = 'S'
+                else:
+                    prod_type = 'PL'
+
                 sku = sn_db.query_db(
                     "SELECT\
                         SKU\
                     FROM\
                         {CCItems}\
-                    WHERE ProductType in ('S', 'PL') AND TypeCode = 0 AND ColorCode = 0 AND DisplayName LIKE '{name}';\
-                    ".format(name=color_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    WHERE ProductType in ('{prod_type}') AND TypeCode = 0 AND ColorCode = 0 AND DisplayName LIKE '{name}';\
+                    ".format(name=color_name, prod_type=prod_type, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
                 )
 
                 if len(sku) == 0:
-                    print("No SKU found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
+                    print("No SKU found for - Material Type Code: {} Color Code: {}".format(type_code, 0))
                     return "Unknown"
                 elif len(sku) == 1:
                     return sku[0][0]
                 else:
-                    print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
+                    print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, 0))
                     print(sku)
                     return "Unknown"
 
@@ -737,12 +780,14 @@ class SnapMaterialSceneProps(PropertyGroup):
                         if obj.snap.material_slots:
                             door_color = obj.snap.material_slots[0].item_name
                             if door_color:
-                                has_paint = door_color in self.get_paint_colors()
-                                has_stain = door_color in self.get_stain_colors()
-                                if has_paint:
-                                    return self.paint_colors[door_color].sku
-                                elif has_stain:
-                                    return self.stain_colors[door_color].sku
+                                if self.upgrade_options.get_type().name == "Stain":
+                                    has_stain = door_color in self.get_stain_colors()
+                                    if has_stain:
+                                        return self.stain_colors[door_color].sku
+                                else:
+                                    has_paint = door_color in self.get_paint_colors()
+                                    if has_paint:
+                                        return self.paint_colors[door_color].sku
 
                 mat_type = self.door_drawer_materials.get_mat_type()
                 type_code = mat_type.type_code
@@ -1000,7 +1045,10 @@ class SnapMaterialSceneProps(PropertyGroup):
                     'Winter White (Oxford White)',
                     'Cafe Au Lait (Cabinet Almond)',
                     'Duraply White',
-                    'Duraply Almond'
+                    'Duraply Almond',
+                    'Winter White',
+                    'Snow Drift',
+                    'Mountaint Peak'
                 ]
 
                 if assembly.obj_bp.get("IS_CEDAR_BACK"):
@@ -1089,6 +1137,9 @@ class SnapMaterialSceneProps(PropertyGroup):
         type_code = 8
         color_code = self.materials.get_mat_color().color_code
         color_name = self.materials.get_mat_color().name
+
+        if color_name == "Snow Drift":
+            return 'PM-0000690'
 
         exterior_parts = [
             "Garage_End_Panel",
@@ -1304,7 +1355,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             "Linen Pattern Linen Finish": self.linen_color_index,
             "Solid Color Matte Finish": self.matte_color_index,
             "Garage Material": self.garage_color_index,
-            "Oversized Material": 0,
+            "Oversized Material": self.oversized_color_index,
             "Upgrade Options": upgrade_color_index}
 
         return mat_color_indexes[mat_type]
@@ -1340,8 +1391,16 @@ class SnapMaterialSceneProps(PropertyGroup):
         door_drawer_mat_type = self.door_drawer_materials.get_mat_type()
         self.door_drawer_mat_color_index = door_drawer_mat_type.colors.find(material_color.name)
         if self.five_piece_melamine_door_colors.find(material_color.name) != -1:
-            self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find(material_color.name)
-        self.set_all_edge_colors(material_color)
+            if "Bridal Shower (Antique White) Δ" in material_color.name:
+                self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find("Warm Spring")
+            else:
+                self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find(material_color.name)
+        if "Snow Drift" in material_color.name or "Mountain Peak" in material_color.name or "Winter White" in material_color.name:
+            self.set_all_edge_colors(self.materials.mat_types[0].colors[self.materials.mat_types[0].colors.find("Winter White")])
+        elif "Bridal Shower (Antique White) Δ" in material_color.name:
+            self.set_all_edge_colors(self.materials.mat_types[0].colors[self.materials.mat_types[0].colors.find("Warm Spring")])
+        else:
+            self.set_all_edge_colors(material_color)
 
     def set_defaults(self):
         self.set_default_material_type()
@@ -1401,7 +1460,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
     def set_default_upgrade_selection(self):
         self.upgrade_type_index = self.upgrade_options.types.find("Paint")
-        self.paint_color_index = self.paint_colors.find(self.default_color)
+        self.paint_color_index = self.paint_colors.find(self.default_paint_color)
 
     def set_default_dd_material_color(self):
         door_drawer_mat_type = self.door_drawer_materials.get_mat_type()

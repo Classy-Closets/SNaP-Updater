@@ -146,7 +146,7 @@ def get_part_thickness(obj):
             closet_materials = bpy.context.scene.closet_materials
             mat_sku = closet_materials.get_mat_sku(obj.parent, cover_cleat)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
-            mat_names = ["Winter White (Oxford White)", "Cafe Au Lait (Cabinet Almond)", "Duraply Almond", "Duraply White"]
+            mat_names = ["Winter White (Oxford White)", "Cafe Au Lait (Cabinet Almond)", "Duraply Almond", "Duraply White", "Winter White", "Mountain Peak", "Snow Drift"]
 
             if mat_inventory_name in mat_names:
                 return math.fabs(sn_unit.inch(0.38))
@@ -411,6 +411,30 @@ def get_drawer_stack_bps():
     #     if props.is_drawer_stack_bp:
     #         print("Found Drawer Stack")
     #         yield obj
+
+
+def get_kitchen_bath_products():
+    products = []
+    for obj in bpy.context.scene.objects:
+        if obj.get("IS_BP_CABINET"):
+            product = sn_types.Assembly(obj)
+            products.append(product)
+    return products
+
+
+def get_main_scene():
+    scenes = bpy.data.scenes
+
+    if "_Main" in scenes:
+        return scenes["_Main"]
+    elif "Scene" in scenes:
+        return scenes["Scene"]
+    else:
+        return scenes[0]
+
+
+def set_main_scene(context):
+    context.window.scene = get_main_scene()
 
 
 def assign_materials_from_pointers(obj):
@@ -2517,11 +2541,8 @@ def set_prompt_if_exists(assembly, prompt_name, value):
         prompt.set_value(value)
 
 def get_wall_quantity():
-    main_scene = "_Main"
-    if "_Main" not in bpy.data.scenes and "Scene" in bpy.data.scenes:
-        main_scene = "Scene"
     wall_qty = 0
-    main_sc = bpy.data.scenes[main_scene]
+    main_sc = get_main_scene()
     main_sc = main_sc.objects
     main_sc_walls = [o for o in main_sc if o.get("IS_BP_WALL")]
     wall_qty = len(main_sc_walls)

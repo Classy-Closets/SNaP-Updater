@@ -53,10 +53,29 @@ def assign_material_pointers(scene=None):
                 if room_mat_color in color.name:
                     return 6, i
         else:
-            for mat_idx, mat_type in enumerate(mat_types):
-                for color_idx, color in enumerate(mat_type.colors):
+            mat_type = mat_props.materials.get_mat_type()
+            if mat_type.name == "Upgrade Options":
+                for color_idx, color in enumerate(mat_props.paint_colors):
                     if room_mat_color in color.name:
-                        return mat_idx, color_idx
+                        mat_props.upgrade_type_index = 1
+                        mat_props.paint_color_index = color_idx
+                        return 8, color_idx
+
+                    if "Bridal Shower (Antique White)" in room_mat_color:
+                        mat_props.upgrade_type_index = 1
+                        mat_props.paint_color_index = 13  # Warm Spring
+                        return 8, 13
+
+                for color_idx, color in enumerate(mat_props.stain_colors):
+                    if room_mat_color in color.name:
+                        mat_props.upgrade_type_index = 2
+                        mat_props.stain_color_index = color_idx
+                        return 8, 13
+            else:
+                for mat_idx, mat_type in enumerate(mat_types):
+                    for color_idx, color in enumerate(mat_type.colors):
+                        if room_mat_color in color.name:
+                            return mat_idx, color_idx
 
         return None, None
 
@@ -84,6 +103,21 @@ def assign_material_pointers(scene=None):
             'INVOKE_DEFAULT',
             message="\"{}\"\nThis {} color is no longer available to order!".format(color_name, type_name))
 
+    def check_discontinued_colors(mat_props):
+        color_name = mat_props.materials.get_mat_type().get_mat_color().name
+        is_frosted_forest = "Frosted Forest" in color_name
+        is_bridal_shower = "Bridal Shower" in color_name
+        garage_materials = mat_props.materials.get_mat_type().name == "Garage Material"
+
+        if is_bridal_shower or is_frosted_forest or garage_materials:
+            for obj in bpy.data.objects:
+                if obj.get("IS_BP_CLOSET"):
+                    if obj['SNAP_VERSION'] < sn_utils.get_version_str():
+                        from snap.material_manager import closet_materials
+                        closet_materials.update_material_and_edgeband_colors(mat_props, bpy.context)
+                        bpy.ops.closet_materials.poll_assign_materials()
+                        return
+
     if bpy.data.is_saved:
         # If 2Ds generated
         if "_Main" in bpy.data.scenes:
@@ -99,8 +133,7 @@ def assign_material_pointers(scene=None):
         door_drawer_mat_type = mat_props.door_drawer_materials.get_mat_type()
         door_drawer_edge_type = mat_props.door_drawer_edges.get_edge_type()
 
-        if mat_props.mat_color_index >= len(mat_type.colors):
-            mat_props.mat_color_index = len(mat_type.colors) - 1
+        check_discontinued_colors(mat_props)
 
         if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
             mat_props.door_drawer_mat_color_index = len(door_drawer_mat_type.colors) - 1

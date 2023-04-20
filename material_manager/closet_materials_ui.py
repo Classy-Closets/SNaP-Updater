@@ -45,6 +45,7 @@ class SNAP_MATERIALS_OT_change_active_index(Operator):
 
                 if collection_name in ('EdgeType', 'SecondaryEdgeType','DoorDrawerEdgeType'):
                     if self.i_type == 'COLOR':
+                        context.scene.closet_materials.color_change = True
                         G.collection.data.set_color_index(index)
                         return {'FINISHED'}
 

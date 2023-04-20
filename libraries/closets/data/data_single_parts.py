@@ -375,7 +375,7 @@ class Valet_Rod(sn_types.Assembly):
         self.create_assembly()
 
         self.add_prompt('Valet Category', 'COMBOBOX', 0, ['Synergy', 'Elite'])
-        self.add_prompt('Metal Color', 'COMBOBOX', 0, ['Chrome', 'Matte Aluminum', 'Matte Nickel', 'Matte Gold', 'ORB', 'Slate', 'Matte Black'])
+        self.add_prompt('Metal Color', 'COMBOBOX', 0, ['Chrome', 'Matte Aluminum', 'Matte Nickel', 'Matte Gold', 'Slate', 'Matte Black'])
         self.add_prompt('Valet Length', 'COMBOBOX', 0, ['12"', '14"'])
 
         Valet_Length = self.get_prompt("Valet Length").get_var("Valet_Length")
@@ -716,9 +716,8 @@ class PROMPTS_Valet_Rod_Prompts(sn_types.Prompts_Interface):
             ('1', 'Matte Aluminum', 'Matte Aluminum'),
             ('2', 'Matte Nickel', 'Matte Nickel'),
             ('3', 'Matte Gold', 'Matte Gold'),
-            ('4', 'Orb', 'Orb'),
-            ('5', 'Slate', 'Slate'),
-            ('6', 'Matte Black', 'Matte Black')],
+            ('4', 'Slate', 'Slate'),
+            ('5', 'Matte Black', 'Matte Black')],
         default='0')
 
     assembly = None

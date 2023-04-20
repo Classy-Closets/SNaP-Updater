@@ -261,10 +261,11 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                     ;\
             ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
         )
+        rows.append(("200110", "Snow Drift", "U Nova White"))
         for row in rows:
             type_code = int(row[0])
             display_name = row[1]
-            color_name = display_name.replace(" / Winter White", "").replace("/Ox White", "")
+            color_name = display_name.replace(" / Winter White", "").replace("/Ox White", "").replace(" / White", "")
             description = row[2]
 
             if display_name not in mat_type.colors:
@@ -427,13 +428,18 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             type.name = type_name
 
         self.create_upgrade_color_collection(sn_paths.PAINT_COLORS_CSV_PATH, props.paint_colors)
-        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.stain_colors)
+        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.stain_colors, stain=True)
         self.create_upgrade_color_collection(sn_paths.PAINT_COLORS_CSV_PATH, props.ct_paint_colors)
-        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.ct_stain_colors)
+        self.create_upgrade_color_collection(sn_paths.STAIN_COLORS_CSV_PATH, props.ct_stain_colors, stain=True)
 
-    def create_upgrade_color_collection(self, csv_path, colors):
+    def create_upgrade_color_collection(self, csv_path, colors, stain=False):
         colors.clear()
         items = {}
+
+        if stain:
+            prod_type = 'S'
+        else:
+            prod_type = 'PL'
 
         with open(csv_path) as colors_file:
             reader = csv.reader(colors_file, delimiter=',')
@@ -450,11 +456,13 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             FROM\
                 {CCItems}\
             WHERE\
-                ProductType in ('S', 'PL')\
+                ProductType in ('{prod_type}')\
             ORDER BY\
                 DisplayName ASC\
                     ;\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(
+                CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                prod_type=prod_type)
         )
 
         for row in rows:
@@ -489,7 +497,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 {CCItems}\
             WHERE\
                 ProductType = 'PM' AND\
-                TypeCode IN (2, 3, 4, 5, 6, 7,9) AND\
+                TypeCode IN (2, 3, 4, 5, 6, 7, 9) AND\
                 Thickness = 0.75 AND\
                 DisplayName IN {Five_Piece_Melamine_Door_Color_List}\
                 \

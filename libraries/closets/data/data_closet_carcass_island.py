@@ -282,26 +282,29 @@ class Closet_Island_Carcass(sn_types.Assembly):
             dim.start_x('X_Loc+Left_Side_Wall_Filler',[X_Loc,Left_Side_Wall_Filler])
         dim.end_x('Width',[Width])
         dim.set_color('IF(Width>INCH(42),3,0)',[Width])
-    
+
     def add_thick_back(self):
         Product_Height = self.obj_z.snap.get_var('location.z','Product_Height')
         Product_Width = self.obj_x.snap.get_var('location.x','Product_Width')
-        Back_Thickness = self.get_prompt('Back Thickness').get_var()
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         Panel_Thickness = self.get_prompt('Panel Thickness').get_var()
         Max_Width = self.get_prompt('Material Max Width').get_var("Max_Width")
-        
+
         backing = common_parts.add_back(self)
+        backing.obj_bp["IS_BP_CAPPING_BACK"] = True
         backing.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
 
-        backing.rot_x("IF(Product_Width>Max_Width,radians(90),0)",[Product_Width, Max_Width])
-        backing.rot_y("IF(Product_Width>Max_Width,0,radians(-90))",[Product_Width, Max_Width])
-        backing.rot_z("IF(Product_Width>Max_Width,0,radians(-90))",[Product_Width, Max_Width])
+        backing.rot_x("IF(Product_Width>Max_Width,radians(90),0)", [Product_Width, Max_Width])
+        backing.rot_y("IF(Product_Width>Max_Width,0,radians(-90))", [Product_Width, Max_Width])
+        backing.rot_z("IF(Product_Width>Max_Width,0,radians(-90))", [Product_Width, Max_Width])
 
-        backing.dim_x("IF(Product_Width>Max_Width,Product_Width,Product_Height)",[Product_Height, Product_Width, Max_Width])
-        backing.dim_y('IF(Product_Width>Max_Width,Product_Height,Product_Width)',[Product_Width, Product_Height, Max_Width])
-        backing.dim_z('IF(Product_Width>Max_Width,-Panel_Thickness,Panel_Thickness)',[Product_Width, Max_Width, Panel_Thickness])
-        
+        backing.dim_x("IF(Product_Width>Max_Width,Product_Width,Product_Height)",
+                      [Product_Height, Product_Width, Max_Width])
+        backing.dim_y('IF(Product_Width>Max_Width,Product_Height,Product_Width)',
+                      [Product_Width, Product_Height, Max_Width])
+        backing.dim_z('IF(Product_Width>Max_Width,-Panel_Thickness,Panel_Thickness)',
+                      [Product_Width, Max_Width, Panel_Thickness])
+
     def add_double_sided_back(self,i,panel):
         width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
         Width = eval("width_prompt.get_var(self.calculator.name, 'Width')".format(str(i)))

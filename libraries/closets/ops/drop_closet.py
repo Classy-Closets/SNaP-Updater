@@ -1,6 +1,7 @@
 import os
 import math
 import time
+import mathutils
 
 import bpy
 from bpy.types import Operator
@@ -87,9 +88,22 @@ class PlaceClosetAsset():
         if "IS_BP_SPLITTER" in obj and obj["IS_BP_SPLITTER"]:
             assembly = sn_types.Assembly(obj)
             calculator = assembly.get_calculator('Opening Heights Calculator')
+            if not calculator:
+                calculator = assembly.get_calculator('Opening Widths Calculator')
             if calculator:
                 calculator.calculate()
                 self.calculators.append(calculator)
+
+
+        if "IS_BP_CARCASS" in obj and obj["IS_BP_CARCASS"]:
+            if obj.get("CARCASS_TYPE") == 'Island':
+                assembly = sn_types.Assembly(obj)
+                calculator = assembly.get_calculator('Front Row Widths Calculator')
+                if calculator:
+                    calculator.calculate()
+                calculator = assembly.get_calculator('Back Row Widths Calculator')
+                if calculator:
+                    calculator.calculate()
 
         if "IS_VISDIM_A" in obj or "IS_VISDIM_B" in obj:
             obj.hide_viewport = False
@@ -188,6 +202,8 @@ class PlaceClosetAsset():
             if "IS_BP_SPLITTER" in obj_bp and obj_bp["IS_BP_SPLITTER"]:
                 assembly = sn_types.Assembly(obj_bp)
                 calculator = assembly.get_calculator('Opening Heights Calculator')
+                if not calculator:
+                    calculator = assembly.get_calculator('Opening Widths Calculator')
                 if calculator:
                     calculator.calculate()
 
@@ -197,6 +213,17 @@ class PlaceClosetAsset():
                 if calculator:
                     calculator.calculate()
                     self.calculators.append(calculator)
+
+            if "IS_BP_CARCASS" in obj_bp and obj_bp["IS_BP_CARCASS"]:
+                if obj_bp.get("CARCASS_TYPE") == 'Island':
+                    assembly = sn_types.Assembly(obj_bp)
+                    calculator = assembly.get_calculator('Front Row Widths Calculator')
+                    if calculator:
+                        calculator.calculate()
+                    calculator = assembly.get_calculator('Back Row Widths Calculator')
+                    if calculator:
+                        calculator.calculate()
+
 
     def create_drawing_plane(self, context):
         bpy.ops.mesh.primitive_plane_add()
@@ -420,6 +447,9 @@ class PlaceClosetInsert(PlaceClosetAsset):
             obj.hide_render = True
             obj.hide_select = True
 
+        if self.selected_opening.obj_bp.get('OPENING_NBR'):
+            self.insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+
     def position_asset(self, context):
         self.get_selected_opening()
 
@@ -550,6 +580,8 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
     bl_idname = "sn_closets.place_closet_product"
     bl_label = "Place Closet Product"
 
+    is_corner_product = None
+
     def position_asset(self, context):
         wall_bp = sn_utils.get_wall_bp(self.selected_obj)
         product_bp = sn_utils.get_closet_bp(self.selected_obj)
@@ -597,12 +629,40 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
         elif wall_bp:
             self.placement = 'WALL'
             self.current_wall = sn_types.Wall(wall_bp)
-            self.asset.obj_bp.rotation_euler = self.current_wall.obj_bp.rotation_euler
-            self.asset.obj_bp.location.x = self.selected_point[0]
-            self.asset.obj_bp.location.y = self.selected_point[1]
+
+            if self.is_corner_product:
+                wall = sn_types.Wall(wall_bp)
+                wall_loc_x = wall_bp.matrix_world[0][3]
+                wall_loc_y = wall_bp.matrix_world[1][3]
+                wall_loc_z = wall_bp.matrix_world[2][3]
+
+                wall_world_loc = (wall_loc_x, wall_loc_y, wall_loc_z)
+
+                wall_x_world_loc = (
+                    wall.obj_x.matrix_world[0][3],
+                    wall.obj_x.matrix_world[1][3],
+                    wall.obj_x.matrix_world[2][3])
+
+                dist_to_bp = sn_utils.calc_distance(self.selected_point, wall_world_loc)
+                dist_to_x = sn_utils.calc_distance(self.selected_point, wall_x_world_loc)
+
+                self.asset.obj_bp.rotation_euler = wall_bp.rotation_euler
+
+                if dist_to_bp < dist_to_x:
+                    self.placement = 'LEFT'
+                    self.asset.obj_bp.location = wall_bp.matrix_world.translation
+                else:
+                    self.placement = 'RIGHT'
+                    self.asset.obj_bp.location = wall.obj_x.matrix_world.translation
+                    self.asset.obj_bp.rotation_euler.z += math.radians(-90)
+
+            else:
+                self.asset.obj_bp.rotation_euler = self.current_wall.obj_bp.rotation_euler
+                self.asset.obj_bp.location.x = self.selected_point[0]
+                self.asset.obj_bp.location.y = self.selected_point[1]
+
             wall_mesh = self.current_wall.get_wall_mesh()
             wall_mesh.select_set(True)
-
         else:
             self.asset.obj_bp.location.x = self.selected_point[0]
             self.asset.obj_bp.location.y = self.selected_point[1]
@@ -613,9 +673,8 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
         if not context.scene.collection.children.get("Floor"):
             floor_coll = bpy.data.collections.new("Floor")
             context.scene.collection.children.link(floor_coll)
-        
-        return floor_coll
 
+        return floor_coll
 
     def confirm_placement(self, context):
         has_floor_parent = False
@@ -633,7 +692,10 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
                     0))
 
             self.asset.obj_bp.location = (0, 0, self.asset.obj_bp.location.z)
-            self.asset.obj_bp.rotation_euler = (0, 0, 0)
+            rot_z = 0
+            if self.is_corner_product and self.placement == 'RIGHT':
+                rot_z = math.radians(-90)
+            self.asset.obj_bp.rotation_euler = (0, 0, rot_z)
             self.asset.obj_bp.parent = self.current_wall.obj_bp
             self.asset.obj_bp.location.x = x_loc
 
@@ -650,7 +712,11 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
 
         if self.selected_obj.sn_roombuilder.is_floor or has_floor_parent:
             floor = self.selected_obj
+
             self.asset.obj_bp.parent = floor
+            global_coord = self.asset.obj_bp.matrix_world.translation
+            local_coord = floor.matrix_world.inverted() @ global_coord
+            self.asset.obj_bp.location = local_coord
             floor_coll = self.get_floor_collection(context)
 
             if floor.name not in floor_coll.objects:
@@ -660,23 +726,24 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             sn_utils.add_assembly_to_collection(self.asset.obj_bp, floor_coll, recursive=True)
             sn_utils.remove_assembly_from_collection(self.asset.obj_bp, context.scene.collection, recursive=True)
 
-        if self.placement == 'LEFT' and asset_will_fit:
-            self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
-            constraint_obj = self.asset.obj_x
-            constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
-            constraint.target = constraint_obj
-            constraint.use_x = True
-            constraint.use_y = True
-            constraint.use_z = False
+        if not self.is_corner_product:
+            if self.placement == 'LEFT' and asset_will_fit:
+                self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
+                constraint_obj = self.asset.obj_x
+                constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
+                constraint.target = constraint_obj
+                constraint.use_x = True
+                constraint.use_y = True
+                constraint.use_z = False
 
-        if self.placement == 'RIGHT':
-            self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
-            constraint_obj = self.selected_asset.obj_x
-            constraint = self.asset.obj_bp.constraints.new('COPY_LOCATION')
-            constraint.target = constraint_obj
-            constraint.use_x = True
-            constraint.use_y = True
-            constraint.use_z = False
+            if self.placement == 'RIGHT':
+                self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
+                constraint_obj = self.selected_asset.obj_x
+                constraint = self.asset.obj_bp.constraints.new('COPY_LOCATION')
+                constraint.target = constraint_obj
+                constraint.use_x = True
+                constraint.use_y = True
+                constraint.use_z = False
 
         if hasattr(self.asset, 'pre_draw'):
             self.asset.draw()
@@ -687,10 +754,28 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
 
         self.refresh_data(False)
 
+    def check_floor_scale(self, context):
+        for obj in context.visible_objects:
+            if obj.sn_roombuilder.is_floor:
+                floor = obj
+                if floor.scale != mathutils.Vector((1.0, 1.0, 1.0)):
+                    # Apply scale to floor object
+                    matrix_loc = floor.matrix_local
+                    loc, rot, scale = matrix_loc.decompose()
+                    matrix_loc_scale = mathutils.Matrix.LocRotScale(None, None, scale)
+                    floor.data.transform(matrix_loc_scale)
+                    floor.scale = 1, 1, 1
+                    bpy.context.view_layer.update()
+
     def execute(self, context):
         self.create_drawing_plane(context)
         self.draw_asset()
         self.run_asset_calculators()
+        self.check_floor_scale(context)
+        l_shelf = "IS_BP_L_SHELVES" in self.asset.obj_bp
+        corner_shelves = "IS_BP_CORNER_SHELVES" in self.asset.obj_bp
+        if l_shelf or corner_shelves:
+            self.is_corner_product = True
         context.window_manager.modal_handler_add(self)
         context.area.tag_redraw()
         return {'RUNNING_MODAL'}
@@ -719,8 +804,8 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
                 if floor or drawing_plane:
                     valid_placement = False
 
-            if is_cabinet:
-                if drawing_plane:
+            if is_cabinet and not island:
+                if floor or drawing_plane:
                     valid_placement = False
 
         return valid_placement

@@ -775,14 +775,16 @@ class SNAP_MT_Opening_Heights(bpy.types.Menu):
                     elif self.object_type == "Drawer Front":
                         for subchild in splitter_assy.obj_bp.children:
                             if "VERTICAL_DRAWERS" in subchild and subchild["VERTICAL_DRAWERS"]:
-                                drawer_stack_assy = sn_types.Assembly(subchild)
-                                calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
-                                qty = len(calculator.prompts)
+                                if subchild == bpy.context.view_layer.objects.active:
+                                    drawer_stack_assy = sn_types.Assembly(subchild)
+                                    calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
+                                    qty = len(calculator.prompts)
 
                 if "VERTICAL_DRAWERS" in child and child["VERTICAL_DRAWERS"] and self.object_type == "Drawer Front":
-                    drawer_stack_assy = sn_types.Assembly(child)
-                    calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
-                    qty = len(calculator.prompts)
+                    if child == bpy.context.view_layer.objects.active:
+                        drawer_stack_assy = sn_types.Assembly(child)
+                        calculator = drawer_stack_assy.get_calculator('Vertical Drawers Calculator')
+                        qty = len(calculator.prompts)
 
             if assembly and calculator:
                 if self.object_type == "Drawer Front":

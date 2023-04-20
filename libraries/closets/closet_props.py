@@ -369,8 +369,8 @@ def update_rods(self, context):
             rod_finish.item_name = "Matte Gold"
         if 'Matte Nickel' in self.rods_name:
             rod_finish.item_name = "Matte Nickel"
-        if 'Bronze' in self.rods_name:
-            rod_finish.item_name = "Oil Rubbed Bronze"
+        # if 'Bronze' in self.rods_name:
+        #     rod_finish.item_name = "Oil Rubbed Bronze"
         if 'Chrome' in self.rods_name:
             rod_finish.item_name = "Polished Chrome"
         if 'Matte Black' in self.rods_name:

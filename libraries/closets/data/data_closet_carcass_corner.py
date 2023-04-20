@@ -135,6 +135,8 @@ class L_Shelves(sn_types.Assembly):
 
     def pre_draw(self):
         self.create_assembly()
+        self.obj_bp['product_type'] = "Closet"
+        self.obj_bp["IS_BP_L_SHELVES"] = True
         self.obj_x.location.x = self.width
         self.obj_y.location.y = -self.depth
         self.obj_z.location.z = self.height
@@ -548,7 +550,6 @@ class L_Shelves(sn_types.Assembly):
 
     def draw(self):
         self.obj_bp["IS_BP_CLOSET"] = True
-        self.obj_bp["IS_BP_L_SHELVES"] = True
         self.obj_bp["ID_PROMPT"] = self.id_prompt
         self.obj_y['IS_MIRROR'] = True
         self.obj_bp.snap.type_group = self.type_assembly
@@ -940,6 +941,7 @@ class Corner_Shelves(sn_types.Assembly):
             sn_utils.update_obj_driver_expressions(shelf.obj_bp)
 
     def update(self):
+        self.obj_bp['product_type'] = "Closet"
         self.obj_bp["IS_BP_CLOSET"] = True
         self.obj_bp["IS_BP_CORNER_SHELVES"] = True
         self.obj_bp["ID_PROMPT"] = self.property_id
@@ -1870,6 +1872,7 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         Use_Left_Swing = self.product.get_prompt("Use Left Swing")
         Force_Double_Doors = self.product.get_prompt("Force Double Doors")
         Open_Door = self.product.get_prompt("Open Door")
+        Door_Type = self.product.get_prompt("Door Type")
         Base_Pull_Location = self.product.get_prompt("Base Pull Location")
         Tall_Pull_Location = self.product.get_prompt("Tall Pull Location")
         Upper_Pull_Location = self.product.get_prompt("Upper Pull Location")
@@ -1878,6 +1881,12 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         row.prop(Door, "checkbox_value", text=Door.name)
 
         if Door.get_value():
+            # L-shelf door options
+            if Door_Type:
+                row = box.row()
+                row.prop(self, 'Door_Type', text="Door Type")
+                row = box.row()
+                row.prop(self, 'Pull_Location', text="Pull Location")
             row = box.row()
             row.prop(self, 'Pull_Type', text="Pull Type", expand=True)
             row = box.row()
@@ -1891,10 +1900,6 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
             if Open_Door:
                 row.label(text=Open_Door.name)
                 row.prop(Open_Door, "factor_value", text="")
-
-            row = box.row()
-            row.prop(Use_Left_Swing, "checkbox_value", text=Use_Left_Swing.name)
-            row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)            
 
     def draw(self, context):
         """ This is where you draw the interface """
@@ -2372,7 +2377,7 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
 
             row = box.row()
             row.prop(Use_Left_Swing, "checkbox_value", text=Use_Left_Swing.name)
-            row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)            
+            row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)
 
     def draw(self, context):
         """ This is where you draw the interface """

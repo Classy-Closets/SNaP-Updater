@@ -216,6 +216,25 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                                 items=get_panel_heights,
                                                 description="Default height in hole amt for suspended cabinets")
 
+    island_cabinet_depth: bpy.props.FloatProperty(name="Island Cabinet Depth",
+                                                description="Default depth for island cabinets",
+                                                default=sn_unit.inch(24.0),
+                                                unit='LENGTH')
+
+    island_cabinet_height: bpy.props.EnumProperty(name="Island Cabinet Height",
+                                                items=get_panel_heights,
+                                                description="Default height in hole amt for island cabinets")
+
+    island_cabinet_width: bpy.props.FloatProperty(name="Island Cabinet Width",
+                                                description="Default width for island cabinets",
+                                                default=sn_unit.inch(24.0),
+                                                unit='LENGTH')
+
+    island_chase_depth: bpy.props.FloatProperty(name="Island Chase Depth",
+                                                description="Default chase depth for island cabinets",
+                                                default=sn_unit.inch(6.0),
+                                                unit='LENGTH')
+    
     column_width: bpy.props.FloatProperty(name="Column Width",
                                            description="Default width for cabinet columns",
                                            default=sn_unit.inch(2),
@@ -286,11 +305,12 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
 
     def load_default_heights(self):
 
-        self.base_cabinet_height = '787'
+        self.base_cabinet_height = '787'  #24 H
         self.tall_cabinet_height = '2355'  #73 H
         self.upper_cabinet_height = '1011'   #31 H
-        self.sink_cabinet_height = '787'
+        self.sink_cabinet_height = '787'    #24 H
         self.suspended_cabinet_height = '211'
+        self.island_cabinet_height = '787'  #24 H
         self.top_drawer_front_height = '123.952'  # 4H
 
 bpy.utils.register_class(PROPERTIES_Cabinet_Sizes)

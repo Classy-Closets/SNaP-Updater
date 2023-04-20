@@ -115,6 +115,7 @@ class Drawer_Stack(sn_types.Assembly):
         self.add_prompt("Max Height For Centered Pulls", 'DISTANCE', sn_unit.millimeter(315.95))
         self.add_prompt("Large Drawer Pull Height", 'DISTANCE', sn_unit.millimeter(93.98))
         self.add_prompt("Standard Drawer Rear Gap", 'DISTANCE', sn_unit.inch(1.25))
+        self.add_prompt("Dovetail Drawer Rear Gap", 'DISTANCE', sn_unit.inch(1))
         self.add_prompt("Deep Drawer Rear Gap", 'DISTANCE', sn_unit.inch(2))
         self.add_prompt("Extra Deep Drawer Box", 'DISTANCE', sn_unit.inch(16))
         self.add_prompt("Small Drawer Face", 'DISTANCE', sn_unit.millimeter(123.95))
@@ -152,7 +153,6 @@ class Drawer_Stack(sn_types.Assembly):
         self.add_prompt("Use File Rail " + str(drawer_num), 'CHECKBOX', False)
         self.add_prompt("Use Double Drawer " + str(drawer_num), 'CHECKBOX', False)
         self.add_prompt("Has Jewelry Insert " + str(drawer_num), 'CHECKBOX', False)
-        self.add_prompt("Has Sliding Insert " + str(drawer_num), 'CHECKBOX', False)
         self.add_prompt("Jewelry Insert Type " + str(drawer_num), 'COMBOBOX', 0, common_lists.JEWELRY_TYPE_LIST)
         self.add_prompt("Insert Placement X " + str(drawer_num), 'COMBOBOX', 0, common_lists.PLACEMENT_X)
         self.add_prompt("Insert Placement Y " + str(drawer_num), 'COMBOBOX', 0, common_lists.PLACEMENT_Y)
@@ -165,9 +165,6 @@ class Drawer_Stack(sn_types.Assembly):
         self.add_prompt("Lower Jewelry Insert Velvet Liner 18in " + str(drawer_num), 'COMBOBOX', 0, common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_LIST)
         self.add_prompt("Lower Jewelry Insert Velvet Liner 21in " + str(drawer_num), 'COMBOBOX', 0, common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_LIST)
         self.add_prompt("Lower Jewelry Insert Velvet Liner 24in " + str(drawer_num), 'COMBOBOX', 0, common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_LIST)
-        self.add_prompt("Sliding Insert 18in " + str(drawer_num), 'COMBOBOX', 0, common_lists.SLIDING_INSERTS_18IN_LIST)
-        self.add_prompt("Sliding Insert 21in " + str(drawer_num), 'COMBOBOX', 0, common_lists.SLIDING_INSERTS_21IN_LIST)
-        self.add_prompt("Sliding Insert 24in " + str(drawer_num), 'COMBOBOX', 0, common_lists.SLIDING_INSERTS_24IN_LIST)
         self.add_prompt("Velvet Liner " + str(drawer_num), 'COMBOBOX', 0, common_lists.VELVET_LINERS_LIST)
 
     def get_drawer_front(self, drawer_num):
@@ -234,6 +231,14 @@ class Drawer_Stack(sn_types.Assembly):
                 'IF(No_Pulls,True,IF(Use_Double_Pulls,False,True))',
                 [No_Pulls, Use_Double_Pulls])
 
+    def get_prompt_var(self, prompt_name, var_name, default_type, default_val):
+        dt_rear_gap_ppt = self.get_prompt(prompt_name)
+        if not dt_rear_gap_ppt:
+            dt_rear_gap_ppt = self.add_prompt(prompt_name, default_type, default_val)
+            return dt_rear_gap_ppt.get_var(var_name)
+        else:
+            return dt_rear_gap_ppt.get_var(var_name)
+
     def add_drawer_boxes(self, box_type=None):
         dim_x = self.obj_x.snap.get_var("location.x", "dim_x")
         y = self.obj_y.snap.get_var("location.y", "y")
@@ -251,7 +256,7 @@ class Drawer_Stack(sn_types.Assembly):
         S = self.get_prompt("Standard Drawer Rear Gap").get_var('S')
         D = self.get_prompt("Deep Drawer Rear Gap").get_var('D')
         E = self.get_prompt("Extra Deep Drawer Box").get_var('E')
-
+        DT_R_Gap = self.get_prompt_var("Dovetail Drawer Rear Gap", "DT_R_Gap", 'DISTANCE', sn_unit.inch(1))
         box_type_ppt = self.get_prompt("Box Type")
 
         if box_type_ppt:
@@ -266,7 +271,6 @@ class Drawer_Stack(sn_types.Assembly):
         F = self.get_prompt("Fifteen Inches").get_var('F')
         T = self.get_prompt("Twelve Inches").get_var('T')
         N = self.get_prompt("Nine Inches").get_var('N')
-
 
         for front in self.get_all_drawer_fronts():
             drawer_num = front.obj_bp.get("DRAWER_NUM")
@@ -285,24 +289,14 @@ class Drawer_Stack(sn_types.Assembly):
                     drawer = common_parts.add_drawer(self)
                 elif box_type == 1:
                     drawer = common_parts.add_melamine_drawer(self)
+                    drawer.get_prompt("Double Drawer Box").set_formula("UDD", [UDD])
                 else:
                     drawer = common_parts.add_dovetail_drawer(self)
+                    drawer.get_prompt("Double Drawer Box").set_formula("UDD", [UDD])
             else:
                 drawer = common_parts.add_drawer(self)
 
-            # Add drawer box to wall collection
-            collections = bpy.data.collections
-            scene_coll = bpy.context.scene.collection
-            wall_name = ""
-            wall = sn_utils.get_wall_bp(self.obj_bp)
-
-            if wall:
-                wall_name = sn_utils.get_wall_bp(self.obj_bp).snap.name_object
-                if wall_name in collections:
-                    wall_coll = collections[wall_name]
-                    sn_utils.add_assembly_to_collection(drawer.obj_bp, wall_coll, recursive=True)
-                    sn_utils.remove_assembly_from_collection(drawer.obj_bp, scene_coll, recursive=True)
-
+            self.add_to_collection(drawer)
             drawer.obj_bp["IS_DRAWER_BOX"] = True
             drawer.obj_bp["DRAWER_NUM"] = drawer_num
             self.drawer_boxes.append(drawer)
@@ -320,17 +314,19 @@ class Drawer_Stack(sn_types.Assembly):
                 "IF(FRT==0,0.3556,0.4318),"  # 0.3556==INCH(14), 0.4318==INCH(17)
                 "IF(y<=E,y-S,y-D)),"
                 "IF(BT!=0,"
-                "IF(BT==1,"
-                "CHECK(y-INCH(1)+0.0001,TO,ET,F,T),"
-                "CHECK(IF(y<=E,y-S,y-D)+0.0001,TO,ET,F,T,N)),"  # 0.0001 is there because otherwise I get a rounding error when we check what should be the same inch,"
+                "CHECK(IF(y<=E,y-DT_R_Gap,y-D),TO,ET,F,T,N),"
                 "IF(y<=E,y-S,y-D)))",
-                [y, E, S, D, UFR, FRD, FRT, TO, ET, F, T, N, BT])
+                [y, E, S, D, UFR, FRD, FRT, TO, ET, F, T, N, BT, DT_R_Gap])
             drawer.dim_z(
-                ("IF(DF_Height<SDF,DF_Height-THBD,"
-                 "IF(OR(Lock_Drawer==2,Lock_Drawer==3),IF(UDD,LDBH,DF_Height-DBTG-DBBG),"
-                 "IF(DF_Height==SDF,DF_Height-FHBD,"
-                 "IF(UDD,DBH,IF(DF_Height<INCH(4.89),DF_Height-DBTG-DBBG-INCH(0.68),DF_Height-DBTG-DBBG)))))"),
-                 [DF_Height, SDF, Drawer_Box_Top_Gap, Drawer_Box_Bottom_Gap, FHBD, THBD, Lock_Drawer, LDBH, DBH, UDD])
+                "IF(DF_Height<SDF,DF_Height-THBD,"
+                "IF(OR(Lock_Drawer==2,Lock_Drawer==3),IF(UDD,LDBH,DF_Height-DBTG-DBBG),"
+                "IF(DF_Height==SDF,DF_Height-FHBD,"
+                "IF(UDD,DBH,"
+                "IF(BT==0,"
+                "IF(DF_Height<INCH(4.89),DF_Height-DBTG-DBBG-INCH(0.68),DF_Height-DBTG-DBBG),"
+                "DF_Height"
+                ")))))",
+                [BT, DF_Height, SDF, Drawer_Box_Top_Gap, Drawer_Box_Bottom_Gap, FHBD, THBD, Lock_Drawer, LDBH, DBH, UDD])
             drawer.get_prompt('Use File Rail').set_formula('UFR', [UFR])
             drawer.get_prompt('File Rail Type').set_formula('FRT', [FRT])
             drawer.get_prompt('File Rail Direction').set_formula('FRD', [FRD])
@@ -392,7 +388,29 @@ class Drawer_Stack(sn_types.Assembly):
         Shelf_Thickness = self.get_prompt("Shelf Thickness").get_var('Shelf_Thickness')
         Six_Hole = self.get_prompt("Six Hole").get_var('Six_Hole')
         Seven_Hole = self.get_prompt("Seven Hole").get_var('Seven_Hole')
+        TO = self.get_prompt("Twenty-One Inches").get_var('TO')
+        ET = self.get_prompt("Eighteen Inches").get_var('ET')
+        F = self.get_prompt("Fifteen Inches").get_var('F')
+        T = self.get_prompt("Twelve Inches").get_var('T')
+        N = self.get_prompt("Nine Inches").get_var('N')
+        DT_R_Gap = self.get_prompt_var("Dovetail Drawer Rear Gap", "DT_R_Gap", 'DISTANCE', sn_unit.inch(1))
 
+        box_type_ppt = self.get_prompt("Box Type")
+
+        if box_type_ppt:
+            BT = self.get_prompt("Box Type").get_var('BT')
+            box_type = box_type_ppt.get_value()
+            if box_type == 0:
+                double_drawer = common_parts.add_drawer(self)
+            elif box_type == 1:
+                double_drawer = common_parts.add_melamine_drawer(self)
+            else:
+                double_drawer = common_parts.add_dovetail_drawer(self)
+            double_drawer.get_prompt('Box Type').set_formula('BT', [BT])
+        else:
+            double_drawer = common_parts.add_drawer(self)
+
+        self.add_to_collection(double_drawer)
         front = self.get_drawer_front(drawer_num)
         df_z_loc = front.obj_bp.snap.get_var("location.z", "df_z_loc")
         DF_Height = front.obj_x.snap.get_var("location.x", "DF_Height")
@@ -402,7 +420,6 @@ class Drawer_Stack(sn_types.Assembly):
         Use_FR = self.get_prompt("Use File Rail " + str(drawer_num)).get_var("Use_FR")
         UDD = self.get_prompt("Use Double Drawer " + str(drawer_num)).get_var('UDD')
 
-        double_drawer = common_parts.add_drawer(self)
         double_drawer.obj_bp["IS_BP_DBL_DRAWER_BOX"] = True
         double_drawer.obj_bp["DRAWER_NUM"] = drawer_num
         double_drawer.set_name("Drawer Box")
@@ -412,10 +429,15 @@ class Drawer_Stack(sn_types.Assembly):
         double_drawer.loc_z(
             'df_z_loc+DBBG+Shelf_Thickness+IF(OR(Lock_Drawer==2,Lock_Drawer==3),LDBH,DBH)',
             [df_z_loc, Drawer_Box_Bottom_Gap, Lock_Drawer, DBH, LDBH, Shelf_Thickness])
-        double_drawer.dim_x('dim_x-(Drawer_Box_Slide_Gap*2)', [dim_x, Drawer_Box_Slide_Gap])
-        double_drawer.dim_y('IF(dim_y <= EDDB, dim_y-Standard_Drawer_Rear_Gap, dim_y-Deep_Drawer_Rear_Gap)',
-                            [dim_y, EDDB, Standard_Drawer_Rear_Gap, Deep_Drawer_Rear_Gap])
-        double_drawer.dim_z("DBH",[DBH])
+        double_drawer.dim_x(
+            "dim_x-(Drawer_Box_Slide_Gap*IF(BT==1,1,2))+IF(BT==2,INCH(0.05),IF(BT==1,INCH(0.025),0))",
+            [dim_x, Drawer_Box_Slide_Gap, BT])
+        double_drawer.dim_y(
+            "IF(BT==0,"
+            "IF(dim_y<=EDDB,dim_y-Standard_Drawer_Rear_Gap,dim_y-Deep_Drawer_Rear_Gap),"
+            "CHECK(IF(round(dim_y,1)<=EDDB,dim_y-DT_R_Gap,dim_y-Deep_Drawer_Rear_Gap),TO,ET,F,T,N))",
+            [dim_y, EDDB, Standard_Drawer_Rear_Gap, Deep_Drawer_Rear_Gap, TO, ET, F, T, N, BT, DT_R_Gap])
+        double_drawer.dim_z("DBH", [DBH])
         double_drawer.get_prompt('Hide').set_formula(
             "IF(AND(DF_Height >= Six_Hole,DF_Height <= Seven_Hole,dim_y >= " + str(sn_unit.inch(15.99)) + "),"
             "IF(UDD,False,True),True)",
@@ -423,6 +445,10 @@ class Drawer_Stack(sn_types.Assembly):
         double_drawer.get_prompt('Use File Rail').set_formula('Use_FR', [Use_FR])
         double_drawer.get_prompt('File Rail Type').set_formula('FR_Type', [FR_Type])
         double_drawer.get_prompt('File Rail Direction').set_formula('FR_Direction', [FR_Direction])
+
+        double_drawer_box_ppt = double_drawer.get_prompt('Double Drawer Box')
+        if double_drawer_box_ppt:
+            double_drawer_box_ppt.set_value(value=True)
 
     def add_drawers(self):
         dim_x = self.obj_x.snap.get_var("location.x", "dim_x")
@@ -540,12 +566,26 @@ class Drawer_Stack(sn_types.Assembly):
             if(i==8):
                 KD_Shelf.get_prompt('Hide').set_formula('IF(Lock_Drawer>0,False,True)',[Lock_Drawer])
 
+    def add_to_collection(self, assy):
+        # Add drawer box to wall collection
+        collections = bpy.data.collections
+        scene_coll = bpy.context.scene.collection
+        wall_name = ""
+        wall = sn_utils.get_wall_bp(self.obj_bp)
+
+        if wall:
+            wall_name = sn_utils.get_wall_bp(self.obj_bp).snap.name_object
+            if wall_name in collections:
+                wall_coll = collections[wall_name]
+                sn_utils.add_assembly_to_collection(assy.obj_bp, wall_coll, recursive=True)
+                sn_utils.remove_assembly_from_collection(assy.obj_bp, scene_coll, recursive=True)
+
     def update(self):
         super().update()
 
-        self.obj_bp["IS_BP_DRAWER_STACK"] = True        
+        self.obj_bp["IS_BP_DRAWER_STACK"] = True
         self.obj_bp.snap.export_as_subassembly = True
-        
+
         props = self.obj_bp.sn_closets
         props.is_drawer_stack_bp = True # TODO: remove
 
@@ -580,17 +620,17 @@ class Drawer_Stack(sn_types.Assembly):
         drawer_front_prompts.append(hg)
 
         self.stack_height_ppt_obj = self.add_empty("OBJ_PROMPTS_Drawer_Stack_Height")
-        self.stack_height_ppt_obj.empty_display_size = .01        
+        self.stack_height_ppt_obj.empty_display_size = .01
         stack_height_prompt = self.stack_height_ppt_obj.snap.add_prompt('DISTANCE', "Drawer Stack Height")
 
         stack_height_prompt.set_formula(
-            height_formula, # ? Change height to allow correct door heights
+            height_formula,  # ? Change height to allow correct door heights
             drawer_front_prompts)
 
         dim_x = self.obj_x.snap.get_var("location.x", "dim_x")
         dim_y = self.obj_y.snap.get_var("location.y", "dim_y")
         dim_z = self.obj_z.snap.get_var("location.z", "dim_z")
-        
+
         Drawer_Stack_Height = self.stack_height_ppt_obj.snap.get_prompt("Drawer Stack Height").get_var('Drawer_Stack_Height')
         Shelf_Thickness = self.get_prompt("Shelf Thickness").get_var('Shelf_Thickness')
         Lift_Drawers_From_Bottom = self.get_prompt("Lift Drawers From Bottom").get_var('Lift_Drawers_From_Bottom')
@@ -724,6 +764,78 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
     drawer_8_height: EnumProperty(name="Drawer 8 Height",
                                    items=common_lists.FRONT_HEIGHTS)
     
+    drawer_1_five_hole_height: EnumProperty(name="Drawer 1 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+    
+    drawer_2_five_hole_height: EnumProperty(name="Drawer 2 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+    
+    drawer_3_five_hole_height: EnumProperty(name="Drawer 3 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+    
+    drawer_4_five_hole_height: EnumProperty(name="Drawer 4 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+
+    drawer_5_five_hole_height: EnumProperty(name="Drawer 5 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+    
+    drawer_6_five_hole_height: EnumProperty(name="Drawer 6 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+    
+    drawer_7_five_hole_height: EnumProperty(name="Drawer 7 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+
+    drawer_8_five_hole_height: EnumProperty(name="Drawer 8 Five Hole Height",
+                                   items=common_lists.FIVE_HOLE_FRONT_HEIGHTS)
+
+    drawer_1_six_hole_height: EnumProperty(name="Drawer 1 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_2_six_hole_height: EnumProperty(name="Drawer 2 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_3_six_hole_height: EnumProperty(name="Drawer 3 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_4_six_hole_height: EnumProperty(name="Drawer 4 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+
+    drawer_5_six_hole_height: EnumProperty(name="Drawer 5 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_6_six_hole_height: EnumProperty(name="Drawer 6 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_7_six_hole_height: EnumProperty(name="Drawer 7 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+
+    drawer_8_six_hole_height: EnumProperty(name="Drawer 8 Six Hole Height",
+                                   items=common_lists.SIX_HOLE_FRONT_HEIGHTS)
+    
+    drawer_1_eight_hole_height: EnumProperty(name="Drawer 1 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+    
+    drawer_2_eight_hole_height: EnumProperty(name="Drawer 2 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+    
+    drawer_3_eight_hole_height: EnumProperty(name="Drawer 3 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+    
+    drawer_4_eight_hole_height: EnumProperty(name="Drawer 4 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+
+    drawer_5_eight_hole_height: EnumProperty(name="Drawer 5 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+    
+    drawer_6_eight_hole_height: EnumProperty(name="Drawer 6 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+    
+    drawer_7_eight_hole_height: EnumProperty(name="Drawer 7 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+
+    drawer_8_eight_hole_height: EnumProperty(name="Drawer 8 Eight Hole Height",
+                                   items=common_lists.EIGHT_HOLE_FRONT_HEIGHTS)
+
     lock_1_drawer: EnumProperty(name="Lock 1 Drawer",
                                            items=LOCK_DRAWER_TYPES,
                                            default='0')    
@@ -827,30 +939,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                        default=False)
 
     has_jewelry_insert_8: BoolProperty(name="Has Jewelry Insert 8",
-                                       default=False)
-    
-    has_sliding_insert_1: BoolProperty(name="Has Sliding Insert 1",
-                                       default=False)
-
-    has_sliding_insert_2: BoolProperty(name="Has Sliding Insert 2",
-                                       default=False)
-
-    has_sliding_insert_3: BoolProperty(name="Has Sliding Insert 3",
-                                       default=False)
-
-    has_sliding_insert_4: BoolProperty(name="Has Sliding Insert 4",
-                                       default=False)
-
-    has_sliding_insert_5: BoolProperty(name="Has Sliding Insert 5",
-                                       default=False)
-
-    has_sliding_insert_6: BoolProperty(name="Has Sliding Insert 6",
-                                       default=False)
-
-    has_sliding_insert_7: BoolProperty(name="Has Sliding Insert 7",
-                                       default=False)
-
-    has_sliding_insert_8: BoolProperty(name="Has Sliding Insert 8",
                                        default=False)
 
     jewelry_insert_type_1: EnumProperty(name="Jewelry Insert Type 1", 
@@ -1237,102 +1325,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                                      items=common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_OPTIONS,
                                                      default='0')
 
-    sliding_insert_18in_1: EnumProperty(name="Sliding Insert 18in 1",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_1: EnumProperty(name="Sliding Insert 21in 1",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_1: EnumProperty(name="Sliding Insert 24in 1",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_2: EnumProperty(name="Sliding Insert 18in 2",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_2: EnumProperty(name="Sliding Insert 21in 2",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_2: EnumProperty(name="Sliding Insert 24in 2",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_3: EnumProperty(name="Sliding Insert 18in 3",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_3: EnumProperty(name="Sliding Insert 21in 3",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_3: EnumProperty(name="Sliding Insert 24in 3",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_4: EnumProperty(name="Sliding Insert 18in 4",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_4: EnumProperty(name="Sliding Insert 21in 4",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_4: EnumProperty(name="Sliding Insert 24in 4",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_5: EnumProperty(name="Sliding Insert 18in 5",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_5: EnumProperty(name="Sliding Insert 21in 5",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_5: EnumProperty(name="Sliding Insert 24in 5",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_6: EnumProperty(name="Sliding Insert 18in 6",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_6: EnumProperty(name="Sliding Insert 21in 6",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_6: EnumProperty(name="Sliding Insert 24in 6",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_7: EnumProperty(name="Sliding Insert 18in 7",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_7: EnumProperty(name="Sliding Insert 21in 7",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_7: EnumProperty(name="Sliding Insert 24in 7",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_18in_8: EnumProperty(name="Sliding Insert 18in 8",
-                                        items=common_lists.SLIDING_INSERTS_18IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_21in_8: EnumProperty(name="Sliding Insert 21in 8",
-                                        items=common_lists.SLIDING_INSERTS_21IN_OPTIONS,
-                                        default='0')
-
-    sliding_insert_24in_8: EnumProperty(name="Sliding Insert 24in 8",
-                                        items=common_lists.SLIDING_INSERTS_24IN_OPTIONS,
-                                        default='0')
-
     velvet_liner_1: EnumProperty(name="Velvet Liner 1",
                                  items=common_lists.VELVET_LINERS_OPTIONS,
                                  default='0')
@@ -1445,6 +1437,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
             self.assembly.update()
             open_drawers_ppt.set_value(1.0)
             bpy.ops.object.select_all(action='DESELECT')
+
         elif not add_drawers_ppt.get_value() and self.assembly.drawer_boxes:
             for assembly in self.assembly.drawer_boxes:
                 sn_utils.delete_object_and_children(assembly.obj_bp)
@@ -1465,11 +1458,11 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
             self.assembly.obj_y.location.y < sn_unit.inch(15.99)]
 
         if any(dbl_drawer_conditions):
-            use_double_drawer.set_value(False)        
+            use_double_drawer.set_value(False)
 
         if add_drawers_ppt.get_value() and not dbl_drawer and use_double_drawer.get_value():
             self.assembly.add_dbl_drawer_box(drawer_num)
-        elif add_drawers_ppt.get_value() and dbl_drawer and not use_double_drawer.get_value():
+        elif not add_drawers_ppt.get_value() and dbl_drawer and use_double_drawer.get_value():
             sn_utils.delete_object_and_children(dbl_drawer.obj_bp)
 
     def update_lock(self, drawer_num):
@@ -1675,7 +1668,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 file_rail_type = self.assembly.get_prompt("File Rail Type " + str(i))
                 file_rail_direction = self.assembly.get_prompt("File Rail Direction " + str(i))
                 has_jewelry_insert = self.assembly.get_prompt("Has Jewelry Insert " + str(i))
-                has_sliding_insert = self.assembly.get_prompt("Has Sliding Insert " + str(i))
                 jewelry_insert_type = self.assembly.get_prompt("Jewelry Insert Type " + str(i)) #DONT REMOVE USED in exec
                 jewelry_insert_18in = self.assembly.get_prompt("Jewelry Insert 18in " + str(i)) #DONT REMOVE USED in exec
                 jewelry_insert_21in = self.assembly.get_prompt("Jewelry Insert 21in " + str(i)) #DONT REMOVE USED in exec
@@ -1686,22 +1678,32 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 lower_jewelry_insert_velvet_liner_18_in = self.assembly.get_prompt("Lower Jewelry Insert Velvet Liner 18in " + str(i)) #DONT REMOVE USED in exec
                 lower_jewelry_insert_velvet_liner_21_in = self.assembly.get_prompt("Lower Jewelry Insert Velvet Liner 21in " + str(i)) #DONT REMOVE USED in exec
                 lower_jewelry_insert_velvet_liner_24_in = self.assembly.get_prompt("Lower Jewelry Insert Velvet Liner 24in " + str(i)) #DONT REMOVE USED in exec
-                
-                sliding_insert_18in = self.assembly.get_prompt("Sliding Insert 18in " + str(i)) #DONT REMOVE USED in exec
-                sliding_insert_21in = self.assembly.get_prompt("Sliding Insert 21in " + str(i)) #DONT REMOVE USED in exec
-                sliding_insert_24in = self.assembly.get_prompt("Sliding Insert 24in " + str(i)) #DONT REMOVE USED in exec
                 velvet_liner = self.assembly.get_prompt("Velvet Liner " + str(i)) #DONT REMOVE USED in exec
                 insert_placement_x = self.assembly.get_prompt("Insert Placement X " + str(i))
                 insert_placement_y = self.assembly.get_prompt("Insert Placement Y " + str(i))
 
                 if props.closet_defaults.use_32mm_system:
                     if drawer_height:
-                        if box_type:
-                            exec("drawer_height.set_value(float(self.drawer_" + str(i) + "_height))")
-                            # If it is a three hole dovetail drawer, force it to be a 4 hole dovetail drawer
-                            if box_type.get_value() == 2 and drawer_height.get_value() <= 91.948:
-                                exec("self.drawer_" + str(i) + "_height =  str(123.952)")
-                        exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_height) / 25.4))")
+                        is_five_hole = False
+                        is_six_hole = False
+                        is_eight_hole = False
+                        for child in self.assembly.obj_bp.children:
+                            if child.get("IS_BP_DRAWER_FRONT") and child.get("DRAWER_NUM") == i:
+                                drawer_face_assembly = sn_types.Assembly(child)
+                                is_five_hole, is_six_hole, is_eight_hole = self.get_door_style_vars(drawer_face_assembly)
+                        if is_five_hole:
+                            exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_five_hole_height) / 25.4))")
+                        elif is_six_hole:
+                            exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_six_hole_height) / 25.4))")
+                        elif is_eight_hole:
+                            exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_eight_hole_height) / 25.4))")
+                        else:
+                            if box_type:
+                                exec("drawer_height.set_value(float(self.drawer_" + str(i) + "_height))")
+                                # If it is a three hole dovetail drawer, force it to be a 4 hole dovetail drawer
+                                if box_type.get_value() == 2 and drawer_height.get_value() <= 91.948:
+                                    exec("self.drawer_" + str(i) + "_height =  str(123.952)")
+                            exec("drawer_height.set_value(sn_unit.inch(float(self.drawer_" + str(i) + "_height) / 25.4))")
                     if bottom_offset:
                         bottom_offset.set_value(sn_unit.inch(float(self.bottom_offset)/25.4))
                 # if slide_type:
@@ -1712,8 +1714,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                     exec(f"file_rail_direction.set_value(int(self.file_rail_direction_{str(i)}))")
                 if has_jewelry_insert:
                     exec(f"has_jewelry_insert.set_value(self.has_jewelry_insert_{str(i)})")
-                if has_sliding_insert:
-                    exec(f"has_sliding_insert.set_value(self.has_sliding_insert_{str(i)})")
                 if jewelry_insert_type:
                     exec(f"jewelry_insert_type.set_value(int(self.jewelry_insert_type_{str(i)}))")
                 if jewelry_insert_18in:
@@ -1734,19 +1734,12 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                     exec(f"lower_jewelry_insert_velvet_liner_21_in.set_value(int(self.lower_jewelry_insert_velvet_liner_21in_{str(i)}))")
                 if lower_jewelry_insert_velvet_liner_24_in:
                     exec(f"lower_jewelry_insert_velvet_liner_24_in.set_value(int(self.lower_jewelry_insert_velvet_liner_24in_{str(i)}))")
-                if sliding_insert_18in:
-                    exec(f"sliding_insert_18in.set_value(int(self.sliding_insert_18in_{str(i)}))")
-                if sliding_insert_21in:
-                    exec(f"sliding_insert_21in.set_value(int(self.sliding_insert_21in_{str(i)}))")
-                if sliding_insert_24in:
-                    exec(f"sliding_insert_24in.set_value(int(self.sliding_insert_24in_{str(i)}))")
                 if velvet_liner:
                     exec(f"velvet_liner.set_value(int(self.velvet_liner_{str(i)}))")
                 if insert_placement_x:
                     exec(f"insert_placement_x.set_value(int(self.insert_placement_x_{str(i)}))")
                 if insert_placement_y:
                     exec(f"insert_placement_y.set_value(int(self.insert_placement_y_{str(i)}))")
-                
 
                 self.update_lock(i)
                 self.update_dbl_drawer_box(i)
@@ -1809,7 +1802,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 file_rail_type = self.assembly.get_prompt("File Rail Type " + str(i)) #DONT REMOVE USED in exec
                 file_rail_direction = self.assembly.get_prompt("File Rail Direction " + str(i)) #DONT REMOVE USED in exec
                 has_jewelry_insert = self.assembly.get_prompt(f"Has Jewelry Insert {str(i)}")
-                has_sliding_insert = self.assembly.get_prompt(f"Has Sliding Insert {str(i)}")
                 jewelry_insert_type = self.assembly.get_prompt(f"Jewelry Insert Type {str(i)}") #DONT REMOVE USED in exec
                 jewelry_insert_18in = self.assembly.get_prompt(f"Jewelry Insert 18in {str(i)}") #DONT REMOVE USED in exec
                 jewelry_insert_21in = self.assembly.get_prompt(f"Jewelry Insert 21in {str(i)}") #DONT REMOVE USED in exec
@@ -1820,9 +1812,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 lower_jewelry_insert_velvet_liner_18in = self.assembly.get_prompt(f"Lower Jewelry Insert Velvet Liner 18in {str(i)}") #DONT REMOVE USED in exec
                 lower_jewelry_insert_velvet_liner_21in = self.assembly.get_prompt(f"Lower Jewelry Insert Velvet Liner 21in {str(i)}") #DONT REMOVE USED in exec
                 lower_jewelry_insert_velvet_liner_24in = self.assembly.get_prompt(f"Lower Jewelry Insert Velvet Liner 24in {str(i)}") #DONT REMOVE USED in exec
-                sliding_insert_18in = self.assembly.get_prompt(f"Sliding Insert 18in {str(i)}") #DONT REMOVE USED in exec
-                sliding_insert_21in = self.assembly.get_prompt(f"Sliding Insert 21in {str(i)}") #DONT REMOVE USED in exec
-                sliding_insert_24in = self.assembly.get_prompt(f"Sliding Insert 24in {str(i)}") #DONT REMOVE USED in exec
                 velvet_liner = self.assembly.get_prompt(f"Velvet Liner {str(i)}") #DONT REMOVE USED in exec
                 insert_placement_x = self.assembly.get_prompt(f"Insert Placement X {str(i)}") #DONT REMOVE USED in exec
                 insert_placement_y = self.assembly.get_prompt(f"Insert Placement Y {str(i)}") #DONT REMOVE USED in exec
@@ -1834,15 +1823,30 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
 
                 if props.closet_defaults.use_32mm_system: 
                     if drawer_height:
+                        is_five_hole = False
+                        is_six_hole = False
+                        is_eight_hole = False
+                        for child in self.assembly.obj_bp.children:
+                            if child.get("IS_BP_DRAWER_FRONT") and child.get("DRAWER_NUM") == i:
+                                drawer_face_assembly = sn_types.Assembly(child)
+                                is_five_hole, is_six_hole, is_eight_hole = self.get_door_style_vars(drawer_face_assembly)
+        
                         value = str(round(drawer_height.distance_value * 1000,4))
                         if value in self.front_heights:
-                            exec("self.drawer_" + str(i) + "_height = value")
+                            if is_five_hole:
+                                exec("self.drawer_" + str(i) + "_five_hole_height = value")
+                            elif is_six_hole:
+                                exec("self.drawer_" + str(i) + "_six_hole_height = value")
+                            elif is_eight_hole:
+                                exec("self.drawer_" + str(i) + "_eight_hole_height = value")
+                            else:
+                                exec("self.drawer_" + str(i) + "_height = value")
                 
                 if has_jewelry_insert:
                     exec(f"self.has_jewelry_insert_{str(i)} = has_jewelry_insert.get_value()")
                 
-                if has_sliding_insert:
-                    exec(f"self.has_sliding_insert_{str(i)} = has_sliding_insert.get_value()")
+                # if has_sliding_insert:
+                #     exec(f"self.has_sliding_insert_{str(i)} = has_sliding_insert.get_value()")
 
                 if jewelry_insert_type:
                     exec(f"self.jewelry_insert_type_{str(i)} = common_lists.JEWELRY_TYPE_OPTIONS[jewelry_insert_type.get_value()][0]")
@@ -1874,15 +1878,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 if lower_jewelry_insert_velvet_liner_24in:
                     exec(f"self.lower_jewelry_insert_velvet_liner_24in_{str(i)} = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_OPTIONS[lower_jewelry_insert_velvet_liner_24in.get_value()][0]")
 
-                if sliding_insert_18in:
-                    exec(f"self.sliding_insert_18in_{str(i)} = common_lists.JEWELRY_INSERTS_VELVET_LINERS_18IN_OPTIONS[sliding_insert_18in.get_value()][0]")
-
-                if sliding_insert_21in:
-                    exec(f"self.sliding_insert_21in_{str(i)} = common_lists.JEWELRY_INSERTS_VELVET_LINERS_21IN_OPTIONS[sliding_insert_21in.get_value()][0]")
-
-                if sliding_insert_24in:
-                    exec(f"self.sliding_insert_24in_{str(i)} = common_lists.JEWELRY_INSERTS_VELVET_LINERS_24IN_OPTIONS[sliding_insert_24in.get_value()][0]")
-
                 if velvet_liner:
                     exec(f"self.velvet_liner_{str(i)} = common_lists.VELVET_LINERS_OPTIONS[velvet_liner.get_value()][0]")
 
@@ -1912,6 +1907,28 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         for child in obj.children:
             self.assign_mirror_material(child)
 
+    def get_door_style_vars(self, drawer_face_assembly):
+        if drawer_face_assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
+            door_style = drawer_face_assembly.get_prompt("Door Style")
+            if door_style:
+                is_five_hole = False
+                for style in common_lists.FIVE_HOLE_DRAWER_STYLE_LIST:
+                    if style in door_style.get_value() and '5' not in door_style.get_value():
+                        is_five_hole = True
+                is_six_hole = False
+                for style in common_lists.SIX_HOLE_DRAWER_STYLE_LIST:
+                    if style in door_style.get_value() and '6' not in door_style.get_value():
+                        is_six_hole = True
+                is_eight_hole = False
+                for style in common_lists.EIGHT_HOLE_DRAWER_STYLE_LIST:
+                    if style in door_style.get_value() and '8' not in door_style.get_value():
+                        is_eight_hole = True
+                
+                return is_five_hole, is_six_hole, is_eight_hole
+            else:
+                return False, False, False
+            
+
     def invoke(self,context,event):
         obj = bpy.data.objects[context.object.name]
         bp = sn_utils.get_drawer_stack_bp(obj)
@@ -1934,7 +1951,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
 
         else:
             self.kd_prompt = None
-
         self.set_properties_from_prompts()
         return super().invoke(context, event, width=700)
     
@@ -1957,18 +1973,23 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                 use_file_rail = self.assembly.get_prompt("Use File Rail " + str(i))
                 use_double_drawer = self.assembly.get_prompt("Use Double Drawer " + str(i))
                 has_jewelry_insert = self.assembly.get_prompt("Has Jewelry Insert " + str(i))
-                has_sliding_insert = self.assembly.get_prompt("Has Sliding Insert " + str(i))
                 jewelry_insert_type = self.assembly.get_prompt("Jewelry Insert Type " + str(i))
                 extra_deep_drawer_box = self.assembly.get_prompt("Extra Deep Drawer Box")
                 is_dbl_jwl = use_double_drawer.get_value()
                 has_jwl_ins = has_jewelry_insert.get_value()
-                has_sld_ins = has_sliding_insert.get_value()
                 drw_H = round(sn_unit.meter_to_millimeter(
                                 drawer_height.get_value()), 3)
                 f4H = float(common_lists.FRONT_HEIGHTS[1][0])
                 f5H = float(common_lists.FRONT_HEIGHTS[2][0])
                 f6H = float(common_lists.FRONT_HEIGHTS[3][0])
                 f7H = float(common_lists.FRONT_HEIGHTS[4][0])
+                is_five_hole = False
+                is_six_hole = False
+                is_eight_hole = False
+                for child in self.assembly.obj_bp.children:
+                    if child.get("IS_BP_DRAWER_FRONT") and child.get("DRAWER_NUM") == i:
+                        drawer_face_assembly = sn_types.Assembly(child)
+                        is_five_hole, is_six_hole, is_eight_hole = self.get_door_style_vars(drawer_face_assembly)
                 # If drawer is changed from 6H to 7H it resets existing 
                 # options
                 if drw_H == f7H and has_jwl_ins:
@@ -1993,7 +2014,14 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                         col_1 = row.column()
                         if props.closet_defaults.use_32mm_system:
                             col_1.label(text="Drawer " + str(i) + " Height:")
-                            col_1.prop(self,'drawer_' + str(i) + '_height',text="")
+                            if is_five_hole:
+                                col_1.prop(self,'drawer_' + str(i) + '_five_hole_height',text="")
+                            elif is_six_hole:
+                                col_1.prop(self,'drawer_' + str(i) + '_six_hole_height',text="")
+                            elif is_eight_hole:
+                                col_1.prop(self,'drawer_' + str(i) + '_eight_hole_height',text="")
+                            else:
+                                col_1.prop(self,'drawer_' + str(i) + '_height',text="")
                         else:
                             col_1.prop(drawer_height, "distance_value", text=drawer_height.name)
                         
@@ -2017,13 +2045,12 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                 has_ji_ins = has_jewelry_insert.get_value()
                                 db_jwl_conditions = (drw_H == f7H or drw_H == f6H) and depth_in <= 24 and width_in <= 33
                                 if not has_ji_ins and not has_jwl_ins and db_jwl_conditions:
-                                    if not has_sld_ins:
-                                        col_3 = row.column(align=True)
-                                        col_3.label(text="Double Jewelry Drawer")
-                                        col_3.prop(use_double_drawer,"checkbox_value",text="")
+                                    col_3 = row.column(align=True)
+                                    col_3.label(text="Double Jewelry Drawer")
+                                    col_3.prop(use_double_drawer,"checkbox_value",text="")
                                     col_4 = row.column(align=True)
                                     # Double Jewelry option
-                                    if is_dbl_jwl and jwlry_ins and width_in >= 18 and width_in < 21 and not has_sld_ins:
+                                    if is_dbl_jwl and jwlry_ins and width_in >= 18 and width_in < 21:
                                         exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[0][0]')
                                         # These are the options from
                                         # JEWELRY_INSERTS_VELVET_LINERS_18IN_OPTIONS
@@ -2056,7 +2083,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                                 col_5.prop(self,f'insert_placement_x_{i}',text="")
                                             if depth_in > 16:
                                                 col_5.prop(self,f'insert_placement_y_{i}',text="")
-                                    elif is_dbl_jwl and jwlry_ins and width_in >= 21 and width_in < 24 and not has_sld_ins:
+                                    elif is_dbl_jwl and jwlry_ins and width_in >= 21 and width_in < 24:
                                         exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[0][0]')
                                         # These are the options from
                                         # JEWELRY_INSERTS_VELVET_LINERS_21IN_OPTIONS
@@ -2089,7 +2116,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                                 col_5.prop(self,f'insert_placement_x_{i}',text="")
                                             if depth_in > 16:
                                                 col_5.prop(self,f'insert_placement_y_{i}',text="")
-                                    elif is_dbl_jwl and jwlry_ins and width_in >= 24 and not has_sld_ins:
+                                    elif is_dbl_jwl and jwlry_ins and width_in >= 24:
                                         exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[0][0]')
                                         # These are the options from
                                         # JEWELRY_INSERTS_VELVET_LINERS_24IN_OPTIONS
@@ -2144,19 +2171,13 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                 col_3.label(text='Jewelry Insert')
                                 col_3.prop(self,f'has_jewelry_insert_{i}',text="")
                             if is_std_opng and not is_dbl_jwl:
-                                if 24 >= depth_in >= 16:
-                                    col_3.label(text='Sliding Insert')
-                                    col_3.prop(self,f'has_sliding_insert_{i}',text="")
                                 if not_dbl_drw and width_in == 18:
                                     exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[1][0]')
                                     col_4 = row.column(align=True)
                                     if has_jwl_ins:
                                         col_4.label(text='Jewelry Insert')
                                         col_4.prop(self,f'jewelry_insert_18in_{i}',text="")
-                                    if has_sld_ins:
-                                        col_4.label(text='Sliding Insert')
-                                        col_4.prop(self,f'sliding_insert_18in_{i}',text="")
-                                    if depth_in > 16 and (has_jwl_ins or has_sld_ins):
+                                    if depth_in > 16 and (has_jwl_ins):
                                         col_5 = row.column(align=True)
                                         col_5.label(text='Placement')
                                         col_5.prop(self,f'insert_placement_y_{i}',text="")
@@ -2166,10 +2187,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                     if has_jwl_ins:
                                         col_4.label(text='Jewelry Insert')
                                         col_4.prop(self,f'jewelry_insert_21in_{i}',text="")
-                                    if has_sld_ins:
-                                        col_4.label(text='Sliding Insert')
-                                        col_4.prop(self,f'sliding_insert_21in_{i}',text="")
-                                    if depth_in > 16 and (has_jwl_ins or has_sld_ins):
+                                    if depth_in > 16 and (has_jwl_ins):
                                         col_5 = row.column(align=True)
                                         col_5.label(text='Placement')
                                         col_5.prop(self,f'insert_placement_y_{i}',text="")
@@ -2179,10 +2197,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                     if has_jwl_ins:
                                         col_4.label(text='Jewelry Insert')
                                         col_4.prop(self,f'jewelry_insert_24in_{i}',text="")
-                                    if has_sld_ins:
-                                        col_4.label(text='Sliding Insert')
-                                        col_4.prop(self,f'sliding_insert_24in_{i}',text="")
-                                    if depth_in > 16 and (has_jwl_ins or has_sld_ins):
+                                    if depth_in > 16 and (has_jwl_ins):
                                         col_5 = row.column(align=True)
                                         col_5.label(text='Placement')
                                         col_5.prop(self,f'insert_placement_y_{i}',text="")
@@ -2298,12 +2313,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                         col_3.prop(self, 'file_rail_type_' + str(i), text="")
                                         col_3.prop(self, 'file_rail_direction_' + str(i), text="")
 
-    # def is_glass_front(self):
-    #     if "Glass" in self.part.obj_bp.snap.comment:
-    #         return True
-    #     else:
-    #         return False
-
     def draw(self, context):
         super().draw(context)
         layout = self.layout
@@ -2313,6 +2322,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                     open_drawer = self.assembly.get_prompt('Open')
                     full_overlay = self.assembly.get_prompt('Full Overlay')
                     standard_drawer_rear_gap = self.assembly.get_prompt("Standard Drawer Rear Gap")
+                    dt_drawer_rear_gap = self.assembly.get_prompt("Dovetail Drawer Rear Gap")
                     deep_drawer_rear_gap = self.assembly.get_prompt("Deep Drawer Rear Gap")
                     drawer_depth = self.assembly.obj_y.location.y
                     extra_deep_drawer_box = self.assembly.get_prompt("Extra Deep Drawer Box")
@@ -2341,8 +2351,14 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                         row.label(text="Drawer Rear Gap")
 
                     if extra_deep_drawer_box and standard_drawer_rear_gap and deep_drawer_rear_gap:
-                        if(drawer_depth <= extra_deep_drawer_box.get_value()):
-                            row.prop(standard_drawer_rear_gap, "distance_value", text="")
+                        if not dt_drawer_rear_gap:
+                            dt_drawer_rear_gap = self.assembly.add_prompt("Dovetail Drawer Rear Gap", 'DISTANCE', sn_unit.inch(1))
+
+                        if round(drawer_depth, 5) <= round(extra_deep_drawer_box.get_value(), 5):
+                            if box_type.get_value() == 0:
+                                row.prop(standard_drawer_rear_gap, "distance_value", text="")
+                            else:
+                                row.prop(dt_drawer_rear_gap, "distance_value", text="")
                         else:
                             row.prop(deep_drawer_rear_gap, "distance_value", text="")
 

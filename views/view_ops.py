@@ -1555,13 +1555,11 @@ class VIEW_OT_generate_2d_views(Operator):
             text.anchor.location[1] -= label_offset
         elif rotation in [0,-90]:
             text.anchor.location[1] += label_offset
-    
+
     def wallbed_pv_tag(self, item):
         assy = sn_types.Assembly(item)
         loc_x = assy.obj_x.location.x / 2
         loc_y = assy.obj_y.location.y / 2
-        loc_offset = min([abs(loc_x), abs(loc_y)])
-        label_offset = ((loc_offset / 3) * 2) - unit.inch(1)
         parent_height = item.parent.location.z
         loc_z = -parent_height
         wall_rotation = round(math.degrees(item.parent.rotation_euler[2]))
@@ -1579,6 +1577,7 @@ class VIEW_OT_generate_2d_views(Operator):
         pmpt_dict = assy.get_prompt_dict()
         is_lsh = 'l shelves' in item.name.lower()
         is_csh = 'corner shelves' in item.name.lower()
+
         if is_lsh:
             shelf_pmpt = assy.get_prompt("Shelf Quantity")
             shelf_qty = shelf_pmpt.quantity_value
@@ -1590,10 +1589,11 @@ class VIEW_OT_generate_2d_views(Operator):
                 label = f'L Shelves|{shelf_qty} Shlvs.|{door_str} Door'
             elif not has_door:
                 label = f'L Shelves|{shelf_qty} Shlvs.'
+
         elif is_csh:
             shelf_qty = pmpt_dict.get("Shelf Quantity")
             has_door = pmpt_dict.get("Door")
-            double_doors_pmpt = assy.get_prompt("Force Double Doors") 
+            double_doors_pmpt = assy.get_prompt("Force Double Doors")
             double_doors = double_doors_pmpt.checkbox_value
             if has_door and not double_doors:
                 label = f'Corner|Shelves|{shelf_qty} Shlvs.|1 Door'
@@ -1601,30 +1601,21 @@ class VIEW_OT_generate_2d_views(Operator):
                 label = f'Corner|Shelves|{shelf_qty} Shlvs.|2 Doors'
             elif not has_door:
                 label = f'Corner|Shelves|{shelf_qty} Shlvs.'
+
         loc_x = assy.obj_x.location.x / 2
         loc_y = assy.obj_y.location.y / 2
         loc_offset = min([abs(loc_x), abs(loc_y)])
-        label_offset = ((loc_offset / 3) * 2) - unit.inch(1)
+        label_offset = ((loc_offset / 3) * 2) - unit.inch(3)
         parent_height = item.parent.location.z
         loc_z = -parent_height
         wall_rotation = round(math.degrees(item.parent.rotation_euler[2]))
         text = sn_types.Dimension()
-        text.anchor.rotation_mode = 'YZX'
-        text_rotation = (-90, -wall_rotation, 0)
-        if 0 < wall_rotation <= 90:
-            y_wall_angle = -wall_rotation
-            y_wall_angle += 90
-            text_rotation = (0, y_wall_angle, 0)
-        elif -90 <= wall_rotation < 0:
-            y_wall_angle = -wall_rotation
-            y_wall_angle -= 90
-            text_rotation = (0, y_wall_angle, 0)
         text.set_label(label)
-        utils.copy_world_loc(item.parent, text.anchor, (loc_x, loc_y, loc_z))
-        utils.copy_world_rot(item.parent, text.anchor, text_rotation)
+        utils.copy_world_loc(item, text.anchor, (loc_x, loc_y, loc_z))
+
         if wall_rotation in [90, 180]:
             text.anchor.location[1] -= label_offset
-        elif wall_rotation in [0,-90]:
+        elif wall_rotation in [0, -90]:
             text.anchor.location[1] += label_offset
 
     def is_closet_floor_mounted(self, closet):
@@ -2089,7 +2080,7 @@ class VIEW_OT_generate_2d_views(Operator):
             entry_break_mesh.location = (0, -bool_grow, -bool_grow)
             entry_break_mesh.hide_viewport = True
             entry_break_mesh.hide_render = True
-            print(wall_mesh)
+            # print(wall_mesh)
             bool_modifier = [m for m in wall_mesh.modifiers if 'MESH' in m.name][0]
             bool_modifier.object = entry_break_mesh
 
@@ -2226,7 +2217,7 @@ class VIEW_OT_generate_2d_views(Operator):
                             wall_mesh.select_set(True)
 
             name = obj.name
-            if "Island" in name:
+            if "Island" in name and not "Island Carcass" in name and not obj.get("IS_BP_CABINET"):
                 self.add_pulls_to_plan_view(obj, pv_scene)
                 self.add_island_to_plan_view(obj)
 
@@ -3561,9 +3552,8 @@ class VIEW_OT_generate_2d_views(Operator):
         dim.start_z(value=z_loc + unit.inch(6))
         dim.set_label("Positive|Overlay")
 
-    def accordion_build_hight_n_ceiling_dimensions(self, context, 
-                                                   accordion, existing_dims,
-                                                   extra_dims):
+    def accordion_build_hight_n_ceiling_dimensions(self, context, accordion, existing_dims, extra_dims):
+        from snap import sn_unit
         bh_dims = []
         first_wall = None
         # If a dimension is less than 10 inches it's text will be horizontal
@@ -3644,11 +3634,9 @@ class VIEW_OT_generate_2d_views(Operator):
                 overlay_x_offset = 0
             for i, value in enumerate(bh_dims):
                 if value > small_dim_height_value:
-                    self.apply_build_height_label(
-                        first_wall, value, i, overlay_x_offset)
+                    self.apply_build_height_label(first_wall, value, i, overlay_x_offset)
                 elif value <= small_dim_height_value:
-                    self.apply_toe_kick_label(
-                        first_wall, value, i, overlay_x_offset)
+                    self.apply_toe_kick_label(first_wall, value, i, overlay_x_offset)
             dims_offset = (unit.inch(-4) * len(bh_dims))
             max_offset = unit.inch(-7) + dims_offset + overlay_x_offset
             if first_wall is not None:
@@ -3700,10 +3688,8 @@ class VIEW_OT_generate_2d_views(Operator):
                         if 'topshelf' in k_item.name.lower():
                             for f_item in k_item.children:
                                 if f_item.type == "MESH":
-                                    assy = sn_types.Assembly(
-                                                    k_item)
-                                    topshelf_thickness = abs(
-                                                    assy.obj_z.location.z)
+                                    assy = sn_types.Assembly(k_item)
+                                    topshelf_thickness = abs(assy.obj_z.location.z)
 
         # Get world location z from each partition obj_x
         obj_bp = hanging_assy.obj_bp
@@ -3737,19 +3723,22 @@ class VIEW_OT_generate_2d_views(Operator):
         tk_height_pmpt = lsh_assy.get_prompt("Toe Kick Height")
         is_hanging_pmpt = lsh_assy.get_prompt("Is Hanging")
         tsh_pmpt = lsh_assy.get_prompt("Add Top Shelf")
+
         if tk_height_pmpt and is_hanging_pmpt and tsh_pmpt:
             tk_height = tk_height_pmpt.get_value()
             is_hanging = is_hanging_pmpt.get_value()
             tsh = tsh_pmpt.get_value()
-        bh_dims.append(tk_height)
-        lsh_height = lsh_assy.obj_z.location.z + tk_height
-        if is_hanging:
-            lsh_height = lsh_assy.obj_z.location.z
-        if tsh:
-            tsh_height += unit.inch(0.75)
-        bh_dims.append(lsh_height + tsh_height)
-               
-    
+
+            if not is_hanging:
+                bh_dims.append(tk_height)
+                lsh_height = lsh_assy.obj_z.location.z + tk_height
+            if is_hanging:
+                lsh_height = lsh_assy.obj_z.location.z
+            if tsh:
+                tsh_height += unit.inch(0.75)
+
+            bh_dims.append(lsh_height + tsh_height)
+
     def wall_width(self, walls_list, wall):
         assembly = sn_types.Assembly(wall)
         x_offset = assembly.obj_x.location.x / 2
@@ -4972,39 +4961,97 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def write_island_height(self, island, x_loc):
         island_assembly = sn_types.Assembly(obj_bp=island)
+
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        
         height_label = sn_types.Dimension()
         dim_x = abs(island_assembly.obj_x.location.x)
         dim_z = abs(island_assembly.obj_z.location.z)
         x_0 = x_loc-unit.inch(8)-dim_x/2
         height_label.start_x(value=x_0)
         height_label.start_z(value=unit.inch(0))
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
+
+        if not is_cabinet:     
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
+        else:
+            tk_height = 0   # carcass_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = carcass_assembly.get_prompt("Top Thickness").get_value()
+
+        # if tk_height and top_thickness:
         height = tk_height + dim_z + 2*top_thickness
         height_label.end_point.location = (0, 0, height)
         label = self.to_inch_lbl(height)
         height_label.set_label(label)
-
+   
     def write_island_tk_height(self, island, x_loc):
         island_assembly = sn_types.Assembly(obj_bp=island)
+
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+
         height_label = sn_types.Dimension()
         dim_x = abs(island_assembly.obj_x.location.x)
         x_0 = x_loc-unit.inch(4)-dim_x/2
         height_label.start_x(value=x_0)
         height_label.start_z(value=unit.inch(0))
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        height_label.end_point.location = (0, 0, tk_height)
-        label = self.to_inch_lbl(tk_height)
-        height_label.set_label(label)
+        if not is_cabinet:
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+        else:
+            tk_height = carcass_assembly.get_prompt("Toe Kick Height").get_value()
 
-    def write_island_opening_width(self, island, x_loc):
+        if tk_height:
+            height_label.end_point.location = (0, 0, tk_height)
+            label = self.to_inch_lbl(tk_height)
+            height_label.set_label(label)
+
+    def write_island_opening_width(self, island, x_loc, view):
         island_assembly = sn_types.Assembly(obj_bp=island)
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        
         dim_x = abs(island_assembly.obj_x.location.x)
-        panel_thk =\
-            abs(island_assembly.get_prompt("Panel Thickness").distance_value)
+        if not is_cabinet:
+            panel_thk =\
+                abs(island_assembly.get_prompt("Panel Thickness").distance_value)
+            start_opening_nbr = 1
+            end_opening_nbr = 8
+        else:
+            panel_thk =\
+                abs(carcass_assembly.get_prompt("Left Side Thickness").distance_value)
+            double_sided = carcass_assembly.get_prompt("Double Sided").get_value()
+            calculator = carcass_assembly.get_calculator(view + ' Row Widths Calculator')
+            if view == 'Back' and not double_sided:
+                return
+            elif not double_sided:
+                start_opening_nbr = 1
+                end_opening_nbr = len(calculator.prompts)
+            else:
+                if view == 'Front':
+                    start_opening_nbr = 1
+                    end_opening_nbr = len(calculator.prompts)
+                else:
+                    start_opening_nbr = len(calculator.prompts)+1
+                    end_opening_nbr = len(calculator.prompts)*2
+            
+
         prev_value = x_loc + panel_thk - dim_x/2
-        for i in range(1, 9):
-            width = island_assembly.get_prompt("Opening " + str(i) + " Width")
+        for i in range(start_opening_nbr, end_opening_nbr+1):
+            if not is_cabinet:
+                width = island_assembly.get_prompt("Opening " + str(i) + " Width")
+            else:
+                width = carcass_assembly.get_prompt("Opening " + str(i) + " Width")
             if width:
                 width_value = width.distance_value
                 x_pos = width_value/2 + prev_value
@@ -5019,7 +5066,7 @@ class VIEW_OT_generate_2d_views(Operator):
         children = island.children
         for child in children:
             name = child.name
-            if "Backing" in name:
+            if "Backing" in name or "Countertop Deck" in name:
                 obj = child
                 break
         children = obj.children
@@ -5049,41 +5096,71 @@ class VIEW_OT_generate_2d_views(Operator):
     def write_island_countertop(self, island, x_loc):
         ct_mat_props = bpy.context.scene.closet_materials.countertops
         island_assembly = sn_types.Assembly(obj_bp=island)
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+                elif child.get("IS_BP_CABINET_COUNTERTOP"):
+                    ctop_assembly = sn_types.Assembly(child)
+        
+        if not is_cabinet:
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = 0
+        else:
+            tk_height = 0  #carcass_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = ctop_assembly.get_prompt("Deck Thickness").get_value()
         dim_z = abs(island_assembly.obj_z.location.z)
-        height = tk_height + dim_z
+        height = tk_height + dim_z + top_thickness
         CT_label = sn_types.Dimension()
         CT_label.start_x(value=x_loc)
         CT_label.start_z(value=height + unit.inch(6))
-        no_CT = island_assembly.get_prompt("No Countertop").get_value()
+        
 
-        if no_CT:
-            label = "No Countertop"
-        else:
-            CT_types = island_assembly.get_prompt("Countertop Type").combobox_items
-            CT_value = island_assembly.get_prompt("Countertop Type").get_value()
-            CT_type = CT_types[CT_value].name
-            CT_color = self.get_mat_color(island)
-            CT_x, CT_y = self.get_countertop_dim(island)
-
-            if CT_type == 'Wood':
-                mfg = ct_mat_props.get_type().get_mfg()
-                CT_info = mfg.name
-            elif CT_type == 'Granite':
-                CT_info = CT_type
-            elif CT_type == 'Quartz':
-                CT_info = CT_type + " " + ct_mat_props.get_color().name
-            elif CT_type == 'Standard Quartz':
-                CT_info = CT_type + " " + ct_mat_props.get_color().name
-            elif CT_type == 'HPL':
-                CT_info = CT_type + " " + ct_mat_props.get_color().name
-            elif CT_type == 'Custom':
-                CT_info = CT_type
+        if not is_cabinet:
+            no_CT = island_assembly.get_prompt("No Countertop").get_value()
+            if no_CT:
+                label = "No Countertop"
             else:
-                CT_info = CT_type + " " + CT_color
+                CT_types = island_assembly.get_prompt("Countertop Type").combobox_items
+                CT_value = island_assembly.get_prompt("Countertop Type").get_value()
+                CT_type = CT_types[CT_value].name
+                CT_color = self.get_mat_color(island)
+                CT_x, CT_y = self.get_countertop_dim(island)
 
+                if CT_type == 'Wood':
+                    mfg = ct_mat_props.get_type().get_mfg()
+                    CT_info = mfg.name
+                elif CT_type == 'Granite':
+                    CT_info = CT_type
+                elif CT_type == 'Quartz':
+                    CT_info = CT_type + " " + ct_mat_props.get_color().name
+                elif CT_type == 'Standard Quartz':
+                    CT_info = CT_type + " " + ct_mat_props.get_color().name
+                elif CT_type == 'HPL':
+                    CT_info = CT_type + " " + ct_mat_props.get_color().name
+                elif CT_type == 'Custom':
+                    CT_info = CT_type
+                else:
+                    CT_info = CT_type + " " + CT_color
             CT_dim = self.to_inch_lbl(CT_x) + "x" + self.to_inch_lbl(CT_y)
             label = CT_info + " CT - " + CT_dim
+        else:
+            Add_Left_Waterfall = ctop_assembly.get_prompt("Add Left Waterfall").get_value()
+            Add_Right_Waterfall = ctop_assembly.get_prompt("Add Right Waterfall").get_value()
+            if Add_Left_Waterfall or Add_Right_Waterfall:
+                CT_Waterfall = " Waterfall"
+            else:
+                CT_Waterfall = ""
+            CT_type = ct_mat_props.get_type().name
+            if "Melamine" in CT_type:
+                CT_info = CT_type.replace(" - Same as Material Selection","") + " " + self.get_mat_color(ctop_assembly.obj_bp)
+            else:
+                CT_info = CT_type + " " + ct_mat_props.get_color().name
+            CT_x, CT_y = self.get_countertop_dim(island)
+            CT_dim = self.to_inch_lbl(CT_x) + "x" + self.to_inch_lbl(CT_y)
+            label = CT_info + CT_Waterfall + " CT - " + CT_dim
 
         CT_label.set_label(label)
         hsh_len = unit.inch(6)
@@ -5095,30 +5172,49 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def write_island_pards(self, island, x_loc):
         island_assembly = sn_types.Assembly(obj_bp=island)
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        
         dim_x = island_assembly.obj_x.location.x
         dim_z = abs(island_assembly.obj_z.location.z)
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
+        if not is_cabinet:
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
+            children = island.children
+        else:
+            tk_height = carcass_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = carcass_assembly.get_prompt("Top Thickness").get_value()
+            children = carcass_assembly.obj_bp.children
         height = tk_height + dim_z + 2*top_thickness
         x_0 = x_loc - dim_x/2 - unit.inch(4)
-        children = island.children
-        for child in children:
-            name = child.name
-            if "Partition" in name:
-                obj = child
-                obj_x = obj.location.x
-                x_pos = x_0 + obj_x
-                z_pos = height - unit.inch(8)
-                pard_size = sn_types.Dimension()
-                pard_size.start_x(value=x_pos)
-                pard_size.start_z(value=z_pos)
-                pard_size.anchor.rotation_euler = (0, -np.pi/2, 0)
-                obj_assembly = sn_types.Assembly(obj_bp=obj)
-                dim_x = abs(obj_assembly.obj_x.location.x)
-                label = self.to_inch_lbl(dim_z)
-                pard_size.set_label(label)
 
-    def write_shelf(self, obj, loc_x, loc_z, shelf_rot):
+        for child in children:
+            is_front =\
+                round(child.rotation_euler.z, 2) == 0  # round(shelf_rot, 2)
+            name = child.name
+            if "Partition" in name or "Base Left Side" in name:
+                if not is_cabinet or is_front:
+                    obj = child
+                    obj_x = obj.location.x
+                    x_pos = x_0 + obj_x
+                    z_pos = height - unit.inch(8)
+                    pard_size = sn_types.Dimension()
+                    pard_size.start_x(value=x_pos)
+                    pard_size.start_z(value=z_pos)
+                    pard_size.anchor.rotation_euler = (0, -np.pi/2, 0)
+                    obj_assembly = sn_types.Assembly(obj_bp=obj)
+                    dim_x = abs(obj_assembly.obj_x.location.x)
+                    if not is_cabinet:
+                        label = self.to_inch_lbl(dim_z)
+                    else:
+                        label = self.to_inch_lbl(dim_z - tk_height)
+                    pard_size.set_label(label)
+
+    def write_shelf(self, obj, loc_x, loc_z, shelf_rot, is_cabinet):
         obj_assembly = sn_types.Assembly(obj_bp=obj)
         is_locked_shelf = obj_assembly.get_prompt("Is Locked Shelf")
         is_hide = obj_assembly.get_prompt("Hide")
@@ -5132,7 +5228,13 @@ class VIEW_OT_generate_2d_views(Operator):
             if shelf_rot == 0:
                 x_pos = loc_x + obj_x + obj_dim_x/2
             else:
-                x_pos = loc_x - obj_x + obj_dim_x/2
+                if not is_cabinet:
+                    x_pos = loc_x - obj_x + obj_dim_x/2
+                else:
+                    if "Base Bottom" in obj.name:
+                        x_pos = loc_x - obj_x - obj_dim_x/2
+                    else:
+                        x_pos = loc_x - obj_x + obj_dim_x/2
             z_pos = loc_z + obj_z + obj_dim_z/2
             shelf_label.start_x(value=x_pos)
             shelf_label.start_z(value=z_pos)
@@ -5146,25 +5248,35 @@ class VIEW_OT_generate_2d_views(Operator):
                 if "Shelf" in name and hide is not None:
                     if shelf_rot == 0:
                         self.write_shelf(
-                            child, loc_x + obj_x, loc_z + obj_z, shelf_rot)
+                            child, loc_x + obj_x, loc_z + obj_z, shelf_rot, is_cabinet)
                     else:
                         self.write_shelf(
-                            child, loc_x - obj_x, loc_z + obj_z, shelf_rot)
+                            child, loc_x - obj_x, loc_z + obj_z, shelf_rot, is_cabinet)
 
     def write_island_shelfs(self, island, x_loc, z_loc, shelf_rot):
         island_assembly = sn_types.Assembly(obj_bp=island)
+
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+                    children = carcass_assembly.obj_bp.children
+        else:
+            children = island.children
+
         dim_x = island_assembly.obj_x.location.x
         if shelf_rot == 0:
             x_0 = x_loc - dim_x/2
         else:
             x_0 = x_loc + dim_x/2
-        children = island.children
+
         for child in children:
             name = child.name
             is_front =\
                 round(child.rotation_euler.z, 2) == round(shelf_rot, 2)
-            if ("Shelf" in name or "Drawer" in name) and is_front:
-                self.write_shelf(child, x_0, z_loc, shelf_rot)
+            if ("Shelf" in name or "Drawer" in name or "Top" in name or "Bottom" in name or "Splitter" in name) and is_front:
+                self.write_shelf(child, x_0, z_loc, shelf_rot, is_cabinet)
 
     def get_height_code(self, height):
         HAMPER_HEIGHTS = [
@@ -5186,18 +5298,29 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def write_drawer(self, obj, x_loc, z_loc):
         obj_assembly = sn_types.Assembly(obj_bp=obj)
+        is_cabinet = obj_assembly.obj_bp.parent.get("IS_BP_CABINET")
+
         obj_z = obj.location.z
         width = obj_assembly.obj_x.location.x
         drawer_quantity = obj_assembly.get_prompt("Drawer Quantity")
         for child in obj.children:
-            if "OBJ_PROMPTS_Drawer_Fronts" in child.name:
-                drawer_front_ppt_obj = child
+            if not is_cabinet:
+                if "OBJ_PROMPTS_Drawer_Fronts" in child.name:
+                    drawer_front_ppt_obj = child
+
         if drawer_quantity:
             z_loc = z_loc + obj_z
-            for i in range(drawer_quantity.get_value()-1, 0, -1):
-                drawer_height =\
-                    drawer_front_ppt_obj.snap.get_prompt(
-                        "Drawer " + str(i) + " Height").get_value()
+            if not is_cabinet:
+                range_start = drawer_quantity.get_value() - 1
+            else:
+                range_start = drawer_quantity.get_value()
+            for i in range(range_start, 0, -1):
+                if not is_cabinet:
+                    drawer_height =\
+                        drawer_front_ppt_obj.snap.get_prompt("Drawer " + str(i) + " Height").get_value()
+                else:
+                    drawer_height =\
+                        obj_assembly.get_prompt("Drawer Front " + str(i) + " Height").get_value()
                 x_pos = x_loc + 0.8*width
                 z_pos = z_loc + 0.5*drawer_height
                 drawer_label = sn_types.Dimension()
@@ -5239,15 +5362,12 @@ class VIEW_OT_generate_2d_views(Operator):
             # STD Insert
             elif insert_type == 1:
                 jwl_ins = f'Jewelry Insert {insert_width}in {drawer_num}'
-                sld_ins = f'Sliding Insert {insert_width}in {drawer_num}'
                 j_choice = drawer_stack.get_prompt(jwl_ins).get_value()
-                s_choice = drawer_stack.get_prompt(sld_ins).get_value()
-                drawer_stack.get_prompt(sld_ins)
-                if insert_width == 18 and (j_choice in vl18 or s_choice in vl18):
+                if insert_width == 18 and (j_choice in vl18):
                     return True
-                elif insert_width == 21 and (j_choice in vl21 or s_choice in vl21):
+                elif insert_width == 21 and (j_choice in vl21):
                     return True
-                elif insert_width == 24 and (j_choice in vl24 or s_choice in vl24):
+                elif insert_width == 24 and (j_choice in vl24):
                     return True
             # Non-STD Insert GT 16
             elif insert_type == 2:
@@ -5263,7 +5383,7 @@ class VIEW_OT_generate_2d_views(Operator):
             elif insert_type == 3:
                 return True
         return False
-    
+
     def get_jewelry_insert_info(self, drw_stack, drw_idx):
         drawer_stack = data_drawers.Drawer_Stack(drw_stack)
 
@@ -5271,25 +5391,19 @@ class VIEW_OT_generate_2d_views(Operator):
         use_dbl_drawer = drawer_stack.get_prompt("Use Double Drawer " + str(drw_idx))
         is_dbl_drawer = use_dbl_drawer.get_value()
         has_jwl_insert_pmpt = drawer_stack.get_prompt(f"Has Jewelry Insert {drw_idx}")
-        has_sld_insert_pmpt = drawer_stack.get_prompt(f"Has Sliding Insert {drw_idx}")
         has_velvet_liner = self.query_velvet_liner(drawer_stack, drw_idx)
 
-        if has_jwl_insert_pmpt and has_sld_insert_pmpt:
+        if has_jwl_insert_pmpt:
             has_jwl_insert = has_jwl_insert_pmpt.get_value()
-            has_sld_insert = has_sld_insert_pmpt.get_value()
             if is_dbl_drawer and not has_velvet_liner:
                 return "Db Jwlry"
             elif not is_dbl_drawer and not has_velvet_liner:
-                if has_jwl_insert and not has_sld_insert:
+                if has_jwl_insert:
                     return "Jwlry"
-                elif not has_jwl_insert and has_sld_insert:
-                    return "SLD"
-                elif has_jwl_insert and has_sld_insert:
-                    return "Jwlry + SLD"
             elif has_velvet_liner:
                 return "VL"
         return ""
-    
+
     def write_jewelry_insert(self, obj, x_loc, z_loc):
         hsh_len = unit.inch(6)
         obj_assembly = sn_types.Assembly(obj_bp=obj)
@@ -5403,36 +5517,85 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def write_island_depths(self, island, x_loc, side):
         island_assembly = sn_types.Assembly(obj_bp=island)
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        
+
         dim_y = abs(island_assembly.obj_y.location.y)
-        panel_thk =\
-            abs(island_assembly.get_prompt("Panel Thickness").distance_value)
-        prev_value = x_loc + panel_thk - dim_y/2
-        is_dbl = False
-        index_0 = {"B": 1, "D": 2}
-        depth_order = {"B": 1, "D": -1}
-        k = index_0[side]
-        delta_k = depth_order[side]
-        for i in range(1, 3):
-            depth = island_assembly.get_prompt("Depth " + str(k))
-            if depth:
-                is_dbl = True
-                depth_value = depth.distance_value
-                x_pos = depth_value/2 + prev_value
+        if not is_cabinet:
+            panel_thk =\
+                abs(island_assembly.get_prompt("Panel Thickness").distance_value)
+            prev_value = x_loc + panel_thk - dim_y/2
+            is_dbl = False
+            index_0 = {"B": 1, "D": 2}
+            depth_order = {"B": 1, "D": -1}
+            k = index_0[side]
+            delta_k = depth_order[side]
+            for i in range(1, 3):
+                depth = island_assembly.get_prompt("Depth " + str(k))
+                if depth:
+                    is_dbl = True
+                    depth_value = depth.distance_value
+                    x_pos = depth_value/2 + prev_value
+                    depth_label = sn_types.Dimension()
+                    depth_label.start_x(value=x_pos)
+                    depth_label.start_z(value=unit.inch(-4))
+                    label = self.to_inch_lbl(depth_value)
+                    depth_label.set_label(label)
+                    prev_value = prev_value + depth_value + panel_thk
+                k = k + delta_k
+            if not is_dbl:
+                depth_value = abs(island_assembly.obj_y.location.y)
                 depth_label = sn_types.Dimension()
+                x_pos = depth_value/2 + prev_value
                 depth_label.start_x(value=x_pos)
                 depth_label.start_z(value=unit.inch(-4))
                 label = self.to_inch_lbl(depth_value)
                 depth_label.set_label(label)
-                prev_value = prev_value + depth_value + panel_thk
-            k = k + delta_k
-        if not is_dbl:
-            depth_value = abs(island_assembly.obj_y.location.y)
-            depth_label = sn_types.Dimension()
-            x_pos = depth_value/2 + prev_value
-            depth_label.start_x(value=x_pos)
-            depth_label.start_z(value=unit.inch(-4))
-            label = self.to_inch_lbl(depth_value)
-            depth_label.set_label(label)
+        else:
+            panel_thk =\
+                abs(carcass_assembly.get_prompt("Left Side Thickness").get_value())
+            prev_value = x_loc + panel_thk - dim_y/2
+            is_dbl = carcass_assembly.get_prompt("Double Sided").get_value()
+
+            front_depth = carcass_assembly.get_prompt("Front Row Depth")
+            back_depth = carcass_assembly.get_prompt("Back Row Depth")
+            chase_depth = carcass_assembly.get_prompt("Chase Depth")
+            if not is_dbl:
+                front_x_pos = front_depth.get_value()/2
+            else:
+                if side == "B":
+                    front_x_pos = front_depth.get_value()/2
+                    back_x_pos = front_depth.get_value() + back_depth.get_value()/2 + chase_depth.get_value()
+                else:
+                    back_x_pos = back_depth.get_value()/2
+                    front_x_pos = back_depth.get_value() + front_depth.get_value()/2 + chase_depth.get_value()
+            
+            if front_depth:
+                depth_value = front_x_pos
+                depth_label = sn_types.Dimension()
+                # x_pos = depth_value/2 + prev_value
+                x_pos = depth_value + prev_value
+                depth_label.start_x(value=x_pos)
+                depth_label.start_z(value=unit.inch(-4))
+                label = self.to_inch_lbl(front_depth.get_value())
+                depth_label.set_label(label)
+                # prev_value = depth_value + panel_thk
+            
+            if back_depth and is_dbl:
+                depth_value = back_x_pos
+                # x_pos = depth_value/2  + prev_value
+                x_pos = depth_value + prev_value
+                depth_label = sn_types.Dimension()
+                depth_label.start_x(value=x_pos)
+                depth_label.start_z(value=unit.inch(-4))
+                label = self.to_inch_lbl(back_depth.get_value())
+                depth_label.set_label(label)
+                prev_value = depth_value + panel_thk
 
     def write_island_overhang(self, island, x_loc, z_off, type, width_rot):
         left = ["Back Overhang", "Right Overhang"]
@@ -5441,9 +5604,30 @@ class VIEW_OT_generate_2d_views(Operator):
         if type not in valid:
             return
         island_assembly = sn_types.Assembly(obj_bp=island)
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
-        deck_overhang_ppt = island_assembly.get_prompt(type)
+
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+                elif child.get("IS_BP_CABINET_COUNTERTOP"):
+                    ctop_assembly = sn_types.Assembly(child)
+        
+        if not is_cabinet:
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+            top_thickness = island_assembly.get_prompt("Top Thickness").get_value()
+            chase_depth = 0
+            deck_overhang_ppt = island_assembly.get_prompt(type)
+        else:
+            tk_height = 0  
+            top_thickness = ctop_assembly.get_prompt("Deck Thickness").get_value()
+            double_sided = carcass_assembly.get_prompt("Double Sided").get_value()
+            if double_sided:
+                chase_depth = carcass_assembly.get_prompt("Chase Depth").get_value()
+            else:
+                chase_depth = 0
+            deck_overhang_ppt = island_assembly.get_prompt("Countertop Overhang " +  type.replace(" Overhang",""))
+
         if not deck_overhang_ppt:
             return
         else:
@@ -5467,7 +5651,10 @@ class VIEW_OT_generate_2d_views(Operator):
             hsh_rot = math.radians(180 - hsh_rots[width_rot])
         elif type in right:
             hsh_x = (x_loc - width/2)
-            x_0 = hsh_x + width + deck_overhang
+            if type == "Front Overhang":
+                x_0 = hsh_x + width + deck_overhang #+ chase_depth
+            else:
+                x_0 = hsh_x + width + deck_overhang
             hsh_start = x_0
             hsh_rot = math.radians(hsh_rots[width_rot])
         hashmark = sn_types.Line(length=hsh_len, axis='X')
@@ -5483,16 +5670,48 @@ class VIEW_OT_generate_2d_views(Operator):
     def write_front_back_depth(self, island, x_loc, view):
         depth_index = {"Front": 1, "Back": 2}
         island_assembly = sn_types.Assembly(obj_bp=island)
-        index = depth_index[view]
-        depth_prompt = island_assembly.get_prompt("Depth " + str(index))
-        tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
-        left_thk = island_assembly.get_prompt(
-            "Left Side Thickness").get_value()
-        right_thk = island_assembly.get_prompt(
-            "Right Side Thickness").get_value()
-        panel_thk = island_assembly.get_prompt("Panel Thickness").get_value()
-        shelf_thk = island_assembly.get_prompt("Shelf Thickness").get_value()
-        overhang = island_assembly.get_prompt("Side Deck Overhang").get_value()
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        
+        if not is_cabinet:
+            index = depth_index[view]
+            depth_prompt = island_assembly.get_prompt("Depth " + str(index))
+            tk_height = island_assembly.get_prompt("Toe Kick Height").get_value()
+            left_thk = island_assembly.get_prompt("Left Side Thickness").get_value()
+            right_thk = island_assembly.get_prompt("Right Side Thickness").get_value()
+            panel_thk = island_assembly.get_prompt("Panel Thickness").get_value()
+            shelf_thk = island_assembly.get_prompt("Shelf Thickness").get_value()
+            overhang = island_assembly.get_prompt("Side Deck Overhang").get_value()
+            start_opening_nbr = 1
+            end_opening_nbr = 5
+        else:
+            depth_prompt = carcass_assembly.get_prompt(view + " Row Depth")
+            tk_height = carcass_assembly.get_prompt("Toe Kick Height").get_value()
+            left_thk = carcass_assembly.get_prompt("Left Side Thickness").get_value()
+            right_thk = carcass_assembly.get_prompt("Right Side Thickness").get_value()
+            panel_thk = carcass_assembly.get_prompt("Left Side Thickness").get_value()
+            shelf_thk = carcass_assembly.get_prompt("Top Thickness").get_value()
+            overhang = island_assembly.get_prompt("Countertop Overhang Front").get_value()
+            double_sided = carcass_assembly.get_prompt("Double Sided").get_value()
+            calculator = carcass_assembly.get_calculator(view + ' Row Widths Calculator')
+
+            if view == 'Back' and not double_sided:
+                return
+            elif not double_sided:
+                start_opening_nbr = 1
+                end_opening_nbr = len(calculator.prompts)
+            else:
+                if view == 'Front':
+                    start_opening_nbr = 1
+                    end_opening_nbr = len(calculator.prompts)
+                else:
+                    start_opening_nbr = len(calculator.prompts)+1
+                    end_opening_nbr = len(calculator.prompts)*2
+        
         dim_x = abs(island_assembly.obj_x.location.x)
         init_sides = {"Front": left_thk, "Back": right_thk}
         side_thk = init_sides[view]
@@ -5504,8 +5723,11 @@ class VIEW_OT_generate_2d_views(Operator):
             depth = abs(island_assembly.obj_y.location.y)
         else:
             depth = depth_prompt.get_value()
-        for i in range(1, 5):
-            width = island_assembly.get_prompt("Opening " + str(i) + " Width")
+        for i in range(start_opening_nbr, end_opening_nbr+1):
+            if not is_cabinet:
+                width = island_assembly.get_prompt("Opening " + str(i) + " Width")
+            else:
+                width = carcass_assembly.get_prompt("Opening " + str(i) + " Width")
             if width:
                 depth_label = sn_types.Dimension()
                 depth_label.start_x(value=x_label)
@@ -5520,7 +5742,44 @@ class VIEW_OT_generate_2d_views(Operator):
                 x_label += width.get_value() + panel_thk
             else:
                 return
+            
+    def write_island_chase(self, island, x_loc, view):
+        island_assembly = sn_types.Assembly(obj_bp=island)
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+        else:
+            return
+        
+        double_sided = carcass_assembly.get_prompt("Double Sided").get_value()
+        chase_depth = carcass_assembly.get_prompt("Chase Depth").get_value()
 
+        if not double_sided:
+            return
+        else:
+            tk_height = carcass_assembly.get_prompt("Toe Kick Height").get_value()
+            shelf_thk = carcass_assembly.get_prompt("Top Thickness").get_value()
+            
+            dim_x = abs(island_assembly.obj_x.location.x)
+            z_loc = tk_height + shelf_thk + 0.12
+            x_label = x_loc 
+            hsh_len = 0.16
+            hsh_rot = math.radians(-45)
+           
+            chase_label = sn_types.Dimension()
+            chase_label.start_x(value=x_label + 0.20)
+            chase_label.start_z(value=z_loc + 0.20)
+            label = self.to_inch_lbl(chase_depth)
+            chase_label.set_label(f"{label}|Chase")
+            hashmark = sn_types.Line(length=hsh_len, axis='X')
+            hashmark.anchor.name = 'Hashmark_Depth'
+            hashmark.anchor.location.x = x_label
+            hashmark.anchor.location.z = z_loc 
+            hashmark.anchor.rotation_euler.y = hsh_rot
+        
     def write_elv_label(self, txt, x_loc, z_loc):
         label = sn_types.Dimension()
         label.start_x(value=x_loc)
@@ -5534,13 +5793,15 @@ class VIEW_OT_generate_2d_views(Operator):
             label = f"I-{str(((int(island_index) * 4) + 1) - 4)}"        
         x_loc = -self.get_island_view_x_loc(island)
         island_assembly = sn_types.Assembly(obj_bp=island)
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        
         dim_x = island_assembly.obj_x.location.x
         if dimprops.framing_height:
             self.write_island_height(island, x_loc)
         if dimprops.toe_kicks:
             self.write_island_tk_height(island, x_loc)
         if dimprops.section_widths:
-            self.write_island_opening_width(island, x_loc)
+            self.write_island_opening_width(island, x_loc, "Front")
         if dimprops.countertop:
             self.write_island_countertop(island, x_loc)
         if dimprops.partition_height:
@@ -5549,10 +5810,11 @@ class VIEW_OT_generate_2d_views(Operator):
             self.write_island_shelfs(island, x_loc, 0, 0)
         if dimprops.label_drawer_front_height:
             self.write_obj_drawers(island, x_loc - dim_x/2, 0, 0, 0)
-        if dimprops.double_jewelry:
-            self.write_obj_jewelry_inserts(island, x_loc - dim_x/2, 0, 0, 0)
-        if dimprops.label_hamper_type:
-            self.write_obj_hampers(island, x_loc - dim_x/2, 0, 0, 0)
+        if not is_cabinet:
+            if dimprops.double_jewelry:
+                self.write_obj_jewelry_inserts(island, x_loc - dim_x/2, 0, 0, 0)
+            if dimprops.label_hamper_type:
+                self.write_obj_hampers(island, x_loc - dim_x/2, 0, 0, 0)
         if dimprops.section_depths:
             self.write_front_back_depth(island, x_loc, "Front")
         self.write_elv_label(label, x_loc, -unit.inch(8))
@@ -5570,6 +5832,9 @@ class VIEW_OT_generate_2d_views(Operator):
                 island, x_loc, -unit.inch(1), "Back Overhang", "y")
             self.write_island_overhang(
                 island, x_loc, -unit.inch(1), "Front Overhang", "y")
+        if island.get("IS_BP_CABINET"):
+            self.write_island_chase(island, x_loc, "Left")
+        
         self.write_elv_label(label, x_loc, -unit.inch(8))
 
     def write_view_C(self, island, dimprops):
@@ -5579,9 +5844,11 @@ class VIEW_OT_generate_2d_views(Operator):
             label = f"I-{str(((int(island_index) * 4) + 3) - 4)}"        
         x_loc = self.get_island_view_x_loc(island)/3
         island_assembly = sn_types.Assembly(obj_bp=island)
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+
         dim_x = island_assembly.obj_x.location.x
         if dimprops.section_widths:
-            self.write_island_opening_width(island, x_loc)
+            self.write_island_opening_width(island, x_loc, "Back")
         if dimprops.ct_overhang: 
             self.write_island_overhang(
                 island, x_loc, -unit.inch(8), "Right Overhang", "x")
@@ -5589,10 +5856,11 @@ class VIEW_OT_generate_2d_views(Operator):
                 island, x_loc, -unit.inch(8), "Left Overhang", "x")
         if dimprops.label_drawer_front_height:
             self.write_obj_drawers(island, x_loc + dim_x/2, 0, 0, np.pi)
-        if dimprops.double_jewelry:
-            self.write_obj_jewelry_inserts(island, x_loc + dim_x/2, 0, 0, np.pi)
-        if dimprops.label_hamper_type:
-            self.write_obj_hampers(island, x_loc + dim_x/2, 0, 0, np.pi)
+        if not is_cabinet:
+            if dimprops.double_jewelry:
+                self.write_obj_jewelry_inserts(island, x_loc + dim_x/2, 0, 0, np.pi)
+            if dimprops.label_hamper_type:
+                self.write_obj_hampers(island, x_loc + dim_x/2, 0, 0, np.pi)
         if dimprops.kds:
             self.write_island_shelfs(island, x_loc, 0, np.pi)
         if dimprops.section_depths:
@@ -5614,7 +5882,7 @@ class VIEW_OT_generate_2d_views(Operator):
         name_split = name.split(" ")
         return name_split[0]
 
-    def add_camera_to_island_scene(self, scene,
+    def add_camera_to_island_scene(self, scene, island,
                             rotation=(0, 0, 0),
                             location=(0, 0, 0)):
         camera = self.create_camera(scene)
@@ -5623,6 +5891,7 @@ class VIEW_OT_generate_2d_views(Operator):
         bpy.ops.object.select_all(action='SELECT')
         bpy.ops.view3d.camera_to_view_selected()
         camera.data.type = 'ORTHO'
+        camera.data.ortho_scale = 10
         camera.data.ortho_scale += self.isl_pad
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -5661,18 +5930,17 @@ class VIEW_OT_generate_2d_views(Operator):
         return z_rot, location
 
     def create_obj_instance(self, name, grp, obj, z_rot, location):
-        instance = bpy.data.objects.new(
-            name + " " + "Instance", None)
+        instance = bpy.data.objects.new(name + " " + "Instance", None)
         instance.instance_type = 'COLLECTION'
         instance.instance_collection = grp
         instance.hide_select = True
-        instance.location = obj.location
+        instance.location = obj.matrix_world.translation
         instance.rotation_euler.z = z_rot
         rot_z = np.matrix(
             [[np.cos(z_rot), -np.sin(z_rot)], [np.sin(z_rot), np.cos(z_rot)]])
         pos = np.matrix([[instance.location.x], [instance.location.y]])
         loc = np.matrix([[location[0]], [location[1]]])
-        new_pos = -rot_z@pos + loc
+        new_pos = -rot_z @ pos + loc
         instance.location = (new_pos[0, 0], new_pos[1, 0], 0)
         return instance
 
@@ -5693,13 +5961,14 @@ class VIEW_OT_generate_2d_views(Operator):
             instance =\
                 self.create_obj_instance(
                     instance_name, grp, island, z_rot, location)
+            instance.hide_select = False
             new_scene.collection.objects.link(instance)
             view = chr(ord(view) + 1)
         self.write_view_A(island, dimprops)
         self.write_view_B(island, dimprops)
         self.write_view_C(island, dimprops)
         self.write_view_D(island, dimprops)
-        self.add_camera_to_island_scene(new_scene, (np.pi/2, 0, 0))
+        self.add_camera_to_island_scene(new_scene, island, (np.pi/2, 0, 0))
         return grp
 
     def hide_annotation_objects(self):
@@ -7056,14 +7325,15 @@ class VIEW_OT_walk_space_dimension(Operator):
                 wall = sn_types.Wall(obj_bp=obj)
                 walls.append(wall)
             name = obj.name
-            if "Island" in name:
+            if "Island" in name and "Carcass" not in name:
                 wall_bp = sn_utils.get_wall_bp(obj)
                 if not wall_bp:
                     islands.append(obj)
         islands = sorted(islands, 
                 key=lambda i: i.location[0])
         for idx, island in enumerate(islands):
-            island["ISLAND_INDEX"] = str(idx + 1)
+            if not island.get("IS_BP_CABINET"):
+                island["ISLAND_INDEX"] = str(idx + 1)
         return walls, islands
 
     def get_walls_coordinates(self, walls):
@@ -7091,8 +7361,7 @@ class VIEW_OT_walk_space_dimension(Operator):
         sides = ["left", "right", "top", "bottom"]
         for island in islands:
             for side in sides:
-                target_wall =\
-                    self.get_target_wall(island, walls, walls_coords, side)
+                target_wall = self.get_target_wall(island, walls, walls_coords, side)
                 if target_wall is not None:
                     self.write_space_dim(island, target_wall, side)
             self.write_island_label(island, walls[0])
@@ -7306,8 +7575,8 @@ class VIEW_OT_walk_space_dimension(Operator):
         island_assembly = sn_types.Assembly(obj_bp=island)
         dim_x = abs(island_assembly.obj_x.location.x)
         dim_y = abs(island_assembly.obj_y.location.y)
-        loc_x = island.location.x
-        loc_y = island.location.y
+        loc_x = island.matrix_world.translation.x
+        loc_y = island.matrix_world.translation.y
         theta = island.rotation_euler.z
         p1_x = loc_x + dim_y*np.sin(theta)
         p1_y = loc_y - dim_y*np.cos(theta)
