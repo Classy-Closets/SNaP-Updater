@@ -28,6 +28,7 @@ class Wall_Bed(sn_types.Assembly):
 
     def add_prompts(self):
         common_prompts.add_thickness_prompts(self)
+        common_prompts.add_pull_prompts(self)
         self.add_prompt("Bed Make", "COMBOBOX", self.bed_make, ['Eurobed', '24/7', 'Murphy', 'Nuvola'])
         self.add_prompt("Bed Type", "COMBOBOX", 0, ['Twin', 'Double', 'Queen', 'Double XL'])
         self.add_prompt("Wall Bed Panel Thickness", 'DISTANCE', sn_unit.inch(0.75))
@@ -529,6 +530,7 @@ class Wall_Bed(sn_types.Assembly):
         Backing_Panel_Length = assembly.obj_x.snap.get_var("location.x", "Backing_Panel_Length")
         Backing_Panel_Width = assembly.obj_y.snap.get_var("location.y", "Backing_Panel_Width")
         False_Door_Type = self.get_prompt("False Door Type").get_var()
+        No_Pulls = self.get_prompt("No Pulls").get_var('No_Pulls')
 
         top_left_door = self.add_wood_door(assembly)
         top_left_door.set_name("False Door Front")
@@ -668,7 +670,10 @@ class Wall_Bed(sn_types.Assembly):
             left_pull.loc_y('((((Width-(IF(BM==2,ST,PT)*2))/2))/2)', [Width, BM, ST, PT])
             left_pull.loc_z('PT', [PT])
             left_pull.rot_z(value=math.radians(90))
-            left_pull.get_prompt('Hide').set_formula("IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True)", [ADAD, DSQ])
+            left_pull.get_prompt('Hide').set_formula(
+                "IF(No_Pulls,True,"
+                "IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True))",
+                [ADAD, DSQ, No_Pulls])
 
         right_prev_drawer_empty = None
         for i in range(1, 5):
@@ -697,11 +702,14 @@ class Wall_Bed(sn_types.Assembly):
             right_pull = common_parts.add_drawer_pull(assembly)
             right_pull.set_name("Drawer Pull")
             right_pull.obj_bp["DRAWER_NUM"] = i
-            right_pull.loc_x('df_y_loc-(DF_Height/2)', [df_y_loc, DF_Height])
+            right_pull.loc_x('df_y_loc-(DF_Height/2)', [df_y_loc, DF_Height, No_Pulls])
             right_pull.loc_y('((Width-(IF(BM==2,ST,PT)*2))/2)+((((Width-(IF(BM==2,ST,PT)*2))/2))/2)', [Width, BM, ST, PT])
             right_pull.loc_z("PT", [PT])
             right_pull.rot_z(value=math.radians(90))
-            right_pull.get_prompt('Hide').set_formula("IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True)", [ADAD, DSQ])
+            right_pull.get_prompt('Hide').set_formula(
+                "IF(No_Pulls,True,"
+                "IF(ADAD,IF(DSQ>=" + str(i) + ",False,True),True))",
+                [ADAD, DSQ, No_Pulls])
 
     def add_door_pulls(self, assembly):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -711,16 +719,19 @@ class Wall_Bed(sn_types.Assembly):
         ST = self.get_prompt("Shelf Thickness").get_var('ST')
         Add_Doors_And_Drawers = self.get_prompt("Add Doors And Drawers").get_var()
         Pull_Location = self.get_prompt("Pull Location").get_var()
+        No_Pulls = self.get_prompt("No Pulls").get_var('No_Pulls')
 
         left_pull = common_parts.add_door_pull(assembly)
         left_pull.loc_x("Height-Pull_Location", [Height, Pull_Location])
         left_pull.loc_y("((Width-(IF(BM==2,ST,PT)*2))/2)-(ST*2)", [Width, BM, PT, ST])
         left_pull.loc_z("IF(Add_Doors_And_Drawers,ST,0)", [Add_Doors_And_Drawers, ST])
+        left_pull.get_prompt("Hide").set_formula("No_Pulls", [No_Pulls])
 
         right_pull = common_parts.add_door_pull(assembly)
         right_pull.loc_x("Height-Pull_Location", [Height, Pull_Location])
         right_pull.loc_y("((Width-(IF(BM==2,ST,PT)*2))/2)+(ST*2)", [Width, BM, PT, ST])
         right_pull.loc_z("IF(Add_Doors_And_Drawers,ST,0)", [Add_Doors_And_Drawers, ST])
+        right_pull.get_prompt("Hide").set_formula("No_Pulls", [No_Pulls])
 
 
 class PROMPTS_prompts_wall_bed(sn_types.Prompts_Interface):
@@ -951,6 +962,8 @@ class PROMPTS_prompts_wall_bed(sn_types.Prompts_Interface):
         pull_location = self.assembly.get_prompt("Pull Location")
         top_door_height = self.assembly.get_prompt("Top Door Height")
         decorative_melamine_doors = self.assembly.get_prompt("Decorative Melamine Doors")
+        No_Pulls = self.assembly.get_prompt("No Pulls")
+        show_pull_info = True  # 2.6.1 hides pull info if "No Pulls" is used, previous versions are missing this ppt        
 
         box = layout.box()
         row = box.row()
@@ -973,11 +986,18 @@ class PROMPTS_prompts_wall_bed(sn_types.Prompts_Interface):
                 row = box.row()
                 row.label(text="Open")
                 row.prop(open, 'checkbox_value', text="")
-            
+
             self.draw_product_placment(layout)
 
         elif self.tabs == 'DOORS':
-            if pull_location:
+            if No_Pulls:
+                row = box.row()
+                row.prop(No_Pulls, "checkbox_value", text=No_Pulls.name)
+
+                if No_Pulls.get_value():
+                    show_pull_info = False
+
+            if pull_location and show_pull_info:
                 row = box.row()
                 row.label(text="Pull Distance From Top")
                 row.prop(pull_location, 'distance_value', text="")

@@ -26,6 +26,15 @@ def get_version_str():
     return "{}.{}.{}".format(v[0], v[1], v[2])
 
 
+def get_room_version():
+    scene = get_main_scene()
+
+    if scene.sn_roombuilder.room_version:
+        return scene.sn_roombuilder.room_version
+    else:
+        return ""
+
+
 def get_object_icon(obj):
     if 'IS_BP_ASSEMBLY' in obj:
         return 'FILE_3D'
@@ -178,6 +187,9 @@ def get_part_thickness(obj):
         if "IS_KB_MOLDING" in obj:
             return sn_unit.inch(0.75)
 
+        if obj.get("IS_BP_FILE_RAIL") or obj.parent.get("IS_BP_FILE_RAIL"):
+            return sn_unit.inch(0.5)
+
     if obj.snap.type_mesh == 'CUTPART':
         spec_group = bpy.context.scene.snap.spec_groups[obj.snap.spec_group_index]
         if obj.snap.cutpart_name in spec_group.cutparts:
@@ -242,15 +254,6 @@ def get_top_level_insert_bp(obj):
                     return obj
                 else:
                     return get_top_level_insert_bp(obj.parent)
-
-
-def get_room_bp(obj):
-    if not obj:
-        return None
-    if "IS_ROOM_BP" in obj:
-        return obj
-    elif obj.parent:
-        return get_room_bp(obj.parent)
 
 
 def get_cabinet_bp(obj):

@@ -36,6 +36,45 @@ class SN_WM_OT_message_box(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SN_WM_OT_pull_message_box(bpy.types.Operator):
+    bl_idname = "snap.pull_message_box"
+    bl_label = "System Info"
+
+    message: StringProperty(name="Message", description="Message to Display")
+    message2: bpy.props.StringProperty(name="Message_2", default="")
+    icon: StringProperty(name="Icon", description="Icon name", default='NONE')
+    width: bpy.props.IntProperty(name="Width", default=300)
+
+    pull_selection: bpy.props.EnumProperty(
+        name="Pull Hardware Selection",
+        items=[
+            ('SELECT', "Select Pull Hardware", "Select Pull Hardware"),
+            ('KEEP_DEFAULT', "Keep Default Pulls", "Keep Default Pulls")],
+        default='SELECT')
+
+    def check(self, context):
+        return True
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=self.width)
+
+    def draw(self, context):
+        layout = self.layout
+        box = layout.box()
+
+        for line in self.message.split('\n'):
+            box.label(text=line, icon=self.icon)
+
+        row = box.row()
+        row.prop(self, "pull_selection", expand=True)
+
+    def execute(self, context):
+        if self.pull_selection == 'SELECT':
+            bpy.context.scene.sn_closets.closet_defaults.no_pulls = True
+        return {'FINISHED'}
+
+
 class SN_WM_OT_snap_drag_drop(Operator):
     bl_idname = "wm.snap_drag_drop"
     bl_label = "Drag and Drop"
@@ -170,6 +209,7 @@ class SN_WM_OT_load_snap_defaults(Operator):
 
 classes = (
     SN_WM_OT_message_box,
+    SN_WM_OT_pull_message_box,
     SN_WM_OT_snap_drag_drop,
     SN_WM_OT_load_snap_defaults,
 )

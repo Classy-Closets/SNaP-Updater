@@ -52,29 +52,33 @@ class Query_PDF_Form_Data:
             1: "Metal"
         }
         metal_leg = {
-            0: "Brushed Steel", 
-            1: "Black Matte", 
+            0: "Brushed Steel",
+            1: "Black Matte",
             2: "Polished Chrome"
         }
         garage_legs = {}
+
         for item in self.main_sc_objs:
-            is_garage_leg ="garage leg" in item.name.lower()
+            is_garage_leg = "garage leg" in item.name.lower()
             is_mesh = item.type != "MESH"
             unseen = item not in self.spotted_garage_legs
+
             if is_garage_leg and is_mesh and unseen:
                 leg_str = ''
                 leg_assy = sn_types.Assembly(item)
                 leg_type = leg_assy.get_prompt("Material Type").get_value()
                 leg_wall = sn_utils.get_wall_bp(item)
-                leg_wall_letter = leg_wall.snap.name_object.replace(
-                    "Wall ", "")
+                leg_wall_letter = leg_wall.snap.name_object.replace("Wall ", "")
                 leg_qty = self.__get_garage_leg_qty(item)
+
                 if leg_type == 0:
                     leg_str = f"{leg_type_dict[leg_type]}"
                 if leg_type == 1:
-                    mat_type = leg_assy.get_prompt("Material Type").get_value()
+                    mat_type = leg_assy.get_prompt("Metal Color").get_value()
                     leg_str = f"{metal_leg[mat_type]}"
+
                 leg_entry = garage_legs.get(leg_wall_letter)
+
                 if leg_entry:
                     entry_type = garage_legs[leg_wall_letter].get(f"{leg_str}")
                     if entry_type:
@@ -82,10 +86,12 @@ class Query_PDF_Form_Data:
                     elif not entry_type:
                         garage_legs[leg_wall_letter] = {}
                         garage_legs[leg_wall_letter][f"{leg_str}"] = leg_qty
+
                 if not leg_entry:
                     garage_legs[leg_wall_letter] = {}
                     garage_legs[leg_wall_letter][f"{leg_str}"] = leg_qty
                 self.spotted_garage_legs.append(item)
+
         return garage_legs
 
     def __get_hampers(self, page_walls_dict):
@@ -236,28 +242,42 @@ class Query_PDF_Form_Data:
             pages_pulls[page]["door"] = door_count
             pages_pulls[page]["drawer"] = drawer_count
         return pages_pulls
-    
+
+    def get_pull_label(self, pull):
+        props = bpy.context.scene.sn_closets
+        pull_dim = props.closet_defaults.specialty_pull_center_dim
+
+        if "Customer Provided" in pull:
+            return f"CWP ({pull_dim}mm)"
+        elif "Specialty" in pull:
+            return f"Specialty ({pull_dim}mm)"
+        else:
+            return pull
+
     def __fill_pulls(self):
         for page, val in self.pulls.items():
             doors, drawers, hampers = val["door"], val["drawer"], val["hamper"]
+
             for pull, qty in doors.items():
                 if self.data_dict[page]["door_hardware_qty"] != '':
                     self.data_dict[page]["door_hardware_qty"] += ' / '
                     self.data_dict[page]["door_hardware"] += ' / '
                 self.data_dict[page]["door_hardware_qty"] += str(qty)
-                self.data_dict[page]["door_hardware"] += pull
+                self.data_dict[page]["door_hardware"] += self.get_pull_label(pull)
+
             for pull, qty in hampers.items():
                 if self.data_dict[page]["hamper_hardware_qty"] != '':
                     self.data_dict[page]["hamper_hardware_qty"] += ' / '
                     self.data_dict[page]["hamper_hardware"] += ' / '
                 self.data_dict[page]["hamper_hardware_qty"] += str(qty)
-                self.data_dict[page]["hamper_hardware"] += pull
+                self.data_dict[page]["hamper_hardware"] += self.get_pull_label(pull)
+
             for pull, qty in drawers.items():
                 if self.data_dict[page]["drawer_hardware_qty"] != '':
                     self.data_dict[page]["drawer_hardware_qty"] += ' / '
                     self.data_dict[page]["drawer_hardware"] += ' / '
                 self.data_dict[page]["drawer_hardware_qty"] += str(qty)
-                self.data_dict[page]["drawer_hardware"] += pull
+                self.data_dict[page]["drawer_hardware"] += self.get_pull_label(pull)
 
     def __fill_garage_legs(self):
         for page, pg_data in self.page_walls_dict.items():

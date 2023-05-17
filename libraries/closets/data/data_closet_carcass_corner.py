@@ -192,6 +192,7 @@ class L_Shelves(sn_types.Assembly):
         common_prompts.add_toe_kick_prompts(self)
         common_prompts.add_thickness_prompts(self)
         common_prompts.add_door_prompts(self)
+        common_prompts.add_pull_prompts(self)
         common_prompts.add_door_pull_prompts(self)
 
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -224,6 +225,7 @@ class L_Shelves(sn_types.Assembly):
         Rotation = self.get_prompt("Door Rotation").get_var('Rotation')
         Half = self.get_prompt("Half Open").get_var('Half')
         Pull_Type = self.get_prompt("Pull Type").get_var('Pull_Type')
+        No_Pulls = self.get_prompt("No Pulls").get_var('No_Pulls')
         Base_Pull_Location = self.get_prompt("Base Pull Location").get_var('Base_Pull_Location')
         Tall_Pull_Location = self.get_prompt("Tall Pull Location").get_var('Tall_Pull_Location')
         Upper_Pull_Location = self.get_prompt("Upper Pull Location").get_var('Upper_Pull_Location')
@@ -444,15 +446,31 @@ class L_Shelves(sn_types.Assembly):
         # L Doors Lazy Susan
         l_door_lazy_susan_left = common_parts.add_door(self)
         l_door_lazy_susan_left.set_name("Left Door")
+
         l_door_lazy_susan_left.loc_x(
-            'IF(Pull_Location==0,Left_Depth+IF(Open<Half,(Open*((Width-Left_Depth)*(1+(Open*2))-PT-INCH(0.25))),Open*((Width-Left_Depth)*(1+(Open*(3-(Open*2))))-PT-INCH(0.25))-PT*((Open-Half)*2))+PT,Left_Depth)',
+            "IF(Pull_Location==0,"
+            "Left_Depth+IF(Open<Half,"
+            "(Open*((Width-Left_Depth)*(1+(Open*2))-PT-INCH(0.25))),"
+            "Open*((Width-Left_Depth)*(1+(Open*(3-(Open*2))))-PT-INCH(0.25))-PT*((Open-Half)*2)),"
+            "Left_Depth)",
             [Depth, Left_Depth, PT, Width, Open, Half, Pull_Location])
+
         l_door_lazy_susan_left.loc_y(
-            'IF(Pull_Location==0,-Right_Depth-PT-(IF(Open<Half,Open*(Width-Left_Depth-(PT*2)-INCH(0.25))*2*(2-(2*Open)),Open*(Width-Left_Depth-(PT*2)-INCH(0.25))*2*(1-((Open-Half)*2))-PT*((Open-Half)*2))),Depth+(PT/2))',
+            "IF(Pull_Location==0,"
+            "-Right_Depth-PT-"
+            "(IF(Open<Half,"
+            "Open*(Width-Left_Depth-(PT*2)-INCH(0.25))*2*(2-(2*Open)),"
+            "Open*(Width-Left_Depth-(PT*2)-INCH(0.25))*2*(1-((Open-Half)*2))-PT*((Open-Half)*2))),Depth+(PT/2))",
             [Depth, PT, Open, Half, Width, Left_Depth, PT, Right_Depth, Pull_Location])
-        l_door_lazy_susan_left.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2)', [Height, Panel_Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness])
+
+        l_door_lazy_susan_left.loc_z(
+            "IF(Pull_Location==0,"
+            "Height-(Shelf_Thickness/2)+IF(Is_Hanging,0,Toe_Kick_Height),"
+            "IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2))",
+            [Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness, Pull_Location, Panel_Height])
+
         l_door_lazy_susan_left.rot_x(value=0)
-        l_door_lazy_susan_left.rot_y(value=math.radians(-90))
+        l_door_lazy_susan_left.rot_y("IF(Pull_Location==0,radians(90),radians(-90))", [Pull_Location])
         l_door_lazy_susan_left.rot_z('IF(Pull_Location==0,(IF(Open>Half,((Open-Half)*2)*radians(45),0)),radians(180)-(Open*radians(180)))', [Open, Half, Pull_Location])
         l_door_lazy_susan_left.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
         l_door_lazy_susan_left.dim_y('Depth+Right_Depth+(PT)+INCH(0.25)', [Depth, Right_Depth, PT])
@@ -461,15 +479,31 @@ class L_Shelves(sn_types.Assembly):
 
         l_door_lazy_susan_right = common_parts.add_door(self)
         l_door_lazy_susan_right.set_name("Right Door")
+
         l_door_lazy_susan_right.loc_x(
-            'IF(Pull_Location==0,Width-(PT/2),Left_Depth+PT-(IF(Open<Half,Open*(Depth+Right_Depth+(PT*2))*2*(2-(2*Open)),Open*(Depth+Right_Depth+(PT*2))*2*(1-((Open-Half)*2))+PT*((Open-Half)*2))))',
+            "IF(Pull_Location==0,"
+            "Width-(PT/2),"
+            "Left_Depth+PT-"
+            "(IF(Open<Half,Open*(Depth+Right_Depth+(PT*2))*2*(2-(2*Open)),"
+            "Open*(Depth+Right_Depth+(PT*2))*2*(1-((Open-Half)*2))+PT*((Open-Half)*2))))",
             [Depth, PT, Open, Half, Width, Left_Depth, PT, Right_Depth, Pull_Location])
+
         l_door_lazy_susan_right.loc_y(
-            'IF(Pull_Location==0,-Right_Depth,-Right_Depth-PT+IF(Open<Half,(Open*(Depth+Right_Depth+PT-INCH(0.25))*(1+(Open*2))),Open*((Depth+Right_Depth+PT-INCH(0.25))*(1+(Open*(3-(Open*2)))))))',
+            "IF(Pull_Location==0,"
+            "-Right_Depth,"
+            "-Right_Depth+IF(Open<Half,"
+            "(Open*(Depth+Right_Depth+PT-INCH(0.25))*(1+(Open*2))),"
+            "Open*((Depth+Right_Depth+PT-INCH(0.25))*(1+(Open*(3-(Open*2)))))))",
             [Depth, Left_Depth, PT, Width, Open, Half, Pull_Location, Right_Depth])
-        l_door_lazy_susan_right.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2)', [Height, Panel_Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness])
+
+        l_door_lazy_susan_right.loc_z(
+            "IF(Pull_Location==1,"
+            "Height-(Shelf_Thickness/2)+IF(Is_Hanging,0,Toe_Kick_Height),"
+            "IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2))",
+            [Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness, Pull_Location, Panel_Height])
+
         l_door_lazy_susan_right.rot_x(value=0)
-        l_door_lazy_susan_right.rot_y(value=math.radians(-90))
+        l_door_lazy_susan_right.rot_y("IF(Pull_Location==0,radians(-90),radians(90))", [Pull_Location])
         l_door_lazy_susan_right.rot_z('IF(Pull_Location==0,radians(90)+(Open*radians(180)),radians(-90)-IF(Open>Half,((Open-Half)*2)*radians(45),0))', [Open, Pull_Location, Half])
         l_door_lazy_susan_right.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
         l_door_lazy_susan_right.dim_y('Width-Left_Depth-(PT)-INCH(0.25)', [Width, Left_Depth, PT])
@@ -490,7 +524,12 @@ class L_Shelves(sn_types.Assembly):
         l_door_reachback_left_pull.rot_y(value=math.radians(-90))
         l_door_reachback_left_pull.rot_z("radians(180)-IF(DT==0,IF(Pull_Location==0,IF(Open<=Half,radians((Open*2)*Rotation),radians(Rotation)),IF(Open>Half,radians((Open-Half)*2*Rotation),0)),0)",
                                          [Pull_Location, Open, Rotation, DT, Half])
-        l_door_reachback_left_pull.get_prompt('Hide').set_formula('IF(Pull_Location==1,True,IF(Door,IF(DT==0,False,True),True))', [Door, Pull_Location, DT])
+        l_door_reachback_left_pull.get_prompt('Hide').set_formula(
+            "IF(No_Pulls,True,"
+            "IF(Pull_Location==1,"
+            "True,"
+            "IF(Door,IF(DT==0,False,True),True)))",
+            [Door, Pull_Location, DT, No_Pulls])
 
         # Right L Reachback Pull
         l_door_reachback_right_pull = common_parts.add_drawer_pull(self)
@@ -506,7 +545,12 @@ class L_Shelves(sn_types.Assembly):
         l_door_reachback_right_pull.rot_y(value=math.radians(-90))
         l_door_reachback_right_pull.rot_z("radians(90)+IF(DT==0,IF(Pull_Location==1,IF(Open<=Half,radians((Open*2)*Rotation),radians(Rotation)),IF(Open>Half,radians((Open-Half)*2*Rotation),0)),0)",
                                           [Pull_Location, Open, Rotation, DT, Half])
-        l_door_reachback_right_pull.get_prompt('Hide').set_formula('IF(Pull_Location==0,True,IF(Door,IF(DT==0,False,True),True))', [Door, Pull_Location, DT])
+        l_door_reachback_right_pull.get_prompt('Hide').set_formula(
+            "IF(No_Pulls,True,"
+            "IF(Pull_Location==0,"
+            "True,"
+            "IF(Door,IF(DT==0,False,True),True)))",
+            [Door, Pull_Location, DT, No_Pulls])
 
         # L Lazy Susan Left Pull
         l_door_lazy_susan_left_pull = common_parts.add_drawer_pull(self)
@@ -525,7 +569,12 @@ class L_Shelves(sn_types.Assembly):
         l_door_lazy_susan_left_pull.rot_x(value=0)
         l_door_lazy_susan_left_pull.rot_y(value=math.radians(-90))
         l_door_lazy_susan_left_pull.rot_z('radians(180)+IF(Open>Half,((Open-Half)*2)*radians(45),0)', [Open, Half, Pull_Location])
-        l_door_lazy_susan_left_pull.get_prompt('Hide').set_formula('IF(Pull_Location==1,True,IF(Door,IF(DT==1,False,True),True))', [Door, Pull_Location, DT])
+        l_door_lazy_susan_left_pull.get_prompt('Hide').set_formula(
+            "IF(No_Pulls,True,"
+            "IF(Pull_Location==1,"
+            "True,"
+            "IF(Door,IF(DT==1,False,True),True)))",
+            [Door, Pull_Location, DT, No_Pulls])
 
         # L Lazy Suasan Right Pull
         l_door_lazy_susan_right_pull = common_parts.add_drawer_pull(self)
@@ -544,7 +593,12 @@ class L_Shelves(sn_types.Assembly):
         l_door_lazy_susan_right_pull.rot_x(value=0)
         l_door_lazy_susan_right_pull.rot_y(value=math.radians(-90))
         l_door_lazy_susan_right_pull.rot_z('radians(90)-IF(Open>Half,((Open-Half)*2)*radians(45),0)', [Open, Pull_Location, Half])
-        l_door_lazy_susan_right_pull.get_prompt('Hide').set_formula('IF(Pull_Location==0,True,IF(Door,IF(DT==1,False,True),True))', [Door, Pull_Location, DT])
+        l_door_lazy_susan_right_pull.get_prompt('Hide').set_formula(
+            "IF(No_Pulls,True,"
+            "IF(Pull_Location==0,"
+            "True,"
+            "IF(Door,IF(DT==1,False,True),True)))",
+            [Door, Pull_Location, DT, No_Pulls])
 
         self.add_shelves()
 
@@ -846,7 +900,6 @@ class Corner_Shelves(sn_types.Assembly):
         self.add_prompt('Individual Shelf Setbacks', 'CHECKBOX', False)
         self.add_prompt("Adj Shelf Setback", 'DISTANCE', sn_unit.inch(0.25))
 
-
         self.add_prompt("Open Door", 'PERCENTAGE', 0)
         self.add_prompt("Door Rotation", 'QUANTITY', 120)
         self.add_prompt("Half Open", 'PERCENTAGE', 0.5)
@@ -870,12 +923,10 @@ class Corner_Shelves(sn_types.Assembly):
 
         self.add_prompt("Add Capping Base", 'CHECKBOX', False)
 
-        # for i in range(1, 11):
-        #     self.add_prompt("Shelf " + str(i) + " Height", 'DISTANCE', sn_unit.millimeter(653.034))
-
         common_prompts.add_toe_kick_prompts(self)
         common_prompts.add_thickness_prompts(self)
         common_prompts.add_door_prompts(self)
+        common_prompts.add_pull_prompts(self)
         common_prompts.add_door_pull_prompts(self)
 
     def add_shelves(self, amt=3):
@@ -985,6 +1036,7 @@ class Corner_Shelves(sn_types.Assembly):
         Open = self.get_prompt("Open Door").get_var('Open')
         Rotation = self.get_prompt("Door Rotation").get_var('Rotation')
         Pull_Type = self.get_prompt("Pull Type").get_var('Pull_Type')
+        No_Pulls = self.get_prompt("No Pulls").get_var('No_Pulls')
         Base_Pull_Location = self.get_prompt("Base Pull Location").get_var('Base_Pull_Location')
         Tall_Pull_Location = self.get_prompt("Tall Pull Location").get_var('Tall_Pull_Location')
         Upper_Pull_Location = self.get_prompt("Upper Pull Location").get_var('Upper_Pull_Location')
@@ -1289,8 +1341,15 @@ class Corner_Shelves(sn_types.Assembly):
         angled_door_l_pull.rot_y(value=math.radians(-90))
         angled_door_l_pull.rot_z('(atan((Width-Left_Depth)/(Depth+Right_Depth)))+3.14159-radians(Open*Rotation)', [Width, Depth, Right_Depth, Left_Depth, Open, Rotation])
         angled_door_l_pull.get_prompt('Hide').set_formula(
-            'IF((Door and Force_Double_Doors and Use_Left_Swing),False,IF((Door and Force_Double_Doors),False,IF((Door and Use_Left_Swing),False,IF(Door,True,True))))',
-            [Door, Use_Left_Swing, Force_Double_Doors])
+            "IF(No_Pulls,True,"
+            "IF((Door and Force_Double_Doors and Use_Left_Swing),"
+            "False,"
+            "IF((Door and Force_Double_Doors),"
+            "False,"
+            "IF((Door and Use_Left_Swing),"
+            "False,"
+            "IF(Door,True,True)))))",
+            [Door, Use_Left_Swing, Force_Double_Doors, No_Pulls])
 
         # Right Angled Pull
         angled_door_r_pull = common_parts.add_drawer_pull(self)
@@ -1307,8 +1366,15 @@ class Corner_Shelves(sn_types.Assembly):
         angled_door_r_pull.rot_y(value=math.radians(-90))
         angled_door_r_pull.rot_z('(atan((Width-Left_Depth)/(Depth+Right_Depth)))+3.14159+radians(Open*Rotation)', [Width, Depth, Right_Depth, Left_Depth, Open, Rotation])
         angled_door_r_pull.get_prompt('Hide').set_formula(
-            'IF((Door and Force_Double_Doors and Use_Left_Swing),False,IF((Door and Force_Double_Doors),False,IF((Door and Use_Left_Swing),True,IF(Door,False,True))))',
-            [Door, Use_Left_Swing, Force_Double_Doors])
+            "IF(No_Pulls,True,"
+            "IF((Door and Force_Double_Doors and Use_Left_Swing),"
+            "False,"
+            "IF((Door and Force_Double_Doors),"
+            "False,"
+            "IF((Door and Use_Left_Swing),"
+            "True,"
+            "IF(Door,False,True)))))",
+            [Door, Use_Left_Swing, Force_Double_Doors, No_Pulls])
 
         self.add_shelves()
 
@@ -1869,37 +1935,52 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         box = layout.box()
         box.label(text="Door Options:")
         Door = self.product.get_prompt("Door")
-        Use_Left_Swing = self.product.get_prompt("Use Left Swing")
-        Force_Double_Doors = self.product.get_prompt("Force Double Doors")
         Open_Door = self.product.get_prompt("Open Door")
         Door_Type = self.product.get_prompt("Door Type")
         Base_Pull_Location = self.product.get_prompt("Base Pull Location")
         Tall_Pull_Location = self.product.get_prompt("Tall Pull Location")
         Upper_Pull_Location = self.product.get_prompt("Upper Pull Location")
+        No_Pulls = self.product.get_prompt("No Pulls")
+        show_pull_info = True  # 2.6.1 hides pull info if "No Pulls" is used, previous versions are missing this ppt
 
         row = box.row()
         row.prop(Door, "checkbox_value", text=Door.name)
 
         if Door.get_value():
-            # L-shelf door options
+            if No_Pulls:
+                row = box.row()
+                row.prop(No_Pulls, "checkbox_value", text=No_Pulls.name)
+
+                if No_Pulls.get_value():
+                    show_pull_info = False
+
+            # Door options
+            if Open_Door:
+                row = box.row()
+                row.label(text=Open_Door.name)
+                row.prop(Open_Door, "factor_value", text="")
+
             if Door_Type:
                 row = box.row()
                 row.prop(self, 'Door_Type', text="Door Type")
+
+
+            # Pull options
+            if show_pull_info:
                 row = box.row()
                 row.prop(self, 'Pull_Location', text="Pull Location")
-            row = box.row()
-            row.prop(self, 'Pull_Type', text="Pull Type", expand=True)
-            row = box.row()
-            row.label(text="Pull Location: ")
-            if self.Pull_Type == '0':
-                row.prop(Base_Pull_Location, "distance_value", text="")
-            elif self.Pull_Type == '1':
-                row.prop(Tall_Pull_Location, "distance_value", text="")
-            else:
-                row.prop(Upper_Pull_Location, "distance_value", text="")
-            if Open_Door:
-                row.label(text=Open_Door.name)
-                row.prop(Open_Door, "factor_value", text="")
+                row = box.row()
+                row.prop(self, 'Pull_Type', text="Pull Type", expand=True)
+                row = box.row()
+                row.label(text="Pull Location: ")
+
+                if self.Pull_Type == '0':
+                    row.prop(Base_Pull_Location, "distance_value", text="")
+                elif self.Pull_Type == '1':
+                    row.prop(Tall_Pull_Location, "distance_value", text="")
+                else:
+                    row.prop(Upper_Pull_Location, "distance_value", text="")
+
 
     def draw(self, context):
         """ This is where you draw the interface """
@@ -2356,21 +2437,33 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
         Base_Pull_Location = self.product.get_prompt("Base Pull Location")
         Tall_Pull_Location = self.product.get_prompt("Tall Pull Location")
         Upper_Pull_Location = self.product.get_prompt("Upper Pull Location")
+        No_Pulls = self.product.get_prompt("No Pulls")
+        show_pull_info = True  # 2.6.1 hides pull info if "No Pulls" is used, previous versions are missing this ppt
 
         row = box.row()
         row.prop(Door, "checkbox_value", text=Door.name)
 
         if Door.get_value():
-            row = box.row()
-            row.prop(self, 'Pull_Type', text="Pull Type", expand=True)
-            row = box.row()
-            row.label(text="Pull Location: ")
-            if self.Pull_Type == '0':
-                row.prop(Base_Pull_Location, "distance_value", text="")
-            elif self.Pull_Type == '1':
-                row.prop(Tall_Pull_Location, "distance_value", text="")
-            else:
-                row.prop(Upper_Pull_Location, "distance_value", text="")
+            if No_Pulls:
+                row = box.row()
+                row.prop(No_Pulls, "checkbox_value", text=No_Pulls.name)
+
+                if No_Pulls.get_value():
+                    show_pull_info = False
+
+            if show_pull_info:
+                row = box.row()
+                row.prop(self, 'Pull_Type', text="Pull Type", expand=True)
+                row = box.row()
+                row.label(text="Pull Location: ")
+
+                if self.Pull_Type == '0':
+                    row.prop(Base_Pull_Location, "distance_value", text="")
+                elif self.Pull_Type == '1':
+                    row.prop(Tall_Pull_Location, "distance_value", text="")
+                else:
+                    row.prop(Upper_Pull_Location, "distance_value", text="")
+
             if Open_Door:
                 row.label(text=Open_Door.name)
                 row.prop(Open_Door, "factor_value", text="")

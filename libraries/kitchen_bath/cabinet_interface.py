@@ -136,7 +136,7 @@ def draw_island_options(self, island_row, carcass, layout):
         if self.show_double_sided:
             end_nbr = int(len(self.island_openings)/2) - 1
         else:
-            end_nbr = int(len(self.island_openings))
+            end_nbr = int(len(self.island_openings)) - 1
         step_nbr = 1
     elif island_row == ISLAND_BACK_ROW:
         end_nbr = int(len(self.island_openings)/2) - 2

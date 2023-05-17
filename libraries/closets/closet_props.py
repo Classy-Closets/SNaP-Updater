@@ -1,7 +1,8 @@
 import bpy
 import os
 from bpy.types import PropertyGroup
-from bpy.props import (StringProperty,
+from bpy.props import (IntProperty,
+                       StringProperty,
                        BoolProperty,
                        FloatProperty,
                        PointerProperty,
@@ -112,6 +113,8 @@ preview_collections["chrome_pull_styles"] = sn_utils.create_image_preview_collec
 preview_collections["satin_bronze_pull_styles"] = sn_utils.create_image_preview_collection()
 preview_collections["satin_nickel_pull_styles"] = sn_utils.create_image_preview_collection()
 preview_collections["stainless_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["other_pull_styles"] = sn_utils.create_image_preview_collection()
+preview_collections["customer_provided_pull_styles"] = sn_utils.create_image_preview_collection()
 preview_collections["pull_categories"] = sn_utils.create_image_preview_collection()
 preview_collections["rods"] = sn_utils.create_image_preview_collection()
 preview_collections["pulls"] = sn_utils.create_image_preview_collection()
@@ -310,6 +313,22 @@ def enum_stainless_pull_styles(self, context):
         return []
     icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
     pcoll = preview_collections["stainless_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def enum_other_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["other_pull_styles"]
+    return sn_utils.get_image_enum_previews(icon_dir, pcoll)
+
+
+def customer_provided_pull_styles(self, context):
+    if context is None:
+        return []
+    icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
+    pcoll = preview_collections["customer_provided_pull_styles"]
     return sn_utils.get_image_enum_previews(icon_dir, pcoll)
 
 
@@ -684,6 +703,12 @@ def update_all_thick_adj_shelves(self, context):
         prompt_type='CHECKBOX',
         bool_value=self.thick_adjustable_shelves)
 
+def update_no_pulls(self, context):
+    bpy.ops.sn_prompt.update_all_prompts_in_scene(
+        prompt_name='No Pulls',
+        prompt_type='CHECKBOX',
+        bool_value=self.no_pulls)
+
 # ---------PROPERTY GROUPS
 class Closet_Defaults(PropertyGroup):
 
@@ -758,9 +783,15 @@ class Closet_Defaults(PropertyGroup):
     double_door_auto_switch: FloatProperty(name="Double Door Auto Switch",description="The opening width that door inserts should automatically switch to double doors",default=sn_unit.inch(24),unit='LENGTH', precision=4)
     
     inset_front: BoolProperty(name="Double Door Auto Switch",description="Set Inset Front to be used by default",default=False)    
-    
-    no_pulls: BoolProperty(name="No Pulls",description="Dont add pulls by default",default=False)  
-    
+
+    no_pulls: BoolProperty(name="No Pulls", description="Dont add pulls by default", default=True, update=update_no_pulls)
+
+    specialty_pull_center_dim: IntProperty(
+        name="Pull Center-to-Center Dimension",
+        description="Pull Center-to-Center Dimension",
+        subtype='DISTANCE',
+        default=0)
+
     use_buyout_drawers: BoolProperty(name="Use Buyout Drawers",description="This will use buyout drawers. This will draw the drawer inserts faster",default=False)  
     
     hide_hangers: BoolProperty(name="Hide Hangers",
@@ -852,18 +883,28 @@ class Closet_Defaults(PropertyGroup):
         props.prompt_name = 'Inset Front'
         props.prompt_type = 'CHECKBOX'
         props.bool_value = self.inset_front
-        
-    def draw_pull_defaults(self,layout):
+
+    def draw_pull_defaults(self, layout, pull_category):
+        other_categories = ("Other - Special Hardware", "Other - Customer Provided")
+
         box = layout.box()
-        
         row = box.row()
         row.label(text="No Pulls:")
-        row.prop(self,'no_pulls',text="")
-        props = row.operator('sn_prompt.update_all_prompts_in_scene',text="",icon='FILE_REFRESH')
-        props.prompt_name = 'No Pulls'
-        props.prompt_type = 'CHECKBOX'
-        props.bool_value = self.no_pulls
-        
+        row.prop(self, 'no_pulls', text="")
+
+        if pull_category in other_categories:
+            display_value = self.specialty_pull_center_dim
+            scene_units = bpy.context.scene.unit_settings
+
+            if scene_units.system == 'IMPERIAL':
+                display_value /= 25.4
+
+            row = box.row()
+            row.label(text="Pull Center-to-Center Dimension:")
+            row = box.row()
+            row.prop(self, 'specialty_pull_center_dim', text="", slider=True)
+            row.label(text="mm")
+
     def draw_size_defaults(self,layout):
         box = layout.box()
 
@@ -1015,16 +1056,18 @@ class Closet_Options(PropertyGroup):
     satin_bronze_pull_style: EnumProperty(name="Satin Bronze Pull Style",items=enum_satin_bronze_pull_styles)
     satin_nickel_pull_style: EnumProperty(name="Satin Nickel Pull Style",items=enum_satin_nickel_pull_styles)
     stainless_pull_style: EnumProperty(name="Stainless Pull Style",items=enum_stainless_pull_styles)
-    
-    hinge_name: EnumProperty(name="Hinge Name",items=enum_hinges,update=update_hinge)    
-    
-    drawer_name: EnumProperty(name="Drawer Name",items=enum_drawer,update=update_drawer)  
-    
+    other_pull_style: EnumProperty(name="Stainless Pull Style", items=enum_other_pull_styles)
+    customer_provided_pull_style: EnumProperty(name="Stainless Pull Style", items=customer_provided_pull_styles)
+
+    hinge_name: EnumProperty(name="Hinge Name", items=enum_hinges, update=update_hinge)
+
+    drawer_name: EnumProperty(name="Drawer Name", items=enum_drawer, update=update_drawer)
+
     box_type: EnumProperty(name="Drawer Box Type",
                                  items=[('MEL',"Melamine Drawer Box",'Show the slide options'),
                                         ('DOVE',"Dovetail Drawer Box",'Show the slide options')],
                                  default = 'MEL')    
-    
+
     dt_slide_name: EnumProperty(name="Dove Tail Slide Name",items=enum_dt_slides)    
     mel_slide_name: EnumProperty(name="Melamine Slide Name",items=enum_mel_slides)
 
@@ -1066,6 +1109,10 @@ class Closet_Options(PropertyGroup):
             return self.satin_nickel_pull_style
         if self.pull_category == "Stainless Steel Look":
             return self.stainless_pull_style
+        if self.pull_category == "Other - Special Hardware":
+            return self.other_pull_style
+        if self.pull_category == "Other - Customer Provided":
+            return self.customer_provided_pull_style
 
     def draw_molding_options(self,layout):
         molding_box = layout.box()
@@ -1168,9 +1215,15 @@ class Closet_Options(PropertyGroup):
             if self.pull_category == "Stainless Steel Look":
                 col.label(text=self.stainless_pull_style)
                 col.template_icon_view(self, "stainless_pull_style", show_labels=True)
+            if self.pull_category == "Other - Special Hardware":
+                col.label(text=self.other_pull_style)
+                col.template_icon_view(self, "other_pull_style", show_labels=True)
+            if self.pull_category == "Other - Customer Provided":
+                col.label(text=self.customer_provided_pull_style)
+                col.template_icon_view(self, "customer_provided_pull_style", show_labels=True)
 
             props = bpy.context.scene.sn_closets
-            props.closet_defaults.draw_pull_defaults(hardware_box)
+            props.closet_defaults.draw_pull_defaults(hardware_box, self.pull_category)
                 
         if self.hardware_tabs == 'HINGES':
             col = hardware_box.column(align=True)

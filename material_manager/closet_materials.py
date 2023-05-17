@@ -403,7 +403,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         name = sn_db.query_db(
             "SELECT\
-                Name\
+                Description\
             FROM\
                 {CCItems}\
             WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
@@ -443,8 +443,15 @@ class SnapMaterialSceneProps(PropertyGroup):
             obj_props.is_drawer_back_bp,
             obj_props.is_drawer_side_bp,
             obj_props.is_drawer_bottom_bp,
-            obj_props.is_drawer_sub_front_bp
+            obj_props.is_drawer_sub_front_bp,
         ]
+
+        # 1/2 Melamine drawer box parts
+        if any(drawer_box_parts):
+            box_type_ppt = assembly.get_prompt("Box Type")
+            if box_type_ppt:
+                if box_type_ppt.get_value() == 0:
+                    return "EB-0000316"  # 1/2 White EB
 
         # There is no edgebanding for garage colors, so we have to hardcode in alternate edgebanding.
         if self.materials.get_mat_type().type_code == 1:
@@ -488,9 +495,22 @@ class SnapMaterialSceneProps(PropertyGroup):
         # 1/2 Melamine drawer box parts
         if any(drawer_box_parts):
             box_type_ppt = assembly.get_prompt("Box Type")
+            parent_assembly = None
+            parent_box_type_ppt = None
+            if assembly.obj_bp.parent:
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+            if parent_assembly:
+                parent_box_type_ppt = parent_assembly.get_prompt("Box Type")
+
             if box_type_ppt:
                 if box_type_ppt.get_value() == 0:
                     return "EB-0000316"  # 1/2 White EB
+            elif parent_box_type_ppt:
+                if parent_box_type_ppt.get_value() == 0:
+                    return "EB-0000316"  # 1/2 White EB
+
+        if assembly.obj_bp.get("IS_BP_FILE_RAIL"):
+            return "EB-0000316"  # 1/2 White EB
 
         sku = sn_db.query_db(
             "SELECT\
@@ -568,7 +588,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         if sku == "EB-0000316":
             return "Winter White (Oxford White)"
 
-        search_col = "DisplayName" if display_name else "Name"
+        search_col = "DisplayName" if display_name else "Description"
 
         edge_name = sn_db.query_db(
             "SELECT\
@@ -740,7 +760,8 @@ class SnapMaterialSceneProps(PropertyGroup):
                 obj_props.is_drawer_back_bp,
                 obj_props.is_drawer_side_bp,
                 obj_props.is_drawer_bottom_bp,
-                obj_props.is_drawer_sub_front_bp
+                obj_props.is_drawer_sub_front_bp,
+                obj_props.is_file_rail_bp
             ]
 
             backing_parts = [
@@ -802,10 +823,21 @@ class SnapMaterialSceneProps(PropertyGroup):
 
             if any(drawer_box_parts):
                 box_type_ppt = assembly.get_prompt("Box Type")
+                parent_assembly = None
+                parent_box_type_ppt = None
+                if assembly.obj_bp.parent:
+                    parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                if parent_assembly:
+                    parent_box_type_ppt = parent_assembly.get_prompt("Box Type")
+                
+                use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction")
+
                 box_type = 0
                 if box_type_ppt:
                     box_type = box_type_ppt.get_value()
-                use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction")
+                elif parent_box_type_ppt:
+                    box_type = parent_box_type_ppt.get_value()
+
                 if use_dovetail_construction:
                     if use_dovetail_construction.get_value() or box_type == 2:
                         if obj_props.is_drawer_bottom_bp:
@@ -860,10 +892,44 @@ class SnapMaterialSceneProps(PropertyGroup):
                             sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
                         else:
                             sku = 'PM-0000004'  # WHITE  PAPER 1/2 G2
-
                 else:
                     if obj_props.is_drawer_bottom_bp:
                         sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
+                    elif obj_props.is_file_rail_bp:
+                        parent_assembly = None
+                        parent_box_type_ppt = None
+                        parent_box_type = -1
+                        if assembly.obj_bp.parent:
+                            parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                        if parent_assembly:
+                            parent_box_type_ppt = parent_assembly.get_prompt("Box Type")
+                            if parent_box_type_ppt:
+                                parent_box_type = parent_box_type_ppt.get_value()
+                            if parent_box_type == 2:
+                                material_name = 'BBBB PREFINISH RIP 9.73'
+                                sku = sn_db.query_db(
+                                    "SELECT\
+                                        SKU\
+                                    FROM\
+                                        {CCItems}\
+                                    WHERE\
+                                        ProductType IN ('BB') AND\
+                                        Name LIKE '%{material_name}%' \
+                                    ;\
+                                    ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, material_name=material_name)
+                                )
+                                if len(sku) == 0:
+                                    return "Unknown"
+                                elif len(sku) == 1:
+                                    return sku[0][0]
+                                else:
+                                    print("Multiple SKUs found for: ", material_name)
+                                    print(sku)
+                                    return "Unknown"
+                            else:
+                                sku = 'PM-0000004'  # WHITE  PAPER 1/2 G2
+                        else:
+                            sku = 'PM-0000004'  # WHITE  PAPER 1/2 G2
                     else:
                         sku = 'PM-0000004'  # WHITE  PAPER 1/2 G2
                 return sku
@@ -1041,23 +1107,23 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         if part_thickness == 0.25:
             if any(backing_parts) or obj_props.is_toe_kick_skin_bp:
-                shared_sku_colors = [
-                    'Winter White (Oxford White)',
-                    'Cafe Au Lait (Cabinet Almond)',
-                    'Duraply White',
-                    'Duraply Almond',
-                    'Winter White',
-                    'Snow Drift',
-                    'Mountaint Peak'
-                ]
+                # shared_sku_colors = [
+                #     'Winter White (Oxford White)',
+                #     'Cafe Au Lait (Cabinet Almond)',
+                #     'Duraply White',
+                #     'Duraply Almond',
+                #     'Winter White',
+                #     'Snow Drift',
+                #     'Mountaint Peak'
+                # ]
 
                 if assembly.obj_bp.get("IS_CEDAR_BACK"):
                     sku = 'VN-0000006'
                     return sku
 
-                if color_name in shared_sku_colors and not assembly.obj_bp.sn_closets.use_unique_material:
-                    sku = 'PM-0000041'
-                    return sku
+                # if color_name in shared_sku_colors and not assembly.obj_bp.sn_closets.use_unique_material:
+                #     sku = 'PM-0000041'
+                #     return sku
 
             sku = sn_db.query_db(
                 "SELECT\
@@ -1216,7 +1282,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND DisplayName LIKE '{display_name}' AND Thickness = '{part_thickness}';\
-                ".format(type_code=type_code, display_name="Winter White (Oxford White)", part_thickness=part_thickness, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=type_code, display_name="Winter White", part_thickness=part_thickness, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
             )
 
             if len(sku) == 0:
@@ -1239,7 +1305,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         else:
             mat_sku = self.get_mat_sku(None, None, None)
 
-        search_col = "DisplayName" if display_name else "Name"
+        search_col = "DisplayName" if display_name else "Description"
 
         mat_name = sn_db.query_db(
             "SELECT\
@@ -1607,12 +1673,11 @@ class SnapMaterialSceneProps(PropertyGroup):
             split = row.split(factor=0.40)
             split.label(text="KD Fitting Color:")
             split.prop(self, "kd_fitting_color", text="")
-            row = c_box.row()
-            row.scale_y = 1.5
 
-        c_box.operator(
-            "closet_materials.poll_assign_materials",
-            text="Update Materials", icon='FILE_REFRESH')
+        else:
+            c_box.operator(
+                "closet_materials.poll_assign_materials",
+                text="Update Materials", icon='FILE_REFRESH')
 
     @classmethod
     def register(cls):

@@ -1386,6 +1386,7 @@ class Dimension():
             driver.driver.expression = expression
 
     def set_label(self, text, new_line=False):
+        text = str(text)
         if new_line:
             self.opengl_dim.gl_label = " | " + text
         else:

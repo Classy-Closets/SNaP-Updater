@@ -472,7 +472,7 @@ def add_drawer(assembly):
         drawer.draw()
         drawer.obj_bp.parent = assembly.obj_bp
         drawer.obj_bp.snap.comment_2 = "1014"
-    add_drawer_file_rails(drawer)
+    add_drawer_file_rails(drawer, '0.5')
     return drawer
 
 def add_melamine_drawer(assembly):
@@ -480,7 +480,7 @@ def add_melamine_drawer(assembly):
     drawer.draw()
     drawer.obj_bp.parent = assembly.obj_bp
     drawer.obj_bp.snap.comment_2 = "1014"
-    add_drawer_file_rails(drawer)
+    add_drawer_file_rails(drawer, '0.75')
     return drawer
 
 def add_dovetail_drawer(assembly):
@@ -488,7 +488,7 @@ def add_dovetail_drawer(assembly):
     drawer.draw()
     drawer.obj_bp.parent = assembly.obj_bp
     drawer.obj_bp.snap.comment_2 = "1014"
-    add_drawer_file_rails(drawer)
+    add_drawer_file_rails(drawer, '0.5')
     return drawer
 
 
@@ -1003,7 +1003,7 @@ def add_radius_shelf(assembly):
     shelf.edgebanding('Edge',l1 = True)
     return shelf
 
-def add_drawer_file_rails(assembly):
+def add_drawer_file_rails(assembly, drawer_box_thickness='0.5'):
     assembly.add_prompt("Use File Rail", 'CHECKBOX', False)
     assembly.add_prompt("File Rail Type", 'COMBOBOX', 1, ['Letter', 'Legal'])
     assembly.add_prompt("File Rail Direction", 'COMBOBOX', 0, ['Front to Back', 'Lateral'])
@@ -1032,10 +1032,10 @@ def add_drawer_file_rails(assembly):
     left_rail.cutpart("Left File Rail")
     left_rail.edgebanding("Edge_2",l1 = True)
     left_rail.dim_x('File_Rail_Thickness',[File_Rail_Thickness])
-    left_rail.dim_y('Depth-(File_Rail_Thickness*2)-File_Rail_Difference', [Depth, File_Rail_Thickness,File_Rail_Difference])
+    left_rail.dim_y('Depth-(INCH(' + drawer_box_thickness + ')*2)-File_Rail_Difference', [Depth, File_Rail_Thickness,File_Rail_Difference])
     left_rail.dim_z('File_Rail_Height',[File_Rail_Height])
-    left_rail.loc_x('File_Rail_Thickness',[File_Rail_Thickness])
-    left_rail.loc_y('File_Rail_Thickness + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
+    left_rail.loc_x('INCH(' + drawer_box_thickness + ')',[File_Rail_Thickness])
+    left_rail.loc_y('INCH(' + drawer_box_thickness + ') + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
     left_rail.get_prompt('Hide').set_formula('IF(Use_File_Rail,IF(File_Rail_Direction==0,Hide,True),True)',[Hide, Use_File_Rail,File_Rail_Type,File_Rail_Direction])
     
     right_rail = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
@@ -1047,10 +1047,10 @@ def add_drawer_file_rails(assembly):
     right_rail.cutpart("Right File Rail")
     right_rail.edgebanding("Edge_2",l1 = True)
     right_rail.dim_x('File_Rail_Thickness',[File_Rail_Thickness])
-    right_rail.dim_y('Depth-(File_Rail_Thickness*2)-File_Rail_Difference', [Depth, File_Rail_Thickness,File_Rail_Difference])
+    right_rail.dim_y('Depth-(INCH(' + drawer_box_thickness + ')*2)-File_Rail_Difference', [Depth, File_Rail_Thickness,File_Rail_Difference])
     right_rail.dim_z('File_Rail_Height',[File_Rail_Height])
-    right_rail.loc_x('IF(File_Rail_Type==0, File_Rail_Thickness*2+'+str(sn_unit.inch(12))+',File_Rail_Thickness*2+'+str(sn_unit.inch(15))+')',[File_Rail_Thickness, File_Rail_Type])
-    right_rail.loc_y('File_Rail_Thickness + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
+    right_rail.loc_x('IF(File_Rail_Type==0, INCH(' + drawer_box_thickness + ')*2+'+str(sn_unit.inch(12))+',INCH(' + drawer_box_thickness + ')*2+'+str(sn_unit.inch(15))+')',[File_Rail_Thickness, File_Rail_Type])
+    right_rail.loc_y('INCH(' + drawer_box_thickness + ') + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
     right_rail.get_prompt('Hide').set_formula('IF(Use_File_Rail,IF(File_Rail_Direction==0,Hide,True),True)',[Hide, Use_File_Rail,File_Rail_Type,File_Rail_Direction])
 
     front_rail = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
@@ -1061,11 +1061,11 @@ def add_drawer_file_rails(assembly):
     front_rail.set_name("File Rail")
     front_rail.cutpart("Front File Rail")
     front_rail.edgebanding("Edge_2",l1 = True)
-    front_rail.dim_x('Width-(File_Rail_Thickness*2)-File_Rail_Difference',[Width,File_Rail_Thickness,File_Rail_Difference])
+    front_rail.dim_x('Width-(INCH(' + drawer_box_thickness + ')*2)-File_Rail_Difference',[Width,File_Rail_Thickness,File_Rail_Difference])
     front_rail.dim_y('File_Rail_Thickness', [File_Rail_Thickness])
     front_rail.dim_z('File_Rail_Height',[File_Rail_Height])
-    front_rail.loc_x('File_Rail_Thickness + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
-    front_rail.loc_y('File_Rail_Thickness',[File_Rail_Thickness])
+    front_rail.loc_x('INCH(' + drawer_box_thickness + ') + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
+    front_rail.loc_y('INCH(' + drawer_box_thickness + ')',[File_Rail_Thickness])
     front_rail.get_prompt('Hide').set_formula('IF(Use_File_Rail,IF(File_Rail_Direction==1,Hide,True),True)',[Hide, Use_File_Rail,File_Rail_Type,File_Rail_Direction])
     
     back_rail = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
@@ -1076,10 +1076,10 @@ def add_drawer_file_rails(assembly):
     back_rail.set_name("File Rail")
     back_rail.cutpart("Back File Rail")
     back_rail.edgebanding("Edge_2",l1 = True)
-    back_rail.dim_x('Width-(File_Rail_Thickness*2)-File_Rail_Difference',[Width,File_Rail_Thickness,File_Rail_Difference])
+    back_rail.dim_x('Width-(INCH(' + drawer_box_thickness + ')*2)-File_Rail_Difference',[Width,File_Rail_Thickness,File_Rail_Difference])
     back_rail.dim_y('File_Rail_Thickness', [File_Rail_Thickness])
     back_rail.dim_z('File_Rail_Height',[File_Rail_Height])
-    back_rail.loc_x('File_Rail_Thickness + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
+    back_rail.loc_x('INCH(' + drawer_box_thickness + ') + File_Rail_Difference/2',[File_Rail_Thickness,File_Rail_Difference])
     back_rail.loc_y('IF(File_Rail_Type==0, File_Rail_Thickness*2+'+str(sn_unit.inch(12))+',File_Rail_Thickness*2+'+str(sn_unit.inch(15))+')',[File_Rail_Thickness, File_Rail_Type])
     back_rail.get_prompt('Hide').set_formula('IF(Use_File_Rail,IF(File_Rail_Direction==1,Hide,True),True)',[Hide, Use_File_Rail,File_Rail_Type,File_Rail_Direction])
 

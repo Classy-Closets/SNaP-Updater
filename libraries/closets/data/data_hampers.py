@@ -78,6 +78,7 @@ class Hamper(sn_types.Assembly):
         Bottom_Overlay = self.get_prompt("Bottom Overlay").get_var('Bottom_Overlay')
         Door_to_Cabinet_Gap = self.get_prompt("Door to Cabinet Gap").get_var('Door_to_Cabinet_Gap')
         Front_Thickness = self.get_prompt("Front Thickness").get_var('Front_Thickness')
+        No_Pulls = self.get_prompt("No Pulls").get_var('No_Pulls')
         Center_Pulls_on_Drawers = self.get_prompt("Center Pulls on Drawers").get_var('Center_Pulls_on_Drawers')
         Drawer_Pull_From_Top = self.get_prompt("Drawer Pull From Top").get_var('Drawer_Pull_From_Top')
         Open = self.get_prompt("Open").get_var('Open')
@@ -141,6 +142,7 @@ class Hamper(sn_types.Assembly):
         pull.dim_z('Front_Thickness',[Front_Thickness])
         pull.get_prompt("Pull X Location").set_formula('IF(Center_Pulls_on_Drawers,IF(Hamper_Type==0,WHH,NHH)/2,Drawer_Pull_From_Top)', [Center_Pulls_on_Drawers, Hamper_Type, WHH, NHH, Drawer_Pull_From_Top])
         pull.get_prompt("Pull Z Location").set_formula('(Width/2)+Right_Overlay',[Width,Right_Overlay])
+        pull.get_prompt("Hide").set_formula("No_Pulls", [No_Pulls])
 
         # Wire Basket
         basket_1 = common_parts.add_wire_hamper(self)
@@ -396,14 +398,11 @@ class PROMPTS_Hamper_Prompts(sn_types.Prompts_Interface):
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
                 open_drawer = self.assembly.get_prompt('Open')
-                # tilt_out_hamper = self.assembly.get_prompt('Tilt Out Hamper')
-                # hamper_type = self.assembly.get_prompt('Hamper Type')
                 cleat_loc = self.assembly.get_prompt("Cleat Location")
                 full_overlay = self.assembly.get_prompt("Full Overlay")
-                # wire_hamper_height = self.assembly.get_prompt("Wire Hamper Height")
-                # nylon_hamper_height = self.assembly.get_prompt("Nylon Hamper Height")
                 wire_basket_color = self.assembly.get_prompt("Wire Basket Color")
                 add_cloth_bag = self.assembly.get_prompt("Add Cloth Bag")
+                no_pulls = self.assembly.get_prompt("No Pulls")
 
                 box = layout.box()
 
@@ -457,17 +456,18 @@ class PROMPTS_Hamper_Prompts(sn_types.Prompts_Interface):
                     split.label(text="Cleat Location")
                     split.prop(self, "cleat_location", expand=True)
 
-                # row = box.row()
-                # if tilt_out_hamper:
-                #     split = row.split(factor=0.5)
-                #     split.label(text=tilt_out_hamper.name)
-                #     row.prop(tilt_out_hamper, "checkbox_value", text="")
-
                 row = box.row()
-                if(full_overlay):
+                if full_overlay:
                     split = row.split(factor=0.5)
                     split.label(text=full_overlay.name)
                     row.prop(full_overlay, "checkbox_value", text="")
+
+                row = box.row()
+
+                if no_pulls:
+                    split = row.split(factor=0.5)
+                    split.label(text=no_pulls.name)
+                    row.prop(no_pulls, "checkbox_value", text="")
 
 
 class OPS_Hamper_Drop(Operator, PlaceClosetInsert):

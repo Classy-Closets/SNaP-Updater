@@ -53,6 +53,7 @@ class Wall(PropertyGroup):
 
 class Scene_Props(PropertyGroup):
     room_name: StringProperty(name="Room Name")
+    room_version: StringProperty(name="Room Version")
     room_type: EnumProperty(
         name="Room Type",
         items=[

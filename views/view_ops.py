@@ -1567,6 +1567,10 @@ class VIEW_OT_generate_2d_views(Operator):
         text.anchor.rotation_mode = 'YZX'
         text_rotation = (-90, -wall_rotation, 0)
         label = str(item.name).replace("Wall Bed", "| Wall Bed")
+        add_doors_and_drawers = assy.get_prompt("Add Doors And Drawers")
+        if add_doors_and_drawers:
+            if add_doors_and_drawers.get_value():
+                label = label.replace("NoFace", "| Decorative Face")
         text.set_label(label)
         utils.copy_world_loc(item, text.anchor, (loc_x, loc_y, loc_z))
         utils.copy_world_rot(item, text.anchor, text_rotation)
@@ -4586,7 +4590,6 @@ class VIEW_OT_generate_2d_views(Operator):
                                                                    extra_dims,
                                                                    walls_rem_spaces)
             self.add_flat_crowns(context, accordion, offset)
-            proportion = round((walls_length_sum / max(walls_heights)), 2)
             instance_name = "Accordion Instance " + str(i + 1)
             instance = bpy.data.objects.new(instance_name, None)
             instance.instance_type = 'COLLECTION'

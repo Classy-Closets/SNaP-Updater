@@ -1108,6 +1108,10 @@ class OPS_Export_XML(Operator):
         if assembly.obj_bp.get("IS_BP_MEL_SHELF_LIP"):
             width = sn_unit.inch(4.0)
 
+        if assembly.obj_bp.get("IS_BP_FILE_RAIL"):
+            if sn_unit.meter_to_inch(width) == 0.5:
+                width = sn_unit.inch(9)
+
         return self.distance(width)
     
     def get_part_length(self,assembly):
@@ -1178,6 +1182,10 @@ class OPS_Export_XML(Operator):
             if curve:
                 for spline in curve.data.splines:
                     length += spline.calc_length()
+        
+        if assembly.obj_bp.get("IS_BP_FILE_RAIL"):
+            if sn_unit.meter_to_inch(length) == 0.5:
+                length = sn_unit.inch(9)
 
         return self.distance(length)
 
@@ -2074,7 +2082,6 @@ class OPS_Export_XML(Operator):
             cir = {}
             cir['cen_x'] = -float(dim_in_x_2)
             cir['cen_y'] = float(dim_in_y)
-            print("get_shelf_kd_drilling", dim_in_y)
             cir['cen_z'] = float(bore_depth)
             cir['diameter'] = sn_unit.meter_to_inch(sn_unit.millimeter(float(cam_hole_dia)))
             cir['normal_z'] = normal_z
@@ -4277,9 +4284,6 @@ class OPS_Export_XML(Operator):
             elif part_name == "Inverted Base":
                 mat_inventory_name = "BASE ALDER 3 1/4X1/2 WM633"
                 mat_sku = "MD-0000025"
-            elif part_name == "File Rail":
-                    mat_inventory_name = "White Paper 12310"
-                    mat_sku = "PM-0000004"
             else:
                 mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku, display_name=False)
 
@@ -5182,20 +5186,30 @@ class OPS_Export_XML(Operator):
             if obj_props.is_glass_shelf_bp:
                 glass_color = "Clear"
 
-            if(obj_props.is_door_bp or obj_props.is_drawer_front_bp or obj_props.is_hamper_front_bp or obj.get('IS_DOOR') or obj.get('IS_BP_DRAWER_FRONT') or obj_props.is_glass_shelf_bp):     
-                if(assembly.get_prompt("Door Style")):
+            door_drawer_bps = (
+                obj_props.is_door_bp,
+                obj_props.is_drawer_front_bp,
+                obj_props.is_hamper_front_bp,
+                obj_props.is_glass_shelf_bp,
+                'IS_DOOR' in assembly.obj_bp,
+                'IS_BP_DRAWER_FRONT' in assembly.obj_bp,
+                'IS_BP_DRAWER_SUB_FRONT' in assembly.obj_bp)
+
+            if any(door_drawer_bps):
+                if assembly.get_prompt("Door Style"):
                     door_style = assembly.get_prompt("Door Style").get_value()
                     if 'Glass' not in door_style:   # Sets glass color to None for doors that do not have inset glass
                         glass_color = 'None'
                     parent_assembly = sn_types.Assembly(obj.parent.parent)
                     has_center_rail_ppt = parent_assembly.get_prompt("Has Center Rail")
-                    center_rail_distance_from_center_ppt = parent_assembly.get_prompt("Center Rail Distance From Center")                
+                    center_rail_distance_from_center_ppt = parent_assembly.get_prompt("Center Rail Distance From Center")
                     prompts = [has_center_rail_ppt,center_rail_distance_from_center_ppt]
                     if all(prompts) and (has_center_rail_ppt.get_value()):
                         has_center_rail = "Yes"
                         center_rail_distance_from_center = sn_unit.meter_to_inch(center_rail_distance_from_center_ppt.get_value())
 
                 door_glass_sku = ""
+
                 if obj_props.is_door_bp or obj.get('IS_DOOR'):
                     door_style_ppt = assembly.get_prompt("Door Style")
                     if door_style_ppt:
@@ -5213,6 +5227,8 @@ class OPS_Export_XML(Operator):
                     # ("has_center_rail", "text", has_center_rail),
                     # ("center_rail_distance_from_center", "text", str(center_rail_distance_from_center) if has_center_rail == "Yes" else 'None'),
                 ]
+
+                self.add_pull_dim_to_label(assembly, door_lbl)
                 lbl.extend(door_lbl)
 
             if ppt_dogear and ppt_dogear_depth:
@@ -5241,31 +5257,6 @@ class OPS_Export_XML(Operator):
             if isinstance(edge_4_color_name, str):
                 edge_4_color_name = edge_4_color_name.replace("Δ ", "")
 
-            second_lbl = [
-                ("sku", "text", mat_sku),
-                ("cncmirror", "text", ""),#Str literal OKAY
-                ("cncrotation", "text", "180"),#Str literal OKAY
-                ("cutl", "text", self.get_part_length(assembly)),#Part.AdjustedCutPartLength 
-                ("cutt", "text", self.distance(sn_utils.get_part_thickness(obj))),
-                ("cutw", "text", self.get_part_width(assembly)),#Part.AdjustedCutPartWidth
-                ("primaryedgecolorname", "text", primary_edge_color_name if edge_1 != '' or edge_2 != '' or edge_3 != '' or edge_4 != '' else ''),
-                ("edgeband1", "text", edge_1),
-                ("edgeband1sku", "text", edge_1_sku),
-                ("edgeband1name", "text", edge_1_color_name if edge_1 != '' else ''),
-                ("edgeband2", "text", edge_2),
-                ("edgeband2sku", "text", edge_2_sku),
-                ("edgeband2name", "text", edge_2_color_name if edge_2 != '' else ''),
-                ("edgeband3", "text", edge_3),
-                ("edgeband3sku", "text", edge_3_sku),
-                ("edgeband3name", "text", edge_3_color_name if edge_3 != '' else ''),
-                ("edgeband4", "text", edge_4),
-                ("edgeband4sku", "text", edge_4_sku),
-                ("edgeband4name", "text", edge_4_color_name if edge_4 != '' else '')
-            ]  
-            lbl.extend(second_lbl)
-
-            self.labels.append(lbl)
-            self.label_count += 1
 
             #Create and add OperationGroup
             #Get info for segments
@@ -5293,6 +5284,105 @@ class OPS_Export_XML(Operator):
                 lower_right,#Segment 4
                 drilling
             ]
+
+            # Drill info
+            if drilling:
+                label = ""
+
+                for child in assembly.obj_bp.children:
+                    if child.type == 'MESH':
+                        if assembly.obj_bp.get("IS_BP_PANEL"):
+                            tokens = child.snap.mp.machine_tokens
+                            left_lbl = "L-None"
+                            right_lbl = "R-None"
+                            mid_left = False
+                            mid_right = False
+
+                            if len(tokens) > 0:
+                                for token in tokens:
+                                    if not token.is_disabled:
+                                        if "mid left" in token.name.lower():
+                                            mid_left = True
+                                        elif "mid right" in token.name.lower():
+                                            mid_right = True
+
+                                for token in tokens:
+                                    if not token.is_disabled:
+                                        if "left bottom front" in token.name.lower():
+                                            x_dim_start = token.dim_in_x + sn_unit.millimeter(9.5)
+                                            x_dim_end = token.end_dim_in_x - sn_unit.millimeter(9.5)
+                                            dim_in_x_inch = round(sn_unit.meter_to_inch(x_dim_start - x_dim_end), 2)
+                                            dim_in_y_inch = round(sn_unit.meter_to_inch(token.dim_in_y + sn_unit.inch(1.46)), 2)
+                                            left_lbl = f"L-{dim_in_x_inch}x{dim_in_y_inch}"
+                                            if mid_left:
+                                                left_lbl += " 3 Lines"
+
+                                        elif "right bottom front" in token.name.lower():
+                                            x_dim_start = token.dim_in_x + sn_unit.millimeter(9.5)
+                                            x_dim_end = token.end_dim_in_x - sn_unit.millimeter(9.5)
+                                            dim_in_x_inch = round(sn_unit.meter_to_inch(x_dim_start - x_dim_end), 2)
+                                            dim_in_y_inch = round(sn_unit.meter_to_inch(token.dim_in_y + sn_unit.inch(1.46)), 2)
+                                            right_lbl = f"R-{dim_in_x_inch}x{dim_in_y_inch}"
+                                            if mid_right:
+                                                right_lbl +=  " 3 Lines"
+                        
+                            label = f"{left_lbl} {right_lbl}"
+
+                        elif assembly.obj_bp.get("IS_BP_BLIND_CORNER_PANEL"):
+                            tokens = child.snap.mp.machine_tokens
+                            if len(tokens) > 0:
+                                for token in tokens:
+                                    if not token.is_disabled:
+                                        if "left" in token.name.lower():
+                                            label = "BCP drill on Left"
+                                        elif "right" in token.name.lower():
+                                            label = "BCP drill on Right"
+
+                        elif assembly.obj_bp.get("IS_BP_HAMPER_FRONT"):
+                            label = "Def Hamper"
+
+                        elif assembly.obj_bp.get("IS_DOOR"):
+                            door_x_dim = sn_unit.meter_to_inch(assembly.obj_x.location.x)
+                            if door_x_dim > 50:
+                                label = "3 Hinges"
+                            else:
+                                label = "Def Door"
+
+                        elif assembly.obj_bp.get("IS_SHELF"):
+                            locked_shelf_ppt = assembly.get_prompt("Is Locked Shelf")
+                            if locked_shelf_ppt:
+                                if locked_shelf_ppt.get_value():
+                                    label = "Def KD"
+
+                if label:
+                    drill_lbl = [("drill_pattern", "text", label)]
+                    lbl.extend(drill_lbl)
+
+            second_lbl = [
+                ("sku", "text", mat_sku),
+                ("cncmirror", "text", ""),#Str literal OKAY
+                ("cncrotation", "text", "180"),#Str literal OKAY
+                ("cutl", "text", self.get_part_length(assembly)),#Part.AdjustedCutPartLength 
+                ("cutt", "text", self.distance(sn_utils.get_part_thickness(obj))),
+                ("cutw", "text", self.get_part_width(assembly)),#Part.AdjustedCutPartWidth
+                ("primaryedgecolorname", "text", primary_edge_color_name if edge_1 != '' or edge_2 != '' or edge_3 != '' or edge_4 != '' else ''),
+                ("edgeband1", "text", edge_1),
+                ("edgeband1sku", "text", edge_1_sku),
+                ("edgeband1name", "text", edge_1_color_name if edge_1 != '' else ''),
+                ("edgeband2", "text", edge_2),
+                ("edgeband2sku", "text", edge_2_sku),
+                ("edgeband2name", "text", edge_2_color_name if edge_2 != '' else ''),
+                ("edgeband3", "text", edge_3),
+                ("edgeband3sku", "text", edge_3_sku),
+                ("edgeband3name", "text", edge_3_color_name if edge_3 != '' else ''),
+                ("edgeband4", "text", edge_4),
+                ("edgeband4sku", "text", edge_4_sku),
+                ("edgeband4name", "text", edge_4_color_name if edge_4 != '' else '')
+            ]  
+            lbl.extend(second_lbl)
+
+            self.labels.append(lbl)
+            self.label_count += 1
 
             #Create and operation group for every part
             self.op_groups.append(op_grp)
@@ -5592,6 +5682,81 @@ class OPS_Export_XML(Operator):
                                                         'z': "1"})#Str literal OKAY
 
             self.xml.add_element_with_text(elm_seg, 'EndOrgDisplacement', "0")#Str literal OKAY
+
+    def get_pull_mesh(self, pull_bp):
+        for child in pull_bp.children:
+            if child.type == 'MESH' and child.visible_get():
+                return child
+
+    def add_pull_dim_to_label(self, assembly, label):
+        # Pull center-to-center dimension
+        pull_bp = None
+        pull_dim = None
+        pull_mesh = None
+        specialty_pull = False
+        parent_bp = assembly.obj_bp.parent
+
+        is_drawer_front = assembly.obj_bp.get("IS_BP_DRAWER_FRONT")
+        is_sub_front = assembly.obj_bp.get("IS_BP_DRAWER_SUB_FRONT")
+        is_door = assembly.obj_bp.get("IS_DOOR")
+
+        if is_drawer_front or is_sub_front:
+            if is_sub_front:
+                box_bp = assembly.obj_bp.parent
+                part_drawer_num = box_bp.get("DRAWER_NUM")
+                insert_bp = box_bp.parent
+            else:
+                insert_bp = assembly.obj_bp.parent
+                part_drawer_num = assembly.obj_bp.get("DRAWER_NUM")
+
+            for child in insert_bp.children:
+                if child.sn_closets.is_handle:
+                    pull_drawer_num = child.get("DRAWER_NUM")
+                    if pull_drawer_num == part_drawer_num:
+                        pull_bp = child
+
+                        for child in pull_bp.children:
+                            if child.type == 'MESH':
+                                pull_dim = child.dimensions[0]
+                                break
+
+        elif parent_bp.get("IS_BP_L_SHELVES"):
+            l_shelves = sn_types.Assembly(obj_bp=parent_bp)
+            pull_loc = l_shelves.get_prompt("Pull Location").get_value()
+            has_l_pull = pull_loc == 0 and "Left" in assembly.obj_bp.name
+            has_r_pull = pull_loc == 1 and "Right" in assembly.obj_bp.name
+
+            if has_l_pull or has_r_pull:
+                for child in l_shelves.obj_bp.children:
+                    if child.sn_closets.is_handle:
+                        pull_mesh = self.get_pull_mesh(child)
+                        if pull_mesh:
+                            pull_dim = pull_mesh.dimensions[0]
+                            break
+
+        else:
+            for child in parent_bp.children:
+                if child.sn_closets.is_handle:
+                    pull_mesh = self.get_pull_mesh(child)
+                    if pull_mesh:
+                        pull_dim = pull_mesh.dimensions[0]
+                        break
+        
+        if pull_mesh:
+            if pull_mesh.get("IS_SPECIALTY_PULL"):
+                specialty_pull = True
+                props = bpy.context.scene.sn_closets
+                pull_dim = props.closet_defaults.specialty_pull_center_dim
+
+        if pull_dim:
+            if pull_dim < sn_unit.inch(2):
+                label.extend([("pull_dim", "text", "Knob")])
+            elif specialty_pull:
+                pull_dim_inch = sn_unit.meter_to_inch(pull_dim)
+                label.extend([("pull_dim", "text", str(pull_dim_inch))])
+            else:
+                pull_dim_mm = round(sn_unit.meter_to_millimeter(pull_dim))
+                label.extend([("pull_dim", "text", f"{pull_dim_mm}mm")])
 
     def write_labels(self, elm_mfg):
         for lbl in self.labels:

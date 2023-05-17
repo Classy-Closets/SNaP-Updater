@@ -514,6 +514,7 @@ class Drawer_Stack(sn_types.Assembly):
             front.get_prompt('Right Overlay').set_formula('Right_Overlay',[Right_Overlay])
 
             l_pull = common_parts.add_drawer_pull(self)
+            l_pull.obj_bp["DRAWER_NUM"] = i
             l_pull.set_name("Drawer Pull")
             l_pull.loc_x('-Left_Overlay',[Left_Overlay])
             l_pull.loc_y('-Door_to_Cabinet_Gap-(dim_y*Open)',[Door_to_Cabinet_Gap,dim_y,Open,Front_Thickness])
@@ -716,7 +717,8 @@ class Drawer_Stack(sn_types.Assembly):
             self.upper_interior.dim_z('dim_z-top_shelf_z_loc',[dim_z,top_shelf_z_loc])          
         
         self.update()
-           
+
+
 class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
     bl_idname = "sn_closets.drawer_prompts"
     bl_label = "Drawer Prompt" 
@@ -1933,6 +1935,10 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
         obj = bpy.data.objects[context.object.name]
         bp = sn_utils.get_drawer_stack_bp(obj)
         self.assembly = Drawer_Stack(bp)
+        dt_drawer_rear_gap = self.assembly.get_prompt("Dovetail Drawer Rear Gap")
+
+        if not dt_drawer_rear_gap:
+            dt_drawer_rear_gap = self.assembly.add_prompt("Dovetail Drawer Rear Gap", 'DISTANCE', sn_unit.inch(1))
 
         # Get drawer front prompts obj
         for child in self.assembly.obj_bp.children:
@@ -2351,9 +2357,6 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                         row.label(text="Drawer Rear Gap")
 
                     if extra_deep_drawer_box and standard_drawer_rear_gap and deep_drawer_rear_gap:
-                        if not dt_drawer_rear_gap:
-                            dt_drawer_rear_gap = self.assembly.add_prompt("Dovetail Drawer Rear Gap", 'DISTANCE', sn_unit.inch(1))
-
                         if round(drawer_depth, 5) <= round(extra_deep_drawer_box.get_value(), 5):
                             if box_type.get_value() == 0:
                                 row.prop(standard_drawer_rear_gap, "distance_value", text="")
