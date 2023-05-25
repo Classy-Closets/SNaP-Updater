@@ -182,6 +182,9 @@ def add_l_shelf(assembly):
     shelf.set_name("L Shelf")
     shelf.cutpart("Shelf")
     shelf.edgebanding('Edge', l1=True)
+    for child in shelf.obj_bp.children:
+        if child.snap.type_mesh == 'CUTPART':
+            child.snap.delete_protected = True
     return shelf
 
 
@@ -198,6 +201,9 @@ def add_angle_shelf(assembly):
     shelf.set_name("Corner Shelf")
     shelf.cutpart("Shelf")
     shelf.edgebanding('Edge', l1=True)
+    for child in shelf.obj_bp.children:
+        if child.snap.type_mesh == 'CUTPART':
+            child.snap.delete_protected = True
     return shelf
 
 

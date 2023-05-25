@@ -181,8 +181,9 @@ class Query_PDF_Form_Data:
                 assy = sn_types.Assembly(obj.parent)
                 bp = assy.obj_bp
                 if hasattr(bp, 'sn_closets'):
-                    if assy.obj_bp.sn_closets.is_handle and obj.type == 'MESH':
-                        pulls.append((bp, bp.name, bp.parent.name))
+                    if obj.type == 'MESH':
+                        if assy.obj_bp.sn_closets.is_handle or obj.snap.is_cabinet_pull:
+                            pulls.append((bp, bp.name, bp.parent.name))
 
         # initialize walls dict to save each pull parent counting
         for obj in self.main_sc_objs:
@@ -903,13 +904,13 @@ class Query_PDF_Form_Data:
                 qty = str(value.get("qty", 0))
                 if 'birch' in key.lower():
                     dovetail += int(qty)
-        
+
         for key, value in drw_subfront_result.items():
             if key:
                 qty = str(value.get("qty", 0))
-                if 'paper'in key.lower():
+                if 'paper' in key.lower():
                     melamine += int(qty)
-                elif "bbbb prefinish" not in key.lower():
+                elif "White 954 750" in key:
                     thick_melamine += int(qty)
 
         if dovetail > 0:

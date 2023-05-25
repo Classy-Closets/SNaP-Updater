@@ -960,6 +960,8 @@ class SNAP_OT_update_pull_selection(Operator):
             pull_assembly = sn_types.Assembly(pull.parent)
             pull_assembly.set_name(props.get_pull_style())
             pull_length = pull_assembly.get_prompt("Pull Length")
+            obj_props = pull_assembly.obj_bp.sn_closets
+            obj_props.is_handle = True
 
             new_pull = sn_utils.get_object(
                 os.path.join(

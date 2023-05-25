@@ -72,6 +72,8 @@ class SN_WM_OT_pull_message_box(bpy.types.Operator):
     def execute(self, context):
         if self.pull_selection == 'SELECT':
             bpy.context.scene.sn_closets.closet_defaults.no_pulls = True
+        else:
+            bpy.context.scene.sn_closets.closet_defaults.no_pulls = False
         return {'FINISHED'}
 
 

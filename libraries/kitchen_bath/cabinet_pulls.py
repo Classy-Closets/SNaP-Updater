@@ -20,6 +20,8 @@ class Standard_Pull(sn_types.Assembly):
         self.create_assembly()
 
         self.pull_name = props.pull_name
+        obj_props = self.obj_bp.sn_closets
+        obj_props.is_handle = True
         
         # TODO does kichen need separate pull selection?
         # pull = self.add_object(os.path.join(os.path.dirname(__file__),
@@ -32,8 +34,8 @@ class Standard_Pull(sn_types.Assembly):
                 closet_paths.get_root_dir(),
                 closet_props.PULL_FOLDER_NAME,
                 props.pull_category,
-                props.pull_name + ".blend"))
-        
+                props.get_pull_style() + ".blend"))
+
         ppt_obj_pull_z = self.add_prompt_obj("Pull_Z_Location")
         self.add_prompt("Hide",'CHECKBOX',False)
         self.add_prompt("Pull Length",'DISTANCE',pull.dimensions.x)

@@ -121,6 +121,7 @@ def update_dimensions(part):
 
 def add_common_door_prompts(assembly):
     props = cabinet_properties.get_scene_props().exterior_defaults
+    closet_defaults = bpy.context.scene.sn_closets.closet_defaults
     door_location = 0
 
     if assembly.door_type == 'Base':
@@ -147,7 +148,7 @@ def add_common_door_prompts(assembly):
     assembly.add_prompt("Inset Front", 'CHECKBOX', props.inset_door)
     assembly.add_prompt("Inset Reveal", 'DISTANCE', props.inset_reveal)
     assembly.add_prompt("Door to Cabinet Gap", 'DISTANCE', props.door_to_cabinet_gap)
-    assembly.add_prompt("No Pulls", 'CHECKBOX', props.no_pulls)
+    assembly.add_prompt("No Pulls", 'CHECKBOX', closet_defaults.no_pulls)
     assembly.add_prompt("Pull Rotation", 'ANGLE', props.pull_rotation)
     assembly.add_prompt("Pull From Edge", 'DISTANCE', props.pull_from_edge)
     assembly.add_prompt("Pull Location", 'COMBOBOX', door_location, ['Base', 'Tall', 'Upper'])
@@ -162,8 +163,9 @@ def add_common_door_prompts(assembly):
 
 def add_common_drawer_prompts(assembly):
     props = cabinet_properties.get_scene_props().exterior_defaults
-    
-    assembly.add_prompt("No Pulls", 'CHECKBOX', props.no_pulls)
+    closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+
+    assembly.add_prompt("No Pulls", 'CHECKBOX', closet_defaults.no_pulls)
     assembly.add_prompt("Center Pulls on Drawers", 'CHECKBOX', props.center_pulls_on_drawers)
     assembly.add_prompt("Drawer Pull From Top", 'DISTANCE', props.drawer_pull_from_top)
     assembly.add_prompt("Pull Double Max Span", 'DISTANCE', sn_unit.inch(30))

@@ -109,7 +109,11 @@ class SN_OBJ_delete(Operator):
             # Ensure delete_protected is set for older library data
             obj_bp = sn_utils.get_assembly_bp(obj)
             if obj_bp:
-                if "IS_BP_PANEL" in obj_bp:
+                parts = [
+                    obj_bp.get("IS_BP_L_SHELF"),
+                    obj_bp.get("IS_BP_PANEL")]
+
+                if any(parts):
                     obj.snap.delete_protected = True
 
             if obj.snap.delete_protected:
@@ -121,19 +125,15 @@ class SN_OBJ_delete(Operator):
         self.del_obj_bp = sn_utils.get_assembly_bp(self.del_obj)
 
         if self.del_obj_bp:
-            if "IS_BP_PANEL" in self.del_obj_bp:
-                return wm.invoke_props_dialog(self, width=350)
-            else:
-                return self.execute(context)
+            return wm.invoke_props_dialog(self, width=350)
         return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
 
-        if "IS_BP_PANEL" in self.del_obj_bp:
-            layout.label(text="Warning!")
-            layout.label(text="Deleting this partition is unsupported and may lead to plans with")
-            layout.label(text="insufficient/incorrect information and/or inability to create 2D views")
+        layout.label(text="Warning!")
+        layout.label(text="Deleting this part is unsupported and may lead to plans with")
+        layout.label(text="insufficient/incorrect information and/or inability to create 2D views")
 
     def execute(self, context):
         bpy.ops.object.delete(use_global=self.use_global)
@@ -148,8 +148,7 @@ class SN_OBJ_delete(Operator):
                 bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message)
 
             if self.del_obj_bp:
-                if "IS_BP_PANEL" in self.del_obj_bp:
-                    sn_utils.delete_object_and_children(self.del_obj_bp)
+                sn_utils.delete_object_and_children(self.del_obj_bp)
 
         return {'FINISHED'}
 

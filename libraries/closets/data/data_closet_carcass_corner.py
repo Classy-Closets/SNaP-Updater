@@ -1910,15 +1910,10 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
     def draw_top_options(self, layout):
         box = layout.box()
         box.label(text="Top Options:")
-        Add_Top = self.product.get_prompt("Add Top KD")
         Add_Top_Shelf = self.product.get_prompt("Add Top Shelf")
         Exposed_Left = self.product.get_prompt("Exposed Left")
         Exposed_Right = self.product.get_prompt("Exposed Right")
         Top_Shelf_Overhang = self.product.get_prompt("Top Shelf Overhang")
-
-        if Add_Top:
-            row = box.row()
-            row.prop(Add_Top, "checkbox_value", text=Add_Top.name)
 
         if Add_Top_Shelf:
             row = box.row()
@@ -2406,15 +2401,10 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
     def draw_top_options(self, layout):
         box = layout.box()
         box.label(text="Top Options:")
-        Add_Top = self.product.get_prompt("Add Top KD")
         Add_Top_Shelf = self.product.get_prompt("Add Top Shelf")
         Exposed_Left = self.product.get_prompt("Exposed Left")
         Exposed_Right = self.product.get_prompt("Exposed Right")
         Top_Shelf_Overhang = self.product.get_prompt("Top Shelf Overhang")
-
-        if Add_Top:
-            row = box.row()
-            row.prop(Add_Top, "checkbox_value", text=Add_Top.name)
 
         if Add_Top_Shelf:
             row = box.row()

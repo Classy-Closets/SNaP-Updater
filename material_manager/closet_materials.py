@@ -319,8 +319,11 @@ class SnapMaterialSceneProps(PropertyGroup):
 
     countertops: PointerProperty(type=property_groups.Countertops)
     ct_type_index: IntProperty(name="Countertop Type Index", default=0, update=update_countertops)
-    ct_mfg_index: IntProperty(name="Countertop Manufactuer Index", default=0 , update=set_color_index)
+    ct_mfg_index: IntProperty(name="Countertop Manufactuer Index", default=0, update=set_color_index)
     ct_color_index: IntProperty(name="Countertop Color Index", default=0, update=update_render_materials)
+    # Standard Quartz countertop colors: "Marbella" and "Nimbus" were removed 2.6.0 -> 2.6.1
+    ct_updated_to_261: BoolProperty(name="Standard Quartz countertop colors updated to 2.6.1", default=False)
+    pull_sel_updated_to_261: BoolProperty(name="Pull selection updated to 2.6.1", default=False)
 
     upgrade_options: PointerProperty(type=property_groups.UpgradeOptions)
     upgrade_type_index: IntProperty(name="Upgrade Type Index", default=0)

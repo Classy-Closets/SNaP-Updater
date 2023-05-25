@@ -846,7 +846,6 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
         
         row = box.row(align=True)
         row.prop(self.props.exterior_defaults,"inset_door")
-        row.prop(self.props.exterior_defaults,"no_pulls")
         
         row = box.row(align=True)
         row.prop(self.props.exterior_defaults,"use_buyout_drawer_boxes")

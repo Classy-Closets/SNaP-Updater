@@ -703,11 +703,16 @@ def update_all_thick_adj_shelves(self, context):
         prompt_type='CHECKBOX',
         bool_value=self.thick_adjustable_shelves)
 
+
 def update_no_pulls(self, context):
     bpy.ops.sn_prompt.update_all_prompts_in_scene(
         prompt_name='No Pulls',
         prompt_type='CHECKBOX',
         bool_value=self.no_pulls)
+
+    if not self.no_pulls:
+        bpy.ops.sn_closets.update_pull_selection(update_all=True)
+
 
 # ---------PROPERTY GROUPS
 class Closet_Defaults(PropertyGroup):

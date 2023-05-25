@@ -4,6 +4,8 @@ from bpy.app.handlers import persistent
 import xml.etree.ElementTree as ET
 from . import pm_utils
 from snap import sn_utils
+from snap import sn_types
+from snap.libraries.closets.data import data_closet_carcass
 
 
 @persistent
@@ -16,21 +18,86 @@ def create_project_path(scene):
 
 
 @persistent
+def check_section_prompt_id(scene=None):
+    """Ensure all hanging sections have the correct prompt id tag"""
+    sections = [
+        obj for obj in bpy.data.objects
+        if obj.get("IS_BP_CLOSET") and obj.name in sn_utils.get_main_scene().objects]
+
+    for section_bp in sections:
+        exclude = [
+            section_bp.get("IS_BP_ISLAND"),
+            section_bp.get("IS_TOPSHELF_SUPPORT_CORBELS"),
+            section_bp.get("IS_WALL_CLEAT"),
+            section_bp.get("IS_BP_CORNER_SHELVES"),
+            section_bp.get("IS_BP_L_SHELVES")]
+
+        if any(exclude):
+            continue
+
+        if section_bp.get("ID_PROMPT") != "sn_closets.openings":
+            section_bp["ID_PROMPT"] = "sn_closets.openings"
+            section = data_closet_carcass.Closet_Carcass(section_bp)
+            section.id_prompt = "sn_closets.openings"
+            section.type_assembly = "PRODUCT"
+            section.update()
+
+
+@persistent
+def check_countertop_selection(scene=None):
+    """Standard Quartz countertop colors: "Marbella" and "Nimbus" were removed 2.6.0 -> 2.6.1"""
+    current_room_ver = sn_utils.get_room_version()
+    closet_materials = bpy.context.scene.closet_materials
+    countertop_type = closet_materials.countertops.get_type()
+    countertop_index = closet_materials.ct_color_index
+
+    if bpy.data.is_saved:
+        if current_room_ver < "2.6.1":
+            if not closet_materials.ct_updated_to_261:
+                if countertop_type.name == "Standard Quartz":
+                    # "Marbella" and "Nimbus"
+                    if countertop_index in (7, 9):
+                        countertop_index = 0
+                    elif countertop_index == 8:
+                        countertop_index -= 1
+                    elif countertop_index > 9:
+                        countertop_index -= 2
+
+                    closet_materials.ct_color_index = countertop_index
+                    closet_materials.ct_updated_to_261 = True
+
+
+@persistent
 def check_pull_selection(scene=None):
     current_room_ver = sn_utils.get_room_version()
     app_ver = sn_utils.get_version_str()
+    closet_options = bpy.context.scene.sn_closets.closet_options
+    closet_materials = bpy.context.scene.closet_materials
 
     if bpy.data.is_saved:
         default_pull = "155.00.932"
         pulls = [
             obj.snap.name_object
             for obj in bpy.data.objects
-            if obj.type == 'MESH' and obj.parent and obj.parent.sn_closets.is_handle]
+            if obj.type == 'MESH' and obj.parent and (obj.parent.sn_closets.is_handle or obj.snap.is_cabinet_pull) and obj.visible_get()]
 
-        if all(x == default_pull for x in pulls):
-            if current_room_ver < app_ver:
-                message = f"This room is using default pulls ({default_pull})"
-                bpy.ops.snap.pull_message_box('INVOKE_DEFAULT', message=message)
+        if current_room_ver < app_ver:
+            if not closet_materials.pull_sel_updated_to_261:
+                if closet_options.pull_category == "Other - Customer Provided":
+                    closet_options.pull_category = "Polished Chrome"
+                elif closet_options.pull_category == "Other - Special Hardware":
+                    closet_options.pull_category = "Satin Bronzed Copper"
+                elif closet_options.pull_category == "Polished Chrome":
+                    closet_options.pull_category = "Satin Nickel"
+                elif closet_options.pull_category == "Satin Bronzed Copper":
+                    closet_options.pull_category = "Stainless Steel Look"
+
+                if pulls:
+                    if all(x == default_pull for x in pulls):
+                        message = f"This room is using default pulls ({default_pull})"
+                        bpy.ops.snap.pull_message_box('INVOKE_DEFAULT', message=message)
+
+                closet_materials.pull_sel_updated_to_261 = True
 
 
 @persistent
@@ -43,10 +110,14 @@ def load_projects(scene=None):
 def register():
     bpy.app.handlers.load_post.append(load_projects)
     bpy.app.handlers.load_post.append(check_pull_selection)
+    bpy.app.handlers.load_post.append(check_countertop_selection)
+    bpy.app.handlers.load_post.append(check_section_prompt_id)
     bpy.app.handlers.load_post.append(create_project_path)
 
 
 def unregister():
     bpy.app.handlers.load_post.remove(load_projects)
     bpy.app.handlers.load_post.remove(check_pull_selection)
+    bpy.app.handlers.load_post.remove(check_countertop_selection)
+    bpy.app.handlers.load_post.remove(check_section_prompt_id)
     bpy.app.handlers.load_post.remove(create_project_path)
