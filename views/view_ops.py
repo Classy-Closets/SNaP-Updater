@@ -28,6 +28,7 @@ from . import view_icons
 from snap.libraries.closets import closet_props
 from snap.libraries.closets.data import data_drawers
 from snap.libraries.closets.data import data_closet_carcass
+from snap.libraries.kitchen_bath import cabinet_interface
 import numpy as np
 import re
 import xml.etree.ElementTree as ET
@@ -3121,9 +3122,11 @@ class VIEW_OT_generate_2d_views(Operator):
     def has_positive_overlay(self, item):
         if not item.get("IS_BP_ASSEMBLY"):
             return False
+
         wall_length, item_length = math.inf, 0
         wall_assy = None
         wall_bp = utils.get_wall_bp(item)
+
         if wall_bp:
             wall_assy = sn_types.Assembly(wall_bp)
             item_assy = sn_types.Assembly(item)
@@ -3131,9 +3134,23 @@ class VIEW_OT_generate_2d_views(Operator):
                 return
             wall_length = wall_assy.obj_x.location.x
             item_length = item_assy.obj_x.location.x
-        negative_x_loc = item.location[0] < 0
-        positive_x_loc = (item_length + item.location[0]) > wall_length
-        if negative_x_loc or positive_x_loc:
+
+        has_loc_constraint = False
+
+        for constraint in item_assy.obj_bp.constraints:
+            if constraint.type == 'COPY_LOCATION':
+                has_loc_constraint = True
+        
+        if has_loc_constraint:
+            item_loc_x = item_assy.obj_bp.location.x
+            item_loc_x = abs(item_loc_x)
+        else:
+            item_loc_x = item_assy.obj_bp.location.x
+
+        negative_x_loc = item_loc_x < 0
+        positive_x_dim = item_loc_x + item_length > wall_length
+
+        if negative_x_loc or positive_x_dim:
             return True
         return False
 
@@ -3622,29 +3639,33 @@ class VIEW_OT_generate_2d_views(Operator):
             last_overlay = self.wall_assys_has_positive_overlay(last_wall)
             ov_side_first_wall = self.overlay_side(first_wall)
             ov_side_last_wall = self.overlay_side(last_wall)
+
             if first_overlay and ov_side_first_wall == "start":
                 overlay_result = self.positive_overlay(first_wall)
                 overlay_x_offset, overlay_z_offset = overlay_result
-                self.overlay_label(
-                    first_wall, overlay_x_offset, overlay_z_offset, "")
+                self.overlay_label(first_wall, overlay_x_offset, overlay_z_offset, "")
+
             if last_overlay and ov_side_last_wall == "end":
                 overlay_result = self.positive_overlay(last_wall)
                 x_offset, z_offset = overlay_result
                 wall_length = sn_types.Assembly(last_wall).obj_x.location.x
                 x_offset = (x_offset + wall_length) * 2
                 x_offset += unit.inch(6)
-                self.overlay_label(
-                    last_wall, x_offset, z_offset, "")
+                self.overlay_label(last_wall, x_offset, z_offset, "")
                 overlay_x_offset = 0
+
             for i, value in enumerate(bh_dims):
                 if value > small_dim_height_value:
                     self.apply_build_height_label(first_wall, value, i, overlay_x_offset)
                 elif value <= small_dim_height_value:
                     self.apply_toe_kick_label(first_wall, value, i, overlay_x_offset)
+
             dims_offset = (unit.inch(-4) * len(bh_dims))
             max_offset = unit.inch(-7) + dims_offset + overlay_x_offset
+
             if first_wall is not None:
                 self.ceiling_height_dimension(first_wall, max_offset)
+
             return max_offset
         return None
 
@@ -5282,6 +5303,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 self.write_shelf(child, x_0, z_loc, shelf_rot, is_cabinet)
 
     def get_height_code(self, height):
+        print("height=",height)
         HAMPER_HEIGHTS = [
             ('589.280', '19H-23.78"', '19H-23.78"'),
             ('621.284', '20H-25.04"', '20H-25.04"'),
@@ -5292,6 +5314,7 @@ class VIEW_OT_generate_2d_views(Operator):
         for item in HAMPER_HEIGHTS:
             front_heights.append(item)
         height_inch = round(unit.meter_to_inch(height), 2)
+
         for item in front_heights:
             item_inch = item[1].split("-")[-1:][0]
             num_inch = round(float(item_inch.split("\"")[0]), 2)
@@ -5299,13 +5322,59 @@ class VIEW_OT_generate_2d_views(Operator):
                 return item[1].split("-")[0]
         return 0
 
+    def write_door(self, obj, x_loc, z_loc):
+        obj_assembly = sn_types.Assembly(obj_bp=obj)
+        is_cabinet = sn_utils.get_cabinet_bp(obj)
+        door_swing = obj.get('DOOR_SWING')
+
+        if is_cabinet:
+            obj_z = obj.location.z
+            width = obj_assembly.obj_x.location.x
+            height = obj_assembly.obj_z.location.z
+            label = None
+
+            for child in obj.children:
+                if child.get('HOLE_SIZE_LABEL'):
+                    label = child.get('HOLE_SIZE_LABEL')
+
+            if label:
+                if door_swing and door_swing == 'Double Door':
+                    door_qty = 2
+                else:
+                    door_qty = 1
+
+                z_loc = z_loc + obj_z
+                z_pos = z_loc + 0.6*height
+
+                if door_qty == 1:
+                    x_pos = x_loc + 0.5*width
+                    drawer_label = sn_types.Dimension()
+                    drawer_label.start_x(value=x_pos)
+                    drawer_label.start_z(value=z_pos)
+                    drawer_label.set_label(label)
+                else:
+                    for i in range(door_qty, 0, -1):
+                        if i == 2:
+                            x_pos = x_loc + 0.25*width
+                        else:
+                            x_pos = x_loc + 0.75*width
+                        drawer_label = sn_types.Dimension()
+                        drawer_label.start_x(value=x_pos)
+                        drawer_label.start_z(value=z_pos)
+                        drawer_label.set_label(label)
+
     def write_drawer(self, obj, x_loc, z_loc):
         obj_assembly = sn_types.Assembly(obj_bp=obj)
-        is_cabinet = obj_assembly.obj_bp.parent.get("IS_BP_CABINET")
+        is_cabinet = sn_utils.get_cabinet_bp(obj)
 
         obj_z = obj.location.z
         width = obj_assembly.obj_x.location.x
+        height = obj_assembly.obj_z.location.z
+        drawer_height = None
+
         drawer_quantity = obj_assembly.get_prompt("Drawer Quantity")
+        is_horizontal_drawers = obj.get('HORIZONTAL_DRAWERS')
+
         for child in obj.children:
             if not is_cabinet:
                 if "OBJ_PROMPTS_Drawer_Fronts" in child.name:
@@ -5321,17 +5390,29 @@ class VIEW_OT_generate_2d_views(Operator):
                 if not is_cabinet:
                     drawer_height =\
                         drawer_front_ppt_obj.snap.get_prompt("Drawer " + str(i) + " Height").get_value()
-                else:
+                elif obj_assembly.get_prompt("Drawer Front " + str(i) + " Height"):
                     drawer_height =\
                         obj_assembly.get_prompt("Drawer Front " + str(i) + " Height").get_value()
-                x_pos = x_loc + 0.8*width
+                else:
+                    drawer_height = height + unit.inch(0.58)
+
                 z_pos = z_loc + 0.5*drawer_height
+                if is_horizontal_drawers:
+                    if i == 1:
+                        x_pos = x_loc + (width*0.35)
+                    else:
+                        x_pos = x_loc + (width*0.875)
+                else:
+                    x_pos = x_loc + 0.8*width
+                    z_loc += drawer_height
+
+                label = self.get_height_code(drawer_height)  
+                                
                 drawer_label = sn_types.Dimension()
                 drawer_label.start_x(value=x_pos)
                 drawer_label.start_z(value=z_pos)
-                label = self.get_height_code(drawer_height)
                 drawer_label.set_label(label)
-                z_loc += drawer_height
+                
 
     def query_velvet_liner(self, drawer_stack, drawer_num):
         width_in = round(unit.meter_to_inch(drawer_stack.obj_x.location.x))
@@ -5458,6 +5539,26 @@ class VIEW_OT_generate_2d_views(Operator):
             label = self.get_height_code(height + top_overlay + bottom_overlay)
             drawer_label.set_label(label)
 
+    def write_obj_doors(self, obj, x_0, z_loc, obj_rot, drawer_rot):
+        children = obj.children
+        for child in children:
+            name = child.name
+            child_assembly = sn_types.Assembly(obj_bp=child)
+            child_x = child_assembly.obj_x
+            rot_z = child.rotation_euler.z
+            is_front =\
+                round(obj_rot + rot_z, 2) == round(drawer_rot, 2)
+            child_x_loc = child.location.x
+            factor = 1 if round(child.rotation_euler.z, 2) == 0 else -1
+            if is_front and child_x is not None:
+                x_child = x_0 + factor*child_x_loc
+                if "Door" in name:
+                    self.write_door(child, x_child, z_loc)
+                child_z_loc = child.location.z
+                self.write_obj_doors(
+                    child, x_child, z_loc + child_z_loc,
+                    obj_rot + rot_z, drawer_rot)
+                
     def write_obj_drawers(self, obj, x_0, z_loc, obj_rot, drawer_rot):
         children = obj.children
         for child in children:
@@ -5813,6 +5914,7 @@ class VIEW_OT_generate_2d_views(Operator):
             self.write_island_shelfs(island, x_loc, 0, 0)
         if dimprops.label_drawer_front_height:
             self.write_obj_drawers(island, x_loc - dim_x/2, 0, 0, 0)
+            self.write_obj_doors(island, x_loc - dim_x/2, 0, 0, 0)
         if not is_cabinet:
             if dimprops.double_jewelry:
                 self.write_obj_jewelry_inserts(island, x_loc - dim_x/2, 0, 0, 0)
@@ -5859,6 +5961,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 island, x_loc, -unit.inch(8), "Left Overhang", "x")
         if dimprops.label_drawer_front_height:
             self.write_obj_drawers(island, x_loc + dim_x/2, 0, 0, np.pi)
+            self.write_obj_doors(island, x_loc + dim_x/2, 0, 0, np.pi)
         if not is_cabinet:
             if dimprops.double_jewelry:
                 self.write_obj_jewelry_inserts(island, x_loc + dim_x/2, 0, 0, np.pi)

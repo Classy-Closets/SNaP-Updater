@@ -14,6 +14,7 @@ from . import cabinet_properties
 from . import cabinet_pulls
 from . import frameless_splitters
 from . import common_parts
+from . import cabinets
 from snap.libraries.closets import closet_paths
 from snap.libraries.closets.common import common_lists
 from snap.views import opengl_dim
@@ -117,6 +118,7 @@ def update_dimensions(part):
         assembly = sn_types.Assembly(anchor.parent)
         height = assembly.obj_x.location.x
         anchor.snap.opengl_dim.gl_label = str(get_hole_size(height))
+        anchor.parent['HOLE_SIZE_LABEL'] = anchor.snap.opengl_dim.gl_label
 
 
 def add_common_door_prompts(assembly):
@@ -326,6 +328,7 @@ class Doors(sn_types.Assembly):
     def draw(self):
         self.create_assembly()
         self.obj_bp['IS_BP_DOOR_INSERT'] = True
+        self.obj_bp['DOOR_SWING'] = self.door_swing
         self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
    
         self.add_doors_prompts()
@@ -680,6 +683,7 @@ class Vertical_Drawers(sn_types.Assembly):
         
         drawer_front = common_parts.add_drawer_front(self)
         drawer_front.obj_bp["IS_BP_DRAWER_FRONT"] = True
+        drawer_front.obj_bp["DRAWER_NBR"] = i
         drawer_front.set_name("Drawer Front")
         drawer_front.loc_x('-Left_Overlay',[Left_Overlay])
         drawer_front.loc_y('IF(Inset_Front,Front_Thickness,-Door_to_Cabinet_Gap)-(Depth*Open_Drawers)',
@@ -822,6 +826,7 @@ class Horizontal_Drawers(sn_types.Assembly):
         
         drawer_front = common_parts.add_drawer_front(self)
         drawer_front.obj_bp["IS_BP_DRAWER_FRONT"] = True
+        drawer_front.obj_bp["DRAWER_NBR"] = i
         drawer_front.set_name("Drawer Front")
 
         drawer_front.loc_x('drawer_x_loc',[drawer_x_loc])
@@ -862,29 +867,29 @@ class Horizontal_Drawers(sn_types.Assembly):
             pull.get_prompt("Pull Z Location").set_formula(drawer_front_width + "/2",[Left_Overlay,Right_Overlay,Width,Vertical_Gap])
             pull.get_prompt("Hide").set_formula('IF(No_Pulls,True,False)',[No_Pulls])        
          
-        if self.add_drawer:
-            if self.use_buyout_box:
-                drawer_bp = self.add_assembly_from_file(BUYOUT_DRAWER_BOX)
-                drawer = sn_types.Assembly(drawer_bp)
-                # drawer.material('Drawer_Box_Surface')
-            # else:
-            #     drawer = drawer_boxes.Wood_Drawer_Box()
-            #     drawer.draw()
-            #     drawer.obj_bp.parent = self.obj_bp
-            drawer.set_name("Drawer Box " + str(i))
-            if i == 1: #FIRST
-                drawer.loc_x('drawer_x_loc+Left_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Left_Overlay,Drawer_Box_Slide_Gap])
-                drawer.dim_x(drawer_front_width + "-Left_Overlay-Division_Overlay-(Drawer_Box_Slide_Gap*2)",[Left_Overlay,Division_Overlay,Right_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
-            elif i == self.drawer_qty: #LAST
-                drawer.loc_x('drawer_x_loc+Division_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Division_Overlay,Drawer_Box_Slide_Gap])
-                drawer.dim_x(drawer_front_width + "-Right_Overlay-Division_Overlay-(Drawer_Box_Slide_Gap*2)",[Left_Overlay,Right_Overlay,Division_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
-            else: #MIDDLE
-                drawer.loc_x('drawer_x_loc+Division_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Division_Overlay,Drawer_Box_Slide_Gap])
-                drawer.dim_x(drawer_front_width + '-(Division_Overlay*2)-(Drawer_Box_Slide_Gap*2)',[Left_Overlay,Right_Overlay,Division_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
-            drawer.loc_y('IF(Inset_Front,Front_Thickness,-Door_to_Cabinet_Gap)-(Depth*Open_Drawers)',[Inset_Front,Door_to_Cabinet_Gap,Front_Thickness,Depth,Open_Drawers])
-            drawer.loc_z('Drawer_Box_Bottom_Gap',[Drawer_Box_Bottom_Gap])
-            drawer.dim_y('Depth-Drawer_Box_Rear_Gap-IF(Inset_Front,Front_Thickness,0)',[Depth,Drawer_Box_Rear_Gap,Inset_Front,Front_Thickness])
-            drawer.dim_z('Height-Drawer_Box_Top_Gap-Drawer_Box_Bottom_Gap',[Height,Drawer_Box_Top_Gap,Drawer_Box_Bottom_Gap])        
+        # if self.add_drawer:
+        #     if self.use_buyout_box:
+        #         drawer_bp = self.add_assembly_from_file(BUYOUT_DRAWER_BOX)
+        #         drawer = sn_types.Assembly(drawer_bp)
+        #         # drawer.material('Drawer_Box_Surface')
+        #     # else:
+        #     #     drawer = drawer_boxes.Wood_Drawer_Box()
+        #     #     drawer.draw()
+        #     #     drawer.obj_bp.parent = self.obj_bp
+        #     drawer.set_name("Drawer Box " + str(i))
+        #     if i == 1: #FIRST
+        #         drawer.loc_x('drawer_x_loc+Left_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Left_Overlay,Drawer_Box_Slide_Gap])
+        #         drawer.dim_x(drawer_front_width + "-Left_Overlay-Division_Overlay-(Drawer_Box_Slide_Gap*2)",[Left_Overlay,Division_Overlay,Right_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
+        #     elif i == self.drawer_qty: #LAST
+        #         drawer.loc_x('drawer_x_loc+Division_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Division_Overlay,Drawer_Box_Slide_Gap])
+        #         drawer.dim_x(drawer_front_width + "-Right_Overlay-Division_Overlay-(Drawer_Box_Slide_Gap*2)",[Left_Overlay,Right_Overlay,Division_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
+        #     else: #MIDDLE
+        #         drawer.loc_x('drawer_x_loc+Division_Overlay+Drawer_Box_Slide_Gap',[drawer_x_loc,Division_Overlay,Drawer_Box_Slide_Gap])
+        #         drawer.dim_x(drawer_front_width + '-(Division_Overlay*2)-(Drawer_Box_Slide_Gap*2)',[Left_Overlay,Right_Overlay,Division_Overlay,Width,Vertical_Gap,Drawer_Box_Slide_Gap])
+        #     drawer.loc_y('IF(Inset_Front,Front_Thickness,-Door_to_Cabinet_Gap)-(Depth*Open_Drawers)',[Inset_Front,Door_to_Cabinet_Gap,Front_Thickness,Depth,Open_Drawers])
+        #     drawer.loc_z('Drawer_Box_Bottom_Gap',[Drawer_Box_Bottom_Gap])
+        #     drawer.dim_y('Depth-Drawer_Box_Rear_Gap-IF(Inset_Front,Front_Thickness,0)',[Depth,Drawer_Box_Rear_Gap,Inset_Front,Front_Thickness])
+        #     drawer.dim_z('Height-Drawer_Box_Top_Gap-Drawer_Box_Bottom_Gap',[Height,Drawer_Box_Top_Gap,Drawer_Box_Bottom_Gap])        
         
         return front_empty
         
@@ -1059,7 +1064,7 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
                 opening.obj_bp.snap.interior_open = False
                 opening.obj_bp.snap.exterior_open = False
                 splitter.run_all_calculators()
-                
+                 
                 Height = parent.obj_z.snap.get_var('location.z', 'Height')
                 Left_Side_Thickness = carcass.get_prompt("Left Side Thickness").get_var()
                 Right_Side_Thickness = carcass.get_prompt("Right Side Thickness").get_var()
@@ -1108,12 +1113,18 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
                     splitter.dim_z('fabs(Height)-Bottom_Inset-Top_Inset',[Height,Bottom_Inset,Top_Inset])
                 
                 splitter.run_all_calculators()
+
            
     def finish(self, context):
             super().finish(context)
 
+            obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
             if "DEFAULT_OVERRIDE" in self.insert.obj_bp:
                 sn_utils.delete_object_and_children(self.insert.obj_bp)
+            
+            print("product_bp=",obj_product_bp)
+            product_assembly = cabinets.Standard(obj_product_bp)
+            product_assembly.update_dimensions()    
 
             return {'FINISHED'}
           

@@ -3082,8 +3082,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         # Set Closet Product Annotations
         for wall_bp in scene_walls(context):
             bheight_offset = 0
-            overlay_x_loc, overlay_item_height = self.positive_overlay(
-                wall_bp)
+            overlay_x_loc, overlay_item_height = self.positive_overlay(wall_bp)
             has_overlay = overlay_x_loc != 0
             if scene_props.framing_height:
                 bheight_offset += self.build_height_dimension(
@@ -3367,9 +3366,11 @@ class SNAP_OT_Auto_Dimension(Operator):
     def has_positive_overlay(self, item):
         if not item.get("IS_BP_ASSEMBLY"):
             return False
+
         wall_length, item_length = math.inf, 0
         wall_assy = None
         wall_bp = sn_utils.get_wall_bp(item)
+
         if wall_bp:
             wall_assy = sn_types.Assembly(wall_bp)
             item_assy = sn_types.Assembly(item)
@@ -3377,7 +3378,19 @@ class SNAP_OT_Auto_Dimension(Operator):
                 return False
             wall_length = wall_assy.obj_x.location.x
             item_length = item_assy.obj_x.location.x
-        item_loc_x = item_assy.obj_bp.location.x
+
+        has_loc_constraint = False
+
+        for constraint in item_assy.obj_bp.constraints:
+            if constraint.type == 'COPY_LOCATION':
+                has_loc_constraint = True
+        
+        if has_loc_constraint:
+            item_loc_x = item_assy.obj_bp.location.x
+            item_loc_x = abs(item_loc_x)
+        else:
+            item_loc_x = item_assy.obj_bp.location.x
+
         negative_x_loc = item_loc_x < 0
         positive_x_dim = item_loc_x + item_length > wall_length
         if negative_x_loc or positive_x_dim:

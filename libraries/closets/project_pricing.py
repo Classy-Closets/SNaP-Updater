@@ -18,6 +18,7 @@ import xml.etree.ElementTree as ET
 import openpyxl
 import pandas
 import numpy
+import platform
 
 
 PRICING_PROPERTY_NAMESPACE = "sn_project_pricing"
@@ -857,18 +858,39 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                     or (PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Sub Front")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Back")==True and SKU_NUMBER.str.contains("EB")==False) \
-                                                                                    or (PART_NAME.str.contains("Drawer Bottom")==True)', engine='python')
+                                                                                    or (PART_NAME.str.contains("DrwrBox Bottom - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Bttm DT - BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side DT - BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back DT - BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front DT - BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - Mel")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- BB")==True) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - BB")==True)',
+                                                                                    engine='python')
 
             if df_drawers.shape[0] > 0:
-                drawers_summary = pandas.pivot_table(df_drawers, 
-                                                        index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'LINEAR_FT', 'PULL_DRILLING'], 
-                                                        values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
-                                                        aggfunc=[numpy.sum])
-                drawers_summary.to_excel(writer, sheet_name='Drawers Summary')
-                writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.center.text = "Drawers Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-                writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-                set_column_width(writer.sheets['Drawers Summary'])
+                drawers_summary = pandas.pivot_table(
+                    df_drawers,
+                    index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'LINEAR_FT', 'PULL_DRILLING'],
+                    values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
+                    aggfunc=[numpy.sum])
+
+                if not drawers_summary.empty:
+                    drawers_summary.to_excel(writer, sheet_name='Drawers Summary')
+                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.center.text = "Drawers Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                    set_column_width(writer.sheets['Drawers Summary'])
+                else:
+                    print("Drawers summary DataFrame is empty. Skipping writing to Excel.")
 
         if hardware_sheet is not None:
             df_hardware = pandas.read_excel(parts_file, sheet_name='Hardware')
@@ -951,11 +973,14 @@ def generate_retail_parts_list():
         if not os.path.exists(project_dir):
             print("Projects Directory does not exist")
     else:
-        cos_path = os.path.join(os.path.expanduser('~'), 'Cos_Pricing', 'Output')
+        if platform.system() == 'Windows':
+            cos_path = project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+        else:
+            cos_path = os.path.join('/home', 'ec2-user', 'Cos_Pricing', 'Output')
+
         if not os.path.exists(cos_path):
             os.makedirs(cos_path)
         parts_file = os.path.join(cos_path, "Retail_Pricing_Parts_List" + "(" + str(JOB_NUMBER) + ").xlsx")
-        # parts_file = "Retail_Pricing_Parts_List.xlsx"
 
     print("Creating Retail Pricing Summary...")
     generate_retail_pricing_summary(parts_file)
@@ -1613,7 +1638,11 @@ def generate_franchise_parts_list():
         if not os.path.exists(project_dir):
             print("Projects Directory does not exist")
     else:
-        cos_path = os.path.join(os.path.expanduser('~'), 'Cos_Pricing', 'Output')
+        if platform.system() == 'Windows':
+            cos_path = project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+        else:
+            cos_path = os.path.join('/home', 'ec2-user', 'Cos_Pricing', 'Output')
+
         if not os.path.exists(cos_path):
             os.makedirs(cos_path)
         parts_file = os.path.join(cos_path, "Franchise_Pricing_Parts_List" + "(" + str(JOB_NUMBER) + ").xlsx")

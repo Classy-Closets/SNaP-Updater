@@ -760,7 +760,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
     left_right_depth = sn_unit.inch(23)
 
     def create_dimensions(self):
-        create_dimensionss(self) # Call module level function to create/recreate door dim labels
+        create_dimensions(self) # Call module level function to create/recreate door dim labels
 
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door dim labels

@@ -7,8 +7,11 @@ from os import path
 from snap import sn_types, sn_unit, sn_utils
 from . import cabinet_properties
 from . import common_parts
+from . import frameless_exteriors
+from . import cabinet_interiors
 from snap.libraries.closets import closet_paths
 from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
+from . import cabinets
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
 LIBRARY_NAME = "Cabinets"
@@ -338,10 +341,11 @@ class Horizontal_Splitters(sn_types.Assembly):
         width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(index)))
         opening_width = eval("width_prompt.get_var(self.calculator.name, 'Opening_{}_Width')".format(str(index)))
         x_dim_expression = "Opening_" + str(index) + "_Width"
-        
+
         if insert:
             if not insert.obj_bp:
                 insert.draw()
+                print("insert.draw")
 
             insert.obj_bp.parent = self.obj_bp
             insert.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
@@ -495,7 +499,6 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
         super().confirm_placement(context)
 
         insert = sn_types.Assembly(self.insert.obj_bp)
-        # product_bp = sn_utils.get_parent_assembly_bp(self.insert.obj_bp)
         product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
 
         splitters = sn_utils.get_tagged_bp_list(product_bp, "IS_BP_SPLITTER", [])
@@ -505,13 +508,17 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
         if self.selected_opening.obj_bp['OPENING_NBR']:
                 insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
 
-        # opening_nbr = 1
         for obj_bp in insert.obj_bp.children:
             if "OPENING_NBR" in obj_bp:
                 obj_bp["SPLITTER_NBR"] = splitter_qty
-                # obj_bp["OPENING_NBR"] = str(splitter_qty) + "." + str(opening_nbr)
-                # opening_nbr += 1
 
+        product_assembly = cabinets.Standard(product_bp)
+        product_assembly.update_dimensions()
+
+    def finish(self, context):
+            super().finish(context)
+
+            return {'FINISHED'}
 
 bpy.utils.register_class(OPS_KB_Splitters_Drop)        
 #---------SPLITTER INSERTS        
@@ -613,3 +620,66 @@ class INSERT_1_Opening(Vertical_Splitters):
         self.width = sn_unit.inch(18)
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(23)
+
+class INSERT_1_Door_1_Drawer_Base_Combo(Vertical_Splitters):
+        
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        int_props = cabinet_properties.get_scene_props().interior_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = INSERT_SPLITTER_CATEGORY_NAME
+        self.assembly_name = "2 Vertical Openings"
+        self.vertical_openings = 2
+        self.width = sn_unit.inch(18)
+        self.height = sn_unit.inch(34)
+        self.depth = sn_unit.inch(23)
+
+        self.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
+        self.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
+        self.exterior_1.prompts = {'Half Overlay Bottom':True}
+        self.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
+        self.exterior_2.prompts = {'Half Overlay Top':True}
+        self.interior_2 = cabinet_interiors.INSERT_Shelves()
+        self.interior_2.shelf_qty = int_props.base_adj_shelf_qty
+
+class INSERT_2_Door_1_Drawer_Base_Combo(Vertical_Splitters):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        int_props = cabinet_properties.get_scene_props().interior_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = INSERT_SPLITTER_CATEGORY_NAME
+        self.assembly_name = "2 Vertical Openings"
+        self.vertical_openings = 2
+        self.width = sn_unit.inch(18)
+        self.height = sn_unit.inch(34)
+        self.depth = sn_unit.inch(23)
+
+        self.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
+        self.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
+        self.exterior_1.prompts = {'Half Overlay Bottom':True}
+        self.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior_2.prompts = {'Half Overlay Top':True}
+        self.interior_2 = cabinet_interiors.INSERT_Shelves()
+        self.interior_2.shelf_qty = int_props.base_adj_shelf_qty
+
+class INSERT_2_Door_2_Drawer_Base_Combo(Vertical_Splitters):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        int_props = cabinet_properties.get_scene_props().interior_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = INSERT_SPLITTER_CATEGORY_NAME
+        self.assembly_name = "2 Vertical Openings"
+        self.vertical_openings = 2
+        self.width = sn_unit.inch(18)
+        self.height = sn_unit.inch(34)
+        self.depth = sn_unit.inch(23)
+        
+        self.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
+        self.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
+        self.exterior_1.prompts = {'Half Overlay Bottom':True}
+        self.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior_2.prompts = {'Half Overlay Top':True}
+        self.interior_2 = cabinet_interiors.INSERT_Shelves()
+        self.interior_2.shelf_qty = int_props.base_adj_shelf_qty

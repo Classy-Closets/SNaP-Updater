@@ -61,14 +61,14 @@ AC-0000123,PULL BAR S BRSH NI 128MM 155.99.016,PULL BAR S BRSH NI 128MM 155.99.0
 AC-0000126,PULL CARMEL SS 96MM 107.18.612,PULL CARMEL SS 96MM 107.18.612,PULL CARMEL SS 96MM 107.18.612,0,AC Handle,1.12,1.29,3.25,0,EA,AC,HAFELE,107.18.612,4,1,0,0,0
 AC-0000127,PULL CARMEL SS 128MM 107.18.613,PULL CARMEL SS 128MM 107.18.613,PULL CARMEL SS 128MM 107.18.613,0,AC Handle,1.67,1.92,4.36,0,EA,AC,HAFELE,107.18.613,4,1,0,0,0
 AC-0000128,Pull NYLON White 96MM 116.71.100,Pull NYLON White 96MM 116.71.100,Pull NYLON White 96MM 116.71.100,0,AC Handle,0.22,0.25,1.44,0,EA,AC,HAFELE,116.71.100,4,1,0,0,0
-AC-0000129,Jewelry 21in Black,Jewelry 21in Black,Jewelry 21in Black,0,AC Jewelry,33.03,41.29,61.37,0,EA,AC,OCTOBER,CLA5106181301,4,1,0,0,0
-AC-0000130,Jewelry 21in Black Sliding,Jewelry 21in Black Sliding,Jewelry 21in Black Sliding,0,AC Jewelry,55.01,68.76,101.21,0,EA,AC,OCTOBER,CLAAT200-1806-02,4,1,0,0,0
-AC-0000131,Jewelry 21in Maroon,Jewelry 21in Maroon,Jewelry 21in Maroon,0,AC Jewelry,33.03,41.29,61.37,0,EA,AC,OCTOBER,CLA5136181301,4,1,0,0,0
-AC-0000132,Jewelry 21in Maroon Sliding,Jewelry 21in Maroon Sliding,Jewelry 21in Maroon Sliding,0,AC Jewelry,55.01,68.76,101.21,0,EA,AC,OCTOBER,CLAAT200-1806-01,4,1,0,0,0
-AC-0000133,Jewelry 24in Black,Jewelry 24in Black,Jewelry 24in Black,0,AC Jewelry,34.32,42.9,63.71,0,EA,AC,OCTOBER,CLA5106211301,4,1,0,0,0
-AC-0000134,Jewelry 24in Black Sliding,Jewelry 24in Black Sliding,Jewelry 24in Black Sliding,0,AC Jewelry,61.87,77.34,113.64,0,EA,AC,OCTOBER,CLAAT200210606,4,1,0,0,0
-AC-0000135,Jewelry 24in Maroon,Jewelry 24in Maroon,Jewelry 24in Maroon,0,AC Jewelry,34.32,42.9,63.71,0,EA,AC,OCTOBER,CLA5136211301,4,1,0,0,0
-AC-0000136,Jewelry 24in Maroon Sliding,Jewelry 24in Maroon Sliding,Jewelry 24in Maroon Sliding,0,AC Jewelry,61.87,77.34,113.64,0,EA,AC,OCTOBER,OCTAT200210605,4,1,0,0,0
+AC-0000129,Jewelry 21in Black,Jewelry 21in Black,Jewelry 21in Black,0,AC Jewelry,38.74,48.43,71.72,0,EA,AC,OCTOBER,CLA5106181301,4,1,0,0,0
+AC-0000130,Jewelry 21in Black Sliding,Jewelry 21in Black Sliding,Jewelry 21in Black Sliding,0,AC Jewelry,59.74,74.68,109.79,0,EA,AC,OCTOBER,CLAAT200-1806-02,4,1,0,0,0
+AC-0000131,Jewelry 21in Maroon,Jewelry 21in Maroon,Jewelry 21in Maroon,0,AC Jewelry,38.74,48.43,71.72,0,EA,AC,OCTOBER,CLA5136181301,4,1,0,0,0
+AC-0000132,Jewelry 21in Maroon Sliding,Jewelry 21in Maroon Sliding,Jewelry 21in Maroon Sliding,0,AC Jewelry,59.74,74.68,109.79,0,EA,AC,OCTOBER,CLAAT200-1806-01,4,1,0,0,0
+AC-0000133,Jewelry 24in Black,Jewelry 24in Black,Jewelry 24in Black,0,AC Jewelry,38.74,48.43,71.72,0,EA,AC,OCTOBER,CLA5106211301,4,1,0,0,0
+AC-0000134,Jewelry 24in Black Sliding,Jewelry 24in Black Sliding,Jewelry 24in Black Sliding,0,AC Jewelry,59.74,74.68,109.79,0,EA,AC,OCTOBER,CLAAT200210606,4,1,0,0,0
+AC-0000135,Jewelry 24in Maroon,Jewelry 24in Maroon,Jewelry 24in Maroon,0,AC Jewelry,38.74,48.43,71.72,0,EA,AC,OCTOBER,CLA5136211301,4,1,0,0,0
+AC-0000136,Jewelry 24in Maroon Sliding,Jewelry 24in Maroon Sliding,Jewelry 24in Maroon Sliding,0,AC Jewelry,59.74,74.68,109.79,0,EA,AC,OCTOBER,OCTAT200210605,4,1,0,0,0
 AC-0000137,Jewelry 21in Lucite,Jewelry 21in Lucite,Jewelry 21in Lucite,0,AC Jewelry,40,50,74,0,EA,AC,PLASTIC,0,4,1,0,0,0
 AC-0000138,Jewelry 24in Lucite,Jewelry 24in Lucite,Jewelry 24in Lucite,0,AC Jewelry,45,56.25,83.06,0,EA,AC,PACIFIC,0,4,1,0,0,0
 AC-0000139,"Synergy Belt ORB 12""","Synergy Belt ORB 12""",Synergy Belt ORB 12in,0,AC Closet Add,21.03,24.18,46.32,SYNERGY,EA,AC,HAFELE,807.54.330,4,1,0,0,0
@@ -1282,7 +1282,7 @@ PM-0000553,SALT Rustic Oak250 1/4,SALT Rustic Oak250,S Rustic Oak,yes,PM Thermo,
 PM-0000567,Bankers Grey 750,Bankers Grey ,Iron Mountain,yes,PM Thermo,2.133,4.55,19.11,PANOLAM,SF,PM,SPELLMAN,0,2,0.75,2,114075,0
 PM-0000568,Calypso 3/4,CALYPSO,Birchwood Breeze (Calypso) Δ,no,PM Thermo,2.029,4.43,18.87,0,SF,PM,SPELLMAN,0,2,0.75,3,117021,0
 PM-0000576,SALT LAKESHORE OAK 3/4,SALT Lakeshore Oak,S Lakeshore Oak,no,PM Thermo,4.453,7.22,24.44,SALT,SF,PM,PETERMANLUMBER,GSDF4,2,0.75,15150,164000,0
-PM-0000577,SALT Antricite Linen 750,SALT Antricite Linen ,Midnight Shadows,yes,PM Thermo,3.094,5.66,21.32,SALT,SF,PM,PETERMAN,GSX7R,2,0.75,6,164001,0
+PM-0000577,SALT Antracite Linen 750,SALT Antracite Linen 750,Midnight Shadows,yes,PM Thermo,3.094,5.66,21.32,SALT,SF,PM,PETERMAN,GSX7R,2,0.75,6,164001,0
 PM-0000581,SALT Canyon Bleach 3/4,SALT Canyon Bleach,S Canyon Bleach,yes,PM Thermo,4.453,7.22,24.44,SALT,SF,PM,PETERMANLUMBER,GSD23,2,0.75,15150,164010,0
 PM-0000594,SALT Maranello 3/4,SALT Maranello,S Maranello,no,PM Thermo,4.453,7.22,24.44,SALT,SF,PM,PETERMANLUMBER,GS61M,2,0.75,15150,164041,0
 PM-0000600,SALT Palisandro Azuro 3/4,SALT Palisandro Azuro,S Palisandro Azuro,yes,PM Thermo,4.453,7.22,24.44,SALT,SF,PM,PETERMANLUMBER,GSDF8,2,0.75,15150,164120,0
@@ -1308,7 +1308,7 @@ PM-0000639,CL Cool Grey Linen 3/4,M Cool Grey Linen,CL Cool Grey Linen,yes,PM Th
 PM-0000644,U Mistral 250,U Mistral250,Wheat Field,yes,PM Thermo,2.457,4.93,19.85,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10250,167013,0
 PM-0000645,U Monaco 250,U Monaco 250,Dark Walnut,yes,PM Thermo,2.457,4.93,19.85,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10250,167014,0
 PM-0000646,U Nova White Rio 250,U Nova White Rio 250,Whisper White,yes,PM Thermo,1.502,3.83,17.65,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10250,167017,0
-PM-0000649,SALT Antricite Linen 250,SALT Antricite Linen 250,Midnight Shadows,yes,PM Thermo,2.422,4.89,19.77,SALT,SF,PM,PETERMAN,0,2,0.25,10250,164001,0
+PM-0000649,SALT Antracite Linen 250,SALT Antracite Linen 250,Midnight Shadows,yes,PM Thermo,2.422,4.89,19.77,SALT,SF,PM,PETERMAN,0,2,0.25,10250,164001,0
 PM-0000654,U Mistral 750,U Mistral 750,Wheat Field,yes,PM Thermo,2.514,4.99,19.98,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,5,167013,0
 PM-0000655,U Monaco 750,U Monaco,Dark Walnut,yes,PM Thermo,2.514,4.99,19.98,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,5,167014,0
 PM-0000656,U Nova White Rio 750,U Nova White Rio 750,Whisper White,yes,PM Thermo,1.802,4.17,18.34,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,4,167017,0
@@ -1383,6 +1383,7 @@ QZ-0000014,Carrick,Carrick,Carrick,0,0,47.78,73.56,85.91,Cambria ,SF,QZ,Cambria 
 QZ-0000015,Annicca,Annicca,Annicca,0,0,49.91,75.9,88.49,Cambria ,SF,QZ,Cambria ,0,11,0.787,0,0,0
 QZ-0000016,Wodan,Wodan,Wodan,0,0,17.7,40.47,49.52,Diresco,SF,QZ,Diresco,0,11,0.787,0,0,0
 QZ-0000017,Ares,Ares,Ares,0,0,17.7,40.47,49.52,Diresco,SF,QZ,Diresco,0,11,0.787,0,0,0
+QZ-0000018,Sereno Gold,Sereno Gold,Sereno Gold,0,0,35.26,59.79,70.76,Vadara,SF,QZ,SPELLMAN,0,11,0.787,0,0,0
 SN-0000001,Afternoon Showers ST,Afternoon Showers,Afternoon Showers,yes,Stain,0.215,1,5.74,STAIN,SF,S,LOUIS,L_CAZ02698_1,0,1,0,0,0
 SN-0000002,Alive In Memphis ST,Alive In Memphis ST,Alive In Memphis ST,yes,Stain,0.25,1.04,5.85,STAIN,SF,S,LOUIS,L_CAZ02894_1,0,1,0,0,0
 SN-0000003,Arbor Myrtle ST,Arbor Myrtle,Sugar Maple,yes,Stain,0.228,1.01,5.78,STAIN,SF,S,LOUIS,L_CAZ02292_1,0,1,0,0,0

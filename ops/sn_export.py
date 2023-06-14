@@ -3192,8 +3192,8 @@ class OPS_Export_XML(Operator):
             edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)            
 
         if "Cleat" in part_name:
-            edge_1 = "1L"
-            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+            edge_2 = "1L"
+            edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
         edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_edge_sku(obj, assembly, part_name), display_name=False)
         secondary_edge_color_name = closet_materials.get_edge_inventory_name(closet_materials.get_secondary_edge_sku(obj, assembly, part_name), display_name=False)
@@ -3325,7 +3325,8 @@ class OPS_Export_XML(Operator):
                     if nchild.snap.type_mesh == 'CUTPART':
                         if not nchild.hide_viewport:
                             backing_assembly = sn_types.Assembly(child)
-                            if abs(sn_unit.meter_to_inch(backing_assembly.obj_z.location.z)) == 0.75:
+                            
+                            if (abs(sn_unit.meter_to_inch(backing_assembly.obj_z.location.z))) == 0.75 and (not sn_utils.get_closet_bp(child).get("IS_BP_ISLAND")):
                                 self.backing_assembly = backing_assembly
                                 self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
                                 self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
@@ -4450,15 +4451,21 @@ class OPS_Export_XML(Operator):
 
                     if "IS_BP_ISLAND_PANEL" in assembly.obj_bp or is_kd_shelf:
                         if math.isclose(abs(assembly.obj_bp.rotation_euler.y), math.pi/2, rel_tol=1e-5):
-                            edge_1 = "L1"
-                            edge_3 = "L2"
+                            if "IS_BP_ISLAND_PANEL" in assembly.obj_bp and abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y):
+                                edge_1 = "S1"
+                                edge_3 = "S2"
+                                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            else:
+                                edge_2 = "L1"
+                                edge_4 = "L2"
+                                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        else:
+                            edge_1 = "S1"
+                            edge_3 = "S2"
                             edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                             edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                        else:
-                            edge_2 = "S1"
-                            edge_4 = "S2"
-                            edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                            edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 else:
                     if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
                         edge_2 = "L1"
@@ -4882,51 +4889,32 @@ class OPS_Export_XML(Operator):
                         l_assembly_end_cond = l_assembly_end_cond_prompt.get_value()
                         r_assembly_end_cond = r_assembly_end_cond_prompt.get_value()
                     if(l_assembly_end_cond and r_assembly_end_cond):
-                        if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
-                            edge_1 = "S1"
-                            edge_2 = "L1"
-                            edge_3 = "S2"
-                            edge_4 = "L2"
-                        else:
-                            edge_1 = "L1"
-                            edge_2 = "S1"
-                            edge_3 = "L2"
-                            edge_4 = "S2"
+                        edge_1 = "S1"
+                        edge_2 = "L1"
+                        edge_3 = "S2"
+                        edge_4 = "L2"
                         edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                     elif(l_assembly_end_cond == False and r_assembly_end_cond):
-                        if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
-                            edge_2 = "L1"
-                            edge_3 = "S2"
-                            edge_4 = "L2"
-                        else:
-                            edge_2 = "S1"
-                            edge_3 = "L2"
-                            edge_4 = "S2"
+                        edge_1 = "S1"
+                        edge_2 = "L1"
+                        edge_3 = "S2"
+                        edge_4 = "L2"
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                        edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                     elif(l_assembly_end_cond and r_assembly_end_cond == False):
-                        if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
-                            edge_1 = "S1"
-                            edge_2 = "L1"
-                            edge_4 = "L2"
-                        else:
-                            edge_1 = "L1"
-                            edge_2 = "S1"
-                            edge_4 = "S2"
+                        edge_1 = "S1"
+                        edge_2 = "L1"
+                        edge_4 = "L2"
                         edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                     else:
-                        if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
-                            edge_2 = "L1"
-                            edge_4 = "L2"
-                        else:
-                            edge_2 = "S1"
-                            edge_4 = "S2"
+                        edge_2 = "L1"
+                        edge_4 = "L2"
                         edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 else:
@@ -5037,21 +5025,23 @@ class OPS_Export_XML(Operator):
                         # If the Toe Kick is Attached to an Island
                         if(obj.parent.parent and obj.parent.parent.sn_closets.is_island):
                             if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
-                                edge_2 = "S1"
-                                edge_4 = "S2"
-                                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                                
-                            else:
-                                edge_1 = "L1"
-                                edge_3 = "L2"
+                                edge_1 = "S1"
+                                edge_3 = "S2"
                                 edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                                
+                            else:
+                                edge_2 = "L1"
+                                edge_4 = "L2"
+                                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                         else:                          
                             if(abs(assembly.obj_x.location.x)<abs(assembly.obj_y.location.y)):
-                                edge_2 = "S1"
+                                edge_1 = "S1"
+                                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                             else:
-                                edge_1 = "L1"
-                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                edge_2 = "L1"
+                                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            
 
             #Flat Crown
             if "IS_BP_FLAT_CROWN" in assembly.obj_bp:
@@ -5092,10 +5082,10 @@ class OPS_Export_XML(Operator):
 
             # Island capping back
             if "IS_BP_CAPPING_BACK" in assembly.obj_bp:
-                edge_1 = "L1"
-                edge_2 = "S1"
-                edge_3 = "L2"
-                edge_4 = "S2"
+                edge_1 = "S1"
+                edge_2 = "L1"
+                edge_3 = "S2"
+                edge_4 = "L2"
                 edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
@@ -5108,8 +5098,8 @@ class OPS_Export_XML(Operator):
 
             # Wallbed parts
             if "IS_BP_WALLBED_SUPPORT" in assembly.obj_bp:
-                edge_1 = "1L"
-                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                edge_2 = "1L"
+                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             if "IS_BP_WALLBED_FACIA" in assembly.obj_bp:
                 edge_2 = "L1"

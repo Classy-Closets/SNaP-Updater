@@ -40,6 +40,10 @@ def draw_carcass_options(self, carcass,layout):
     cabinet_depth_left = carcass.get_prompt("Cabinet Depth Left")
     cabinet_depth_right = carcass.get_prompt("Cabinet Depth Right")
 
+    product = sn_types.Assembly(carcass.obj_bp.parent)
+    blind_panel_width = product.get_prompt('Blind Panel Width')
+    blind_panel_reveal = product.get_prompt('Blind Panel Reveal')
+
     carcass_type = carcass.obj_bp.get('CARCASS_TYPE')
 
     # SIDE OPTIONS:
@@ -51,6 +55,15 @@ def draw_carcass_options(self, carcass,layout):
             row = col.row()
             row.prop(left_wall_filler,'distance_value',text="Left Filler Amount")
             row.prop(right_wall_filler,'distance_value',text="Right Filler Amount")
+
+    # BLIND CORNER OPTIONS
+    if blind_panel_width:
+        col = layout.column(align=True)
+        col.label(text="Blind Panel Options:")
+        row = col.row()
+        row.prop(blind_panel_width,'distance_value',text="Blind Panel Width")
+        row.label(text=" ")
+        # row.prop(blind_panel_reveal,'distance_value',text="Blind Panel Reveal")
     
     # CARCASS OPTIONS:
     col = layout.column(align=True)
@@ -221,6 +234,8 @@ def draw_countertop_options(ctop,product,layout):
     Add_Right_Backsplash = ctop.get_prompt("Add Right Backsplash")
     Add_Left_Rear_Backsplash = ctop.get_prompt("Add Left Rear Backsplash")
     Add_Right_Rear_Backsplash = ctop.get_prompt("Add Right Rear Backsplash")
+    Side_Splash_Setback = ctop.get_prompt('Side Splash Setback')
+    Splash_Height = ctop.get_prompt('Splash Height')
     Add_Left_Waterfall = ctop.get_prompt("Add Left Waterfall")
     Add_Right_Waterfall = ctop.get_prompt("Add Right Waterfall")
 
@@ -234,41 +249,12 @@ def draw_countertop_options(ctop,product,layout):
     Countertop_Overhang_Right = product.get_prompt("Countertop Overhang Right")
   
     box = layout.box()
-    col = box.column(align=True)
-    col.label(text="Countertop Options:")
-
-    if Add_Backsplash:
-        row = col.row(align=True)
-        row.prop(Add_Backsplash,'checkbox_value',text="")
-        row.label(text="Add Back Splash")
-    
-    if Add_Left_Backsplash and Add_Right_Backsplash:
-        if Add_Left_Backsplash:
-            row = col.row(align=True)
-            row.prop(Add_Left_Backsplash,'checkbox_value',text="")            
-            row.label(text="Add Left Splash")
-            row.prop(Add_Right_Backsplash,'checkbox_value',text="")            
-            row.label(text="Add Right Splash")
-        
-        if Add_Left_Rear_Backsplash:
-            row = col.row(align=True)
-            row.prop(Add_Left_Rear_Backsplash,'checkbox_value',text="")            
-            row.label(text="Add Left Rear Splash")
-            row.prop(Add_Right_Rear_Backsplash,'checkbox_value',text="")   
-            row.label(text="Add Right Rear Splash")
-    
-    if Add_Left_Waterfall:
-            row = col.row(align=True)
-            row.prop(Add_Left_Waterfall,'checkbox_value',text="")            
-            row.label(text="Add Left Waterfall")
-            row.prop(Add_Right_Waterfall,'checkbox_value',text="")            
-            row.label(text="Add Right Waterfall")
-    
-
+    # col = box.column(align=True)
+    # col.label(text="Countertop Options:")
 
     if Countertop_Overhang_Left:
         col = box.column(align=False)
-        col.label(text="Overhang:")
+        col.label(text="Countertop Overhang:")
 
         if Countertop_Overhang_Front:
             row_1 = col.row(align=True)
@@ -293,6 +279,46 @@ def draw_countertop_options(ctop,product,layout):
             row_3.label(text=" ")
         else:
             row_3.prop(Countertop_Overhang_Right,'distance_value',text="Right")
+
+    if Add_Backsplash or Add_Left_Backsplash or Add_Right_Backsplash:
+        col = box.column(align=False)
+        col.label(text="Countertop Backsplash:")
+
+        if Add_Backsplash:
+            row = col.row(align=True)
+            row.prop(Add_Backsplash,'checkbox_value',text="")
+            row.label(text="Add Back Splash")
+        
+        if Add_Left_Backsplash:
+            row = col.row(align=True)
+            row.prop(Add_Left_Backsplash,'checkbox_value',text="")            
+            row.label(text="Add Left Splash")
+            row.prop(Add_Right_Backsplash,'checkbox_value',text="")            
+            row.label(text="Add Right Splash")
+        
+        if Add_Left_Rear_Backsplash:
+            row = col.row(align=True)
+            row.prop(Add_Left_Rear_Backsplash,'checkbox_value',text="")            
+            row.label(text="Add Left Rear Splash")
+            row.prop(Add_Right_Rear_Backsplash,'checkbox_value',text="")   
+            row.label(text="Add Right Rear Splash")
+
+        row_1 = col.row(align=True)
+        row_1.prop(Splash_Height,'distance_value',text="Height")
+        if Add_Left_Backsplash and Add_Left_Backsplash.get_value() or Add_Right_Backsplash and Add_Right_Backsplash.get_value():
+            row_1.prop(Side_Splash_Setback,'distance_value',text="Setback")
+        else:
+            row_1.label(text="")
+
+
+    if Add_Left_Waterfall:
+        col = box.column(align=False)
+        col.label(text="Countertop Waterfall:")
+        row = col.row(align=True)
+        row.prop(Add_Left_Waterfall,'checkbox_value',text="")            
+        row.label(text="Add Left Waterfall")
+        row.prop(Add_Right_Waterfall,'checkbox_value',text="")            
+        row.label(text="Add Right Waterfall")
 
 def draw_door_options(self,door,layout):
     open_door = door.get_prompt('Open Door')
@@ -367,7 +393,9 @@ def draw_drawer_options(self, drawers,layout):
         row.prop(half_overlay_right,'checkbox_value',text="Right")
     
     calculator = drawers.get_calculator('Vertical Drawers Calculator')
-    df_2_height = calculator.get_calculator_prompt('Drawer Front 2 Height')
+    df_2_height = None
+    if drawers.obj_bp.get('VERTICAL_DRAWERS'):
+        df_2_height = calculator.get_calculator_prompt('Drawer Front 2 Height')
     drawer_front_heights = get_drawer_front_heights()
 
     if df_2_height:
@@ -2002,15 +2030,14 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                             label = child.name
                         elif child.get('PLACEMENT_TYPE') == "Interior" and label == "Empty":
                             label = child.name
-            if label.find(".") > 0:
-                label = label[:-4]
-
             splitter = None
             for splitter_bp in self.island_splitters:
                 if splitter_bp.get("OPENING_NBR") == opening_bp.get("OPENING_NBR"):
                     splitter = sn_types.Assembly(splitter_bp)
                     label = splitter_bp.name
                     break
+            if label.find(".") > 0:
+                label = label[:-4]    
 
             calculator = self.carcass.get_calculator("Front Row Widths Calculator")
             if calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width"):
