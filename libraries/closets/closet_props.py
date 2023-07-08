@@ -959,9 +959,17 @@ class Closet_Defaults(PropertyGroup):
 
     def draw_construction_defaults(self, layout):
         main_col = layout.column(align=True)
+        closet_machining = bpy.context.scene.closet_machining
+        snap_prefs = bpy.context.preferences.addons['snap'].preferences
 
         box = main_col.box()
         box.label(text="General Construction Options:", icon='MODIFIER')
+
+        if snap_prefs.enable_drill_dia_options:
+            row = box.row()
+            row.label(text="Drill Diameter:")
+            row.prop(closet_machining, 'system_hole_dia_options', text="")
+
         row = box.row()
         row.label(text="Show Partition Drilling:")
         row.prop(self, 'show_panel_drilling', text="")

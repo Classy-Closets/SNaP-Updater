@@ -11,7 +11,7 @@ from . import frameless_exteriors
 from . import cabinet_interiors
 from snap.libraries.closets import closet_paths
 from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
-from . import cabinets
+from . import cabinet_interface
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
 LIBRARY_NAME = "Cabinets"
@@ -20,6 +20,42 @@ INSERT_SPLITTER_CATEGORY_NAME = "Starter Splitters"
 ROOT_DIR = path.dirname(__file__)
 PART_WITH_EDGEBANDING = path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
 
+def add_opening_width_dimension(opening):
+    Width = opening.obj_x.snap.get_var('location.x','Width')
+    Height = opening.obj_y.snap.get_var('location.y','Height')
+
+    for child in opening.obj_bp.children:
+        if child.get('OPENING_WIDTH_LABEL'):
+            sn_utils.delete_object_and_children(child)
+    
+    dim = sn_types.Dimension()
+    dim.anchor["IS_KB_LABEL"] = True
+    dim.anchor["OPENING_WIDTH_LABEL"] = True
+    dim.parent(opening.obj_bp)
+    dim.start_x("Width*0.5", [Width])
+    dim.start_y("Height*0.5", [Height])
+    dim.start_z("INCH(1.0)")
+    dim.set_label("")
+
+def create_dimensionss(splitter):
+    for child in splitter.obj_bp.children:
+        if 'IS_BP_OPENING' in child:
+            opening = sn_types.Assembly(child)
+            add_opening_width_dimension(opening)
+
+def update_dimensions(splitter):
+    dimensions = []
+    
+    for child in splitter.obj_bp.children:
+        if 'IS_BP_OPENING' in child:
+            for nchild in child.children:
+                if 'OPENING_WIDTH_LABEL' in nchild:
+                    dimensions.append(nchild)
+
+    for anchor in dimensions:
+        assembly = sn_types.Assembly(anchor.parent)
+        width = math.fabs(sn_unit.meter_to_inch(assembly.obj_x.location.x))
+        anchor.snap.opengl_dim.gl_label = str(round(width, 2)) + '\"'
 
 def get_splitter_count(product):
     count = 0
@@ -29,7 +65,6 @@ def get_splitter_count(product):
     if splitters:
         count = len(splitters)
         
-    print("get_splitter_count.splitter_count=" + str(count))    
     return count + 1
 
 class Vertical_Splitters(sn_types.Assembly):
@@ -260,6 +295,7 @@ class Vertical_Splitters(sn_types.Assembly):
 
         self.splitter_nbr = get_splitter_count(self)
         self.obj_bp['IS_BP_SPLITTER'] = True
+        self.obj_bp['IS_BP_VERTICAL_SPLITTER'] = True
         self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
         self.obj_bp['PLACEMENT_TYPE'] = "Splitter"
         self.add_splitters()
@@ -277,7 +313,6 @@ class Horizontal_Splitters(sn_types.Assembly):
     placement_type = "SPLITTER"
     show_in_library = True
     id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
-    # drop_id = "sn_closets.drop_insert"
     drop_id = "lm_cabinets.insert_splitters_drop"
     
     mirror_y = False
@@ -323,17 +358,19 @@ class Horizontal_Splitters(sn_types.Assembly):
     interior_11 = None
     exterior_11 = None
     
+    def create_dimensions(self):
+        create_dimensionss(self) # Call module level function to create/recreate splitter opening dim labels
+
+    def update_dimensions(self):
+        update_dimensions(self)  # Call module level function to find and update splitter opening dim labels
+
     def add_prompts(self):
-        
         for i in range(1,self.horizontal_openings+1):
             size = eval("self.opening_" + str(i) + "_width")
             self.add_prompt("Opening " + str(i) + " Width", 'DISTANCE', size, True if size == 0 else False)
     
         self.add_prompt("Thickness", 'DISTANCE', sn_unit.inch(.75))
         self.add_prompt("Opening Quantity", 'QUANTITY', self.horizontal_openings)
-        
-        # Thickness = self.get_prompts('Thickness').get_var()
-        # self.calculator_deduction("Thickness*(" + str(self.horizontal_openings) +"-1)",[Thickness])
         
     def add_insert(self,insert,index,x_loc_vars=[],x_loc_expression="", opening_nbr=""):
         Height = self.obj_z.snap.get_var("location.z","Height")
@@ -345,8 +382,8 @@ class Horizontal_Splitters(sn_types.Assembly):
         if insert:
             if not insert.obj_bp:
                 insert.draw()
-                print("insert.draw")
-
+            if insert.obj_bp.get("IS_BP_OPENING"):
+                add_opening_width_dimension(insert)
             insert.obj_bp.parent = self.obj_bp
             insert.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
             insert.obj_bp['OPENING_NBR'] = opening_nbr    
@@ -358,6 +395,17 @@ class Horizontal_Splitters(sn_types.Assembly):
             insert.dim_x(x_dim_expression, [opening_width])
             insert.dim_y('Depth',[Depth])
             insert.dim_z('Height',[Height])
+   
+            half_overlay_left_ppt = insert.get_prompt("Half Overlay Left")
+            half_overlay_right_ppt = insert.get_prompt("Half Overlay Right")
+            if self.horizontal_openings > 1 and half_overlay_left_ppt and half_overlay_right_ppt:
+                if opening_nbr == 1:
+                    insert.get_prompt('Half Overlay Right').set_value(True)
+                elif opening_nbr == self.horizontal_openings:
+                    insert.get_prompt('Half Overlay Left').set_value(True)
+                else:
+                    insert.get_prompt('Half Overlay Right').set_value(True)
+                    insert.get_prompt('Half Overlay Left').set_value(True)
         
     def get_opening(self,index):
         opening = self.add_opening()
@@ -480,6 +528,7 @@ class Horizontal_Splitters(sn_types.Assembly):
         
         self.splitter_nbr = get_splitter_count(self)
         self.obj_bp['IS_BP_SPLITTER'] = True
+        self.obj_bp['IS_BP_HORIZONTAL_SPLITTER'] = True
         self.obj_bp['SPLITTER_NBR'] = self.splitter_nbr
         self.obj_bp['PLACEMENT_TYPE'] = "Splitter"
         self.add_splitters()
@@ -512,8 +561,7 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
             if "OPENING_NBR" in obj_bp:
                 obj_bp["SPLITTER_NBR"] = splitter_qty
 
-        product_assembly = cabinets.Standard(product_bp)
-        product_assembly.update_dimensions()
+        cabinet_interface.update_product_dimensions(product_bp)
 
     def finish(self, context):
             super().finish(context)

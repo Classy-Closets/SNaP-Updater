@@ -260,25 +260,39 @@ class Query_PDF_Form_Data:
             doors, drawers, hampers = val["door"], val["drawer"], val["hamper"]
 
             for pull, qty in doors.items():
-                if self.data_dict[page]["door_hardware_qty"] != '':
-                    self.data_dict[page]["door_hardware_qty"] += ' / '
-                    self.data_dict[page]["door_hardware"] += ' / '
-                self.data_dict[page]["door_hardware_qty"] += str(qty)
-                self.data_dict[page]["door_hardware"] += self.get_pull_label(pull)
+                if '/' in self.data_dict[page]["door_hardware_qty"]:
+                    if self.data_dict[page]["more_door_hardware_qty"] != '':
+                        self.data_dict[page]["more_door_hardware_qty"] += '/'
+                        self.data_dict[page]["more_door_hardware"] += ' / '
+                    self.data_dict[page]["more_door_hardware_qty"] += str(qty)
+                    self.data_dict[page]["more_door_hardware"] += self.get_pull_label(pull)
+                else:
+                    if self.data_dict[page]["door_hardware_qty"] != '':
+                        self.data_dict[page]["door_hardware_qty"] += '/'
+                        self.data_dict[page]["door_hardware"] += ' / '
+                    self.data_dict[page]["door_hardware_qty"] += str(qty)
+                    self.data_dict[page]["door_hardware"] += self.get_pull_label(pull)
 
             for pull, qty in hampers.items():
                 if self.data_dict[page]["hamper_hardware_qty"] != '':
-                    self.data_dict[page]["hamper_hardware_qty"] += ' / '
+                    self.data_dict[page]["hamper_hardware_qty"] += '/'
                     self.data_dict[page]["hamper_hardware"] += ' / '
                 self.data_dict[page]["hamper_hardware_qty"] += str(qty)
                 self.data_dict[page]["hamper_hardware"] += self.get_pull_label(pull)
 
             for pull, qty in drawers.items():
-                if self.data_dict[page]["drawer_hardware_qty"] != '':
-                    self.data_dict[page]["drawer_hardware_qty"] += ' / '
-                    self.data_dict[page]["drawer_hardware"] += ' / '
-                self.data_dict[page]["drawer_hardware_qty"] += str(qty)
-                self.data_dict[page]["drawer_hardware"] += self.get_pull_label(pull)
+                if '/' in self.data_dict[page]["drawer_hardware_qty"]:
+                    if self.data_dict[page]["more_drawer_hardware_qty"] != '':
+                        self.data_dict[page]["more_drawer_hardware_qty"] += '/'
+                        self.data_dict[page]["more_drawer_hardware"] += ' / '
+                    self.data_dict[page]["more_drawer_hardware_qty"] += str(qty)
+                    self.data_dict[page]["more_drawer_hardware"] += self.get_pull_label(pull)
+                else:
+                    if self.data_dict[page]["drawer_hardware_qty"] != '':
+                        self.data_dict[page]["drawer_hardware_qty"] += '/'
+                        self.data_dict[page]["drawer_hardware"] += ' / '
+                    self.data_dict[page]["drawer_hardware_qty"] += str(qty)
+                    self.data_dict[page]["drawer_hardware"] += self.get_pull_label(pull)
 
     def __fill_garage_legs(self):
         for page, pg_data in self.page_walls_dict.items():
@@ -893,6 +907,8 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["file_rails"] = ''
         self.data_dict[page]["drawer_hardware_qty"] = ''
         self.data_dict[page]["drawer_hardware"] = ''
+        self.data_dict[page]["more_drawer_hardware_qty"] = ''
+        self.data_dict[page]["more_drawer_hardware"] = ''
         self.data_dict[page]["drawer_lock_qty"] = ''
         self.data_dict[page]["lock_hardware"] = ''
 
@@ -1259,6 +1275,8 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["hinge"] = ""
         self.data_dict[page]["door_hardware_qty"] = ""
         self.data_dict[page]["door_hardware"] = ""
+        self.data_dict[page]["more_door_hardware_qty"] = ""
+        self.data_dict[page]["more_door_hardware"] = ""
         self.data_dict[page]["hamper_face_qty"] = hampers_doors["hamper_face_qty"]
         self.data_dict[page]["hamper_face"] = hampers_doors["hamper_face"]
         self.data_dict[page]["hamper_hardware_qty"] = ""

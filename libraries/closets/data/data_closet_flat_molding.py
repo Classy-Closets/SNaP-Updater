@@ -108,6 +108,7 @@ class Flat_Molding(sn_types.Assembly):
                 flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Left', [Exposed_Left])
                 flat_crown.get_prompt('Exposed Left').set_formula('Exposed_Right', [Exposed_Right])
                 flat_crown.get_prompt('Exposed Back').set_formula('Exposed_Back', [Exposed_Back])
+                flat_crown.get_prompt('Exposed Front').set_value(True)
         
         if hasattr(self, "flat_molding_type"):
             if self.flat_molding_type == "LIGHT RAIL":

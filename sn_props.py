@@ -466,30 +466,35 @@ class Calculator(PropertyGroup):
 
                 self.id_data.location = self.id_data.location
 
+
 class accordion_view(PropertyGroup):
 
-    break_width: IntProperty(name="Break Accordions Width",
-                             description="When accordions are bigger than this value in inches they will be splitted",
-                             default=450,
-                             min=40,
-                             max=10000)
-    
-    enable_intermediate_walls: BoolProperty(name="Enable Intermediate Walls",
-                                            description="when enabled, empty walls can be included on Accordions",
-                                            default=True)
+    break_width: IntProperty(
+        name="Break Accordions Width",
+        description="When accordions are bigger than this value in inches they will be splitted",
+        default=450,
+        min=40,
+        max=10000)
 
-    intermediate_space: IntProperty(name="Intermediate Wall Space",
-                                    description="Empty walls within this width will be included on Accordions",
-                                    default=24,
-                                    min=2,
-                                    max=1500)
+    enable_intermediate_walls: BoolProperty(
+        name="Enable Intermediate Walls",
+        description="when enabled, empty walls can be included on Accordions",
+        default=True)
 
-    intermediate_qty: IntProperty(name="Intermediate Walls Quantity",
-                                  description="Set the quantity of sequential empty walls to be added on Accordions",
-                                  default=2,
-                                  min=1,
-                                  max=26)
-    
+    intermediate_space: IntProperty(
+        name="Intermediate Wall Space",
+        description="Empty walls within this width will be included on Accordions",
+        default=24,
+        min=2,
+        max=1500)
+
+    intermediate_qty: IntProperty(
+        name="Intermediate Walls Quantity",
+        description="Set the quantity of sequential empty walls to be added on Accordions",
+        default=2,
+        min=1,
+        max=26)
+
 
 class opengl_dim(PropertyGroup):
 
@@ -2002,6 +2007,11 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         name="Default CSV Filepath",
         subtype='FILE_PATH',
         default=sn_paths.CSV_PATH)
+    
+    enable_drill_dia_options: BoolProperty(
+        name="Enable Drilling Diameter Options",
+        description="Enables drilling diameter options (Room Defaults > Construction Options)",
+        default=False)
 
     enable_franchise_pricing: BoolProperty(
         name="Enable Franchise Pricing View",
@@ -2106,9 +2116,10 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
                 else:
                     col.label(text="Wrong Password: Access Denied")
                     col.prop(self, "franchise_password", text="")
-            row.operator('closet_materials.unpack_material_images')
+            row.prop(self, "enable_drill_dia_options")
             row = box.row()
             row.prop(self, "enable_kitchen_bath_lib")
+            row.operator('closet_materials.unpack_material_images')
 
             addon_updater_ops.update_settings_ui(self, context)
 

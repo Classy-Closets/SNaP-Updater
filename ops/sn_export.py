@@ -1375,21 +1375,118 @@ class OPS_Export_XML(Operator):
             parent_obj = obj.parent
             parent_assembly = sn_types.Assembly(parent_obj)
             countertop_type = parent_assembly.get_prompt("Countertop Type")
-            if countertop_type:
+            hpl_edge_type = parent_assembly.get_prompt("HPL Edge Type")
+            stone_edge_type = parent_assembly.get_prompt("Stone Edge Type")
+            painted_edge_type = parent_assembly.get_prompt("Painted Edge Type")
+            stained_edge_type = parent_assembly.get_prompt("HPL Edge Type")
+            prompts = [countertop_type, hpl_edge_type, stone_edge_type, painted_edge_type, stained_edge_type]
+            if all(prompts):
                 # Melamine
                 if countertop_type.get_value() == 0:
-                    category_number = "9001"
+                    category_number = '1501'
 
                 # HPL
-                elif countertop_type.get_value() == 1:
-                    category_number = "9002"
+                elif countertop_type.get_value() == 3 or countertop_type.get_value() == 1:
+                    type_number = '151'
+                    if hpl_edge_type.get_value() == 0:
+                        category_number = type_number + '1'
+                    if hpl_edge_type.get_value() == 1:
+                        category_number = type_number + '2'
+                    if hpl_edge_type.get_value() == 2:
+                        category_number = type_number + '3'
+                    if hpl_edge_type.get_value() == 3:
+                        category_number = type_number + '4'
+                    if hpl_edge_type.get_value() == 4:
+                        category_number = type_number + '5'
 
-                # Granite
-                else:
-                    category_number = "9004"
+                # Stone
+                elif countertop_type.get_value() == 2 or countertop_type.get_value() == 4 or countertop_type.get_value() == 5:
+                    type_number = '16'
+                    if stone_edge_type.get_value() == 0:
+                        category_number = type_number + '01'
+                    if stone_edge_type.get_value() == 1:
+                        category_number = type_number + '02'
+                    if stone_edge_type.get_value() == 2:
+                        category_number = type_number + '03'
+                    if stone_edge_type.get_value() == 3:
+                        category_number = type_number + '04'
+                    if stone_edge_type.get_value() == 4:
+                        category_number = type_number + '05'
+                    if stone_edge_type.get_value() == 5:
+                        category_number = type_number + '06'
+                    if stone_edge_type.get_value() == 6:
+                        category_number = type_number + '07'
+                    if stone_edge_type.get_value() == 7:
+                        category_number = type_number + '51'
+                    if stone_edge_type.get_value() == 8:
+                        category_number = type_number + '52'
+                    if stone_edge_type.get_value() == 9:
+                        category_number = type_number + '53'
+                    if stone_edge_type.get_value() == 10:
+                        category_number = type_number + '61'
+                    if stone_edge_type.get_value() == 11:
+                        category_number = type_number + '62'
+                    if stone_edge_type.get_value() == 12:
+                        category_number = type_number + '63'
+                    if stone_edge_type.get_value() == 13:
+                        category_number = type_number + '64'
 
+                # Wood
+                elif countertop_type.get_value() == 6:
+                    type_number = '15'
+                    if obj.sn_closets.use_unique_material:
+                        if obj.sn_closets.wood_countertop_types == 'Wood Painted MDF':
+                            if painted_edge_type.get_value() == 0:
+                                category_number = type_number + '21'
+                            if painted_edge_type.get_value() == 1:
+                                category_number = type_number + '22'
+                            if painted_edge_type.get_value() == 2:
+                                category_number = type_number + '23'
+                            if painted_edge_type.get_value() == 3:
+                                category_number = type_number + '24'
+                            if painted_edge_type.get_value() == 4:
+                                category_number = type_number + '25'
+                        elif obj.sn_closets.wood_countertop_types == 'Wood Stained Veneer':
+                            if stained_edge_type.get_value() == 0:
+                                category_number = type_number + '31'
+                            if stained_edge_type.get_value() == 1:
+                                category_number = type_number + '41'
+                            if stained_edge_type.get_value() == 2:
+                                category_number = type_number + '42'
+                            if stained_edge_type.get_value() == 3:
+                                category_number = type_number + '43'
+                        else:
+                            category_number = type_number + '51'
+                    else:
+                        ct_type = closet_materials.countertops.get_type()
+                        if ct_type.name == 'Wood':
+                            ct_mfg = ct_type.get_mfg()
+                            if ct_mfg.name == 'Wood Painted MDF':
+                                if painted_edge_type.get_value() == 0:
+                                    category_number = type_number + '21'
+                                if painted_edge_type.get_value() == 1:
+                                    category_number = type_number + '22'
+                                if painted_edge_type.get_value() == 2:
+                                    category_number = type_number + '23'
+                                if painted_edge_type.get_value() == 3:
+                                    category_number = type_number + '24'
+                                if painted_edge_type.get_value() == 4:
+                                    category_number = type_number + '25'
+                            elif ct_mfg.name == 'Wood Stained Veneer':
+                                if stained_edge_type.get_value() == 0:
+                                    category_number = type_number + '31'
+                                if stained_edge_type.get_value() == 1:
+                                    category_number = type_number + '41'
+                                if stained_edge_type.get_value() == 2:
+                                    category_number = type_number + '42'
+                                if stained_edge_type.get_value() == 3:
+                                    category_number = type_number + '43'
+                            else:
+                                category_number = type_number + '51'
+                        else:
+                            category_number = "1501"
             else:
-                category_number = "9003"
+                category_number = "1501"
 
         # Hardware
         if obj.snap.type_mesh == 'HARDWARE' or obj.sn_closets.is_temp_hardware:
@@ -4290,6 +4387,48 @@ class OPS_Export_XML(Operator):
 
             if assembly.obj_bp.get('IS_BP_LAYERED_CROWN'):
                 part_name = 'Layered Crown'
+            
+            if 'Countertop' in part_name:
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                countertop_type = parent_assembly.get_prompt("Countertop Type")
+                hpl_edge_type = parent_assembly.get_prompt("HPL Edge Type")
+                stone_edge_type = parent_assembly.get_prompt("Stone Edge Type")
+                painted_edge_type = parent_assembly.get_prompt("Painted Edge Type")
+                stained_edge_type = parent_assembly.get_prompt("HPL Edge Type")
+                prompts = [countertop_type, hpl_edge_type, stone_edge_type, painted_edge_type, stained_edge_type]
+                if all(prompts):
+                    # Melamine
+                    if countertop_type.get_value() == 0:
+                        part_name = "Countertop Melamine"
+                    # HPL
+                    elif countertop_type.get_value() == 3 or countertop_type.get_value() == 1:
+                        part_name = "Countertop " + hpl_edge_type.combobox_items[hpl_edge_type.get_value()].name.upper() + " Edge - HPL"
+                    # Stone
+                    elif countertop_type.get_value() == 2 or countertop_type.get_value() == 4 or countertop_type.get_value() == 5:
+                        part_name = "Countertop " + stone_edge_type.combobox_items[stone_edge_type.get_value()].name.upper() + " Edge - Stone"
+                    # Wood
+                    elif countertop_type.get_value() == 6:
+                        if assembly.obj_bp.sn_closets.use_unique_material:
+                            if assembly.obj_bp.sn_closets.wood_countertop_types == 'Wood Painted MDF':
+                                part_name = "Countertop " + painted_edge_type.combobox_items[painted_edge_type.get_value()].name.upper() + " Edge - Painted"
+                            elif assembly.obj_bp.sn_closets.wood_countertop_types == 'Wood Stained Veneer':
+                                part_name = "Countertop " + stained_edge_type.combobox_items[stained_edge_type.get_value()].name.upper() + " Edge - Stained"
+                            else:
+                                part_name = "Countertop BUTCHER BLOCK - Stained"
+                        else:
+                            ct_type = closet_materials.countertops.get_type()
+                            if ct_type.name == 'Wood':
+                                ct_mfg = ct_type.get_mfg()
+                                if ct_mfg.name == 'Wood Painted MDF':
+                                    part_name = "Countertop " + painted_edge_type.combobox_items[painted_edge_type.get_value()].name.upper() + " Edge - Painted"
+                                elif ct_mfg.name == 'Wood Stained Veneer':
+                                    part_name = "Countertop " + stained_edge_type.combobox_items[stained_edge_type.get_value()].name.upper() + " Edge - Stained"
+                                else:
+                                    part_name = "Countertop BUTCHER BLOCK - Stained"
+                            else:
+                                part_name = "Countertop Melamine"
+                else:
+                    part_name = "Countertop Melamine"
 
             if obj_props.is_countertop_bp:
                 l_assembly_end_cond = assembly.get_prompt("Exposed Left")
@@ -4565,9 +4704,9 @@ class OPS_Export_XML(Operator):
 
             if obj_props.is_drawer_side_bp and not use_dovetail_construction:
                 if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
-                    edge_2 = "S1"
-                else:
                     edge_2 = "L1"
+                else:
+                    edge_2 = "S1"
                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name) 
 
             if obj_props.is_drawer_back_bp and not use_dovetail_construction:
@@ -5218,8 +5357,17 @@ class OPS_Export_XML(Operator):
                     # ("center_rail_distance_from_center", "text", str(center_rail_distance_from_center) if has_center_rail == "Yes" else 'None'),
                 ]
 
-                self.add_pull_dim_to_label(assembly, door_lbl)
-                lbl.extend(door_lbl)
+                if 'IS_BP_DRAWER_SUB_FRONT' in assembly.obj_bp:
+                    drawer_stack_insert = sn_types.Assembly(obj_bp=sn_utils.get_bp(assembly.obj_bp, 'INSERT'))
+                    pull_ppt = drawer_stack_insert.get_prompt("No Pulls")
+                else:
+                    pull_ppt = assembly.get_prompt("No Pulls")
+
+                if pull_ppt:
+                    no_pulls = pull_ppt.get_value()
+                    if not no_pulls:
+                        self.add_pull_dim_to_label(assembly, door_lbl)
+                        lbl.extend(door_lbl)
 
             if ppt_dogear and ppt_dogear_depth:
                 if ppt_dogear.get_value():
@@ -5707,7 +5855,13 @@ class OPS_Export_XML(Operator):
 
                         for child in pull_bp.children:
                             if child.type == 'MESH':
-                                pull_dim = child.dimensions[0]
+                                pull_mesh = child
+                                if pull_mesh.get("IS_SPECIALTY_PULL"):
+                                    specialty_pull = True
+                                    props = bpy.context.scene.sn_closets
+                                    pull_dim = props.closet_defaults.specialty_pull_center_dim
+                                else:
+                                    pull_dim = child.dimensions[0]
                                 break
 
         elif parent_bp.get("IS_BP_L_SHELVES"):
@@ -5742,8 +5896,7 @@ class OPS_Export_XML(Operator):
             if pull_dim < sn_unit.inch(2):
                 label.extend([("pull_dim", "text", "Knob")])
             elif specialty_pull:
-                pull_dim_inch = sn_unit.meter_to_inch(pull_dim)
-                label.extend([("pull_dim", "text", str(pull_dim_inch))])
+                label.extend([("pull_dim", "text", f"{pull_dim}mm")])
             else:
                 pull_dim_mm = round(sn_unit.meter_to_millimeter(pull_dim))
                 label.extend([("pull_dim", "text", f"{pull_dim_mm}mm")])

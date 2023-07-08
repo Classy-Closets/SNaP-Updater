@@ -1198,7 +1198,8 @@ class DROP_OPERATOR_Place_Toe_Kick_Assembly(bpy.types.Operator, PlaceClosetInser
                 child.snap.comment = obj.snap.name_object
                 products.append(child)
 
-        products.sort(key=lambda obj: obj.location.x, reverse=reverse_order)
+        # products.sort(key=lambda obj: obj.location.x, reverse=reverse_order)
+        products.sort(key=lambda obj: math.fabs(obj.matrix_local.translation.x), reverse=reverse_order)
 
         return products
 
@@ -1249,38 +1250,44 @@ class DROP_OPERATOR_Place_Toe_Kick_Assembly(bpy.types.Operator, PlaceClosetInser
             self.wall_bp = sn_utils.get_wall_bp(self.selected_cab_1.obj_bp)
             self.floor = sn_utils.get_floor_parent(self.selected_cab_1.obj_bp)
             rot_180 = round(math.degrees(self.selected_cab_1.obj_bp.rotation_euler.z)) == 180
+            
 
             if self.floor:
                 bp = self.floor
+                world_rotation = round(math.degrees(self.floor.rotation_euler.z)) 
             else:
                 bp = self.wall_bp
-
+                world_rotation = round(math.degrees(self.wall_bp.rotation_euler.z)) 
             if bp:
                 if self.floor and rot_180:
                     cabinet_bps = self.get_child_products(bp, reverse_order=True)
                 else:
                     cabinet_bps = self.get_child_products(bp)
 
+                self.valid_cabinets.append(self.selected_cab_1)
                 spanned_length = self.selected_cab_1.obj_x.location.x
-                prv_cab_dim_x = None
+                prv_cab_dim_x = self.selected_cab_1.obj_x.matrix_world.translation.x
 
                 for bp in cabinet_bps:
                     if bp.rotation_euler.z != self.selected_cab_1.obj_bp.rotation_euler.z:
                         continue
-                    if bp is self.selected_cab_1.obj_bp:
-                        assy = sn_types.Assembly(bp)
-                        self.valid_cabinets.append(assy)
-                        prv_cab_dim_x = assy.obj_x.matrix_world.translation.x
-                    if prv_cab_dim_x:
+                    if prv_cab_dim_x and bp is not self.selected_cab_1.obj_bp:
                         if bp.matrix_world.translation.x == prv_cab_dim_x:
                             assy = sn_types.Assembly(bp)
-                            spanned_length += assy.obj_x.matrix_world.translation.x - assy.obj_bp.matrix_world.translation.x
+                            
+                            if world_rotation == 90:
+                                spanned_length += abs(assy.obj_x.matrix_world.translation.y) - abs(assy.obj_bp.matrix_world.translation.y) 
+                            elif world_rotation == -90:
+                                spanned_length += abs(assy.obj_bp.matrix_world.translation.y) - abs(assy.obj_x.matrix_world.translation.y)      
+                            else:
+                                spanned_length += assy.obj_x.matrix_world.translation.x - assy.obj_bp.matrix_world.translation.x
+
                             if spanned_length > sn_unit.inch(96):
                                 break
                             else:
                                 self.valid_cabinets.append(assy)
                                 prv_cab_dim_x = assy.obj_x.matrix_world.translation.x
-
+                            
                 self.valid_cabinet_bps = [c.obj_bp for c in self.valid_cabinets]
                 self.update_cages()
 
@@ -1300,6 +1307,10 @@ class DROP_OPERATOR_Place_Toe_Kick_Assembly(bpy.types.Operator, PlaceClosetInser
             tk_setback = context.scene.lm_cabinets.carcass_defaults.toe_kick_setback
             tk_visible = False
             tk_len = 0
+            world_rotation = 0
+
+            if product and product.obj_bp and product.obj_bp.parent:
+                world_rotation = round(math.degrees(product.obj_bp.parent.rotation_euler.z)) 
 
             if hover_product_bp:
                 carcass_type = hover_product_bp.get("CARCASS_TYPE")
@@ -1346,7 +1357,15 @@ class DROP_OPERATOR_Place_Toe_Kick_Assembly(bpy.types.Operator, PlaceClosetInser
 
                                 if len(self.valid_cabinets) > 1:
                                     for i, cab in enumerate(self.valid_cabinets):
-                                        exclude_cabinet = cab.obj_bp.matrix_world.translation.x > hover_product_bp.matrix_world.translation.x
+                                        if world_rotation == 90:
+                                            exclude_cabinet = cab.obj_bp.matrix_world.translation.y > hover_product_bp.matrix_world.translation.y
+                                        elif world_rotation == -90:
+                                            exclude_cabinet = cab.obj_bp.matrix_world.translation.y < hover_product_bp.matrix_world.translation.y
+                                            if exclude_cabinet == False:
+                                                exclude_cabinet = cab.obj_bp.matrix_world.translation.y > self.selected_cab_1.obj_bp.matrix_world.translation.y
+                                        else:
+                                            exclude_cabinet = cab.obj_bp.matrix_world.translation.x > hover_product_bp.matrix_world.translation.x
+
                                         if cab.obj_bp is self.selected_cab_1.obj_bp:
                                             continue
                                         elif not self.floor and not rot_180 and exclude_cabinet:

@@ -22,6 +22,9 @@ ISLAND_BACK_ROW = 1
 ISLAND_BASE_CARCASS = 0
 ISLAND_APPLIANCE_CARCASS = 1
 ISLAND_SINK_CARCASS = 2
+SINKFRONT_STYLE_NO_FRONT = 0
+SINKFRONT_STYLE_EXTEND_TOP = 1
+SINKFRONT_STYLE_FALSE_FRONT = 2
 
 def draw_carcass_options(self, carcass,layout):
     left_fin_end = carcass.get_prompt("Left Fin End")
@@ -324,12 +327,26 @@ def draw_door_options(self,door,layout):
     open_door = door.get_prompt('Open Door')
     door_swing = door.get_prompt('Door Swing')
     inset_front = door.get_prompt('Inset Front')
+    false_front_height = door.get_prompt('False Front Height')
+    false_front_qty = door.get_prompt('False Front Qty')
+    show_false_front = door.get_prompt('Show False Front')
+    show_false_pulls = door.get_prompt('Show False Pulls')
+    extend_top = door.get_prompt("Extend Top")
+    sink_mounted = door.get_prompt("Sink Mounted")
     
     half_overlay_top = door.get_prompt('Half Overlay Top')
     half_overlay_bottom = door.get_prompt('Half Overlay Bottom')
     half_overlay_left = door.get_prompt('Half Overlay Left')
     half_overlay_right = door.get_prompt('Half Overlay Right')
     
+    carcass = self.carcass.obj_bp
+
+    if self.product.obj_bp.get("IS_BP_ISLAND"):
+        opening_bp = self.get_island_opening(door.obj_bp)
+        opening_nbr = opening_bp.get('OPENING_NBR')
+    else:
+        opening_nbr = door.obj_bp.get('OPENING_NBR')
+
     row = layout.row()
     row.label(text="  Door Options:")
     
@@ -347,10 +364,10 @@ def draw_door_options(self,door,layout):
             opening_bp = self.get_island_opening(door.obj_bp)
             opening_nbr = opening_bp.get('OPENING_NBR')
         else:
-            opening_nbr = 1
+            opening_nbr = door.obj_bp.get('OPENING_NBR')
         exec('self.door_swing_' + str(opening_nbr) + ' = str(door_swing.get_value())')
         row.prop(self, 'door_swing_' + str(opening_nbr), text="")
-
+   
     if inset_front:
         if not inset_front.get_value():
             row = layout.row()
@@ -360,6 +377,23 @@ def draw_door_options(self,door,layout):
                 row.prop(half_overlay_bottom,'checkbox_value',text="Bottom")
                 row.prop(half_overlay_left,'checkbox_value',text="Left")
                 row.prop(half_overlay_right,'checkbox_value',text="Right")
+
+    if sink_mounted and sink_mounted.get_value() == True:
+        row = layout.row()
+        row.label(text="  Sink Front Options:")
+        row.label(text="")
+ 
+        row = layout.row()
+        row.prop(self, 'sink_front_' + str(opening_nbr), text="          Style")
+        if show_false_front.get_value() == True:
+            row.prop(show_false_pulls, 'checkbox_value', text="Add Pulls")
+        else:
+            row.label(text="")
+
+        if show_false_front.get_value() == True:
+            row = layout.row()
+            row.prop(self, 'ff_height', text="          Height")
+            row.prop(false_front_qty, 'quantity_value', text="False Front Quantity")
 
 def draw_drawer_options(self, drawers,layout):
     open_drawers = drawers.get_prompt("Open Drawers")
@@ -637,7 +671,10 @@ def draw_insert_options(self,assembly,layout):
                 if label.find(".") > 0:
                     label = label[:-4]
                 
-                draw_hole_size_height(i, box, opening_ppt, opening_heights, calculator, "Opening", label)
+                if name == "Height":
+                    draw_hole_size_height(i, box, opening_ppt, opening_heights, calculator, "Opening", label)
+                else:
+                    draw_hole_size_width(i, box, opening_ppt, calculator, "Opening", label)
 
                 for insert in exteriors:
                     if insert.get('OPENING_NBR') == i:
@@ -718,6 +755,10 @@ def get_appliance_subtype_count(self):
             appliance_count += 1
         
     return appliance_count
+
+def update_product_dimensions(product_bp):
+    prod_assembly = Standard(product_bp)
+    prod_assembly.update_dimensions()
 
 class OpeningHeights:
     def __init__(self, start, start_hole_amt, end_hole_amt, drawer_front=False):
@@ -1174,6 +1215,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
 
     width: FloatProperty(name="Width",unit='LENGTH',precision=4)
     height: EnumProperty(name="Default Hanging Panel Height", items=get_panel_heights)
+    ff_height: EnumProperty(name="Default Hanging Panel Height", items=get_opening_heights(end_hole_amt=8))
     height_raw: FloatProperty(name="Height",unit='LENGTH',precision=4)
     depth: FloatProperty(name="Depth",unit='LENGTH',precision=4)
     front_row_depth: FloatProperty(name="Front Row Depth",unit='LENGTH',precision=4)
@@ -1198,7 +1240,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                                                                    ('SECTION8',"Section 8","Section 8 Options")])
 
     door_rotation: FloatProperty(name="Door Rotation",subtype='ANGLE',min=0,max=math.radians(120))
-    
+        
     door_swing_1: EnumProperty(name="Door Swing 1",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_2: EnumProperty(name="Door Swing 2",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_3: EnumProperty(name="Door Swing 3",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
@@ -1207,6 +1249,15 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     door_swing_6: EnumProperty(name="Door Swing 6",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_7: EnumProperty(name="Door Swing 7",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_8: EnumProperty(name="Door Swing 8",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
+    
+    sink_front_1: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_2: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_3: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_4: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_5: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_6: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_7: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
+    sink_front_8: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
     
     carcass_subtype_1: EnumProperty(name='Carcass Subtype 1',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
     carcass_subtype_2: EnumProperty(name='Carcass Subtype 2',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
@@ -1315,13 +1366,51 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         for obj_bp in self.doors:
             door = sn_types.Assembly(obj_bp)
             door_swing_ppt = door.get_prompt("Door Swing")
+            
+            show_false_front_ppt = door.get_prompt("Show False Front")
+            show_false_pulls_ppt = door.get_prompt("Show False Pulls")
+            false_front_height_ppt = door.get_prompt("False Front Height")
+            false_front_qty_ppt = door.get_prompt("False Front Qty")
+            extend_top_ppt = door.get_prompt("Extend Top")
+            sink_mounted_ppt = door.get_prompt("Sink Mounted")
+
+            if self.product.obj_bp.get("IS_BP_ISLAND"):
+                opening_bp = self.get_island_opening(obj_bp)
+                opening_nbr = opening_bp.get('OPENING_NBR')
+            else:
+                opening_nbr = 1
+            
             if door_swing_ppt:
-                if self.product.obj_bp.get("IS_BP_ISLAND"):
-                    opening_bp = self.get_island_opening(obj_bp)
-                    opening_nbr = opening_bp.get('OPENING_NBR')
-                else:
-                    opening_nbr = 1
                 exec('door_swing_ppt.set_value(int(self.door_swing_' + str(opening_nbr) + '))')
+
+            if sink_mounted_ppt and sink_mounted_ppt.get_value() == True:
+                value = int(eval('self.sink_front_' + str(opening_nbr)))
+                if value == SINKFRONT_STYLE_NO_FRONT: 
+                    if extend_top_ppt:
+                        extend_top_ppt.set_value(False)
+                    if show_false_front_ppt:
+                        show_false_front_ppt.set_value(False)
+                        show_false_pulls_ppt.set_value(False)
+                        false_front_qty_ppt.set_value(0)
+                elif value == SINKFRONT_STYLE_EXTEND_TOP:
+                    if extend_top_ppt:
+                        extend_top_ppt.set_value(True)
+                    if show_false_front_ppt:
+                        show_false_front_ppt.set_value(False)
+                        show_false_pulls_ppt.set_value(False)
+                        false_front_qty_ppt.set_value(0)
+                elif value == SINKFRONT_STYLE_FALSE_FRONT:
+                    if extend_top_ppt:
+                        extend_top_ppt.set_value(False)
+                    if show_false_front_ppt:
+                        show_false_front_ppt.set_value(True) 
+                        if false_front_qty_ppt.get_value() == 0: 
+                            false_front_qty_ppt.set_value(1)   
+                        elif false_front_qty_ppt.get_value() > 2:
+                            false_front_qty_ppt.set_value(2)  
+
+                if false_front_height_ppt:
+                    false_front_height_ppt.set_value(sn_unit.millimeter(float(self.ff_height) - 4))
 
         left_end_condition_ppt = self.carcass.get_prompt("Left End Condition")
         right_end_condition_ppt = self.carcass.get_prompt("Right End Condition")
@@ -1410,8 +1499,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
 
     def update_product_dimensions(self):
         if self.product:
-            prod_assembly = Standard(self.product.obj_bp)
-            prod_assembly.update_dimensions()
+                update_product_dimensions(self.product.obj_bp)
                     
     def update_placement(self, context):
         if self.show_placement_options:
@@ -1781,15 +1869,30 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 if obj_bp not in self.doors:
                     self.doors.append(obj_bp)
                     door = sn_types.Assembly(obj_bp)
+                    if self.product.obj_bp.get("IS_BP_ISLAND"):
+                        opening_bp = self.get_island_opening(obj_bp)
+                        opening_nbr = opening_bp.get('OPENING_NBR')
+                    else:
+                        opening_nbr = obj_bp.get('OPENING_NBR')
                     door_swing_ppt = door.get_prompt("Door Swing")
+                    sink_mounted_ppt = door.get_prompt("Sink Mounted")
+                    extend_top_ppt = door.get_prompt("Extend Top")
+                    show_false_front_ppt = door.get_prompt("Show False Front")
+                    false_front_ppt = door.get_prompt("False Front Height")
+                    
                     if door_swing_ppt:
-                        if self.product.obj_bp.get("IS_BP_ISLAND"):
-                            opening_bp = self.get_island_opening(obj_bp)
-                            opening_nbr = opening_bp.get('OPENING_NBR')
-                        else:
-                            opening_nbr = 1
                         exec('self.door_swing_' + str(opening_nbr) + ' = str(door_swing_ppt.get_value())')
-           
+                    if false_front_ppt:
+                        self.ff_height = str(round(math.fabs(sn_unit.meter_to_millimeter(false_front_ppt.get_value()))+4))
+                    if sink_mounted_ppt:
+                        if show_false_front_ppt and show_false_front_ppt.get_value() == True:
+                            sink_front_style = "2"
+                        elif extend_top_ppt and extend_top_ppt.get_value() == True:
+                            sink_front_style = "1"
+                        else:
+                            sink_front_style = "0"
+                        exec('self.sink_front_' + str(opening_nbr) + ' = sink_front_style')
+
             if "IS_DRAWERS_BP" in obj_bp:                
                 self.show_exterior_options = True
 
@@ -1813,13 +1916,12 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             if self.check_insert_tags(obj_bp, ["IS_BP_SPLITTER"]):
                 self.show_splitter_options = True
                 assy = sn_types.Assembly(obj_bp)
-
-                if obj_bp not in self.splitters:
+                if assy not in self.splitters:
                     self.splitters.append(assy)
 
                 calculator = assy.get_calculator('Opening Heights Calculator')
-                if assy not in self.splitters:
-                    self.splitters.append(assy)
+                if not calculator:
+                    calculator = assy.get_calculator('Opening Widths Calculator')
                 if calculator:
                     self.calculators.append(calculator)
 
@@ -1837,7 +1939,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         ################
         self.run_calculators(self.product.obj_bp)
 
-        return super().invoke(context, event, width=550)
+        return super().invoke(context, event, width=600)
 
     def draw_product_placment(self,layout):
         box = layout.box()

@@ -66,7 +66,7 @@ class Countertop_Insert(sn_types.Assembly):
 
         Product_Width = self.obj_x.snap.get_var('location.x', 'Product_Width')
         Product_Depth = self.obj_y.snap.get_var('location.y', 'Product_Depth')
-        Edge_Type = self.get_prompt('Edge Type').get_var()
+        # Edge_Type = self.get_prompt('Edge Type').get_var()
         Deck_Thickness = self.get_prompt('Deck Thickness').get_var()
         Deck_Overhang = self.get_prompt('Deck Overhang').get_var()
         Countertop_Type = self.get_prompt('Countertop Type').get_var()
@@ -115,7 +115,7 @@ class Countertop_Insert(sn_types.Assembly):
         granite_ctop.dim_y("-Product_Depth-Deck_Overhang",[Product_Depth,Deck_Overhang])
         granite_ctop.dim_z(value=sn_unit.inch(1.5))
         granite_ctop.get_prompt("Hide").set_formula("IF(Countertop_Type==2,False,True)",[Countertop_Type])
-        granite_ctop.get_prompt('Edge Type').set_value(0)
+        # granite_ctop.get_prompt('Edge Type').set_value(0)
 
         hpltop = common_parts.add_hpl_top(self)
         hpltop.set_name("HPL Countertop")
@@ -144,7 +144,7 @@ class Countertop_Insert(sn_types.Assembly):
         quartz_ctop.dim_y("-Product_Depth-Deck_Overhang", [Product_Depth, Deck_Overhang])
         quartz_ctop.dim_z(value=sn_unit.inch(1.5))
         quartz_ctop.get_prompt("Hide").set_formula("IF(OR(Countertop_Type==4,Countertop_Type==5),False,True)", [Countertop_Type])
-        quartz_ctop.get_prompt('Edge Type').set_value(0)
+        # quartz_ctop.get_prompt('Edge Type').set_value(0)
 
         wood_deck = common_parts.add_wood_countertop(self)
         wood_deck.set_name("Wood Countertop")
@@ -189,7 +189,7 @@ class Countertop_Insert(sn_types.Assembly):
         l_corner_ctop.dim_y("-Left_Corner_Depth",[Left_Corner_Depth])
         l_corner_ctop.dim_z('IF(Countertop_Type == 0,Melamine_Thickness,Deck_Thickness)',[Deck_Thickness,Melamine_Thickness,Countertop_Type])
         l_corner_ctop.get_prompt("Hide").set_formula("IF(Add_Left_Corner,False,True)",[Add_Left_Corner])       
-        l_corner_ctop.get_prompt('Edge Type').set_formula('IF(Countertop_Type==2,Edge_Type,1)',[Edge_Type,Countertop_Type])
+        # l_corner_ctop.get_prompt('Edge Type').set_formula('IF(Countertop_Type==2,Edge_Type,1)',[Edge_Type,Countertop_Type])
         l_corner_ctop.get_prompt('Right Depth').set_formula('Product_Depth+Deck_Overhang',[Product_Depth,Deck_Overhang])
         l_corner_ctop.get_prompt('Left Depth').set_formula('Left_Depth',[Left_Depth])
         l_corner_ctop.get_prompt('Corner Shape').set_formula('Corner_Shape',[Corner_Shape])
@@ -215,7 +215,7 @@ class Countertop_Insert(sn_types.Assembly):
         r_corner_ctop.dim_y("-Right_Corner_Width",[Right_Corner_Width])
         r_corner_ctop.dim_z('IF(Countertop_Type == 0,Melamine_Thickness,Deck_Thickness)',[Deck_Thickness,Melamine_Thickness,Countertop_Type])
         r_corner_ctop.get_prompt("Hide").set_formula("IF(Add_Right_Corner,False,True)",[Add_Right_Corner])
-        r_corner_ctop.get_prompt('Edge Type').set_formula('IF(Countertop_Type==2,Edge_Type,1)',[Edge_Type,Countertop_Type])
+        # r_corner_ctop.get_prompt('Edge Type').set_formula('IF(Countertop_Type==2,Edge_Type,1)',[Edge_Type,Countertop_Type])
         r_corner_ctop.get_prompt('Left Depth').set_formula('Product_Depth+Deck_Overhang',[Product_Depth,Deck_Overhang])
         r_corner_ctop.get_prompt('Right Depth').set_formula('Right_Depth',[Right_Depth])
         r_corner_ctop.get_prompt('Corner Shape').set_formula('Corner_Shape',[Corner_Shape])
@@ -255,18 +255,64 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
             ("6", "Wood", "Wood")],
         default='0')
 
-    edge_type: EnumProperty(
+    hpl_edge_type: EnumProperty(
         name="Countertop Edge Type",
         items=[
-            ('0', 'Waterfall', 'Waterfall'),
-            ('1', 'Flat Front', 'Flat Front'),
-            ('2', '180 Degree', '180 Degree'),
-            ('3', 'Alder Miter', 'Alder Miter')],
+            ('0', 'Ora', 'Ora'),
+            ('1', 'Futura', 'Futura'),
+            ('2', 'Nova', 'Nova'),
+            ('3', 'Tempo', 'Tempo'),
+            ('4', 'Flat', 'Flat')],
+        default='0')
+
+    stone_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Miter', 'Miter'),
+            ('1', 'STD Eased', 'STD Eased'),
+            ('2', 'Bullnose', 'Bullnose'),
+            ('3', 'Demi Bullnose', 'Demi Bullnose'),
+            ('4', 'Crescent', 'Crescent'),
+            ('5', 'Bevel', 'Bevel'),
+            ('6', 'Euro', 'Euro'),
+            ('7', 'Ogee', 'Ogee'),
+            ('8', 'Ogee Bullnose', 'Ogee Bullnose'),
+            ('9', 'Double Bevel', 'Double Bevel'),
+            ('10', 'Chisel', 'Chisel'),
+            ('11', 'Miter 4"', 'Miter 4"'),
+            ('12', 'Miter 6"', 'Miter 6"'),
+            ('13', 'Miter Waterfall', 'Miter Waterfall')],
+        default='0')
+
+    painted_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Solid Flat', 'Solid Flat'),
+            ('1', 'Solid Round', 'Solid Round'),
+            ('2', 'Solid Ogee', 'Solid Ogee'),
+            ('3', 'Applied Flat', 'Applied Flat'),
+            ('4', 'Applied Round', 'Applied Round'),
+            ('5', 'Applied Ogee', 'Applied Ogee')],
+        default='0')
+    
+    stained_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Dolce', 'Dolce'),
+            ('1', 'Solid Flat Applied', 'Solid Flat Applied'),
+            ('2', 'Solid Round Applied', 'Solid Round Applied'),
+            ('3', 'Solid Ogee Applied', 'Solid Ogee Applied'),
+            ('4', 'Alder Miter', 'Alder Miter')],
         default='0')
 
     assembly = None
     countertop_type_prompt = None
-    edge_type_prompt = None
+    hpl_edge_type_prompt = None
+    stone_edge_type_prompt = None
+    painted_edge_type_prompt = None
+    stained_edge_type_prompt = None
+    is_painted = False
+    is_stained = False
         
     def check(self, context):
         mat_props = context.scene.closet_materials
@@ -309,8 +355,7 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
                                         if region.width == 1:
                                             bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")
 
-        if self.edge_type_prompt:
-            self.edge_type_prompt.set_value(int(self.edge_type))
+        self.set_edge_type_prompts()
         
         if all(prompts):
             if(Add_Left_Corner.get_value()):
@@ -330,6 +375,16 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
             self.assembly.obj_bp.location.z = Countertop_Height.get_value()
 
         return True
+
+    def set_edge_type_prompts(self):
+        if self.hpl_edge_type_prompt:
+            self.hpl_edge_type_prompt.set_value(int(self.hpl_edge_type))
+        if self.stone_edge_type_prompt:
+            self.stone_edge_type_prompt.set_value(int(self.stone_edge_type))
+        if self.painted_edge_type_prompt:
+            self.painted_edge_type_prompt.set_value(int(self.painted_edge_type))
+        if self.stained_edge_type_prompt:
+            self.stained_edge_type_prompt.set_value(int(self.stained_edge_type))
         
     def execute(self, context):
         return {'FINISHED'}
@@ -337,12 +392,56 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
     def invoke(self,context,event):
         self.assembly = self.get_insert()
         self.countertop_type_prompt = self.assembly.get_prompt("Countertop Type")
-        self.edge_type_prompt = self.assembly.get_prompt("Edge Type")
         self.countertop_type = str(self.countertop_type_prompt.combobox_index)
-        self.edge_type = str(self.edge_type_prompt.combobox_index)
+        self.set_edge_type_enums()
+        self.get_wood(context)
         wm = context.window_manager
         return super().invoke(context, event, width=475)
-        
+    
+    def set_edge_type_enums(self):
+        self.hpl_edge_type_prompt = self.assembly.get_prompt("HPL Edge Type")
+        self.stone_edge_type_prompt = self.assembly.get_prompt("Stone Edge Type")
+        self.painted_edge_type_prompt = self.assembly.get_prompt("Painted Edge Type")
+        self.stained_edge_type_prompt = self.assembly.get_prompt("Stained Edge Type")
+        if self.hpl_edge_type_prompt:
+            self.hpl_edge_type = str(self.hpl_edge_type_prompt.combobox_index)
+        if self.stone_edge_type_prompt:
+            self.stone_edge_type = str(self.stone_edge_type_prompt.combobox_index)
+        if self.painted_edge_type_prompt:
+            self.painted_edge_type = str(self.painted_edge_type_prompt.combobox_index)
+        if self.stained_edge_type_prompt:
+            self.stained_edge_type = str(self.stained_edge_type_prompt.combobox_index)
+    
+    def get_wood(self, context):
+        for child in self.assembly.obj_bp.children:
+            if "Wood Countertop" in child.name:
+                if child.sn_closets.use_unique_material:
+                    if child.sn_closets.wood_countertop_types == 'Wood Painted MDF':
+                        self.is_painted = True
+                        self.is_stained = False
+                    elif child.sn_closets.wood_countertop_types == 'Wood Stained Veneer':
+                        self.is_painted = False
+                        self.is_stained = True
+                    else:
+                        self.is_painted = False
+                        self.is_stained = False
+                else:
+                    ct_type = context.scene.closet_materials.countertops.get_type()
+                    if ct_type.name == 'Wood':
+                        ct_mfg = ct_type.get_mfg()
+                        if ct_mfg.name == 'Wood Painted MDF':
+                            self.is_painted = True
+                            self.is_stained = False
+                        elif ct_mfg.name == 'Wood Stained Veneer':
+                            self.is_painted = False
+                            self.is_stained = True
+                        else:
+                            self.is_painted = False
+                            self.is_stained = False
+                    else:
+                        self.is_painted = False
+                        self.is_stained = False
+
     def draw(self, context):
         super().draw(context)
         layout = self.layout
@@ -350,7 +449,10 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
             if self.assembly.obj_bp.name in context.scene.objects:
                 Countertop_Type = self.assembly.get_prompt("Countertop Type")
                 Countertop_Thickness = self.assembly.get_prompt("Countertop Thickness")
-                Edge_Type = self.assembly.get_prompt("Edge Type")
+                HPL_Edge_Type = self.assembly.get_prompt("HPL Edge Type")
+                Stone_Edge_Type = self.assembly.get_prompt("Stone Edge Type")
+                Painted_Edge_Type = self.assembly.get_prompt("Painted Edge Type")
+                Stained_Edge_Type = self.assembly.get_prompt("Stained Edge Type")
                 HPL_Material_Name = self.assembly.get_prompt("HPL Material Name")
                 HPL_Material_Number = self.assembly.get_prompt("HPL Material Number")
                 Deck_Overhang = self.assembly.get_prompt("Deck Overhang")  
@@ -447,13 +549,31 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
                     row.prop_enum(self,"countertop_type","5")
                     row.prop_enum(self,"countertop_type","6")
 
-                    if self.countertop_type == '2':
-                        if Edge_Type:
+                    if self.countertop_type == '1' or self.countertop_type == '3':
+                        if HPL_Edge_Type:
                             row = c_box.row()
-                            row.label(text=Edge_Type.name)
+                            row.label(text=HPL_Edge_Type.name)
                             row = c_box.row()
-                            row.prop(self, "edge_type", expand=True)
-                        pass
+                            row.prop(self, "hpl_edge_type", expand=False)
+                    if self.countertop_type == '2' or self.countertop_type == '4' or self.countertop_type == '5':
+                        if Stone_Edge_Type:
+                            row = c_box.row()
+                            row.label(text=Stone_Edge_Type.name)
+                            row = c_box.row()
+                            row.prop(self, "stone_edge_type", expand=False)
+
+                    if self.countertop_type == '6' and self.is_painted:
+                        if Painted_Edge_Type:
+                            row = c_box.row()
+                            row.label(text=Painted_Edge_Type.name)
+                            row = c_box.row()
+                            row.prop(self, "painted_edge_type", expand=False)
+                    if self.countertop_type == '6' and self.is_stained:
+                        if Stained_Edge_Type:
+                            row = c_box.row()
+                            row.label(text=Stained_Edge_Type.name)
+                            row = c_box.row()
+                            row.prop(self, "stained_edge_type", expand=False)
 
 class OPERATOR_Place_Countertop(Operator, PlaceClosetInsert):
     bl_idname = "sn_closets.place_countertop"

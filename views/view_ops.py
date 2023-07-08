@@ -831,6 +831,22 @@ class VIEW_OT_generate_2d_views(Operator):
         wall_beds = 0
         wall_islands = 0
         cabinets = 0
+        wall_assy = sn_types.Wall(wall)
+        left_wall = wall_assy.get_connected_wall('LEFT')
+        right_wall = wall_assy.get_connected_wall('RIGHT')
+
+        if left_wall:
+            for child in left_wall.obj_bp.children:
+                if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES"):
+                    distance_to_wall_end = wall_assy.obj_x.location.x - child.location.x
+                    if distance_to_wall_end < unit.inch(6):
+                        corner_shelves += 1
+
+        if right_wall:
+            for child in right_wall.obj_bp.children:
+                if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES"):
+                    if child.location.x < unit.inch(6):
+                        corner_shelves += 1
 
         for item in wall.children:
             if 'IS_BP_CABINET' in item:
@@ -1821,7 +1837,6 @@ class VIEW_OT_generate_2d_views(Operator):
         cyl = context.active_object
         cyl.parent = wall.obj_bp
 
-
     def plan_view_add_switches(self, context, wall):
         wall_children = wall.obj_bp.children
         for obj in wall_children:
@@ -2042,7 +2057,6 @@ class VIEW_OT_generate_2d_views(Operator):
                 self.ignore_obj_list.append(dim.anchor)
                 self.ignore_obj_list.append(dim.end_point)
 
-
     def pv_break_dim(self, entry_wall, width, x_offset):
         mesh_thickness = 0.001
         wall_brk = sn_utils.create_floor_mesh("pv_wallbreak_msh", 
@@ -2258,8 +2272,6 @@ class VIEW_OT_generate_2d_views(Operator):
             scene_width = width_ratio * wider_measure
             ratio = self.planview_orthoscale_ratio(scene_width)
             camera.data.ortho_scale = ratio
-
-
 
     def add_pulls_to_plan_view(self, obj, pv_scene):
         children = obj.children
@@ -2932,14 +2944,17 @@ class VIEW_OT_generate_2d_views(Operator):
         data = data_dict['data']
         ordered_keys = sorted(data.keys())
         tmp_dict = {}
+
         for key in ordered_keys:
             entry = data_dict['data'].get(key)
             if entry is not None:
                 tmp_dict[key] = entry.get('show')
+
         tmp_keys = sorted(tmp_dict.keys())
         result = self.fetch_valid_flagged_indexes(tmp_dict, tmp_keys)
         acc_division = []
         idx_division = []
+
         for i, res in enumerate(result):
             is_first = i == 0
             is_last = i == len(result) - 1
@@ -2954,9 +2969,11 @@ class VIEW_OT_generate_2d_views(Operator):
             lt_n_next = is_last and not has_previous
             add_to_exstng_div = st_next or bw_next or lt_next
             add_to_new_div = st_n_next or bw_n_next or lt_n_next
+
             if add_to_exstng_div:
                 acc_division.append(data[res]['wall_bp'])
                 idx_division.append(res)
+
             elif add_to_new_div:
                 acc_division.append(data[res]['wall_bp'])
                 idx_division.append(res)
@@ -2964,95 +2981,120 @@ class VIEW_OT_generate_2d_views(Operator):
                 indexes.append(idx_division)
                 acc_division = []
                 idx_division = []
+
         if len(acc_division) > 0:
             accordions.append(acc_division)
             indexes.append(idx_division)
-        return (accordions, indexes) 
 
+        return (accordions, indexes) 
 
     def width_breakdown(self, data_dict, accordions, indexes):
         break_width = data_dict['settings']['break_width']
         final_accordions = []
         positive_overlays = []
         any_overlay = False
+
         for i, index in enumerate(indexes):
             curr_acc_width = 0
+
             for idx in index:
                 width = data_dict['data'][idx]['width_inches']
                 pos_overlay = data_dict['data'][idx]['overlay']
                 curr_acc_width += width
                 positive_overlays.append(pos_overlay)
+
             any_overlay = any(positive_overlays)
+
             # 1st case, walls under break limit, no positive overlays 
             if curr_acc_width <= break_width and not any_overlay:
                 final_accordions.append(accordions[i])
+
             # 2nd case, walls under break limit, positive overlays
             elif curr_acc_width <= break_width and any_overlay:
                 final_acc = []
+
                 for j, idx in enumerate(index):
                     prvs_over = None
                     will_overlay = False
                     width = data_dict['data'][idx]['width_inches']
                     overlay = data_dict['data'][idx]['overlay']
                     left_overlay = data_dict['data'][idx]['left_overlay']
+
                     if left_overlay and i > 1:
-                        prvs_over = data_dict['data'][idx - 1]['overlay_side'] 
+                        prvs_over = data_dict['data'][idx - 1]['overlay_side']
+
                     overlay_side = data_dict['data'][idx]['overlay_side']
                     starting = overlay_side == "start"
                     ending = prvs_over == "end"
                     start_overlay = overlay and overlay_side and starting
                     end_overlay = left_overlay and ending
                     will_overlay = (overlay and start_overlay) or (left_overlay and end_overlay)
+
                     if will_overlay:
                         final_accordions.append(final_acc)
                         final_acc = []
                         final_acc.append(accordions[i][j])
                     elif not will_overlay:
                         final_acc.append(accordions[i][j])
+
                 final_accordions.append(final_acc)
+
             # 3rd case, walls beyond break limit having or not positive overlay
             elif break_width <= curr_acc_width:
                 final_acc = []
                 curr_break = break_width
+
                 for j, idx in enumerate(index):
                     prvs_over = None
                     will_overlay = False
                     width = data_dict['data'][idx]['width_inches']
                     overlay = data_dict['data'][idx]['overlay']
                     left_overlay = data_dict['data'][idx]['left_overlay']
+
                     if left_overlay and i > 1:
                         prvs_over = data_dict['data'][idx - 1]['overlay_side']
+
                     overlay_side = data_dict['data'][idx]['overlay_side']
                     starting = overlay_side == "start"
                     ending = prvs_over == "end"
                     start_overlay = overlay and overlay_side and starting
                     end_overlay = left_overlay and ending
                     will_overlay = (overlay and start_overlay) or (left_overlay and end_overlay)
+
                     if width <= curr_break and not will_overlay:
                         final_acc.append(accordions[i][j])
                         curr_break -= width
+
                     elif width > curr_break or will_overlay:
                         curr_break = break_width
                         final_accordions.append(final_acc)
                         final_acc = []
+
+                        for obj in accordions[i][j].children:
+                            # Corner shelves may be rotated -90 degrees
+                            if math.isclose(obj.rotation_euler.z, math.radians(-90)):
+                                if obj.location.x < unit.inch(6):
+                                    final_acc.append(accordions[i][j - 1])
+                                    curr_break -= data_dict['data'][idx - 1]['width_inches']
+                                    
                         final_acc.append(accordions[i][j])
                         curr_break -= width
-                final_accordions.append(final_acc)
-        return final_accordions
 
+                final_accordions.append(final_acc)
+
+        return final_accordions
 
     def divide_walls_to_acordions(self, scene, data_dict):
-        # 1st pass - Apply the logic for empty walls, just door walls and 
-        #            intermediate walls
+        # 1st pass - Apply the logic for empty walls, just door walls and intermediate walls
         self.incl_or_excl_accordions(data_dict)
-        # 2nd pass - Once the logic is applied form the accordions regardless
-        #            the wall width break
-        accordions, indexes = self.break_flagged_walls(data_dict)
-        # 3rd pass - With the accordions formed, apply the 
-        #            wall width breakdown
-        final_accordions = self.width_breakdown(data_dict, accordions, indexes)
-        return final_accordions
 
+        # 2nd pass - Once the logic is applied form the accordions regardless the wall width break
+        accordions, indexes = self.break_flagged_walls(data_dict)
+
+        # 3rd pass - With the accordions formed, apply the wall width breakdown
+        final_accordions = self.width_breakdown(data_dict, accordions, indexes)
+
+        return final_accordions
 
     def incl_or_excl_accordions(self, data_dict):
         walls_length_sum = 0
@@ -3061,6 +3103,7 @@ class VIEW_OT_generate_2d_views(Operator):
         data = data_dict['data']
         intermediates = settings['intermediate_qty']
         break_width = settings['break_width']
+
         # 1st pass - General Rules
         for idx, datum in data.items():
             walls_length_sum += datum['width_inches']
@@ -3068,37 +3111,30 @@ class VIEW_OT_generate_2d_views(Operator):
             empty = datum['empty']
             just_doors = datum['just_doors']
             within_intem = datum['within_intermediate_space']
-            has_lsh_csh = datum['has_lsh_csh']
+            next_wall_has_lsh_csh = datum['next_wall_has_lsh_csh']
             empty_skip = (empty or just_doors) and intermediates == 0
             interm_skip = (empty or just_doors) and intermediates >= 1
             having_assy_wall = not empty and not just_doors
-            if empty_skip and not has_lsh_csh:
+
+            if empty_skip and not next_wall_has_lsh_csh:
                 datum['show'] = False
                 self.hide_accordion_wall(wall)
-                datum['rule'] = "empty skip and not has_lsh_csh"
+                datum['rule'] = "empty skip and not next_wall_has_lsh_csh"
+
             elif interm_skip and within_intem:
                 datum['show'] = True
                 intermediates -= 1
                 datum['rule'] = "interm_skip and within_intem"
+
             elif empty and not within_intem:
                 datum['show'] = False
                 datum['rule'] = "empty and not within_intem"
+
             elif having_assy_wall:
                 datum['show'] = True
                 datum['rule'] = "having_assy_wall"
+
             walls_flags_dict[idx] = datum['show']
-        # 2nd pass - Exceptions
-        # Now dealing with a having assy wall with empty neighboors
-        for idx, datum in data.items():
-            has_wall = ""
-            wall_bp = datum.get('wall_bp')
-            empty = datum.get('empty')
-            rule = datum.get('rule')
-            if empty:
-                has_wall = "Don\'t Show Wall"
-            elif not empty:
-                has_wall = "Show Wall"
-                
 
     def hide_every_children(self, child):
         child.hide_viewport = True
@@ -3120,6 +3156,11 @@ class VIEW_OT_generate_2d_views(Operator):
         return any(overlay_result)
 
     def has_positive_overlay(self, item):
+        """
+        Check if the assembly has positive overlay. If so, return True.
+        This checks to see if any part of the assembly is overlapping the wall's edge.
+        """
+
         if not item.get("IS_BP_ASSEMBLY"):
             return False
 
@@ -3130,11 +3171,14 @@ class VIEW_OT_generate_2d_views(Operator):
         if wall_bp:
             wall_assy = sn_types.Assembly(wall_bp)
             item_assy = sn_types.Assembly(item)
+
             if not wall_assy and not item_assy:
                 return
+
             wall_length = wall_assy.obj_x.location.x
             item_length = item_assy.obj_x.location.x
 
+        # Assembly base points with constraints
         has_loc_constraint = False
 
         for constraint in item_assy.obj_bp.constraints:
@@ -3148,7 +3192,13 @@ class VIEW_OT_generate_2d_views(Operator):
             item_loc_x = item_assy.obj_bp.location.x
 
         negative_x_loc = item_loc_x < 0
-        positive_x_dim = item_loc_x + item_length > wall_length
+
+        corner_shelves = item.get("IS_BP_CORNER_SHELVES") or item.get("IS_BP_L_SHELVES")
+
+        if corner_shelves:
+            positive_x_dim = item_loc_x > wall_length
+        else:
+            positive_x_dim = item_loc_x + item_length > wall_length
 
         if negative_x_loc or positive_x_dim:
             return True
@@ -3185,7 +3235,6 @@ class VIEW_OT_generate_2d_views(Operator):
                     return END
         return None
 
-
     def fetch_accordions_walls_data(self, scene, walls):
         main_acc_walls = [o for o in scene.objects if o.get("IS_BP_WALL")]
         acc_props = bpy.context.scene.snap.accordion_view
@@ -3198,23 +3247,20 @@ class VIEW_OT_generate_2d_views(Operator):
         walls_dict = {}
         walls_list = [wall.obj_bp.name for wall in walls]
         walls_data['data'] = walls_dict
+
         for i, wall in enumerate(walls):
             idx = i + 1
             left_overlay, right_overlay = False, False
             left_wall = wall.get_connected_wall('LEFT')
             right_wall = wall.get_connected_wall('RIGHT')
-            if left_wall:
-                left_overlay = self.wall_assys_has_positive_overlay(
-                    left_wall.obj_bp)
-            if right_wall:
-                right_overlay = self.wall_assys_has_positive_overlay(
-                    right_wall.obj_bp)
+
             width = sn_types.Assembly(wall.obj_bp).obj_x.location.x
             just_doors = self.is_just_door_wall(wall.obj_bp)
             is_empty = self.empty_wall(wall.obj_bp)
-            has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall.obj_bp)
+            next_wall_has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall.obj_bp)
             has_overlay = self.wall_assys_has_positive_overlay(wall.obj_bp)
             within_iw = width <= intermediate_space_metric
+
             walls_dict[idx] = {}
             walls_dict[idx]['wall_bp'] = main_acc_walls[i]
             walls_dict[idx]['width_metric'] = width
@@ -3222,7 +3268,7 @@ class VIEW_OT_generate_2d_views(Operator):
             walls_dict[idx]['just_doors'] = just_doors
             walls_dict[idx]['empty'] = is_empty
             walls_dict[idx]['within_intermediate_space'] = within_iw
-            walls_dict[idx]['has_lsh_csh'] = has_lsh_csh
+            walls_dict[idx]['next_wall_has_lsh_csh'] = next_wall_has_lsh_csh
             walls_dict[idx]['show'] = True
             walls_dict[idx]['left_overlay'] = left_overlay
             walls_dict[idx]['overlay'] = has_overlay
@@ -3253,12 +3299,14 @@ class VIEW_OT_generate_2d_views(Operator):
             wall_assy = sn_types.Assembly(obj.obj_bp)
             walls_length += wall_assy.obj_x.location.x
             walls_heights.append(wall_assy.obj_z.location.z)
+
             if obj.obj_bp.hide_viewport:
                 obj.obj_bp.hide_viewport = False
                 for child in obj.obj_bp.children:
                     if child.type == 'EMPTY':
                         continue
                     child.hide_viewport = False
+
             # Removing all wall heights and building heights here too
             for wall_ch in obj.obj_bp.children:
                 for wall_g_ch in wall_ch.children:
@@ -3268,6 +3316,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     bpy.data.objects.remove(wall_ch, do_unlink=True)
                 elif wall_ch.type == 'FONT':
                     bpy.data.objects.remove(wall_ch, do_unlink=True)
+
         new_scene.name = "Z_Main Accordion"
         new_scene.snap.name_scene = "Z_Main Accordion"
         new_scene.snap.elevation_img_name = "Z_Main Accordion"
@@ -3293,8 +3342,7 @@ class VIEW_OT_generate_2d_views(Operator):
         result = (new_scene, new_walls)
         return result
 
-    def accordion_cross_section_slot(self, current_wall, previous_wall, 
-                                     next_wall, assemblies_dict):
+    def accordion_cross_section_slot(self, current_wall, previous_wall, next_wall, assemblies_dict):
         offset = 6 # 6 inches
         slots = {}
         slots["left"] = False
@@ -3310,6 +3358,7 @@ class VIEW_OT_generate_2d_views(Operator):
         curr_max = assemblies_dict[current_wall].get("max_loc_data")
         prvs_max = assemblies_dict[previous_wall].get("max_loc_data")
         next_min = assemblies_dict[next_wall].get("min_loc_data")
+
         if prvs_max is not None:
             depth_prvs = prvs_max.get("depth")
             end_prvs = prvs_max.get("end")
@@ -3319,14 +3368,14 @@ class VIEW_OT_generate_2d_views(Operator):
             end_curr = curr_max.get("end")
         if next_min is not None:
             depth_next = next_min.get("depth")
-            start_next = next_min.get("start") 
+            start_next = next_min.get("start")
+
         # LEFT check
         if start_curr is not None and depth_prvs is not None:
             end_situation = (curr_wall_width_inches - end_curr) <= offset
             start_situation = (prvs_wall_width_inches - end_prvs) <= offset
             if depth_prvs <= start_curr and (start_situation or end_situation):
-                # NOTE Issue #1197 - start_curr is the value we want!
-                #      when a left slot is True
+                # NOTE Issue #1197 - start_curr is the value we want when a left slot is True
                 slots["left"] = True
                 left_space = start_curr
             elif depth_prvs > start_curr:
@@ -3335,32 +3384,37 @@ class VIEW_OT_generate_2d_views(Operator):
             slots["left"] = True
         elif start_curr is None and depth_prvs is None:
             slots["left"] = False
+
         # RIGHT check
         if end_curr is not None and depth_next is not None:
             remaining_space = curr_wall_width_inches - end_curr
             if remaining_space >= depth_next and start_next <= offset:
-                # NOTE Issue #1197 - remaining_space is the value we want!
-                #      when a right slot is True
+                # NOTE Issue #1197 - remaining_space is the value we want when a right slot is True
                 slots["right"] = True
                 right_space = remaining_space
             elif remaining_space < depth_next:
                 slots["right"] = False
+
         elif end_curr is None and depth_next is not None:
             slots["right"] = True
         elif end_curr is None and depth_next is None:
             slots["right"] = False
+
         spaces = round(left_space, 2), round(right_space, 2)
         section_slots = (slots, spaces)
+
         return section_slots
 
-    def accordion_instances_arragement(self, walls, accordions, 
-                                       assemblies_dict, extra_dims):
+    def accordion_instances_arragement(self, walls, accordions, assemblies_dict, extra_dims):
         targets = {}
         walls_rem_spaces = {}
         walls_sum = 0
+
         for wall in walls:
             walls_sum += wall.obj_x.location.x
+
         walls = [wall.obj_bp for wall in walls]
+
         # NOTE Fetch parts and create the new inserts getting at the previous
         # wall max_loc_data and at the next min_loc_data
         for key in assemblies_dict.keys():
@@ -3368,10 +3422,7 @@ class VIEW_OT_generate_2d_views(Operator):
             prvs_wall_key = walls[walls.index(key) - 1]
             curr_wall_key = walls[walls.index(key)]
             next_wall_key = walls[walls.index(key) - (len(walls) - 1)]
-            slots, spaces = self.accordion_cross_section_slot(curr_wall_key,
-                                                      prvs_wall_key,
-                                                      next_wall_key,
-                                                      assemblies_dict)
+            slots, spaces = self.accordion_cross_section_slot(curr_wall_key, prvs_wall_key, next_wall_key, assemblies_dict)
             extra_dims[curr_wall_key] = []
             walls_rem_spaces[curr_wall_key] = spaces
             left_slot = slots.get("left") 
@@ -3384,95 +3435,138 @@ class VIEW_OT_generate_2d_views(Operator):
             right_parts_data = assemblies_dict[next_wall_key]["min_loc_data"]
             curr_wall_name = curr_wall_key.name
             curr_wall_width = sn_types.Assembly(curr_wall_key).obj_x.location.x
+            re_origin = None
+            left_name = f'{curr_wall_name}_left'
+
             if left_slot and left_parts_data is not None:
                 prvs_wall_width = self.to_inch(sn_types.Assembly(prvs_wall_key).obj_x.location.x)
                 prvs_parts_max = assemblies_dict[prvs_wall_key]['max_loc_data']
                 prvs_assy_end = None
+
                 if prvs_parts_max:
                     prvs_assy_end = prvs_parts_max['end']
                     if (prvs_wall_width - prvs_assy_end) > left_parts_data['depth']:
                         continue
+
                 offset = curr_wall_glb_x_pos
-                left_name = f'{curr_wall_name}_left'
                 left_grp = bpy.data.collections.new(f'{left_name}_grp')
-                self.add_ch_accordion_parts(extra_dims, curr_wall_key, 
-                                            left_parts_data, left_grp)
+                self.add_ch_accordion_parts(extra_dims, curr_wall_key, left_parts_data, left_grp)
                 self.add_accordion_virtual_parts(left_parts_data, left_grp)
-                left_instance = bpy.data.objects.new(
-                    f'{left_name}_ins', None)
+                left_instance = bpy.data.objects.new(f'{left_name}_ins', None)
                 left_instance.instance_type = 'COLLECTION'
                 left_instance.instance_collection = left_grp
+
                 if offset == 0:
                     left_instance.location = (offset, (walls_sum * -1), 0)
                 elif offset != 0:
                     left_instance.location = (offset, (offset * -1), 0)
+
                 left_instance.rotation_euler = (0, 0, math.radians(90))
+
             if right_slot and right_parts_data is not None:
                 next_wall_width = self.to_inch(sn_types.Assembly(next_wall_key).obj_x.location.x)
                 next_parts_min = assemblies_dict[next_wall_key]['min_loc_data']
                 next_assy_start = None
+
                 if next_parts_min:
                     next_assy_start = next_parts_min['start']
                     if next_assy_start > right_parts_data['depth']:
                         continue
+
                 offset = curr_wall_glb_x_pos + curr_wall_width
                 right_name = f'{curr_wall_name}_right'
                 right_grp = bpy.data.collections.new(f'{right_name}_grp')
-                self.add_ch_accordion_parts(extra_dims, curr_wall_key, 
-                                            right_parts_data, right_grp)
+                self.add_ch_accordion_parts(extra_dims, curr_wall_key, right_parts_data, right_grp)
                 self.add_accordion_virtual_parts(right_parts_data, right_grp)
-                right_instance = bpy.data.objects.new(
-                    f'{right_name}_ins', None)
+                right_instance = bpy.data.objects.new(f'{right_name}_ins', None)
                 right_instance.instance_type = 'COLLECTION'
                 right_instance.instance_collection = right_grp
+
                 if offset == 0:
                     right_instance.location = (offset, (walls_sum * -1), 0)
                 elif offset != 0:
                     right_instance.location = (offset, (offset * -1), 0)
+
                 right_instance.rotation_euler = (0, 0, math.radians(-90))
-            targets[curr_wall_key] = (left_instance, right_instance)
-        # NOTE to work properly, the cross-sections for L-shelves/Corner Shelves
-        #      for accordions are added after the ones for sections
-        for wall in walls:
+
+            targets[curr_wall_key] = [[left_instance, right_instance, re_origin], [right_instance, right_instance, re_origin]]
+
+        # NOTE to work properly, the cross-sections for L-shelves/Corner Shelves for accordions are added after the ones for sections
+        for i, wall in enumerate(walls):
             corner_result = self.get_lsh_csh_assemblies(wall)
+
             if corner_result:
                 previous_wall = walls[walls.index(wall) - 1]
                 previous_wall_name = previous_wall.name
                 right_name = f'{previous_wall_name}_right_grp'
-                all_collections = bpy.data.collections
-                present_collections = [col.name for col in all_collections]
-                existing_grp = right_name in present_collections
-                prvs_wall_width = sn_types.Assembly(
-                    previous_wall).obj_x.location.x
+                prvs_wall_width = sn_types.Assembly(previous_wall).obj_x.location.x
+                next_wall_width = 0
+                next_wall = True
                 target = targets.get(previous_wall)
-                # NOTE if the group already exists, just add the objects there
-                #      and if it doesn't, create the group and instance
-                if existing_grp:
-                    grp = bpy.data.collections[right_name]
-                    for corner in corner_result:
-                        self.group_children(grp, corner)
-                elif not existing_grp:
-                    grp = bpy.data.collections.new(f'{right_name}')
-                    for corner in corner_result:
-                        self.group_children(grp, corner)
-                    wall_ch = previous_wall.children
-                    wall_mesh = [m for m in wall_ch \
-                        if m.type == 'MESH' and 'wall' in m.name.lower()][0]
-                    curr_wall_glb = self.get_object_global_location(wall_mesh)
-                    curr_wall_glb_x_pos = curr_wall_glb[0]
-                    offset = curr_wall_glb_x_pos + prvs_wall_width
-                    right_instance = bpy.data.objects.new(
-                        f'{previous_wall_name}_right_ins', None)
-                    right_instance.location = (offset, 0, 0)
-                    right_instance.scale = (0.25, 1, 1)
-                    right_instance.rotation_euler = (0, 0, math.radians(-90))
-                    right_instance.instance_type = 'COLLECTION'
-                    right_instance.instance_collection = grp
+
+                if i != (len(walls) - 1) and next_wall:
+                    next_wall = walls[walls.index(wall) + 1]
+                    next_wall_width = sn_types.Assembly(next_wall).obj_x.location.x
+                else:
+                    next_wall = False
+
+                if not target:
+                    target = targets.get(wall)
+                if not target:
+                    target = (None, None, None)
+
+                wall_ch = wall.children
+                wall_mesh = [m for m in wall_ch if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+                curr_wall_glb = self.get_object_global_location(wall_mesh)
+                curr_wall_glb_x_pos = curr_wall_glb[0]
+                wall_width = sn_types.Assembly(wall).obj_x.location.x
+
+                if walls.index(wall) == 0:
+                    offset = 0
+                else:
+                    offset = curr_wall_glb_x_pos
+
+                acc_props = bpy.context.scene.snap.accordion_view
+                break_width = acc_props.break_width
+                acc_length_with_next_wall = unit.meter_to_inch(curr_wall_glb_x_pos) + unit.meter_to_inch(wall_width) + unit.meter_to_inch(next_wall_width)
+
+                corner_instances = []
+
+                for corner in corner_result:
+                    origin_loc_x = 0
+                    origin_rot = (0, 0, 0)
+
+                    grp = bpy.data.collections.new(f'{corner.name}')
+                    self.group_children(grp, corner)
+
+                    instance = bpy.data.objects.new(f'{corner.name}_ins', None)
+                    instance.scale = (1, 1, 1)
+                    instance.instance_type = 'COLLECTION'
+                    instance.instance_collection = grp
+
+                    origin_loc_x = offset + corner.location.x
+
+                    if corner.rotation_euler.z == 0.0:
+                        origin_rot = (0, 0, math.radians(-90))
+                        
+                    else:
+                        origin_rot = (0, 0, math.radians(90))
+
+                    re_origin = {"origin_loc_x": origin_loc_x, "origin_rot": origin_rot}
+
+                    corner_instances.append([instance, re_origin])
+
                     if target:
-                        left_instance, _ = target
-                        targets[previous_wall] = left_instance, right_instance
-                    elif not target:
-                        targets[previous_wall] = None, right_instance
+                        # Move corner instance to next accordion if the current one is full
+                        if acc_length_with_next_wall > break_width:
+                            if next_wall:
+                                if wall_width - corner.location.x < unit.inch(6):
+                                    targets[next_wall] = corner_instances
+                            else:
+                                targets[previous_wall] = corner_instances
+                        else:
+                            targets[wall] = corner_instances
+
         return (targets, walls_rem_spaces)
 
     def add_ch_accordion_parts(self, extra_dims, curr_wall_key,
@@ -3676,11 +3770,11 @@ class VIEW_OT_generate_2d_views(Operator):
         found = False
         walls = [wall.name for wall in accordion]
         for wall in accordion:
-            has_csh_lsh = self.next_wall_has_lsh_csh(walls, wall)
+            next_has_csh_lsh = self.next_wall_has_lsh_csh(walls, wall)
             empty = self.empty_wall(wall)
             just_door = self.is_just_door_wall(wall)
             std_walls = not empty and not just_door and not found
-            just_csh_lsh_cross_sections = has_csh_lsh and not found
+            just_csh_lsh_cross_sections = next_has_csh_lsh and not found
             if std_walls or just_csh_lsh_cross_sections:
                 first_wall = wall
                 found = True
@@ -3769,13 +3863,13 @@ class VIEW_OT_generate_2d_views(Operator):
         x_offset = assembly.obj_x.location.x / 2
         text_loc = (x_offset, 0, -unit.inch(10))
         just_wall = self.is_just_door_wall(wall)
-        has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
+        next_wall_has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
         empty = self.empty_wall(wall)
-        if (not just_wall and not empty) or has_lsh_csh:
+        if (not just_wall and not empty) or next_wall_has_lsh_csh:
             self.elv_wall_labels(assembly, text_loc)
         has_entry = any('Door Frame' in e.name for c in wall.children
                         for e in c.children)
-        if (not has_entry and not just_wall and not empty) or has_lsh_csh:
+        if (not has_entry and not just_wall and not empty) or next_wall_has_lsh_csh:
             dim = sn_types.Dimension()
             label = self.to_inch_lbl(assembly.obj_x.location.x)
             dim.parent(wall)
@@ -3852,7 +3946,6 @@ class VIEW_OT_generate_2d_views(Operator):
             labels.append((tkh_str, (hang_h + fc_assy.obj_y.location.y) + unit.inch(-6)))
             labels = list(dict.fromkeys(labels))
 
-
     def add_flat_crowns(self, context, accordion, offset):
         offset = ((abs(offset) * -1) - unit.inch(15))
         flat_crowns_labels = []
@@ -3885,7 +3978,6 @@ class VIEW_OT_generate_2d_views(Operator):
                     dim.set_label(label)
                     drawn_labels.append(label)
 
-
     def shift_dims_nearby_partitions(self, at_position):
         for each in bpy.context.scene.objects:
             if 'parthgt' in each.name.lower() and each.parent.type == "MESH":
@@ -3912,6 +4004,8 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def add_csh_lsh_accordion_dims(self, insert):
         csh_lsh_objects = []
+
+        # Find corner shelves and l shelves
         for obj in insert.instance_collection.all_objects:
             if hasattr(obj, 'name') and hasattr(obj.parent, 'name'):
                 rot_z = obj.rotation_euler.z
@@ -3921,6 +4015,8 @@ class VIEW_OT_generate_2d_views(Operator):
                 l_shelves = 'l shelves' in obj.parent.name.lower()
                 if stringer and left and (c_shelves or l_shelves):
                     csh_lsh_objects.append(obj)
+
+
         for item in csh_lsh_objects:
             csh = 'corner shelves' in item.parent.name.lower()
             lsh = 'l shelves' in item.parent.name.lower()
@@ -3931,19 +4027,26 @@ class VIEW_OT_generate_2d_views(Operator):
             has_top_kd = assy.get_prompt("Add Top KD").get_value()
             left_depth = left_depth_pmpt.distance_value
             left_depth_lbl = self.to_inch_lbl(left_depth)
+
             if has_top_kd:
                 self.csh_lsh_top_kd_lbl(insert, assy, item.parent)
+
             self.csh_lsh_bottom_kd_lbl(insert, assy, item.parent)
             self.lsh_csh_toe_kick_lbl(assy)
             self.lsh_csh_width(insert, assy, width)
             self.lsh_csh_left_partition(insert, assy)
             self.csh_lsh_pdt_name(insert, csh, lsh, assy)
-            self.csh_lsh_depth(insert, panel_height, width, left_depth_lbl)
+            self.csh_lsh_depth(insert, panel_height, width, left_depth_lbl, assy)
 
-    def csh_lsh_depth(self, insert, stringer_heigth, width, left_depth_lbl):
+    def csh_lsh_depth(self, insert, stringer_heigth, width, left_depth_lbl, assy):
         hashmark = sn_types.Line(unit.inch(6), (-45, 0, 90))
         utils.copy_world_loc(insert, hashmark.anchor)
-        hashmark.anchor.location[0] -= (width - unit.inch(0.75))
+
+        if math.isclose(assy.obj_bp.rotation_euler.z, math.radians(-90), abs_tol=0.0001):
+            hashmark.anchor.location[0] += (width - unit.inch(0.75))
+        else:
+            hashmark.anchor.location[0] -= (width - unit.inch(0.75))
+
         hashmark.anchor.location[2] += (stringer_heigth + unit.inch(0.75))
         hashmark.anchor.rotation_euler[1] = math.radians(45)
         depth_dim = sn_types.Dimension()
@@ -3958,6 +4061,7 @@ class VIEW_OT_generate_2d_views(Operator):
         panel_height_pmpt = assy.get_prompt("Panel Height")
         tk_height_pmpt = assy.get_prompt("Toe Kick Height")
         is_hanging_pmpt = assy.get_prompt("Is Hanging")
+
         if panel_height_pmpt and tk_height_pmpt and is_hanging_pmpt:
             panel_height = panel_height_pmpt.get_value()
             tk_height = tk_height_pmpt.get_value()
@@ -3967,10 +4071,13 @@ class VIEW_OT_generate_2d_views(Operator):
         if c_shelves:
             pdt_label = "Corner Shelves"
         elif l_shelves:
-            pdt_label = "L-Shaped Shelves" 
+            pdt_label = "L-Shaped Shelves"
+
         height = (assy.obj_z.location.z / 2) + tk_height
+
         if is_hanging:
             height =  assy.obj_z.location.z - panel_height / 2
+
         pdt_dim = sn_types.Dimension()
         pdt_dim.set_label(pdt_label)
         utils.copy_world_loc(insert, pdt_dim.anchor, (0, 0, height))
@@ -3982,23 +4089,31 @@ class VIEW_OT_generate_2d_views(Operator):
         panel_height_pmpt = assy.get_prompt("Panel Height")
         tk_height_pmpt = assy.get_prompt("Toe Kick Height")
         is_hanging_pmpt = assy.get_prompt("Is Hanging")
+
         if panel_height_pmpt and tk_height_pmpt and is_hanging_pmpt:
             panel_height = panel_height_pmpt.get_value()
             tk_height = tk_height_pmpt.get_value()
             is_hanging = is_hanging_pmpt.get_value()
         elif not panel_height_pmpt or tk_height_pmpt or is_hanging_pmpt:
             return
+
         height = assy.obj_z.location.z + tk_height - unit.inch(1.5)
+
         if is_hanging:
             height = assy.obj_z.location.z - unit.inch(1.5)
+
         width = assy.obj_x.location.x
         kd_dim = sn_types.Dimension()
         kd_dim.set_label("KD")
         utils.copy_world_loc(insert, kd_dim.anchor)
         utils.copy_world_rot(insert, kd_dim.anchor)
-        kd_dim.anchor.location[0] -= width / 2
-        kd_dim.anchor.location[2] = height
 
+        if math.isclose(assy.obj_bp.rotation_euler.z, math.radians(-90), abs_tol=0.0001):
+            kd_dim.anchor.location[0] += width / 2
+        else:
+            kd_dim.anchor.location[0] -= width / 2
+
+        kd_dim.anchor.location[2] = height
 
     def csh_lsh_bottom_kd_lbl(self, insert, assy, item):
         tk_height, panel_height = 0, 0
@@ -4006,21 +4121,30 @@ class VIEW_OT_generate_2d_views(Operator):
         panel_height_pmpt = assy.get_prompt("Panel Height")
         tk_height_pmpt = assy.get_prompt("Toe Kick Height")
         is_hanging_pmpt = assy.get_prompt("Is Hanging")
+
         if panel_height_pmpt and tk_height_pmpt and is_hanging_pmpt:
             panel_height = panel_height_pmpt.get_value()
             tk_height = tk_height_pmpt.get_value()
             is_hanging = is_hanging_pmpt.get_value()
         elif not panel_height_pmpt or tk_height_pmpt or is_hanging_pmpt:
             return
+
         height = tk_height
+
         if is_hanging:
             height = assy.obj_z.location.z - panel_height + unit.inch(1.5)
+
         width = assy.obj_x.location.x
         kd_dim = sn_types.Dimension()
         kd_dim.set_label("KD")
         utils.copy_world_loc(insert, kd_dim.anchor)
         utils.copy_world_rot(insert, kd_dim.anchor)
-        kd_dim.anchor.location[0] -= width / 2
+
+        if math.isclose(assy.obj_bp.rotation_euler.z, math.radians(-90), abs_tol=0.0001):
+            kd_dim.anchor.location[0] += width / 2
+        else:
+            kd_dim.anchor.location[0] -= width / 2
+
         kd_dim.anchor.location[2] = height
 
     def lsh_csh_toe_kick_lbl(self, assy):
@@ -4040,7 +4164,16 @@ class VIEW_OT_generate_2d_views(Operator):
                 tk_assy = sn_types.Assembly(tk)
                 tk_w = tk_assy.obj_x.location.x
                 tk_h = tk_assy.obj_y.location.y
-                lbl_loc = (0, tk_h/2, tk_w + unit.inch(3))
+
+                # Check and adjust if corner is split between accordion pages
+                if math.isclose(assy.obj_bp.rotation_euler.z, math.radians(-90), abs_tol=0.0001):
+                    if math.isclose(tk_ins_assy.obj_bp.rotation_euler.z, math.radians(90), abs_tol=0.0001):
+                        continue
+                    else:
+                        lbl_loc = (0, tk_h/2, abs(tk_w) * 2 + unit.inch(3))
+                else:
+                    lbl_loc = (0, tk_h/2, tk_w + unit.inch(3))
+
                 tk_lbl = sn_types.Dimension()
                 tk_lbl.set_label(lbl_txt)
                 utils.copy_world_loc(tk, tk_lbl.anchor, lbl_loc)
@@ -4067,7 +4200,12 @@ class VIEW_OT_generate_2d_views(Operator):
         width_dim.set_label(label)
         utils.copy_world_loc(insert, width_dim.anchor)
         utils.copy_world_rot(insert, width_dim.anchor)
-        width_dim.anchor.location[0] -= width / 2
+
+        if math.isclose(assy.obj_bp.rotation_euler.z, math.radians(-90), abs_tol=0.0001):
+            width_dim.anchor.location[0] += width / 2
+        else:
+            width_dim.anchor.location[0] -= width / 2
+
         width_dim.anchor.location[2] = height
     
     def lsh_csh_left_partition(self, insert, assy):
@@ -4076,12 +4214,14 @@ class VIEW_OT_generate_2d_views(Operator):
         panel_height_pmpt = assy.get_prompt("Panel Height")
         tk_height_pmpt = assy.get_prompt("Toe Kick Height")
         is_hanging_pmpt = assy.get_prompt("Is Hanging")
+
         if panel_height_pmpt and tk_height_pmpt and is_hanging_pmpt:
             panel_height = panel_height_pmpt.get_value()
             tk_height = tk_height_pmpt.get_value()
             is_hanging = is_hanging_pmpt.get_value()
         elif not panel_height_pmpt or tk_height_pmpt or is_hanging_pmpt:
             return
+
         height = panel_height
         depth = assy.obj_y.location.y
         label = self.to_inch_str(height)
@@ -4090,33 +4230,64 @@ class VIEW_OT_generate_2d_views(Operator):
         lbl_x = depth + unit.inch(2)
         lbl_z = (panel_height / 2) + tk_height 
         lbl_loc = (0, lbl_x, lbl_z)
+
         if is_hanging:
             lbl_z = assy.obj_z.location.z - (panel_height / 2)
             lbl_loc = (0, lbl_x, lbl_z)
+
         lbl_rot = (0, -90, 0)
         utils.copy_world_loc(insert, dim.anchor, lbl_loc)
         utils.copy_world_rot(insert, dim.anchor, lbl_rot)
         dim_x_loc = self.to_inch(dim.anchor.location[0])
         self.shift_dims_nearby_partitions(dim_x_loc)
-    
+
+    def prev_wall_has_lsh_csh(self, walls_list, wall):
+        if wall.name in walls_list:
+            csh_lsh_count = 0
+            curr_idx = walls_list.index(wall.name)
+            prv_wall_name = None
+            wall_assy = sn_types.Wall(wall)
+
+            if curr_idx == 0:
+                prv_wall_name = walls_list[-1]
+            else:
+                prv_wall_name = walls_list[curr_idx - 1]
+
+            prv_wall_obj = bpy.data.objects[prv_wall_name]
+
+            for obj in prv_wall_obj.children:
+                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES"):
+                    distance_to_wall_end = wall_assy.obj_x.location.x - obj.location.x
+                    if distance_to_wall_end < unit.inch(6):
+                        csh_lsh_count += 1
+
+            if csh_lsh_count > 0:
+                return True
+
+        return False
+
     def next_wall_has_lsh_csh(self, walls_list, wall):
         if wall.name in walls_list:
             csh_lsh_count = 0
             curr_idx = walls_list.index(wall.name)
             next_wall_name = None
+            wall_assy = sn_types.Wall(wall)
+
             if curr_idx == len(walls_list) - 1:
                 next_wall_name = walls_list[0]
             elif curr_idx < len(walls_list) - 1:
                 next_wall_name = walls_list[curr_idx + 1]
+
             next_wall_obj = bpy.data.objects[next_wall_name]
+
             for obj in next_wall_obj.children:
-                lsh = 'l shelves' in obj.name.lower()
-                csh = 'corner shelves' in obj.name.lower()
-                kbc = "IS_CORNER" in obj
-                if lsh or csh or kbc:
-                    csh_lsh_count += 1
+                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES"):
+                    if obj.location.x < unit.inch(6):
+                        csh_lsh_count += 1
+
             if csh_lsh_count > 0:
                 return True
+
         return False
 
     def accordion_orthoscale_ratio(self, width):
@@ -4140,6 +4311,7 @@ class VIEW_OT_generate_2d_views(Operator):
     def adjust_accordion_dims(self, insert):
         insert_objs = insert.instance_collection.all_objects
         dims = [obj for obj in insert_objs if obj.get('IS_VISDIM_A')]
+
         for d in dims:
             dim_loc_x = d.location.x
             dim_loc_y = d.location.y
@@ -4149,8 +4321,7 @@ class VIEW_OT_generate_2d_views(Operator):
             part_rot_z = parent_part.rotation_euler.z
             parent_insert = parent_part.parent
 
-            in_top_shelf_l = ('topshelf' in parent_part.name.lower() and
-                              math.isclose(part_rot_z, math.radians(90), abs_tol=1e-3))
+            in_top_shelf_l = ('topshelf' in parent_part.name.lower() and math.isclose(part_rot_z, math.radians(90), abs_tol=1e-3))
             in_filler = parent_part.sn_closets.is_filler_bp
 
             if in_top_shelf_l:
@@ -4510,48 +4681,56 @@ class VIEW_OT_generate_2d_views(Operator):
         data_dict = self.fetch_accordions_walls_data(main_scene, new_walls)
         accordions = self.divide_walls_to_acordions(main_scene, data_dict)
         main_sc_objs = [o for o in bpy.data.scenes["Z_Main Accordion"].objects]
+
         for wall in new_walls:
             wall_name = wall.obj_bp.name
             wall_obj = context.view_layer.objects[wall.obj_bp.name]
             wall_groups[wall_name] = None
+
         walls_list = list(wall_groups.keys())
         assemblies_dict = self.get_walls_assys_arrangement(wall_groups)
         # Getting the accordion cross-sections displacement
-        targets, walls_rem_spaces = self.accordion_instances_arragement(new_walls,
-                                                      accordions,
-                                                      assemblies_dict,
-                                                      extra_dims)
+        targets, walls_rem_spaces = self.accordion_instances_arragement(new_walls, accordions, assemblies_dict, extra_dims)
+
         # Create Accordion Scenes
-        for i, accordion in enumerate(accordions):   
+        for i, accordion in enumerate(accordions):
             empty_acc_check = []
+
             for j, wall in enumerate(accordion):
                 empty = self.empty_wall(wall)
                 just_door = self.is_just_door_wall(wall)
-                has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
-                if has_lsh_csh:
+                next_wall_has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
+                prev_wall_has_lsh_csh = self.prev_wall_has_lsh_csh(walls_list, wall)
+
+                if next_wall_has_lsh_csh or prev_wall_has_lsh_csh:
                     empty_acc_check.append(False)
                 elif not empty and not just_door:
                     empty_acc_check.append(False)
                 elif empty or just_door:
                     empty_acc_check.append(True)
+
             empty_acc_check = list(set(empty_acc_check))
+
             if len(empty_acc_check) == 1 and empty_acc_check[0] == True:
                 continue
+
             walls_length_sum = 0
             walls_heights = []
             grp_name = "Accordion " + str(i + 1)
             grp = bpy.data.collections.new(grp_name)
             new_scene = self.create_acordion_scene(context, grp)
+
             for j, wall in enumerate(accordion):
                 wall_assy = sn_types.Assembly(wall)
                 just_door = self.is_just_door_wall(wall)
                 empty = self.empty_wall(wall)
-                has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
+                next_wall_has_lsh_csh = self.next_wall_has_lsh_csh(walls_list, wall)
+                prev_wall_has_lsh_csh = self.prev_wall_has_lsh_csh(walls_list, wall)
                 current_wall_width = sn_types.Assembly(wall).obj_x.location.x
                 walls_length_sum += current_wall_width
                 walls_heights.append(sn_types.Assembly(wall).obj_z.location.z)
                 # Making copies of existing annotations
-                if (just_door or empty) and not has_lsh_csh:
+                if (just_door or empty) and not next_wall_has_lsh_csh and not prev_wall_has_lsh_csh:
                     continue
                 self.group_every_children_on_acc(grp, wall)
                 # NOTE wall height / building height need to be added just 
@@ -4560,10 +4739,13 @@ class VIEW_OT_generate_2d_views(Operator):
                 for obj in wall.children:
                     if obj.get("IS_VISDIM_A"):
                         bpy.data.objects.remove(obj, do_unlink=True)
+                        continue
+
                     if obj.snap.is_wall_mesh:
                         wall_mesh = self.create_elevation_wall(wall_assy, 'Acc')
                         grp.objects.link(wall_mesh)
                         grp.objects.unlink(obj)
+
                     if obj.get('IS_OBSTACLE'):
                         on_accordions = obj.get('SHOW_ON_ACCORDIONS', True)
                         if on_accordions:
@@ -4574,25 +4756,32 @@ class VIEW_OT_generate_2d_views(Operator):
                             #     child.hide_render = False
 
                 new_scene.collection.objects.link(wall)
-                # left_space, right_space = walls_rem_spaces.get(wall, (0, 0))
                 self.link_tagged_dims_to_scene(new_scene, wall)
                 self.accordion_obstacles(grp, walls_list, wall)
                 target = targets.get(wall)
                 has_target = target is not None
+
                 if has_target:
-                    left_insert, right_insert = target
-                    has_left_insert = left_insert is not None
-                    has_right_insert = right_insert is not None
-                    if has_left_insert:
-                        new_scene.collection.objects.link(left_insert)
-                        if show_csh_lsh and has_csh_lsh:
-                            self.add_csh_lsh_accordion_dims(left_insert)
-                        
-                    if has_right_insert:
-                        new_scene.collection.objects.link(right_insert)
-                        if show_csh_lsh and has_csh_lsh:
-                            self.add_csh_lsh_accordion_dims(right_insert)
-                            self.adjust_accordion_dims(right_insert)
+                    for instance_info in target:
+                        if instance_info:
+                            instance = instance_info[0]
+                            re_origin = instance_info[1]
+
+                            if instance:
+                                new_scene.collection.objects.link(instance)
+                                if show_csh_lsh and has_csh_lsh:
+                                    if re_origin:
+                                        bpy.ops.object.select_all(action='DESELECT')
+                                        bpy.context.scene.cursor.location = (re_origin["origin_loc_x"], 0, 0)
+                                        instance.select_set(True)
+                                        bpy.context.view_layer.objects.active = instance
+                                        bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='BOUNDS')
+                                        instance.rotation_euler = re_origin["origin_rot"]
+
+                                    self.add_csh_lsh_accordion_dims(instance)
+                                    # adjust if needed for right corner at end of wall
+                                    self.adjust_accordion_dims(instance)
+
                 wall_assy = sn_types.Assembly(wall) 
                 acc_floor = self.create_elevation_floor(new_scene, wall_assy)
                 wall_obj = sn_types.Wall(obj_bp=wall)
@@ -4635,7 +4824,6 @@ class VIEW_OT_generate_2d_views(Operator):
             instance.hide_select = True
             bpy.ops.object.select_all(action='DESELECT')
             self.show_cross_sections_for_camera(new_scene)
-            
 
     def hide_cross_sections_for_camera(self, new_scene):
         for o in new_scene.objects: 
@@ -4750,7 +4938,6 @@ class VIEW_OT_generate_2d_views(Operator):
             utils.copy_world_loc(wall_bp, width_dim.anchor, (0, 0, loc_z))
             utils.copy_world_rot(wall_bp, width_dim.anchor)
             width_dim.end_point.location.x = loc_x
-
 
     def create_elv_view_scene(self, context, assembly, grp):
         if assembly.obj_bp and assembly.obj_x and assembly.obj_y and assembly.obj_z:
@@ -4983,6 +5170,39 @@ class VIEW_OT_generate_2d_views(Operator):
                 if obj.name not in self.FS_HIDE_EXCLUSION_COLL.objects:
                     self.FS_HIDE_EXCLUSION_COLL.objects.link(obj)
 
+    def write_island_splitter_widths(self, island, x_loc, view):
+        island_assembly = sn_types.Assembly(obj_bp=island)
+        
+        is_cabinet = island_assembly.obj_bp.get("IS_BP_CABINET")
+        if is_cabinet:
+            for child in island.children:
+                if child.get("IS_BP_CARCASS"):
+                    carcass_assembly = sn_types.Assembly(child)
+                    toe_kick_height = carcass_assembly.get_prompt("Toe Kick Height").get_value()
+
+            for child in island.children:
+                if child.get("IS_BP_HORIZONTAL_SPLITTER"):
+                    if (child.rotation_euler.z == 0 and view == "Front") or (child.rotation_euler.z != 0 and view == "Back"):
+                        splitter_assembly = sn_types.Assembly(child)
+                        calculator = splitter_assembly.get_calculator('Opening Widths Calculator')
+                        dim_x = island_assembly.obj_x.location.x
+                        splitter_x = splitter_assembly.obj_x.location.x
+                        prev_value = x_loc + dim_x/2 - splitter_x
+
+                        for opening in splitter_assembly.obj_bp.children:
+                            if opening.get("IS_BP_OPENING"):
+                                opening_nbr = opening.get('OPENING_NBR')
+                                width = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                                if width:
+                                    width_value = width.distance_value
+                                    x_pos = width_value/2 + prev_value
+                                    width_label = sn_types.Dimension()
+                                    width_label.start_x(value=x_pos)
+                                    width_label.start_z(value=toe_kick_height + unit.inch(1.5))
+                                    label = self.to_inch_lbl(width_value)
+                                    width_label.set_label(label)
+                                    prev_value = prev_value + width_value + unit.inch(0.75) 
+        
     def write_island_height(self, island, x_loc):
         island_assembly = sn_types.Assembly(obj_bp=island)
 
@@ -5084,7 +5304,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 width_label.start_z(value=unit.inch(-4))
                 label = self.to_inch_lbl(width_value)
                 width_label.set_label(label)
-                prev_value = prev_value + width_value + panel_thk
+                prev_value = prev_value + width_value + panel_thk 
 
     def get_mat_color(self, island):
         children = island.children
@@ -5303,7 +5523,6 @@ class VIEW_OT_generate_2d_views(Operator):
                 self.write_shelf(child, x_0, z_loc, shelf_rot, is_cabinet)
 
     def get_height_code(self, height):
-        print("height=",height)
         HAMPER_HEIGHTS = [
             ('589.280', '19H-23.78"', '19H-23.78"'),
             ('621.284', '20H-25.04"', '20H-25.04"'),
@@ -5365,6 +5584,7 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def write_drawer(self, obj, x_loc, z_loc):
         obj_assembly = sn_types.Assembly(obj_bp=obj)
+        # is_cabinet = obj_assembly.obj_bp.parent.get("IS_BP_CABINET")
         is_cabinet = sn_utils.get_cabinet_bp(obj)
 
         obj_z = obj.location.z
@@ -5412,7 +5632,6 @@ class VIEW_OT_generate_2d_views(Operator):
                 drawer_label.start_x(value=x_pos)
                 drawer_label.start_z(value=z_pos)
                 drawer_label.set_label(label)
-                
 
     def query_velvet_liner(self, drawer_stack, drawer_num):
         width_in = round(unit.meter_to_inch(drawer_stack.obj_x.location.x))
@@ -5906,6 +6125,7 @@ class VIEW_OT_generate_2d_views(Operator):
             self.write_island_tk_height(island, x_loc)
         if dimprops.section_widths:
             self.write_island_opening_width(island, x_loc, "Front")
+            self.write_island_splitter_widths(island, x_loc, "Front")
         if dimprops.countertop:
             self.write_island_countertop(island, x_loc)
         if dimprops.partition_height:
@@ -5954,6 +6174,7 @@ class VIEW_OT_generate_2d_views(Operator):
         dim_x = island_assembly.obj_x.location.x
         if dimprops.section_widths:
             self.write_island_opening_width(island, x_loc, "Back")
+            self.write_island_splitter_widths(island, x_loc, "Back")
         if dimprops.ct_overhang: 
             self.write_island_overhang(
                 island, x_loc, -unit.inch(8), "Right Overhang", "x")
@@ -6289,15 +6510,19 @@ class VIEW_OT_generate_2d_views(Operator):
                 has_entry_door = False
                 has_assys = len(wall_groups_list) > 0
                 right_wall = wall.get_connected_wall('RIGHT')
+                left_wall = wall.get_connected_wall('RIGHT')
                 corner_items = None
 
                 if i == len(wall_bp_list) -1:
-                    has_lsh_csh = self.next_wall_has_lsh_csh(wall_name_list, wall.obj_bp)
-                    if has_lsh_csh:
+                    next_wall_has_lsh_csh = self.next_wall_has_lsh_csh(wall_name_list, wall.obj_bp)
+                    if next_wall_has_lsh_csh:
                         right_wall = sn_types.Wall(wall_bp_list[0])
 
                 if right_wall:
                     corner_items = self.get_lsh_csh_assemblies(right_wall.obj_bp)
+                
+                if left_wall:
+                    corner_items = self.get_lsh_csh_assemblies(left_wall.obj_bp)
 
                 for item in wall_groups_list:
                     if 'IS_BP_ENTRY_DOOR' in item:
@@ -6372,6 +6597,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 if isinstance(mesh, bpy.types.Mesh) and mesh.users == 0:
                     bpy.data.meshes.remove(mesh)
  
+
 class VIEW_OT_render_2d_views(Operator):
     bl_idname = "2dviews.render_2d_views"
     bl_label = "Render 2D Views"
@@ -6681,6 +6907,7 @@ class VIEW_OT_render_2d_views(Operator):
         print("render_2d_views EXECUTE --- %s seconds ---" % (time.time() - start_time))
 
         return {'FINISHED'}
+
 
 class VIEW_OT_accordion_interface(Operator):
     bl_idname = "sn_2d_views.accordion_interface"

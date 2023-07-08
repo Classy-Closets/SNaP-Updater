@@ -425,6 +425,27 @@ class PlaceClosetInsert(PlaceClosetAsset):
         for child in obj.children:
             self.set_opening_name(child, name)
 
+    def get_floor_collection(self, context):
+        floor_coll = context.scene.collection.children.get("Floor")
+
+        if not context.scene.collection.children.get("Floor"):
+            floor_coll = bpy.data.collections.new("Floor")
+            context.scene.collection.children.link(floor_coll)
+
+        return floor_coll
+    
+    def link_to_floor_collection(self, context, obj):
+        floor_parent = sn_utils.get_floor_parent(obj)
+        if floor_parent:
+            has_floor_parent = True
+
+        if has_floor_parent:
+            floor_coll = self.get_floor_collection(context)
+
+            if floor_coll.objects:
+                sn_utils.add_assembly_to_collection(obj, floor_coll, recursive=True)
+                sn_utils.remove_assembly_from_collection(obj, context.scene.collection, recursive=True)
+
     def confirm_placement(self, context):
         self.insert.obj_bp.parent = self.selected_opening.obj_bp.parent
         self.insert.obj_bp.location = self.selected_opening.obj_bp.location
@@ -449,6 +470,12 @@ class PlaceClosetInsert(PlaceClosetAsset):
 
         if self.selected_opening.obj_bp.get('OPENING_NBR'):
             self.insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
+
+        is_cabinet = sn_utils.get_cabinet_bp(self.insert.obj_bp)
+        floor_parent = sn_utils.get_floor_parent(self.insert.obj_bp)
+        if is_cabinet and floor_parent:
+            self.link_to_floor_collection(context, self.insert.obj_bp)
+
 
     def position_asset(self, context):
         self.get_selected_opening()

@@ -591,8 +591,8 @@ class SnapMaterialSceneProps(PropertyGroup):
         if sku == "EB-0000316":
             return "Winter White (Oxford White)"
 
-        search_col = "DisplayName" if display_name else "Description"
-
+        # search_col = "DisplayName" if display_name else "Description"
+        search_col = "Description"
         edge_name = sn_db.query_db(
             "SELECT\
                 {col}\

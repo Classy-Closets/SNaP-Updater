@@ -190,6 +190,9 @@ def get_part_thickness(obj):
         if obj.get("IS_BP_FILE_RAIL") or obj.parent.get("IS_BP_FILE_RAIL"):
             return sn_unit.inch(0.5)
 
+        if obj.get("IS_BP_LIGHT_RAIL") or obj.parent.get("IS_BP_LIGHT_RAIL"):
+            return sn_unit.inch(0.75)
+
     if obj.snap.type_mesh == 'CUTPART':
         spec_group = bpy.context.scene.snap.spec_groups[obj.snap.spec_group_index]
         if obj.snap.cutpart_name in spec_group.cutparts:

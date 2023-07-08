@@ -1483,7 +1483,12 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
     def execute(self, context):
         closet_utils.clear_temp_hardware()
         mac_props = get_machining_props()
-        
+        snap_prefs = bpy.context.preferences.addons['snap'].preferences
+
+        if snap_prefs.enable_drill_dia_options:
+            if mac_props.system_hole_dia_options == "3MM":
+                mac_props.system_hole_dia = sn_unit.millimeter(3)
+
         #COLLECT DRAWER PARTS TO UPDATE MACHINING AND PROMPTS
         #BASED ON DRAWER SELECTION
         drawer_sides = []
@@ -1494,18 +1499,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         drawer_backs = []
         drawer_sub_fronts = []
         panels = []
-        
-        # mac_props.dim_to_front_system_hole = sn_unit.millimeter(37)
-        # mac_props.dim_to_rear_system_hole = sn_unit.millimeter(43)
 
-            
-        #SET PANEL NUMBER
-        # for wall_bp in closet_utils.scene_walls(context):
-        #     panels = self.get_wall_panels(wall_bp) #GET SORTED LIST OF PANELS
-        #     for i , panel_bp in enumerate(panels):
-        #         panel_bp.sn_closets.opening_name = str(i + 1)
-        #         panel_bp.snap.comment_2 = str(i + 1)
-                
         for assembly in closet_utils.scene_parts(context):
             props = assembly.obj_bp.sn_closets
             
@@ -1829,7 +1823,9 @@ class PROPS_Machining_Defaults(bpy.types.PropertyGroup):
         default=sn_unit.inch(0.197),
         unit='LENGTH',
         precision=3
-        )  
+        )
+    
+    system_hole_dia_options: EnumProperty(name="Drill Diameter Options", items=[("5MM", "5 mm", "5 mm"), ("3MM", "3 mm", "3 mm")])
     
     #DOWEL SETTINGS
     dowel_bore_face_depth: FloatProperty(name="Dowel Bore Face Depth",

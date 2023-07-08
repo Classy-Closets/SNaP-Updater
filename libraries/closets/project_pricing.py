@@ -19,6 +19,7 @@ import openpyxl
 import pandas
 import numpy
 import platform
+import pathlib
 
 
 PRICING_PROPERTY_NAMESPACE = "sn_project_pricing"
@@ -193,6 +194,66 @@ def get_linear_footage(length_inches):
     return round((length_inches) / 12, 2)
 
 
+def get_glass_inset_size(length, width, center_rail, style_name):
+    group_1 = (
+        "rome", "napoli", "carrara", "florence", "palermo", "venice",
+        "colina", "portofino"
+    )
+
+    group_2 = (
+        "verona", "sienna", "milano", "merano", "volterra", "bergamo",
+        "aviano", "capri", "san marino", "molino vecchio", "pisa", "moderno"
+    )
+
+    group_3 = ("traviso",)
+
+    # Case insensitive search
+    style_name = style_name.replace(" Door Glass", "")
+    name = style_name.lower()
+
+    # Define adjustment values for different groups
+    group_dimensions = {
+        group_1: {'length': 5.125, 'width': 5.125},
+        group_2: {'length': 3.63, 'width': 3.63},
+        group_3: {'length': 3.88, 'width': 3.88}
+    }
+
+    # Check if the name belongs to any group
+    for group, dimensions in group_dimensions.items():
+        if name in group:
+            adjustment = dimensions
+            adjusted_length = float(length) - adjustment['length']
+            adjusted_width = float(width) - adjustment['width']
+
+            # Tall doors with center rail - Minus an additional 1.25" divided by 2
+            if center_rail:
+                center_rail_adjustment = 1.25 / 2
+                adjusted_length -= center_rail_adjustment
+
+            print(
+                style_name,
+                "door glass calculation: door width minus",
+                str(adjustment['width']) + '",',
+                "door length minus",
+                str(adjustment['length']) + '"',
+                "minus an additional " + str(center_rail_adjustment) + '" for center rail' if center_rail else "")
+
+            adjusted_length =  round(adjusted_length, 2)
+            adjusted_width = round(adjusted_width, 2)
+
+            return adjusted_length, adjusted_width
+
+    # Melamine door glass
+    if center_rail:
+        adjusted_length = round((float(length) - 6.75) / 2, 2)
+    else:
+        adjusted_length = round((float(length) - 4.75) / 2, 2)
+
+    adjusted_width = round(float(width) - 4.75, 2)
+
+    return adjusted_length, adjusted_width
+
+
 def price_check(sku_num, franchise, retail):
     if franchise > retail:
         print("$$$$$$$$$$$$$$$$ Price discrepancy within database $$$$$$$$$$$$$$$$")
@@ -329,6 +390,8 @@ def display_parts_summary(parts_file):
     # Password Protect pricing workbook and sheets
     protect_pricing(parts_file)
     
+    if COS_FLAG and platform.system() == 'Windows':
+        os.startfile(parts_file)
     if COS_FLAG:
         print(parts_file)
         print("Excel file output to COS Folder")
@@ -845,11 +908,14 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                         index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'DRILLING', 'PULL_DRILLING'],
                                                         values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
                                                         aggfunc=[numpy.sum])
-                materials_summary.to_excel(writer, sheet_name='Materials Summary')
-                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
-                writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
-                set_column_width(writer.sheets['Materials Summary'])
+                if not materials_summary.empty:
+                    materials_summary.to_excel(writer, sheet_name='Materials Summary')
+                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
+                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                    set_column_width(writer.sheets['Materials Summary'])
+                else:
+                    print("Drawers summary DataFrame is empty. Skipping writing to Excel.")                
 
             df_drawers = pandas.read_excel(parts_file, sheet_name='Materials').query('(PART_NAME.str.contains("File Rail")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("BB")==True) \
@@ -858,6 +924,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                     or (PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Sub Front")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Back")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("Drawer Bottom")==True) \
                                                                                     or (PART_NAME.str.contains("DrwrBox Bottom - Mel")==True) \
                                                                                     or (PART_NAME.str.contains("DrwrBox Side - Mel")==True) \
                                                                                     or (PART_NAME.str.contains("DrwrBox Back - Mel")==True) \
@@ -974,7 +1041,12 @@ def generate_retail_parts_list():
             print("Projects Directory does not exist")
     else:
         if platform.system() == 'Windows':
-            cos_path = project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+            project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+            cos_path = os.path.join(project_dir, PROJECT_NAME)
+
+            if not os.path.exists(cos_path):
+                os.makedirs(cos_path)
+                
         else:
             cos_path = os.path.join('/home', 'ec2-user', 'Cos_Pricing', 'Output')
 
@@ -1303,16 +1375,9 @@ def generate_retail_parts_list():
             sheet4["F" + str((i + 1) + 1)] = paint_stain                                          #PAINT_STAIN_COLOR
             sheet4["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
             sheet4["H" + str((i + 1) + 1)] = quantity                                          #QUANTITY
+            sheet4["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS
+            sheet4["J" + str((i + 1) + 1)] = thickness                                   #THICKNESS
 
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
-                    if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
-                        sheet4["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
-                    else:
-                        sheet4["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
-            else:
-                sheet4["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS          
-            sheet4["J" + str((i + 1) + 1)] = thickness                                         #THICKNESS
             if 'Glass' in part_name and 'Glass Shelf' not in part_name:
                 if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
                     if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
@@ -1397,22 +1462,31 @@ def generate_retail_parts_list():
             sheet5["F" + str((i + 1) + 1)] = material                                          #MATERIAL
             sheet5["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
             sheet5["H" + str((i + 1) + 1)] = int(quantity)                                         #QUANTITY
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
-                        sheet5["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
-                    else:
-                        sheet5["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
+
+            # Normalize indices for readability
+            row_idx = i + 2  # (i + 1) + 1
+            col_i = "I" + str(row_idx)
+            col_j = "J" + str(row_idx)
+            col_k = "K" + str(row_idx)
+            
+            # Check for glass part
+            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
+            style_name = GLASS_PARTS_LIST[i][16]
+
+            # If door has center rail
+            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
+                square_footage = get_square_footage(adjusted_length, adjusted_width) * int(quantity)
             else:
-                sheet5["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS           
-            sheet5["J" + str((i + 1) + 1)] = thickness                                         #THICKNESS
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
-                        sheet5["K" + str((i + 1) + 1)] = get_square_footage(round((float(length) - 6.75)/2, 2),round(float(width) - 4.75, 2)) * int(quantity)
-                    else:
-                        sheet5["K" + str((i + 1) + 1)] = get_square_footage(round(float(length) - 4.75, 2),round(float(width) - 4.75, 2)) * int(quantity)
-                        
+                adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
+                square_footage = None if not is_glass else get_square_footage(adjusted_length, adjusted_width) * int(quantity)
+
+            # Write to sheet
+            sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+            sheet5[col_j] = thickness  # THICKNESS
+            if square_footage is not None:
+                sheet5[col_k] = square_footage
+
             else:
                 sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length),float(width)) * int(quantity)
             sheet5["L" + str((i + 1) + 1)] = get_linear_footage(float(length))
@@ -1562,8 +1636,14 @@ def generate_retail_parts_list():
         return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
 
     # Create Pivot table for Materials and Glass Square Footage on Summary Sheet
-    df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('SKU_NUMBER.str.contains("EB")==False \
-                                                                                and MATERIAL.str.contains("BBBB")==False', engine='python')
+    df_materials = pandas.read_excel(
+        parts_file,
+        sheet_name='Materials'
+    ).query(
+        'SKU_NUMBER.str.contains("EB")==False and MATERIAL.str.contains("BBBB")==False',
+        engine='python'
+    )
+
     sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
     
     df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
@@ -1639,7 +1719,11 @@ def generate_franchise_parts_list():
             print("Projects Directory does not exist")
     else:
         if platform.system() == 'Windows':
-            cos_path = project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+            project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
+            cos_path = os.path.join(project_dir, PROJECT_NAME)
+
+            if not os.path.exists(cos_path):
+                os.makedirs(cos_path)
         else:
             cos_path = os.path.join('/home', 'ec2-user', 'Cos_Pricing', 'Output')
 
@@ -1744,8 +1828,10 @@ def generate_franchise_parts_list():
                 if 'LF' in uom:
                     if edgebanding is not None:
                         eb_length = get_eb_measurements(edgebanding, float(length), float(width))
-                    sheet1["M" + str((i + 1) + 1)] = str(get_linear_footage(eb_length)) + " (" + str(edgebanding) + ")"
-                    sheet1["P" + str((i + 1) + 1)] = (float(franchise_price) * int(quantity)) * get_linear_footage(eb_length)   #TOTAL_PRICE
+                        if eb_length:
+                            sheet1["L" + str((i + 1) + 1)] = 0
+                            sheet1["M" + str((i + 1) + 1)] = str(get_linear_footage(eb_length)) + " (" + str(edgebanding) + ")"
+                            sheet1["P" + str((i + 1) + 1)] = (float(franchise_price) * int(quantity)) * get_linear_footage(eb_length)   #TOTAL_PRICE
                     if len(EDGEBANDING) > 0:
                         for index, sublist in enumerate(EDGEBANDING):
                             if sublist[0] == part_id:
@@ -1761,8 +1847,8 @@ def generate_franchise_parts_list():
             sheet1["O" + str((i + 1) + 1)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
             sheet1["P" + str((i + 1) + 1)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
 
-        sheet1["R" + str((i + 1) + 1)] = drilling
-        sheet1["S" + str((i + 1) + 1)] = pull_drilling
+            sheet1["R" + str((i + 1) + 1)] = drilling
+            sheet1["S" + str((i + 1) + 1)] = pull_drilling
 
         row_max = sheet1.max_row
         sheet1["R" + str(row_max + 3)].font = openpyxl.styles.Font(bold=True)
@@ -1965,16 +2051,9 @@ def generate_franchise_parts_list():
             sheet4["F" + str((i + 1) + 1)] = paint_stain                                          #PAINT_STAIN_COLOR
             sheet4["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
             sheet4["H" + str((i + 1) + 1)] = quantity                                          #QUANTITY
-
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
-                    if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
-                        sheet4["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
-                    else:
-                        sheet4["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
-            else:
-                sheet4["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS          
+            sheet4["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS          
             sheet4["J" + str((i + 1) + 1)] = thickness                                         #THICKNESS
+
             if 'Glass' in part_name and 'Glass Shelf' not in part_name:
                 if UPGRADED_PANEL_PARTS_LIST[i][15] is not None:
                     if UPGRADED_PANEL_PARTS_LIST[i][15] == 'Yes':
@@ -2058,21 +2137,30 @@ def generate_franchise_parts_list():
             sheet5["F" + str((i + 1) + 1)] = material                                          #MATERIAL
             sheet5["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
             sheet5["H" + str((i + 1) + 1)] = int(quantity)                                     #QUANTITY
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
-                        sheet5["I" + str((i + 1) + 1)] = str(round((float(length) - 6.75)/2, 2)) + " x " + str(round(float(width) - 4.75, 2))
-                    else:
-                        sheet5["I" + str((i + 1) + 1)] = str(round(float(length) - 4.75, 2)) + " x " + str(round(float(width) - 4.75, 2))      #PART_DIMENSIONS
+
+            # Normalize indices for readability
+            row_idx = i + 2  # (i + 1) + 1
+            col_i = "I" + str(row_idx)
+            col_j = "J" + str(row_idx)
+            col_k = "K" + str(row_idx)
+            
+            # Check for glass part
+            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
+            style_name = GLASS_PARTS_LIST[i][16]
+
+            # If door has center rail
+            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
+                square_footage = get_square_footage(adjusted_length, adjusted_width) * int(quantity)
             else:
-                sheet5["I" + str((i + 1) + 1)] = str(length) + " x " + str(width)      #PART_DIMENSIONS      
-            sheet5["J" + str((i + 1) + 1)] = thickness                                         #THICKNESS
-            if 'Glass' in part_name and 'Glass Shelf' not in part_name:
-                if GLASS_PARTS_LIST[i][15] is not None:
-                    if GLASS_PARTS_LIST[i][15] == 'Yes':
-                        sheet5["K" + str((i + 1) + 1)] = get_square_footage(round((float(length) - 6.75)/2, 2),round(float(width) - 4.75, 2)) * int(quantity)
-                    else:
-                        sheet5["K" + str((i + 1) + 1)] = get_square_footage(round(float(length) - 4.75, 2),round(float(width) - 4.75, 2)) * int(quantity)
+                adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
+                square_footage = None if not is_glass else get_square_footage(adjusted_length, adjusted_width) * int(quantity)
+
+            # Write to sheet
+            sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+            sheet5[col_j] = thickness  # THICKNESS
+            if square_footage is not None:
+                sheet5[col_k] = square_footage
                         
             else:
                 sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length),float(width)) * int(quantity)
@@ -2211,8 +2299,14 @@ def generate_franchise_parts_list():
         return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
 
     # Create Pivot table for Materials and Glass Square Footage on Summary Sheet
-    df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('SKU_NUMBER.str.contains("EB")==False \
-                                                                                and MATERIAL.str.contains("BBBB")==False', engine='python')
+    df_materials = pandas.read_excel(
+        parts_file,
+        sheet_name='Materials'
+    ).query(
+        'SKU_NUMBER.str.contains("EB")==False and MATERIAL.str.contains("BBBB")==False',
+        engine='python'
+    )
+
     sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
     
     df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
@@ -2414,6 +2508,7 @@ def get_mat_sku(mat_name):
         sku = row[0]
     return sku
 
+
 def get_mat_display_name(mat_sku):
     rows = sn_db.query_db(
         "SELECT\
@@ -2480,11 +2575,33 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
         # Get Labor Costs
         if sku_num[:2] in material_types and not sku_num[:2] in 'EB':
             labor = get_labor_costs(part_name)
-            if 'Drawer Bottom' in part_name:
-                if 'BB' in sku_num[:2]:
-                    labor = get_labor_costs('BB DRAWER INSET BOTTOM')
-                else:
+            drawer_bottom_part_names = [
+                "Drawer Bottom",
+                "DrwrBox Bottom - Mel",
+                "DrwrBox Bttm DT - BB",
+                "DrwrBox Inset Bttm - Mel",
+                "DrwrBox Inset Bttm - BB"
+            ]
+
+            part_name = part_name.strip()
+
+            if part_name in drawer_bottom_part_names:
+                # Standard drawer bottoms
+                if part_name == "Drawer Bottom":
+                    if 'BB' in sku_num[:2]:
+                        labor = get_labor_costs('BB DRAWER INSET BOTTOM')
+                    else:
+                        labor = get_labor_costs('MEL DRAWER CAP BOTTOM')
+                # COS drawer bottoms
+                elif part_name == "DrwrBox Bottom - Mel":
                     labor = get_labor_costs('MEL DRAWER CAP BOTTOM')
+                elif part_name == "DrwrBox Bttm DT - BB":
+                    labor = get_labor_costs('BB DRAWER CAP BTTM')
+                elif part_name == "DrwrBox Inset Bttm - Mel":
+                    labor = get_labor_costs('MEL DRAWER INSET BTTM')
+                elif part_name == "DrwrBox Inset Bttm - BB":
+                    labor = get_labor_costs('BB DRAWER INSET BOTTOM')
+
             R_LABOR_PRICES.append(labor[0] * int(qty))
             F_LABOR_PRICES.append(labor[1] * int(qty))
             r_labor_price = labor[0]
@@ -2670,7 +2787,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
     return str(retail_price), str(franchise_price), name, vendor_name, vendor_item, style_name, r_labor_price, f_labor_price, uom
 
 
-def calculate_project_price(xml_file, cos_flag = False):
+def calculate_project_price(xml_file, cos_flag=False):
     tree = None
     root = None
     eb_orientation = None
@@ -2894,9 +3011,11 @@ def calculate_project_price(xml_file, cos_flag = False):
                                             PART_NAME = dcname + " (" + glass_color + ")"
                                         else:
                                             PART_NAME = "Inset Glass" + " (" + glass_color + ")"
-                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
-                                        # pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                        GLASS_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
+                                        pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail, upgrade_color)
+                                        GLASS_PARTS_LIST.append(
+                                            [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
+                                             QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                             center_rail, style_name])
                                     else:
                                         if upgrade_color is not None:
                                             PART_NAME = dcname + " (" + upgrade_color + ")"
@@ -3133,7 +3252,10 @@ def calculate_project_price(xml_file, cos_flag = False):
                                                 PART_NAME = "Inset Glass" + " (" + glass_color + ")"
                                             pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
                                             # pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                            GLASS_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
+                                            GLASS_PARTS_LIST.append(
+                                                [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
+                                                 QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                                 center_rail, style_name])
                                         else:
                                             if upgrade_color is not None:
                                                 PART_NAME = dcname + " (" + upgrade_color + ")"
@@ -3371,7 +3493,10 @@ def calculate_project_price(xml_file, cos_flag = False):
                                                     PART_NAME = "Inset Glass" + " (" + glass_color + ")"
                                                 pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
                                                 # pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                                GLASS_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
+                                                GLASS_PARTS_LIST.append(
+                                                    [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
+                                                     QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                                     center_rail, style_name])
                                             else:
                                                 if upgrade_color is not None:
                                                     PART_NAME = dcname + " (" + upgrade_color + ")"
@@ -3563,6 +3688,61 @@ class SNAP_OT_Select_All_Rooms_Pricing(Operator):
         return{'FINISHED'}
 
 
+class SNAP_OT_Price_COS_XML(Operator):
+    bl_idname = "sn_project_pricing.price_cos_xml"
+    bl_label = "Price COS XML"
+    bl_description = "This will process and price a COS generated XML file"
+
+    filename: StringProperty(name="Project File Name", description="Project file name to import")
+    filepath: StringProperty(name="Project Path", description="Project path to import", subtype="FILE_PATH")
+    directory: StringProperty(name="Project File Directory Name", description="Project file directory name")
+    # ImportHelper mixin class uses this
+    filename_ext = ".blend"
+    filter_glob: StringProperty(default="*.xml", options={'HIDDEN'}, maxlen=255)
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        blender_path = os.path.dirname(bpy.app.binary_path)
+
+        if pathlib.Path(self.filename).suffix == ".xml":
+            calculate_project_price(self.filepath, cos_flag=True)
+        else:
+            message = "This is not a valid XML file!: {}".format(self.filename)
+            bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
+
+        return {'FINISHED'}
+
+
+class SNAP_OT_Test_COS_XML(Operator):
+    bl_idname = "sn_project_pricing.test_cos_xml"
+    bl_label = "Test COS XML"
+    bl_description = "This will process and price the test COS XML file"
+
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        blender_path = os.path.dirname(bpy.app.binary_path)
+        test_xml_path = os.path.join(blender_path,"3.0\\scripts\\addons\\snap\\tests\\pricing\\cos_test.xml")
+
+        if pathlib.Path(test_xml_path).suffix == ".xml":
+            calculate_project_price(test_xml_path, cos_flag=True)
+        else:
+            message = "This is not a valid XML file!: {}".format(test_xml_path)
+            bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
+
+        return {'FINISHED'}
+
+
 class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
 
     pricing_tabs: EnumProperty(
@@ -3680,9 +3860,11 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
         if xml_file is not None:
             calculate_project_price(xml_file)
             props = get_pricing_props()
+            snap_prefs = bpy.context.preferences.addons['snap'].preferences
             if props.export_pricing_parts_list:
                 generate_retail_parts_list()
-                if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
+
+                if snap_prefs.enable_franchise_pricing or snap_prefs.debug_mode:
                     generate_franchise_parts_list()
         else:
             raise NameError("The 'snap_job.xml' was not created and returned a NoneType. Pricing NOT Generated.")
@@ -3690,8 +3872,11 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
 
     def draw(self, layout):
         box = layout.box()
-        row = box.row()
+        row = box.row(align=True)
         row.operator(PRICING_PROPERTY_NAMESPACE + ".calculate_price",icon='FILE_TICK')
+
+        if bpy.context.preferences.addons['snap'].preferences.debug_mode:
+            row.menu('SNAP_MT_Pricing_Tools', text="", icon='DOWNARROW_HLT')
 
         row = layout.row(align=True)
         row.prop(self,'export_pricing_parts_list',text="Export Pricing Parts List (.xlsx)")
@@ -3775,7 +3960,9 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
             if len(SPECIAL_ORDER_PARTS_LIST) != 0:
                 col.separator()
                 col.label(text="This project contains special order items,")
-                col.label(text="which are not being calculated in this pricing summary") 
+                col.label(text="which are not being calculated in this pricing summary")
+
+
             
         if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
             row.prop_enum(self, "pricing_tabs", 'FRANCHISE', icon='PREFERENCES', text="Franchise Pricing")
@@ -3811,7 +3998,22 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
                     col.separator()
                     col.label(text="This project contains special order items,")
                     col.label(text="which are not being calculated in this pricing summary") 
-            
+
+
+class SNAP_MT_Pricing_Tools(bpy.types.Menu):
+    bl_label = "Pricing Debug Tools"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.operator("sn_project_pricing.price_cos_xml",
+                        text="Price COS XML",
+                        icon='FILE_FOLDER')
+
+        layout.operator("sn_project_pricing.test_cos_xml",
+                        text="Test COS XML pricing",
+                        icon='FILE_FOLDER')
+
 
 class SNAP_PT_Project_Pricing_Setup(Panel):
     bl_label = "Project Pricing"
@@ -3833,6 +4035,9 @@ class SNAP_PT_Project_Pricing_Setup(Panel):
 def register():
     bpy.utils.register_class(SNAP_OT_Calculate_Price)
     bpy.utils.register_class(SNAP_OT_Select_All_Rooms_Pricing)
+    bpy.utils.register_class(SNAP_OT_Price_COS_XML)
+    bpy.utils.register_class(SNAP_OT_Test_COS_XML)
+    bpy.utils.register_class(SNAP_MT_Pricing_Tools)
     bpy.utils.register_class(SNAP_PROPS_Pricing)
     bpy.utils.register_class(SNAP_PT_Project_Pricing_Setup)
     exec("bpy.types.Scene." + PRICING_PROPERTY_NAMESPACE + "= PointerProperty(type = SNAP_PROPS_Pricing)")
@@ -3841,6 +4046,9 @@ def register():
 def unregister():
     bpy.utils.unregister_class(SNAP_PT_Project_Pricing_Setup)
     bpy.utils.unregister_class(SNAP_PROPS_Pricing)
+    bpy.utils.unregister_class(SNAP_MT_Pricing_Tools)
+    bpy.utils.unregister_class(SNAP_OT_Price_COS_XML)
+    bpy.utils.unregister_class(SNAP_OT_Test_COS_XML)
     bpy.utils.unregister_class(SNAP_OT_Calculate_Price)
     bpy.utils.unregister_class(SNAP_OT_Select_All_Rooms_Pricing)
     exec("del bpy.types.Scene." + PRICING_PROPERTY_NAMESPACE)

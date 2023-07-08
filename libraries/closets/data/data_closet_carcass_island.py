@@ -812,6 +812,63 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             ("6", "Wood", "Wood")],
         default='0')
     
+    hpl_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Ora', 'Ora'),
+            ('1', 'Futura', 'Futura'),
+            ('2', 'Nova', 'Nova'),
+            ('3', 'Tempo', 'Tempo'),
+            ('4', 'Flat', 'Flat')],
+        default='0')
+
+    stone_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Miter', 'Miter'),
+            ('1', 'STD Eased', 'STD Eased'),
+            ('2', 'Bullnose', 'Bullnose'),
+            ('3', 'Demi Bullnose', 'Demi Bullnose'),
+            ('4', 'Crescent', 'Crescent'),
+            ('5', 'Bevel', 'Bevel'),
+            ('6', 'Euro', 'Euro'),
+            ('7', 'Ogee', 'Ogee'),
+            ('8', 'Ogee Bullnose', 'Ogee Bullnose'),
+            ('9', 'Double Bevel', 'Double Bevel'),
+            ('10', 'Chisel', 'Chisel'),
+            ('11', 'Miter 4"', 'Miter 4"'),
+            ('12', 'Miter 6"', 'Miter 6"'),
+            ('13', 'Miter Waterfall', 'Miter Waterfall')],
+        default='0')
+
+    painted_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Solid Flat', 'Solid Flat'),
+            ('1', 'Solid Round', 'Solid Round'),
+            ('2', 'Solid Ogee', 'Solid Ogee'),
+            ('3', 'Applied Flat', 'Applied Flat'),
+            ('4', 'Applied Round', 'Applied Round'),
+            ('5', 'Applied Ogee', 'Applied Ogee')],
+        default='0')
+    
+    stained_edge_type: EnumProperty(
+        name="Countertop Edge Type",
+        items=[
+            ('0', 'Dolce', 'Dolce'),
+            ('1', 'Solid Flat Applied', 'Solid Flat Applied'),
+            ('2', 'Solid Round Applied', 'Solid Round Applied'),
+            ('3', 'Solid Ogee Applied', 'Solid Ogee Applied'),
+            ('4', 'Alder Miter', 'Alder Miter')],
+        default='0')
+    
+    hpl_edge_type_prompt = None
+    stone_edge_type_prompt = None
+    painted_edge_type_prompt = None
+    stained_edge_type_prompt = None
+    is_painted = False
+    is_stained = False
+    
     product = None
     countertop = None
     inserts = []
@@ -892,7 +949,8 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                 for region in area.regions:
                                     if region.type == 'UI':
                                         if region.width == 1:
-                                            bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")            
+                                            bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")      
+        self.set_edge_type_prompts()      
 
     def check(self, context):
         self.update_edges()
@@ -917,6 +975,16 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     def set_product_defaults(self):
         self.product.obj_bp.location.x = self.selected_location + self.left_offset
         self.product.obj_x.location.x = self.default_width - (self.left_offset + self.right_offset)
+    
+    def set_edge_type_prompts(self):
+        if self.hpl_edge_type_prompt:
+            self.hpl_edge_type_prompt.set_value(int(self.hpl_edge_type))
+        if self.stone_edge_type_prompt:
+            self.stone_edge_type_prompt.set_value(int(self.stone_edge_type))
+        if self.painted_edge_type_prompt:
+            self.painted_edge_type_prompt.set_value(int(self.painted_edge_type))
+        if self.stained_edge_type_prompt:
+            self.stained_edge_type_prompt.set_value(int(self.stained_edge_type))
 
     def execute(self, context):
         obj_list = []
@@ -968,8 +1036,55 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
 
             if self.countertop_type_ppt:
                 self.countertop_type = str(self.countertop_type_ppt.get_value())
+            
+            self.set_edge_type_enums()
+            self.get_wood(context)
 
         return super().invoke(context, event, width=500)
+    
+    def set_edge_type_enums(self):
+        self.hpl_edge_type_prompt = self.product.get_prompt("HPL Edge Type")
+        self.stone_edge_type_prompt = self.product.get_prompt("Stone Edge Type")
+        self.painted_edge_type_prompt = self.product.get_prompt("Painted Edge Type")
+        self.stained_edge_type_prompt = self.product.get_prompt("Stained Edge Type")
+        if self.hpl_edge_type_prompt:
+            self.hpl_edge_type = str(self.hpl_edge_type_prompt.combobox_index)
+        if self.stone_edge_type_prompt:
+            self.stone_edge_type = str(self.stone_edge_type_prompt.combobox_index)
+        if self.painted_edge_type_prompt:
+            self.painted_edge_type = str(self.painted_edge_type_prompt.combobox_index)
+        if self.stained_edge_type_prompt:
+            self.stained_edge_type = str(self.stained_edge_type_prompt.combobox_index)
+    
+    def get_wood(self, context):
+        for child in self.product.obj_bp.children:
+            if "Wood Countertop" in child.name:
+                if child.sn_closets.use_unique_material:
+                    if child.sn_closets.wood_countertop_types == 'Wood Painted MDF':
+                        self.is_painted = True
+                        self.is_stained = False
+                    elif child.sn_closets.wood_countertop_types == 'Wood Stained Veneer':
+                        self.is_painted = False
+                        self.is_stained = True
+                    else:
+                        self.is_painted = False
+                        self.is_stained = False
+                else:
+                    ct_type = context.scene.closet_materials.countertops.get_type()
+                    if ct_type.name == 'Wood':
+                        ct_mfg = ct_type.get_mfg()
+                        if ct_mfg.name == 'Wood Painted MDF':
+                            self.is_painted = True
+                            self.is_stained = False
+                        elif ct_mfg.name == 'Wood Stained Veneer':
+                            self.is_painted = False
+                            self.is_stained = True
+                        else:
+                            self.is_painted = False
+                            self.is_stained = False
+                    else:
+                        self.is_painted = False
+                        self.is_stained = False
 
     def convert_to_height(self,number):
         for index, height in enumerate(common_lists.PANEL_HEIGHTS):
@@ -1063,6 +1178,11 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         back_against_wall = self.product.get_prompt("Back Against Wall")
         add_tk_skin = self.product.get_prompt("Add TK Skin")
         add_capping_base = self.product.get_prompt("Add Capping Base")
+
+        HPL_Edge_Type = self.product.get_prompt("HPL Edge Type")
+        Stone_Edge_Type = self.product.get_prompt("Stone Edge Type")
+        Painted_Edge_Type = self.product.get_prompt("Painted Edge Type")
+        Stained_Edge_Type = self.product.get_prompt("Stained Edge Type")
         
         col = box.column(align=True)
         row = col.row()
@@ -1133,6 +1253,32 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             row.prop_enum(self,"countertop_type","4")
             row.prop_enum(self,"countertop_type","5")
             row.prop_enum(self,"countertop_type","6")
+
+            if self.countertop_type == '1' or self.countertop_type == '3':
+                if HPL_Edge_Type:
+                    row = c_box.row()
+                    row.label(text=HPL_Edge_Type.name)
+                    row = c_box.row()
+                    row.prop(self, "hpl_edge_type", expand=False)
+            if self.countertop_type == '2' or self.countertop_type == '4' or self.countertop_type == '5':
+                if Stone_Edge_Type:
+                    row = c_box.row()
+                    row.label(text=Stone_Edge_Type.name)
+                    row = c_box.row()
+                    row.prop(self, "stone_edge_type", expand=False)
+
+            if self.countertop_type == '6' and self.is_painted:
+                if Painted_Edge_Type:
+                    row = c_box.row()
+                    row.label(text=Painted_Edge_Type.name)
+                    row = c_box.row()
+                    row.prop(self, "painted_edge_type", expand=False)
+            if self.countertop_type == '6' and self.is_stained:
+                if Stained_Edge_Type:
+                    row = c_box.row()
+                    row.label(text=Stained_Edge_Type.name)
+                    row = c_box.row()
+                    row.prop(self, "stained_edge_type", expand=False)
 
             # sn_utils.draw_enum(self, layout, 'countertop_type', 'Countertop Types', 7)
 

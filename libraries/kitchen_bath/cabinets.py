@@ -5,8 +5,8 @@ from snap.libraries.kitchen_bath.carcass_simple import Inside_Corner_Carcass, St
 from . import cabinet_properties
 from . import cabinet_countertops
 from . import common_parts
-# from .frameless_exteriors import Doors, Horizontal_Drawers, Vertical_Drawers
-from . import frameless_exteriors
+from .frameless_exteriors import Doors, Horizontal_Drawers, Vertical_Drawers
+from .frameless_splitters import Horizontal_Splitters
 from snap.libraries.closets import closet_paths
 import os
 import math
@@ -202,15 +202,14 @@ def create_dimensions(assembly):
                 carcass = Inside_Corner_Carcass(obj_bp)
             carcass.create_dimensions()
         elif "IS_BP_DOOR_INSERT" in obj_bp:
-            door_insert = frameless_exteriors.Doors(obj_bp)
+            door_insert = Doors(obj_bp)
             door_insert.create_dimensions()
         elif "IS_DRAWERS_BP" in obj_bp:
             if "VERTICAL_DRAWERS" in obj_bp:
-                drawers_insert = frameless_exteriors.Vertical_Drawers(obj_bp)
+                drawers_insert = Vertical_Drawers(obj_bp)
             elif "HORIZONTAL_DRAWERS" in obj_bp:
-                drawers_insert = frameless_exteriors.Horizontal_Drawers(obj_bp)
+                drawers_insert = Horizontal_Drawers(obj_bp)
             drawers_insert.create_dimensions()
-
 
 def update_dimensions(assembly):
     prod_dimensions = []
@@ -258,14 +257,18 @@ def update_dimensions(assembly):
                 carcass = Inside_Corner_Carcass(obj_bp)
             carcass.update_dimensions()
         elif "IS_BP_DOOR_INSERT" in obj_bp:
-            door_insert = frameless_exteriors.Doors(obj_bp)
+            door_insert = Doors(obj_bp)
             door_insert.update_dimensions()
         elif "IS_DRAWERS_BP" in obj_bp:
             if "VERTICAL_DRAWERS" in obj_bp:
-                drawers_insert = frameless_exteriors.Vertical_Drawers(obj_bp)
+                drawers_insert = Vertical_Drawers(obj_bp)
             elif "HORIZONTAL_DRAWERS" in obj_bp:
-                drawers_insert = frameless_exteriors.Horizontal_Drawers(obj_bp)
+                drawers_insert = Horizontal_Drawers(obj_bp)
             drawers_insert.update_dimensions()
+        elif "IS_BP_SPLITTER" in obj_bp:
+            if "IS_BP_HORIZONTAL_SPLITTER" in obj_bp:
+                splitter_insert = Horizontal_Splitters(obj_bp)
+                splitter_insert.update_dimensions()
 
     bpy.context.view_layer.update()
 
@@ -1232,7 +1235,7 @@ class Island(sn_types.Assembly):
                     opening.obj_bp['ISLAND_ROW_NBR'] = row + 1
                     
                     opening.dim_z('fabs(Height)-IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Bottom_Inset+Top_Inset,0)'
-                                              '-IF(Carcass_Subtype==' + str(ISLAND_SINK_CARCASS) + ',Sub_Front_Height,0)', 
+                                              '-IF(Carcass_Subtype==' + str(ISLAND_SINK_CARCASS) + ',Sub_Front_Height-Top_Inset,0)', 
                                                 [Height,Bottom_Inset,Top_Inset,Carcass_Subtype,Sub_Front_Height])
 
                     loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness, Carcass_Subtype, Remove_Left_Side, Remove_Right_Side])

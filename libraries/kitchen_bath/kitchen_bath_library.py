@@ -32,6 +32,7 @@ class PRODUCT_1_Door_Base(cabinets.Standard):
         self.add_empty_opening = True
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.exterior = frameless_exteriors.INSERT_Base_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
@@ -49,6 +50,7 @@ class PRODUCT_2_Door_Base(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
@@ -132,6 +134,7 @@ class PRODUCT_1_Door_1_Drawer_Base(cabinets.Standard):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -152,6 +155,7 @@ class PRODUCT_2_Door_2_Drawer_Base(cabinets.Standard):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -172,6 +176,7 @@ class PRODUCT_2_Door_1_Drawer_Base(cabinets.Standard):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -190,6 +195,7 @@ class PRODUCT_Microwave_2_Door_Base(cabinets.Standard):
         self.splitter.exterior_1 = frameless_appliances.INSERT_Microwave()
         self.splitter.opening_2_height = sn_unit.inch(11.85)
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':False}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = 0
@@ -250,12 +256,14 @@ class PRODUCT_4_Door_Oven_Tall(cabinets.Standard):
         self.splitter.opening_1_height = sn_unit.inch(29.49)
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Top':False}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.opening_2_height = sn_unit.inch(30.75)
         self.splitter.exterior_2 = frameless_appliances.INSERT_Single_Oven()
         self.splitter.interior_3 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_3 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_3.sink_mounted = False
         self.splitter.exterior_3.prompts = {'Half Overlay Top':False}
         self.splitter.interior_3 = cabinet_interiors.INSERT_Shelves()
 
@@ -273,6 +281,7 @@ class PRODUCT_4_Door_Micro_and_Oven_Tall(cabinets.Standard):
         self.splitter.opening_1_height = sn_unit.inch(19.41)
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Top':False}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.opening_2_height = sn_unit.inch(19.41)
@@ -281,6 +290,7 @@ class PRODUCT_4_Door_Micro_and_Oven_Tall(cabinets.Standard):
         self.splitter.opening_4_height = sn_unit.inch(19.41)
         self.splitter.interior_4 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_4 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_4.sink_mounted = False
         self.splitter.exterior_4.prompts = {'Half Overlay Top':False}
         self.splitter.interior_4 = cabinet_interiors.INSERT_Shelves()
 
@@ -299,6 +309,7 @@ class PRODUCT_Refrigerator_Tall(cabinets.Refrigerator):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_1_height = sn_unit.inch(23.19)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Top':False}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         
@@ -315,6 +326,7 @@ class PRODUCT_1_Door_Tall(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -332,6 +344,7 @@ class PRODUCT_2_Door_Tall(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -351,9 +364,11 @@ class PRODUCT_1_Double_Door_Tall(cabinets.Standard):
         self.splitter.opening_1_height = sn_unit.inch(44.6)
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
    
@@ -371,9 +386,11 @@ class PRODUCT_2_Double_Door_Tall(cabinets.Standard):
         self.splitter.opening_1_height = sn_unit.inch(44.6)
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         
@@ -390,6 +407,7 @@ class PRODUCT_2_Door_2_Drawer_Tall(cabinets.Standard):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_2_height = sn_unit.inch(21.93)  #18 H
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Tall_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_2_Drawer_Stack()
@@ -408,6 +426,7 @@ class PRODUCT_2_Door_3_Drawer_Tall(cabinets.Standard):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_2_height = sn_unit.inch(21.93)  #18H
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Tall_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_3_Drawer_Stack()
@@ -428,6 +447,7 @@ class PRODUCT_1_Door_Upper(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -447,6 +467,7 @@ class PRODUCT_2_Door_Upper(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -466,9 +487,11 @@ class PRODUCT_1_Double_Door_Upper(cabinets.Standard):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_1_height = sn_unit.inch(18.15)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
 
@@ -487,9 +510,11 @@ class PRODUCT_2_Double_Door_Upper(cabinets.Standard):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_1_height = sn_unit.inch(18.15)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
 
@@ -508,6 +533,7 @@ class PRODUCT_Microwave_2_Door_Upper(cabinets.Standard):
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.opening_1_height = sn_unit.inch(18.15)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Top':False}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.exterior_2 = frameless_appliances.INSERT_Microwave()
@@ -526,6 +552,7 @@ class PRODUCT_2_Door_Upper_with_Microwave(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.add_microwave = True
@@ -544,6 +571,7 @@ class PRODUCT_2_Door_Upper_with_Vent(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.add_vent_hood = True
@@ -562,6 +590,7 @@ class PRODUCT_2_Door_2_Drawer_Upper(cabinets.Standard):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.splitter.exterior_1.sink_mounted = False
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.interior_1 = cabinet_interiors.INSERT_Shelves()
         self.splitter.opening_2_height = sn_unit.inch(19.41)  # 16H
@@ -670,6 +699,7 @@ class PRODUCT_1_Door_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
@@ -688,6 +718,7 @@ class PRODUCT_1_Door_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
@@ -706,6 +737,7 @@ class PRODUCT_1_Door_Blind_Left_Corner_Tall(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -724,6 +756,7 @@ class PRODUCT_1_Door_Blind_Right_Corner_Tall(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -744,6 +777,7 @@ class PRODUCT_1_Door_Blind_Left_Corner_Upper(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -764,6 +798,7 @@ class PRODUCT_1_Door_Blind_Right_Corner_Upper(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -782,6 +817,7 @@ class PRODUCT_2_Door_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior.sink_mounted = False
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
 
@@ -799,6 +835,7 @@ class PRODUCT_2_Door_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.base_adj_shelf_qty
@@ -817,6 +854,7 @@ class PRODUCT_2_Door_Blind_Left_Corner_Tall(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -835,6 +873,7 @@ class PRODUCT_2_Door_Blind_Right_Corner_Tall(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Tall_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Tall_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.tall_adj_shelf_qty
@@ -855,6 +894,7 @@ class PRODUCT_2_Door_Blind_Left_Corner_Upper(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -875,6 +915,7 @@ class PRODUCT_2_Door_Blind_Right_Corner_Upper(cabinets.Blind_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.shelf_qty = int_props.upper_adj_shelf_qty
@@ -896,6 +937,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -917,6 +959,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Single_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -938,6 +981,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -959,6 +1003,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
         self.splitter.exterior_2 = frameless_exteriors.INSERT_Base_Double_Door()
+        self.splitter.exterior_2.sink_mounted = False
         self.splitter.exterior_2.prompts = {'Half Overlay Top':True}
         self.splitter.interior_2 = cabinet_interiors.INSERT_Shelves()
         self.splitter.interior_2.shelf_qty = int_props.base_adj_shelf_qty
@@ -1014,6 +1059,7 @@ class PRODUCT_1_Door_Diagonal_Corner_Base(cabinets.Inside_Corner):
         self.carcass = carcass_simple.INSERT_Base_Inside_Corner_Diagonal_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Single_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.carcass_type = "Base"
@@ -1033,6 +1079,7 @@ class PRODUCT_2_Door_Diagonal_Corner_Base(cabinets.Inside_Corner):
         self.carcass = carcass_simple.INSERT_Base_Inside_Corner_Diagonal_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Base_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.carcass_type = "Base"
@@ -1054,6 +1101,7 @@ class PRODUCT_1_Door_Diagonal_Corner_Upper(cabinets.Inside_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Inside_Corner_Diagonal_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Single_Door()
+        self.exterior.sink_mounted = False
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.carcass_type = "Upper"
         self.interior.carcass_shape = "DIAGONAL"
@@ -1074,6 +1122,7 @@ class PRODUCT_2_Door_Diagonal_Corner_Upper(cabinets.Inside_Corner):
         self.carcass = carcass_simple.INSERT_Upper_Inside_Corner_Diagonal_Carcass()
         self.add_empty_opening = True
         self.exterior = frameless_exteriors.INSERT_Upper_Double_Door()
+        self.exterior.sink_mounted = False
         self.exterior.prompts = {'Half Overlay Top':False}
         self.interior = cabinet_interiors.INSERT_Shelves()
         self.interior.carcass_type = "Upper"

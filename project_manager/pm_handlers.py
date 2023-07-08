@@ -99,6 +99,20 @@ def check_pull_selection(scene=None):
 
                 closet_materials.pull_sel_updated_to_261 = True
 
+@persistent
+def check_oversize_color_selection(scene=None):
+    """
+    Version 2.6.3 removes all oversize color options except 'Snow Drift XL'.
+    Update files created < 2.6.3 to this color.
+    """
+    current_room_ver = sn_utils.get_room_version()
+    closet_materials = bpy.context.scene.closet_materials
+
+    if current_room_ver < "2.6.3":
+        print("Room file created pre 2.6.3. Version 2.6.3 removes all oversize color options except 'Snow Drift XL', setting index to 0")
+        closet_materials.oversized_color_index = 0
+        closet_materials.dd_oversized_color_index = 0
+
 
 @persistent
 def load_projects(scene=None):
@@ -112,6 +126,7 @@ def register():
     bpy.app.handlers.load_post.append(check_pull_selection)
     bpy.app.handlers.load_post.append(check_countertop_selection)
     bpy.app.handlers.load_post.append(check_section_prompt_id)
+    bpy.app.handlers.load_post.append(check_oversize_color_selection)
     bpy.app.handlers.load_post.append(create_project_path)
 
 
@@ -120,4 +135,5 @@ def unregister():
     bpy.app.handlers.load_post.remove(check_pull_selection)
     bpy.app.handlers.load_post.remove(check_countertop_selection)
     bpy.app.handlers.load_post.remove(check_section_prompt_id)
+    bpy.app.handlers.load_post.remove(check_oversize_color_selection)
     bpy.app.handlers.load_post.remove(create_project_path)
