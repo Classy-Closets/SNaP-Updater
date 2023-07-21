@@ -112,7 +112,8 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
 
     def get_machine_token(self, part, name):
         for child in part.obj_bp.children:
-            if child.type == 'MESH':
+            len_tokens = len(child.snap.mp.machine_tokens)
+            if child.type == 'MESH' and len_tokens > 0:
                 tokens = child.snap.mp.machine_tokens
                 return tokens.get(name)
 
@@ -556,7 +557,6 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         if left_depth.get_value():
                             token.end_dim_in_x += corbel_height_ppt.get_value()                    
 
-
     def add_panel_drilling_for_middle_hanging_rods(self, hanging_rod):
         macp = get_machining_props()
         insert_bp = sn_utils.get_bp(hanging_rod.obj_bp, 'INSERT')
@@ -600,7 +600,6 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 self.remove_machining_token(right_panel, 'System Holes Mid Left')
 
                 if setback and setback.get_value() > macp.dim_to_front_system_hole:
-                    dim_to_front = macp.dim_to_front_system_hole
                     drill_depth = macp.system_hole_bore_depth
                     drill_dia = macp.system_hole_dia
 
@@ -609,19 +608,18 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                     part_width = math.fabs(left_panel.obj_y.location.y)
                     right_depth = left_panel.get_prompt('Right Depth')
                     sdbr = left_panel.get_prompt('Stop Drilling Bottom Right').get_value()
-                    # sdtr = left_panel.get_prompt('Stop Drilling Top Right').get_value()
-                    dim_to_front = dim_to_front + (part_width - right_depth.get_value())
+                    dim_to_front = macp.dim_to_front_system_hole + (part_width - right_depth.get_value())
 
                     if right_depth.get_value() > 0 or sdbr > 0:
-                        
                         if left_panel.obj_bp.get('PARTITION_NUMBER') == 0:
                             obj, token = left_panel.add_machine_token('System Holes Mid Right', 'BORE', '5')  # For some reason the the left most panel is flipped faces
                         else:
                             obj, token = left_panel.add_machine_token('System Holes Mid Right', 'BORE', '6')
+
                         token.dim_in_x = part_length - sn_unit.millimeter(9.5)
                         token.dim_in_y = part_width - (dim_to_front + setback.get_value())
                         token.dim_in_z = drill_depth
-                        token.end_dim_in_x = sn_unit.millimeter(9.5) if sdbr == 0 else sdbr
+                        token.end_dim_in_x = sn_unit.millimeter(9.5) if sdbr == 0 else part_length - sdbr + macp.dim_to_system_bottom_hole
                         token.end_dim_in_y = dim_to_front + setback.get_value()
                         token.face_bore_dia = drill_dia
                         token.distance_between_holes = sn_unit.millimeter(32)
@@ -634,18 +632,16 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                     left_depth = right_panel.get_prompt('Left Depth')
                     right_depth = right_panel.get_prompt('Right Depth')
                     sdbl = right_panel.get_prompt('Stop Drilling Bottom Left').get_value()
-                    # sdtl = right_panel.get_prompt('Stop Drilling Top Left').get_value()
-                    dim_to_front = dim_to_front + (part_width - left_depth.get_value())
+                    dim_to_front = macp.dim_to_front_system_hole + (part_width - left_depth.get_value())
 
                     if left_depth.get_value() > 0 or sdbl > 0:
                         obj, token = right_panel.add_machine_token('System Holes Mid Left', 'BORE', '5')
                         token.dim_in_x = part_length - sn_unit.millimeter(9.5)
-                        if right_depth.get_value() > 0:
-                            token.dim_in_y = part_width - (dim_to_front + setback.get_value())
-                        else:
-                            token.dim_in_y = part_width - dim_to_front - setback.get_value()
+
+                        token.dim_in_y = part_width - dim_to_front - setback.get_value()
+
                         token.dim_in_z = drill_depth
-                        token.end_dim_in_x = sn_unit.millimeter(9.5) if sdbl == 0 else sdbl
+                        token.end_dim_in_x = sn_unit.millimeter(9.5) if sdbl == 0 else part_length - sdbl + macp.dim_to_system_bottom_hole
                         token.end_dim_in_y = dim_to_front + setback.get_value()
                         token.face_bore_dia = drill_dia
                         token.distance_between_holes = sn_unit.millimeter(32)
@@ -1502,24 +1498,22 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
 
         for assembly in closet_utils.scene_parts(context):
             props = assembly.obj_bp.sn_closets
-            
+
             # self.set_manufacturing_material(assembly)
             self.set_manufacturing_prompts(assembly)
-            
-            #PANELS
+
+            # PANELS
             if props.is_panel_bp:
-                #Remove system holes mid
+                # Remove system holes mid
                 mid_holes_r = self.get_machine_token(assembly, "System Holes Mid Right")
                 if mid_holes_r:
                     self.remove_machining_token(assembly, 'System Holes Mid Right')
+
                 mid_holes_l = self.get_machine_token(assembly, "System Holes Mid Left")
                 if mid_holes_l:
                     self.remove_machining_token(assembly, 'System Holes Mid Left')
+
                 panels.append(assembly)
-            else:
-                pass
-                # if assembly.obj_bp.sn_closets.opening_name != "":
-                #     self.set_section_number(assembly)
 
             if props.is_blind_corner_panel_bp:
                 self.add_blind_corner_panel_drilling(assembly)
@@ -1589,21 +1583,21 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 # self.add_drawer_bottom_dado(assembly)
                 
             if props.is_drawer_back_bp:
-                drawer_backs.append(assembly)                
+                drawer_backs.append(assembly)
                 
             #FIXED SHELF AND ROD PRODUCT
             if props.is_shelf_and_rod_cleat_bp:
                 self.add_shelf_and_rod_cleat_holes(assembly)
             if props.is_shelf_and_rod_fe_cleat_bp:
                 self.add_shelf_and_rod_fe_machining(assembly)
-            
+
             if props.is_hanging_rod:
                 self.add_panel_drilling_for_middle_hanging_rods(assembly)
-                
+
         for panel in panels:
             self.add_panel_drilling(panel)
-            self.add_panel_routing(panel)        
-            self.add_panel_hanging_machining(panel)             
+            self.add_panel_routing(panel)
+            self.add_panel_hanging_machining(panel)
 
         #SEND IN ALL DRAWER PARTS FOUND TO ADD INFORMATION FOR DRAWER SYSTEMS
         self.update_drawer_machining(drawer_sides, drawer_backs, drawer_bottoms, drawer_fronts, drawer_boxes, drawer_stacks)

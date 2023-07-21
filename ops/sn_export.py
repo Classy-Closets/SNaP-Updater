@@ -5367,7 +5367,8 @@ class OPS_Export_XML(Operator):
                     no_pulls = pull_ppt.get_value()
                     if not no_pulls:
                         self.add_pull_dim_to_label(assembly, door_lbl)
-                        lbl.extend(door_lbl)
+
+                lbl.extend(door_lbl)
 
             if ppt_dogear and ppt_dogear_depth:
                 if ppt_dogear.get_value():
@@ -5428,9 +5429,9 @@ class OPS_Export_XML(Operator):
                 label = ""
 
                 for child in assembly.obj_bp.children:
-                    if child.type == 'MESH':
+                    tokens = child.snap.mp.machine_tokens
+                    if child.type == 'MESH' and len(tokens) > 0:
                         if assembly.obj_bp.get("IS_BP_PANEL"):
-                            tokens = child.snap.mp.machine_tokens
                             left_lbl = "L-None"
                             right_lbl = "R-None"
                             mid_left = False
@@ -5833,6 +5834,7 @@ class OPS_Export_XML(Operator):
         pull_mesh = None
         specialty_pull = False
         parent_bp = assembly.obj_bp.parent
+        defaults = bpy.context.scene.sn_closets.closet_defaults
 
         is_drawer_front = assembly.obj_bp.get("IS_BP_DRAWER_FRONT")
         is_sub_front = assembly.obj_bp.get("IS_BP_DRAWER_SUB_FRONT")
@@ -5893,7 +5895,9 @@ class OPS_Export_XML(Operator):
                 pull_dim = props.closet_defaults.specialty_pull_center_dim
 
         if pull_dim:
-            if pull_dim < sn_unit.inch(2):
+            if is_sub_front and not defaults.drill_drawer_boxes:
+                label.extend([("pull_dim", "text", "No Drill")])
+            elif pull_dim < sn_unit.inch(2):
                 label.extend([("pull_dim", "text", "Knob")])
             elif specialty_pull:
                 label.extend([("pull_dim", "text", f"{pull_dim}mm")])

@@ -6538,7 +6538,9 @@ class VIEW_OT_generate_2d_views(Operator):
                         self.create_elv_view_scene(context, wall, grp)
 
                     left_wall = wall.get_connected_wall('LEFT')
-                    if left_wall:
+                    is_first_wall = wall.obj_bp.location[0] == 0 and wall.obj_bp.location[1] == 0 and wall.obj_bp.location[2] == 0
+
+                    if left_wall or is_first_wall:
                         walls.append((wall, left_wall))
 
                     wall_groups[wall.obj_bp.name] = grp

@@ -51,7 +51,7 @@ class Bottom_Capping(sn_types.Assembly):
         self.add_prompt("Extend Left Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Extend Right Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Front Overhang", 'DISTANCE', sn_unit.inch(.75))
-        self.add_prompt("Max Panel Depth", 'DISTANCE', 0)
+        self.add_prompt("Max Panel Depth", 'DISTANCE', sn_unit.inch(48))
 
         self.max_chamfer_prompts = self.add_empty("OBJ_PROMPTS_Max_Panel_Chamfer")
         self.max_chamfer_prompts.empty_display_size = .01
@@ -91,6 +91,16 @@ class Bottom_Capping(sn_types.Assembly):
         RPE = self.get_prompt('Right Partition Extended').get_var('RPE')
 
         bottom = common_parts.add_plant_on_top(self)
+
+        constraint = bottom.obj_x.constraints.new(type='LIMIT_LOCATION')
+        constraint.use_max_x = True
+        constraint.max_x = sn_unit.inch(96)
+        constraint.owner_space = 'LOCAL'
+
+        constraint = bottom.obj_y.constraints.new(type='LIMIT_LOCATION')
+        constraint.use_max_y = True
+        constraint.max_y = sn_unit.inch(48)
+        constraint.owner_space = 'LOCAL'
 
         bottom.obj_bp.snap.comment_2 = "1024"
         bottom.set_name("Capping Bottom")
@@ -133,8 +143,17 @@ class PROMPTS_Prompts_Bottom_Support(sn_types.Prompts_Interface):
 
     insert = None
 
+    prev_ex_left = 0
+    prev_ex_right = 0
+    prev_width = 0
+
+    prev_front_overhang = 0
+    prev_depth = 0
+
     def check(self, context):
         """ This is called everytime a change is made in the UI """
+        self.check_width()
+        self.check_depth()
         left_partition_extended = self.insert.get_prompt('Left Partition Extended')
         right_partition_extended = self.insert.get_prompt('Right Partition Extended')
         exposed_left = self.insert.get_prompt("Exposed Left")
@@ -164,6 +183,7 @@ class PROMPTS_Prompts_Bottom_Support(sn_types.Prompts_Interface):
     def invoke(self, context, event):
         """ This is called before the interface is displayed """
         self.insert = self.get_insert()
+        self.set_previous_values()
         return super().invoke(context, event, width=400)
 
     def draw(self, context):
@@ -206,6 +226,75 @@ class PROMPTS_Prompts_Bottom_Support(sn_types.Prompts_Interface):
                 against_left_wall.draw(row, alt_text="Left", allow_edit=False)
             if not exposed_right.get_value():
                 against_right_wall.draw(row, alt_text="Right", allow_edit=False)
+    
+    def check_width(self):
+        extend_left_amount =\
+            self.insert.get_prompt("Extend Left Amount").get_value()
+        extend_right_amount =\
+            self.insert.get_prompt("Extend Right Amount").get_value()
+        width = self.insert.obj_x.location.x
+        total_width =\
+            extend_left_amount + extend_right_amount + width
+        prev_total_width =\
+            self.prev_ex_left + self.prev_ex_right + self.width
+        max_width = sn_unit.inch(96)
+        is_width_augmented =\
+            round(prev_total_width, 2) < round(max_width, 2)
+        limit_reached =\
+            round(total_width, 2) >= round(max_width, 2) and is_width_augmented
+        if limit_reached:
+            bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                    message="Maximum Capping Bottom width is 96\"",
+                                    message2="You can add another Capping Bottom",
+                                    icon="ERROR")
+            if self.prev_ex_left == extend_left_amount:
+                self.insert.get_prompt(
+                    "Extend Right Amount").set_value(self.prev_ex_right)
+            if self.prev_ex_right == extend_right_amount:
+                self.insert.get_prompt(
+                    "Extend Left Amount").set_value(self.prev_ex_left)
+        else:
+            self.prev_ex_left = extend_left_amount
+            self.prev_ex_right = extend_right_amount
+        self.prev_width = width
+
+    def check_depth(self):
+        front_overhang_value =\
+            self.insert.get_prompt("Front Overhang").get_value()
+        depth = self.insert.obj_y.location.y
+        total_depth =\
+            depth + front_overhang_value
+        prev_total_depth =\
+            self.prev_front_overhang + self.depth
+        max_depth = sn_unit.inch(48)
+        is_depth_augmented =\
+            round(prev_total_depth, 2) < round(max_depth, 2)
+        limit_reached =\
+            round(total_depth, 2) >= round(max_depth, 2) and is_depth_augmented
+        if limit_reached:
+            bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                    message="Maximum Capping Bottom depth is 48\"",
+                                    icon="ERROR")
+            self.insert.get_prompt(
+                "Front Overhang").set_value(self.prev_front_overhang)
+        else:
+            self.prev_front_overhang = front_overhang_value
+
+        self.prev_depth = depth
+
+    def set_previous_values(self):
+        ex_left_amount_value =\
+            self.insert.get_prompt("Extend Left Amount").get_value()
+        ex_right_amount_value =\
+            self.insert.get_prompt("Extend Right Amount").get_value()
+        self.prev_ex_left = ex_left_amount_value
+        self.prev_ex_right = ex_right_amount_value
+        self.prev_width = self.insert.obj_x.location.x
+
+        front_overhang_value =\
+            self.insert.get_prompt("Front Overhang").get_value()
+        self.prev_front_overhang = front_overhang_value
+        self.prev_depth = self.insert.obj_y.location.y
 
 
 class DROP_OPERATOR_Place_Bottom_Capping(Operator, PlaceClosetInsert):
@@ -221,6 +310,8 @@ class DROP_OPERATOR_Place_Bottom_Capping(Operator, PlaceClosetInsert):
     objects = []
     panels = []
     openings = []
+    max_shelf_length = 96.0
+    max_shelf_depth = 48.0
     sel_product_bp = None
     chamfer_prompts_obj_name = "OBJ_PROMPTS_Max_Panel_Chamfer"
     header_text = (
@@ -313,7 +404,7 @@ class DROP_OPERATOR_Place_Bottom_Capping(Operator, PlaceClosetInsert):
                     hp_x_loc = hover_panel.obj_bp.location.x
 
                     if not self.selected_panel_1:
-                        if hover_panel.obj_bp.location.x == product.obj_x.location.x:
+                        if hover_panel.obj_bp.location.x == product.obj_x.location.x or abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth:
                             selected_obj.select_set(False)
                             return {'RUNNING_MODAL'}
 
@@ -331,12 +422,24 @@ class DROP_OPERATOR_Place_Bottom_Capping(Operator, PlaceClosetInsert):
                         sp1_x_loc = self.selected_panel_1.obj_bp.location.x
                         hp_x_loc = hover_panel.obj_bp.location.x
                         bc_length = hp_x_loc - sp1_x_loc
+                        bc_depth = self.get_deepest_panel()
                         same_panel = self.selected_panel_1.obj_bp == hover_panel.obj_bp
                         same_product = self.selected_panel_1.obj_bp.parent == hover_panel.obj_bp.parent
                         hp_to_left = hp_x_loc < sp1_x_loc
+                        hp_out_of_reach = round(sn_unit.meter_to_inch(bc_length), 2) > self.max_shelf_length
+                        bc_too_deep = abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth
 
-                        if same_panel or hp_to_left or not same_product:
+                        if same_panel or hp_to_left or not same_product or hp_out_of_reach or bc_too_deep:
                             selected_obj.select_set(False)
+                            if same_product and hp_out_of_reach:
+                                bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                            message="Maximum Capping Bottom width is 96\"",
+                                            message2="You can add another Capping Bottom",
+                                            icon="ERROR")
+                            if same_product and bc_too_deep:
+                                bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                            message="Maximum Capping Bottom depth is 48\"",
+                                            icon="ERROR")
                             return {'RUNNING_MODAL'}
 
                         if self.is_first_panel(self.selected_panel_1):
@@ -348,7 +451,7 @@ class DROP_OPERATOR_Place_Bottom_Capping(Operator, PlaceClosetInsert):
                             else:
                                 self.bottom_capping.obj_x.location.x = bc_length + sn_unit.inch(0.75)
 
-                        self.bottom_capping.obj_y.location.y = self.get_deepest_panel()
+                        self.bottom_capping.obj_y.location.y = bc_depth
 
                     if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
                         if not self.selected_panel_1:

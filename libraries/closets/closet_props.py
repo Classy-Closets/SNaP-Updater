@@ -810,11 +810,17 @@ class Closet_Defaults(PropertyGroup):
     use_32mm_system: BoolProperty(name="Use 32mm System",
                                     description="Check this box to use the 32mm system. This will limit the size of panels, openings, drawer fronts to ensure they are always work with the 32mm System.",
                                     default=True)
-    
-    show_panel_drilling: BoolProperty(name="Show Panel Drilling",
-                                    description="Check this box to see the drilling operation on the panels",
-                                    default=False)
-    
+
+    drill_drawer_boxes: BoolProperty(
+        name="Drill Drawer Boxes",
+        description="Drill drawer box subfronts",
+        default=True)
+
+    show_panel_drilling: BoolProperty(
+        name="Show Panel Drilling",
+        description="Check this box to see the drilling operation on the panels",
+        default=False)
+
     panel_drilling_from_front: FloatProperty(
         name="Panel Drilling from Front",
         description="This sets the dim to the front set of system holes for the visual representation ONLY. See Machining Setup Interface for machining defaults",
@@ -969,6 +975,11 @@ class Closet_Defaults(PropertyGroup):
             row = box.row()
             row.label(text="Drill Diameter:")
             row.prop(closet_machining, 'system_hole_dia_options', text="")
+
+        row = box.row()
+        row.label(text="Drill Drawer Boxes:")
+        row.prop(self, 'drill_drawer_boxes', text="")
+        row.label(text="", icon='BLANK1')
 
         row = box.row()
         row.label(text="Show Partition Drilling:")

@@ -898,11 +898,13 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
         if materials_sheet is not None:
             df_materials = pandas.read_excel(parts_file, sheet_name='Materials').query('"GL" <= SKU_NUMBER <= "WD~" \
                                                                                         and SKU_NUMBER.str.contains("BB")==False \
+                                                                                        and PART_NAME.str.contains("DrwrBox")==False \
                                                                                         and (PART_NAME.str.contains("File Rail")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Side")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Sub Front")==False and SKU_NUMBER.str.contains("EB")==False) \
                                                                                         and (PART_NAME.str.contains("Drawer Back")==False and SKU_NUMBER.str.contains("EB")==False) \
-                                                                                        and (PART_NAME.str.contains("Drawer Bottom")==False)', engine='python')
+                                                                                        and (PART_NAME.str.contains("Drawer Bottom")==False)',
+                                                                                        engine='python')
             if df_materials.shape[0] > 0:
                 materials_summary = pandas.pivot_table(df_materials,
                                                         index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'DRILLING', 'PULL_DRILLING'],
@@ -915,7 +917,7 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                     writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                     set_column_width(writer.sheets['Materials Summary'])
                 else:
-                    print("Drawers summary DataFrame is empty. Skipping writing to Excel.")                
+                    print("Drawers summary DataFrame is empty. Skipping writing to Excel.")
 
             df_drawers = pandas.read_excel(parts_file, sheet_name='Materials').query('(PART_NAME.str.contains("File Rail")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("BB")==True) \
@@ -1125,15 +1127,24 @@ def generate_retail_parts_list():
             sheet1["K" + str((i + 1) + 1)] = thickness                                         #THICKNESS
             sheet1["N" + str((i + 1) + 1)] = float(retail_price)                                  #PART_PRICE
             sheet1["O" + str((i + 1) + 1)] = float(r_labor)                                  #LABOR
-            
+
             if sku_num[:2] in material_types:
                 if 'SF' in uom:
-                    sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width)) * int(quantity)
+                    sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
                     sheet1["M" + str((i + 1) + 1)] = "--"
-                    if 'VN' in sku_num[:2] or 'WD' in sku_num[:2]:
+
+                    is_vn_sku = 'VN' in sku_num[:2]
+                    is_wd_sku = 'WD' in sku_num[:2]
+                    is_pbi_sku = 'pbi' in material.lower()
+
+                    # TOTAL_PRICE
+                    if is_vn_sku or is_wd_sku and not is_pbi_sku:
                         sheet1["P" + str((i + 1) + 1)] = (float(retail_price) * int(quantity))
                     else:
-                        sheet1["P" + str((i + 1) + 1)] = (((float(retail_price) * int(quantity)) * get_square_footage(float(length), float(width)))  + float(r_labor))   #TOTAL_PRICE
+                        price = (float(retail_price) * int(quantity)) * get_square_footage(float(length), float(width))
+                        labor = float(r_labor)
+                        sheet1["P" + str((i + 1) + 1)] = price + labor
+
                     if len(EDGEBANDING) > 0:
                         for index, sublist in enumerate(EDGEBANDING):
                             if sublist[0] == part_id:
@@ -1800,15 +1811,26 @@ def generate_franchise_parts_list():
             sheet1["K" + str((i + 1) + 1)] = thickness                                         #THICKNESS
             sheet1["N" + str((i + 1) + 1)] = float(franchise_price)                                  #PART_PRICE
             sheet1["O" + str((i + 1) + 1)] = float(f_labor)                                  #LABOR
-            
+
             if sku_num[:2] in material_types:
                 if 'SF' in uom:
-                    sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width)) * int(quantity)
+                    sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
                     sheet1["M" + str((i + 1) + 1)] = "--"
-                    if 'VN' in sku_num[:2] or 'WD' in sku_num[:2]:
+
+                    is_vn_sku = 'VN' in sku_num[:2]
+                    is_wd_sku = 'WD' in sku_num[:2]
+                    is_pbi_sku = 'pbi' in material.lower()
+
+                    # TOTAL_PRICE
+                    if is_vn_sku or is_wd_sku and not is_pbi_sku:
                         sheet1["P" + str((i + 1) + 1)] = (float(franchise_price) * int(quantity))
                     else:
-                        sheet1["P" + str((i + 1) + 1)] = (((float(franchise_price) * int(quantity)) * get_square_footage(float(length), float(width)))  + float(f_labor))   #TOTAL_PRICE
+                        sqft = get_square_footage(float(length), float(width))
+                        sqft_price = float(franchise_price) * sqft
+                        price = sqft_price * float(quantity)
+                        labor = float(f_labor)
+                        sheet1["P" + str((i + 1) + 1)] = price + labor
+
                     if len(EDGEBANDING) > 0:
                         for index, sublist in enumerate(EDGEBANDING):
                             if sublist[0] == part_id:
@@ -2627,7 +2649,11 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                 R_UPGRADED_PANEL_PRICES.append(retail_price)
                 F_UPGRADED_PANEL_PRICES.append(franchise_price)
         else:
-            if 'VN' in sku_num[:2] or 'WD' in sku_num[:2]:
+            is_vn_sku = 'VN' in sku_num[:2]
+            is_wd_sku = 'WD' in sku_num[:2]
+            is_pbi_sku = 'pbi' in name.lower()
+
+            if is_vn_sku or is_wd_sku and not is_pbi_sku:
                 if upgrade_color is not None:
                     paint_stain_price = get_price_by_sku(get_mat_sku(upgrade_color))
                 paint_stain_labor = get_price_by_sku('LB-0000014')
@@ -2635,7 +2661,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                 r_stain_total = (paint_stain_price[0] * sf_part) * 2
                 f_stain_total = (paint_stain_price[1] * sf_part) * 2
                 r_part_total = retail_price * sf_part
-                f_part_total = retail_price * sf_part
+                f_part_total = franchise_price * sf_part
                 retail_price = r_part_total + r_stain_total + paint_stain_labor[0]
                 franchise_price = f_part_total + f_stain_total + paint_stain_labor[1]
                 R_MATERIAL_PRICES.append(retail_price * int(qty))
@@ -2795,19 +2821,20 @@ def calculate_project_price(xml_file, cos_flag=False):
     global COS_FLAG
     global PROJECT_NAME
     COS_FLAG = cos_flag
+    xml_file_exists = False
 
     if COS_FLAG:
         global PROJECT_NAME
         PROJECT_NAME = 'COS_Pricing_Project'
 
     if os.path.exists(xml_file):
+        xml_file_exists = True
         tree = ET.parse(xml_file)
         root = tree.getroot().find("Job")
     else:
-        print("XML filepath does not exist")
-        attrib = dict([ (k, v) for k, v in ns.items() ])
-        root = ET.Element('Batch', attrib)
-        tree = ET.ElementTree(root)
+        print("XML filepath does not exist:", xml_file)
+        xml_file_exists = False
+        return xml_file_exists
 
     set_job_info(root)
 
@@ -2994,7 +3021,10 @@ def calculate_project_price(xml_file, cos_flag=False):
 
                                     pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail)
                                     if 'Slab Door' in style_name:
-                                        MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+                                        MATERIAL_PARTS_LIST.append([
+                                            DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2],
+                                            PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8],
+                                            eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
                                     else:
                                         UPGRADED_PANEL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
                                     #Added for user to price the Glass within the upgraded panel parts separately
@@ -3020,7 +3050,11 @@ def calculate_project_price(xml_file, cos_flag=False):
                                         if upgrade_color is not None:
                                             PART_NAME = dcname + " (" + upgrade_color + ")"
                                         pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                        MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+
+                                        MATERIAL_PARTS_LIST.append([
+                                            DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4],PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH,
+                                            THICKNESS, pricing_info[0],pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim
+                                        ])
                             if sku_value[:2] in hardware_types:
                                 SKU_NUMBER = sku_value
                                 pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY)
@@ -3233,7 +3267,10 @@ def calculate_project_price(xml_file, cos_flag=False):
 
                                         pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail)
                                         if 'Slab Door' in style_name:
-                                            MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+                                            MATERIAL_PARTS_LIST.append(
+                                                [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2],
+                                                 PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8],
+                                                 eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
                                         else:
                                             UPGRADED_PANEL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
                                         #Added for user to price the Glass within the upgraded panel parts separately
@@ -3260,7 +3297,10 @@ def calculate_project_price(xml_file, cos_flag=False):
                                             if upgrade_color is not None:
                                                 PART_NAME = dcname + " (" + upgrade_color + ")"
                                             pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                            MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+                                            MATERIAL_PARTS_LIST.append(
+                                                [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2],
+                                                 PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8],
+                                                 eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
                                 if sku_value[:2] in hardware_types:
                                     SKU_NUMBER = sku_value
                                     pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY)
@@ -3474,7 +3514,10 @@ def calculate_project_price(xml_file, cos_flag=False):
 
                                             pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail)
                                             if 'Slab Door' in style_name:
-                                                MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+                                                MATERIAL_PARTS_LIST.append(
+                                                    [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2],
+                                                     PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8],
+                                                     eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
                                             else:
                                                 UPGRADED_PANEL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1], center_rail])
                                             #Added for user to price the Glass within the upgraded panel parts separately
@@ -3501,7 +3544,10 @@ def calculate_project_price(xml_file, cos_flag=False):
                                                 if upgrade_color is not None:
                                                     PART_NAME = dcname + " (" + upgrade_color + ")"
                                                 pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                                MATERIAL_PARTS_LIST.append([DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8], eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
+                                                MATERIAL_PARTS_LIST.append(
+                                                    [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2],
+                                                     PART_NAME, QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[8],
+                                                     eb_orientation, pricing_info[7], pricing_info[1], wall_name, drill_pattern, pull_dim])
                                     if sku_value[:2] in hardware_types:
                                         SKU_NUMBER = sku_value
                                         pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY)
@@ -3589,6 +3635,8 @@ def calculate_project_price(xml_file, cos_flag=False):
     if COS_FLAG:
         generate_retail_parts_list()
         generate_franchise_parts_list()
+
+    return xml_file_exists
 
 
 class SNAP_OT_Calculate_Price(Operator):
@@ -3709,11 +3757,15 @@ class SNAP_OT_Price_COS_XML(Operator):
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
+        props = get_pricing_props()
+        props.reset()
         blender_path = os.path.dirname(bpy.app.binary_path)
+        file_exists = False
 
         if pathlib.Path(self.filename).suffix == ".xml":
-            calculate_project_price(self.filepath, cos_flag=True)
-        else:
+            file_exists = calculate_project_price(self.filepath, cos_flag=True)
+
+        if not file_exists:
             message = "This is not a valid XML file!: {}".format(self.filename)
             bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
 
@@ -3731,12 +3783,16 @@ class SNAP_OT_Test_COS_XML(Operator):
         return True
 
     def execute(self, context):
+        props = get_pricing_props()
+        props.reset()
         blender_path = os.path.dirname(bpy.app.binary_path)
         test_xml_path = os.path.join(blender_path,"3.0\\scripts\\addons\\snap\\tests\\pricing\\cos_test.xml")
+        file_exists = False
 
         if pathlib.Path(test_xml_path).suffix == ".xml":
-            calculate_project_price(test_xml_path, cos_flag=True)
-        else:
+            file_exists = calculate_project_price(test_xml_path, cos_flag=True)
+
+        if not file_exists:
             message = "This is not a valid XML file!: {}".format(test_xml_path)
             bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, icon='ERROR')
 

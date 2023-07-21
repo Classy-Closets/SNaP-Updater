@@ -377,6 +377,14 @@ class Closet_Island_Carcass(sn_types.Assembly):
 
         if countertop_type == 'Melamine':
             self.countertop = common_parts.add_cc_countertop(self)
+            constraint = self.countertop.obj_x.constraints.new(type='LIMIT_LOCATION')
+            constraint.use_max_x = True
+            constraint.max_x = sn_unit.inch(96)
+            constraint.owner_space = 'LOCAL'
+            constraint = self.countertop.obj_y.constraints.new(type='LIMIT_LOCATION')
+            constraint.use_min_y = True
+            constraint.min_y = sn_unit.inch(-48)
+            constraint.owner_space = 'LOCAL'
         if countertop_type in ('HPL', 'Custom'):
             self.countertop = common_parts.add_hpl_top(self)
             self.countertop.dim_z("IF(Countertop_Type==1,INCH(0.75),INCH(1.5))", [Countertop_Type])

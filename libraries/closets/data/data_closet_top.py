@@ -77,6 +77,10 @@ class Top(sn_types.Assembly):
         constraint.use_max_x = True
         constraint.max_x = sn_unit.inch(96)
         constraint.owner_space = 'LOCAL'
+        constraint = top.obj_y.constraints.new(type='LIMIT_LOCATION')
+        constraint.use_max_y = True
+        constraint.max_y = sn_unit.inch(48)
+        constraint.owner_space = 'LOCAL'
         top.obj_bp.snap.comment_2 = "1024"
         top.set_name("Topshelf")
         top.loc_x('IF(Extend_Left,0,Panel_Thickness/2)-Extend_Left_Amount',[Extend_Left,Extend_Left_Amount,Panel_Thickness])
@@ -110,9 +114,13 @@ class PROMPTS_Top_Shelf(sn_types.Prompts_Interface):
     prev_ex_right = 0
     prev_width = 0
 
+    prev_front_overhang = 0
+    prev_depth = 0
+
     def check(self, context):
         """ This is called everytime a change is made in the UI """
         self.check_width()
+        self.check_depth()
         closet_props.update_render_materials(self, context)
         top_assembly = sn_types.Assembly(obj_bp=self.top_shelf)
         exposed_left = top_assembly.get_prompt("Exposed Left")
@@ -219,14 +227,38 @@ class PROMPTS_Top_Shelf(sn_types.Prompts_Interface):
                                     icon="ERROR")
             if self.prev_ex_left == extend_left_amount:
                 self.insert.get_prompt(
-                    "Extend Right Amount").set_value(self.prev_ex_right)
+                    "Extend Right Amount").set_value(0)
             if self.prev_ex_right == extend_right_amount:
                 self.insert.get_prompt(
-                    "Extend Left Amount").set_value(self.prev_ex_left)
+                    "Extend Left Amount").set_value(0)
         else:
             self.prev_ex_left = extend_left_amount
             self.prev_ex_right = extend_right_amount
         self.prev_width = width
+
+    def check_depth(self):
+        front_overhang_value =\
+            self.insert.get_prompt("Front Overhang").get_value()
+        depth = self.insert.obj_y.location.y
+        total_depth =\
+            depth + front_overhang_value
+        prev_total_depth =\
+            self.prev_front_overhang + self.depth
+        max_depth = sn_unit.inch(48)
+        is_depth_augmented =\
+            round(prev_total_depth, 2) < round(max_depth, 2)
+        limit_reached =\
+            round(total_depth, 2) >= round(max_depth, 2) and is_depth_augmented
+        if limit_reached:
+            bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                    message="Maximum Top Shelf depth is 48\"",
+                                    icon="ERROR")
+            self.insert.get_prompt(
+                "Front Overhang").set_value(self.prev_front_overhang)
+        else:
+            self.prev_front_overhang = front_overhang_value
+
+        self.prev_depth = depth
 
     def set_previous_values(self):
         ex_left_amount_value =\
@@ -236,6 +268,11 @@ class PROMPTS_Top_Shelf(sn_types.Prompts_Interface):
         self.prev_ex_left = ex_left_amount_value
         self.prev_ex_right = ex_right_amount_value
         self.prev_width = self.insert.obj_x.location.x
+
+        front_overhang_value =\
+            self.insert.get_prompt("Front Overhang").get_value()
+        self.prev_front_overhang = front_overhang_value
+        self.prev_depth = self.insert.obj_y.location.y
 
 
 bpy.utils.register_class(PROMPTS_Top_Shelf)
@@ -254,6 +291,7 @@ class SN_CLOSET_OT_Place_Top(Operator, PlaceClosetInsert):
     objects = []
     panels = []
     max_shelf_length = 96.0
+    max_shelf_depth = 48.0
     sel_product_bp = None
     panel_bps = []
     header_text = "Place Top Shelf - Select Partitions (Left to Right)   (Esc, Right Click) = Cancel Command  :  (Left Click) = Select Panel"
@@ -363,7 +401,7 @@ class SN_CLOSET_OT_Place_Top(Operator, PlaceClosetInsert):
                     hp_x_loc = hover_panel.obj_bp.location.x
 
                     if not self.selected_panel_1:
-                        if hover_panel.obj_bp.location.x == product.obj_x.location.x:
+                        if hover_panel.obj_bp.location.x == product.obj_x.location.x or abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth:
                             selected_obj.select_set(False)
                             return {'RUNNING_MODAL'}
 
@@ -382,17 +420,23 @@ class SN_CLOSET_OT_Place_Top(Operator, PlaceClosetInsert):
                         sp1_x_loc = self.selected_panel_1.obj_bp.location.x
                         hp_x_loc = hover_panel.obj_bp.location.x
                         ts_length = hp_x_loc - sp1_x_loc
+                        ts_depth = self.get_deepest_panel()
                         same_panel = self.selected_panel_1.obj_bp == hover_panel.obj_bp
                         same_product = self.selected_panel_1.obj_bp.parent == hover_panel.obj_bp.parent
                         hp_to_left = hp_x_loc < sp1_x_loc
                         hp_out_of_reach = round(sn_unit.meter_to_inch(ts_length), 2) > self.max_shelf_length
+                        ts_too_deep = abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth
 
-                        if same_panel or hp_to_left or not same_product or hp_out_of_reach:
+                        if same_panel or hp_to_left or not same_product or hp_out_of_reach or ts_too_deep:
                             selected_obj.select_set(False)
                             if same_product and hp_out_of_reach:
                                 bpy.ops.snap.log_window("INVOKE_DEFAULT",
                                             message="Maximum Top Shelf width is 96\"",
                                             message2="You can add another Top Shelf",
+                                            icon="ERROR")
+                            if same_product and ts_too_deep:
+                                bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                            message="Maximum Top Shelf depth is 48\"",
                                             icon="ERROR")
                             return {'RUNNING_MODAL'}
 
@@ -405,7 +449,7 @@ class SN_CLOSET_OT_Place_Top(Operator, PlaceClosetInsert):
                             else:
                                 self.top_shelf.obj_x.location.x = ts_length + sn_unit.inch(0.75)
 
-                        self.top_shelf.obj_y.location.y = self.get_deepest_panel()
+                        self.top_shelf.obj_y.location.y = ts_depth
 
                     if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
                         if not self.selected_panel_1:

@@ -224,7 +224,6 @@ class PlaceClosetAsset():
                     if calculator:
                         calculator.calculate()
 
-
     def create_drawing_plane(self, context):
         bpy.ops.mesh.primitive_plane_add()
         plane = context.active_object
@@ -272,11 +271,15 @@ class PlaceClosetAsset():
 
     def cancel_drop(self, context):
         self.set_screen_defaults(context)
+
         if self.asset:
             sn_utils.delete_object_and_children(self.asset.obj_bp)
+
         if self.drawing_plane:
             sn_utils.delete_object_and_children(self.drawing_plane)
+
         self.hide_cages(context)
+
         return {'CANCELLED'}
 
     def refresh_data(self, hide=True):
@@ -433,7 +436,7 @@ class PlaceClosetInsert(PlaceClosetAsset):
             context.scene.collection.children.link(floor_coll)
 
         return floor_coll
-    
+
     def link_to_floor_collection(self, context, obj):
         floor_parent = sn_utils.get_floor_parent(obj)
         if floor_parent:
@@ -475,7 +478,6 @@ class PlaceClosetInsert(PlaceClosetAsset):
         floor_parent = sn_utils.get_floor_parent(self.insert.obj_bp)
         if is_cabinet and floor_parent:
             self.link_to_floor_collection(context, self.insert.obj_bp)
-
 
     def position_asset(self, context):
         self.get_selected_opening()

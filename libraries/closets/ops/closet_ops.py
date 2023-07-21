@@ -622,15 +622,24 @@ class SNAP_OT_copy_product(Operator):
                 if driver.data_path == "hide_viewport":
                     driver.mute = mute
 
+    def select_object(self, obj):
+        # Skip cages
+        if 'IS_CAGE' in obj:
+            return
+        if obj.hide_select:
+            obj.hide_select = False
+        obj.select_set(True)
+
     def select_obj_and_children(self, obj):
         self.mute_hide_viewport_driver(obj, mute=True)
         obj.hide_viewport = False
         obj.hide_set(False)
-        obj.select_set(True)
+        self.select_object(obj)
+
         for child in obj.children:
             obj.hide_viewport = False
             obj.hide_set(False)
-            child.select_set(True)
+            self.select_object(child)
             self.select_obj_and_children(child)
 
     def hide_empties_and_boolean_meshes(self, obj):
@@ -644,8 +653,10 @@ class SNAP_OT_copy_product(Operator):
         obj = context.object
         obj_bp = sn_utils.get_closet_bp(obj)
         closet = sn_types.Assembly(obj_bp)
+
         bpy.ops.object.select_all(action='DESELECT')
         self.select_obj_and_children(closet.obj_bp)
+
         bpy.ops.object.duplicate_move()
         self.hide_empties_and_boolean_meshes(closet.obj_bp)
 
@@ -735,7 +746,6 @@ class SNAP_OT_copy_insert(Operator):
             for obj in insert_children:
                 if obj.type == 'EMPTY':
                     obj.hide_set(True)
-                    obj.hide_select = True
                     obj.hide_viewport = True
 
                 self.mute_hide_drivers(obj, mute=False)
@@ -743,11 +753,9 @@ class SNAP_OT_copy_insert(Operator):
             for obj in obj_list:
                 if obj.type == 'EMPTY':
                     obj.hide_set(True)
-                    obj.hide_select = True
                     obj.hide_viewport = True
                 if obj.get('IS_BP_ASSEMBLY'):
                     obj.hide_set(True)
-                    obj.hide_select = True
                     obj.hide_viewport = True
                 obj.location = obj.location
 

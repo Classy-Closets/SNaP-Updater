@@ -2,7 +2,7 @@ import math
 
 import bpy
 from bpy.types import Operator
-from bpy.props import StringProperty, EnumProperty
+from bpy.props import StringProperty, EnumProperty, FloatProperty
 
 from snap import sn_types, sn_unit, sn_utils
 from ..ops.drop_closet import PlaceClosetInsert
@@ -93,7 +93,15 @@ class Countertop_Insert(sn_types.Assembly):
 
         self.dim_z('Deck_Thickness', [Deck_Thickness])
 
-        melamine_deck = common_parts.add_cc_countertop(self)        
+        melamine_deck = common_parts.add_cc_countertop(self)   
+        constraint = melamine_deck.obj_x.constraints.new(type='LIMIT_LOCATION')
+        constraint.use_max_x = True
+        constraint.max_x = sn_unit.inch(96)
+        constraint.owner_space = 'LOCAL'
+        constraint = melamine_deck.obj_y.constraints.new(type='LIMIT_LOCATION')
+        constraint.use_max_y = True
+        constraint.max_y = sn_unit.inch(48)
+        constraint.owner_space = 'LOCAL'     
         melamine_deck.set_name("Melamine Countertop")
         melamine_deck.loc_x('IF(Add_Left_Corner,0,IF(Extend_Left,0,Deck_Thickness/2)-Extend_Left_Amount)',[Extend_Left,Extend_Left_Amount,Deck_Thickness,Add_Left_Corner])
         melamine_deck.loc_y('Product_Depth',[Product_Depth])
@@ -233,7 +241,8 @@ class Countertop_Insert(sn_types.Assembly):
         right_b_splash.get_prompt("Hide").set_formula("IF(AND(Add_Right_Corner,Add_Backsplash),False,True)",[Add_Right_Corner,Add_Backsplash])         
 
         self.update()
-        
+
+
 class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
     bl_idname = "sn_closets.counter_top"
     bl_label = "Countertop Prompt" 
@@ -241,6 +250,10 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
     bl_options = {'UNDO'}
     
     object_name: StringProperty(name="Object Name")
+
+    width: FloatProperty(name="Width",unit='LENGTH',precision=4)
+    height: FloatProperty(name="Height",unit='LENGTH',precision=4)
+    depth: FloatProperty(name="Depth",unit='LENGTH',precision=4)    
 
     prev_countertop_type = 0
     countertop_type: EnumProperty(
@@ -307,6 +320,14 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
 
     assembly = None
     countertop_type_prompt = None
+    edge_type_prompt = None
+
+    prev_ex_left = 0
+    prev_ex_right = 0
+    prev_width = 0
+
+    prev_front_overhang = 0
+    prev_depth = 0
     hpl_edge_type_prompt = None
     stone_edge_type_prompt = None
     painted_edge_type_prompt = None
@@ -335,6 +356,10 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
         if self.prev_countertop_type != int(self.countertop_type):
             self.countertop_type_prompt.set_value(int(self.countertop_type))
             countertop_type = self.countertop_type_prompt.get_value()
+
+        if int(self.countertop_type) == 0: 
+            self.check_width()
+            self.check_depth()
 
             # Set unique material status
             for child in self.assembly.obj_bp.children:
@@ -393,6 +418,7 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
         self.assembly = self.get_insert()
         self.countertop_type_prompt = self.assembly.get_prompt("Countertop Type")
         self.countertop_type = str(self.countertop_type_prompt.combobox_index)
+        self.set_previous_values()
         self.set_edge_type_enums()
         self.get_wood(context)
         wm = context.window_manager
@@ -575,142 +601,308 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
                             row = c_box.row()
                             row.prop(self, "stained_edge_type", expand=False)
 
+    
+    def check_width(self):
+        extend_left_amount =\
+            self.assembly.get_prompt("Extend Left Amount").get_value()
+        extend_right_amount =\
+            self.assembly.get_prompt("Extend Right Amount").get_value()
+        width = self.assembly.obj_x.location.x
+        total_width =\
+            extend_left_amount + extend_right_amount + width
+        prev_total_width =\
+            self.prev_ex_left + self.prev_ex_right + self.width
+        max_width = sn_unit.inch(96)
+        is_width_augmented =\
+            round(prev_total_width, 2) < round(max_width, 2)
+        limit_reached =\
+            round(total_width, 2) >= round(max_width, 2) and is_width_augmented
+        if limit_reached:
+            bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                    message="Maximum Melamine Countertop width is 96\"",
+                                    icon="ERROR")
+            if self.prev_ex_left == extend_left_amount:
+                self.assembly.get_prompt(
+                    "Extend Right Amount").set_value(self.prev_ex_right)
+            if self.prev_ex_right == extend_right_amount:
+                self.assembly.get_prompt(
+                    "Extend Left Amount").set_value(self.prev_ex_left)
+        else:
+            self.prev_ex_left = extend_left_amount
+            self.prev_ex_right = extend_right_amount
+        self.prev_width = width
+
+    def check_depth(self):
+        front_overhang_value =\
+            self.assembly.get_prompt("Deck Overhang").get_value()
+        depth = self.assembly.obj_y.location.y
+        total_depth =\
+            depth + front_overhang_value
+        prev_total_depth =\
+            self.prev_front_overhang + self.depth
+        max_depth = sn_unit.inch(48)
+        is_depth_augmented =\
+            round(prev_total_depth, 2) < round(max_depth, 2)
+        limit_reached =\
+            round(total_depth, 2) >= round(max_depth, 2) and is_depth_augmented
+        if limit_reached:
+            bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                    message="Maximum Melamine Countertop depth is 48\"",
+                                    icon="ERROR")
+            self.assembly.get_prompt(
+                "Deck Overhang").set_value(self.prev_front_overhang)
+        else:
+            self.prev_front_overhang = front_overhang_value
+
+        self.prev_depth = depth
+
+    def set_previous_values(self):
+        ex_left_amount_value =\
+            self.assembly.get_prompt("Extend Left Amount").get_value()
+        ex_right_amount_value =\
+            self.assembly.get_prompt("Extend Right Amount").get_value()
+        self.prev_ex_left = ex_left_amount_value
+        self.prev_ex_right = ex_right_amount_value
+        self.prev_width = self.assembly.obj_x.location.x
+
+        front_overhang_value =\
+            self.assembly.get_prompt("Deck Overhang").get_value()
+        self.prev_front_overhang = front_overhang_value
+        self.prev_depth = self.assembly.obj_y.location.y
+
+
 class OPERATOR_Place_Countertop(Operator, PlaceClosetInsert):
     bl_idname = "sn_closets.place_countertop"
     bl_label = "Place Countertop"
-    bl_description = "This allows you to place a countertop."
+    bl_description = "This places the countertop."
     bl_options = {'UNDO'}
-    
+
     show_openings = False
-    assembly = None
-    selected_obj = None
-    selected_point = None    
+    countertop = None
+    selected_panel_1 = None
+    selected_panel_2 = None
+    objects = []
+    panels = []
+    max_shelf_length = 96.0
+    max_shelf_depth = 48.0
+    sel_product_bp = None
+    panel_bps = []
+    header_text = "Place Countertop - Select Partitions (Left to Right)   (Esc, Right Click) = Cancel Command  :  (Left Click) = Select Panel"
+    
+    # def __del__(self):
+    #     bpy.context.area.header_text_set()
 
     def execute(self, context):
-        self.assembly = self.asset
+        self.countertop = self.asset
+        self.objects = [obj for obj in context.visible_objects if obj.parent and obj.parent.sn_closets.is_panel_bp]
         return super().execute(context)
 
-    def update_insert(self, obj_bp):
-        # Look for drawer stack or hamper inserts and set cleat location
-        inserts = [
-            "IS_BP_DRAWER_STACK" in obj_bp,
-            "IS_BP_HAMPER" in obj_bp]
+    def get_deepest_panel(self):
+        depths = []
+        for p in self.panels:
+            depths.append(abs(p.obj_y.location.y))
+        return max(depths)
 
-        if any(inserts):
-            insert = sn_types.Assembly(obj_bp)
-            cleat_location = insert.get_prompt("Cleat Location")
-            if cleat_location:
-                cleat_location.set_value(1)  # Setting Cleat Location to Below
+    def get_closest_opening(self,x_loc):
+        return lambda op : abs(op - x_loc)
 
-        # Find any nested inserts and update as well
-        if obj_bp.children:
-            for child in obj_bp.children:
-                if child.snap.type_group == 'INSERT':
-                    self.update_insert(child)
+    def get_panels(self):
+        self.panel_bps.clear()
 
-    def ctop_drop(self, context, event):
-        if self.selected_obj:
-            sel_product_bp = sn_utils.get_closet_bp(self.selected_obj)
-            sel_assembly_bp = sn_utils.get_assembly_bp(self.selected_obj)
+        for child in self.sel_product_bp.children:
+            if 'IS_BP_PANEL' in child and 'PARTITION_NUMBER' in child:
+                self.panel_bps.append(child)
 
+        self.panel_bps.sort(key=lambda a: int(a['PARTITION_NUMBER']))
 
-            if sel_product_bp and sel_assembly_bp:
-                product = sn_types.Assembly(sel_product_bp)
-                props = product.obj_bp.sn_closets
-                if product and 'IS_BP_CLOSET' in product.obj_bp:
-                    heights = []
-                    depths = []
-                    vertical_offsets = []
-                    floor = True
-                    hang_height = product.obj_z.location.z
-                    shelf_thickness = product.get_prompt('Shelf Thickness').get_value()
-                    remove_top_shelf = True
+        for i,bp in enumerate(self.panel_bps):
+            print(i,sn_unit.inch(bp.location.x))
+            
+    def is_first_panel(self, panel):
+        if panel.obj_z.location.z < 0:
+            return True
+        else:
+            return False
 
+    def is_last_panel(self, panel):
+        self.get_panels()
+        last_panel_bp = self.panel_bps[-1]
+        if panel.obj_bp is last_panel_bp:
+            return True
+        else:
+            return False
 
-                    for i in range(1,10):
+    def get_inculded_panels(self,panel_1,panel_2):
+        self.panels.clear()
+        p1_x_loc = panel_1.obj_bp.location.x
+        p2_x_loc = panel_2.obj_bp.location.x
 
-                        height = product.get_prompt("Opening " + str(i) + " Height")
-                        if height: 
-                            heights.append(height.get_value())
+        for child in self.sel_product_bp.children:
+            if 'IS_BP_BLIND_CORNER_PANEL' in child:
+                continue
+            
+            if 'IS_BP_PANEL' in child:
+                if p1_x_loc <= child.location.x <= p2_x_loc:
+                    self.panels.append(sn_types.Assembly(child))
 
-                        depth = product.get_prompt("Opening " + str(i) + " Depth")
-                        if depth: 
-                            depths.append(depth.get_value())
-                        
-                        if product.get_prompt("Opening " + str(i) + " Floor Mounted") is not None:
-                            floor = floor and product.get_prompt("Opening " + str(i) + " Floor Mounted").get_value()
+    def place_on_hanging_section(self, product, P1_X_Loc, P2_X_Loc, Panel_Thickness):
+        Left_Side_Wall_Filler = product.get_prompt('Left Side Wall Filler').get_var()
+        Right_Side_Wall_Filler = product.get_prompt('Right Side Wall Filler').get_var()
 
-                        if product.get_prompt("Remove Top Shelf " + str(i)) is not None:
-                            remove_top_shelf = remove_top_shelf and product.get_prompt("Remove Top Shelf " + str(i)).get_value()
+        if self.is_first_panel(self.selected_panel_1):
+            self.countertop.loc_x('P1_X_Loc-Left_Side_Wall_Filler', [P1_X_Loc, Left_Side_Wall_Filler])
+            if self.is_last_panel(self.selected_panel_2):
+                self.countertop.dim_x(
+                    'P2_X_Loc-P1_X_Loc+Left_Side_Wall_Filler+Right_Side_Wall_Filler',
+                    [P1_X_Loc, P2_X_Loc, Left_Side_Wall_Filler, Right_Side_Wall_Filler])
+            else:
+                self.countertop.dim_x(
+                    'P2_X_Loc-P1_X_Loc+Left_Side_Wall_Filler',
+                    [P1_X_Loc, P2_X_Loc, Left_Side_Wall_Filler])
+        else:
+            self.countertop.loc_x('P1_X_Loc-Panel_Thickness', [P1_X_Loc, Panel_Thickness])
+            if self.is_last_panel(self.selected_panel_2):
+                self.countertop.dim_x(
+                    'P2_X_Loc-P1_X_Loc+Panel_Thickness+Right_Side_Wall_Filler',
+                    [P1_X_Loc, P2_X_Loc, Panel_Thickness, Right_Side_Wall_Filler])
+            else:
+                self.countertop.dim_x(
+                    'P2_X_Loc-P1_X_Loc+Panel_Thickness',
+                    [P1_X_Loc, P2_X_Loc, Panel_Thickness])
 
-                        if product.get_prompt('Top KD ' + str(i) + ' Vertical Offset') is not None:
-                            vertical_offsets.append(product.get_prompt('Top KD ' + str(i) + ' Vertical Offset').get_value())
-                            
-                    scene_props = bpy.context.scene.sn_closets
-                    
-                    placement_height = 0
-                    tk_height = product.get_prompt("Toe Kick Height")
-                    if floor:
-                        placement_height = max(heights) + tk_height.get_value()
+    def place_insert(self, context, event):
+        selected_point, selected_obj, _ = sn_utils.get_selection_point(context, event, objects=self.objects)
+        bpy.ops.object.select_all(action='DESELECT')
+
+        if selected_obj is not None:
+            self.sel_product_bp = sn_utils.get_closet_bp(selected_obj)
+            sel_assembly_bp = sn_utils.get_assembly_bp(selected_obj)
+            product = sn_types.Assembly(self.sel_product_bp)
+
+            if sel_assembly_bp and 'IS_BP_CLOSET' in self.sel_product_bp:
+                if 'IS_BP_PANEL' in sel_assembly_bp:
+                    selected_obj.select_set(True)
+                    hover_panel = sn_types.Assembly(selected_obj.parent)
+                    hp_x_loc = hover_panel.obj_bp.location.x
+
+                    if not self.selected_panel_1:
+                        if hover_panel.obj_bp.location.x == product.obj_x.location.x or abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth:
+                            selected_obj.select_set(False)
+                            return {'RUNNING_MODAL'}
+
+                        self.countertop.obj_bp.parent = self.sel_product_bp
+                        self.countertop.obj_bp.location = hover_panel.obj_bp.location
+
+                        if hover_panel.obj_z.location.z > 0:
+                            self.countertop.obj_bp.location.x = hp_x_loc - sn_unit.inch(0.75)
+
+                        self.countertop.obj_bp.location.z += hover_panel.obj_x.location.x
+                        self.countertop.obj_x.location.x = sn_unit.inch(18.0)
+                        self.countertop.obj_bp.location.y = hover_panel.obj_y.location.y
+                        self.countertop.obj_y.location.y = -hover_panel.obj_y.location.y
+
                     else:
-                        placement_height = hang_height
-                    
-                    if remove_top_shelf:
-                        placement_height -= shelf_thickness
+                        self.get_inculded_panels(self.selected_panel_1, hover_panel)
+                        sp1_x_loc = self.selected_panel_1.obj_bp.location.x
+                        hp_x_loc = hover_panel.obj_bp.location.x
+                        ct_length = hp_x_loc - sp1_x_loc
+                        ct_depth = self.get_deepest_panel()
+                        same_panel = self.selected_panel_1.obj_bp == hover_panel.obj_bp
+                        same_product = self.selected_panel_1.obj_bp.parent == hover_panel.obj_bp.parent
+                        hp_to_left = hp_x_loc < sp1_x_loc
+                        hp_out_of_reach = round(sn_unit.meter_to_inch(ct_length), 2) > self.max_shelf_length
+                        ct_too_deep = abs(round(sn_unit.meter_to_inch(hover_panel.obj_y.location.y), 2)) > self.max_shelf_depth
 
-                    placement_height -= max(vertical_offsets)
-                    
-                    if scene_props.closet_defaults.use_plant_on_top:
-                        placement_height += sn_unit.millimeter(16)
-                    
-                    self.assembly.obj_bp.parent = product.obj_bp
-                    self.assembly.obj_bp.location.z = placement_height             
-                    self.assembly.obj_bp.location.y = -max(depths)
-                    self.assembly.obj_y.location.y = max(depths)
-                    parent_dim_x = product.obj_x.snap.get_var('location.x', 'dim_x')
-                    self.assembly.obj_x.snap.loc_x(expression='dim_x', variables=[parent_dim_x])
+                        if same_panel or hp_to_left or not same_product or hp_out_of_reach or ct_too_deep:
+                            selected_obj.select_set(False)
+                            if same_product and hp_out_of_reach:
+                                bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                            message="Maximum Countertop width is 96\"",
+                                            message2="You can add another Countertop",
+                                            icon="ERROR")
+                            if same_product and ct_too_deep:
+                                bpy.ops.snap.log_window("INVOKE_DEFAULT",
+                                            message="Maximum Countertop depth is 48\"",
+                                            icon="ERROR")
+                            return {'RUNNING_MODAL'}
 
-                if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-                    countertop_height_ppt = self.assembly.get_prompt("Countertop Height")
-                    tallest_pard_ppt = self.assembly.get_prompt('Tallest Pard Height')
-                    if countertop_height_ppt:
-                        countertop_height_ppt.set_value(self.assembly.obj_bp.location.z)
-                    if tallest_pard_ppt:
-                        tallest_pard_ppt.set_value(self.assembly.obj_bp.location.z)
+                        if self.is_first_panel(self.selected_panel_1):
+                            self.countertop.obj_x.location.x = ct_length
+                        else:
+                            if hp_x_loc < sp1_x_loc:
+                                #Hover selection to left
+                                pass
+                            else:
+                                self.countertop.obj_x.location.x = ct_length + sn_unit.inch(0.75)
 
-                    carcass_bp = sn_utils.get_closet_bp(self.assembly.obj_bp)
-                    for child in carcass_bp.children:
-                        if child.snap.type_group == 'INSERT':
-                            self.update_insert(child)
+                        self.countertop.obj_bp.location.y = ct_depth * -1
+                        self.countertop.obj_y.location.y = ct_depth
 
-                    sn_utils.set_wireframe(self.assembly.obj_bp, False)
-                    bpy.context.window.cursor_set('DEFAULT')
-                    bpy.ops.object.select_all(action='DESELECT')
-                    context.view_layer.objects.active = self.assembly.obj_bp
-                    self.assembly.obj_bp.select_set(True)
-                    closet_props.update_render_materials(self, context) 
-                    return self.finish(context)
-                    # return {'FINISHED'}
+                    if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+                        if not self.selected_panel_1:
+                            self.selected_panel_1 = hover_panel
+                            sn_utils.set_wireframe(self.countertop.obj_bp,False)
+                            bpy.ops.object.select_all(action='DESELECT')
+                            context.view_layer.objects.active = self.countertop.obj_bp
+
+                            self.countertop.obj_bp.parent = self.sel_product_bp
+                            p1_z_loc = self.selected_panel_1.obj_bp.location.z
+                            p1_z_dim = self.selected_panel_1.obj_x.location.x
+
+                            if self.selected_panel_1.obj_z.location.z < 0:
+                                self.countertop.obj_bp.location.x = self.selected_panel_1.obj_bp.location.x
+                            else:
+                                self.countertop.obj_bp.location.x = self.selected_panel_1.obj_bp.location.x - sn_unit.inch(0.75)
+                            self.countertop.obj_bp.location.z = p1_z_loc + p1_z_dim
+                            self.countertop.obj_y.location.y = -self.selected_panel_1.obj_y.location.y
+
+                            return {'RUNNING_MODAL'}
+
+                        if not self.selected_panel_2:
+                            self.selected_panel_2 = hover_panel
+                            bpy.ops.object.select_all(action='DESELECT')
+                            context.view_layer.objects.active = self.countertop.obj_bp
+                            self.countertop.obj_bp.select_set(True)
+
+                            if self.selected_panel_1.obj_bp == self.selected_panel_2.obj_bp:
+                                self.cancel_drop(context,event)
+                                return {'FINISHED'}
+
+                            P1_X_Loc = self.selected_panel_1.obj_bp.snap.get_var('location.x', 'P1_X_Loc')
+                            P2_X_Loc = self.selected_panel_2.obj_bp.snap.get_var('location.x', 'P2_X_Loc')
+                            Panel_Thickness = product.get_prompt('Panel Thickness').get_var()
+
+                            countertop_height_ppt = self.countertop.get_prompt("Countertop Height")
+                            tallest_pard_ppt = self.countertop.get_prompt('Tallest Pard Height')
+                            if countertop_height_ppt:
+                                countertop_height_ppt.set_value(self.countertop.obj_bp.location.z)
+                            if tallest_pard_ppt:
+                                tallest_pard_ppt.set_value(self.countertop.obj_bp.location.z)
+
+                            self.place_on_hanging_section(product, P1_X_Loc, P2_X_Loc, Panel_Thickness)
+
+                            return self.finish(context)
 
         return {'RUNNING_MODAL'}
-    
-    def modal(self, context, event):
-        context.area.tag_redraw()
-        bpy.ops.object.select_all(action='DESELECT')        
-        self.selected_point, self.selected_obj, _ = sn_utils.get_selection_point(context,event)
 
-        if not self.assembly:
-            self.assembly = self.asset
-        
+    def modal(self, context, event):
+        bpy.ops.object.select_all(action='DESELECT')
+        context.area.tag_redraw()
+        context.area.header_text_set(text=self.header_text)
+        self.reset_selection()
+
+        if not self.countertop:
+            self.countertop = self.asset
+
         if self.event_is_cancel_command(event):
             context.area.header_text_set(None)
             return self.cancel_drop(context)
-        
-        if event.type in {'ESC'}:
-            self.cancel_drop(context, event)
-            return {'FINISHED'}
-        
-        return self.ctop_drop(context, event)    
-        
+
+        if self.event_is_pass_through(event):
+            return {'PASS_THROUGH'}
+
+        return self.place_insert(context, event)    
+
+
 bpy.utils.register_class(PROMPTS_Counter_Top)
 bpy.utils.register_class(OPERATOR_Place_Countertop)
