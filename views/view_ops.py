@@ -29,6 +29,7 @@ from snap.libraries.closets import closet_props
 from snap.libraries.closets.data import data_drawers
 from snap.libraries.closets.data import data_closet_carcass
 from snap.libraries.kitchen_bath import cabinet_interface
+from snap.libraries.kitchen_bath import cabinets
 import numpy as np
 import re
 import xml.etree.ElementTree as ET
@@ -837,14 +838,20 @@ class VIEW_OT_generate_2d_views(Operator):
 
         if left_wall:
             for child in left_wall.obj_bp.children:
-                if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES"):
+                 if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES") or child.get("IS_CORNER"):
                     distance_to_wall_end = wall_assy.obj_x.location.x - child.location.x
+                    
+                    if child.get("IS_CORNER"):
+                        for subchild in child.children:
+                            if subchild.get("IS_BP_BLIND_PANEL"):
+                                distance_to_wall_end -= sn_types.Assembly(child).obj_x.location.x
+                                break
                     if distance_to_wall_end < unit.inch(6):
                         corner_shelves += 1
 
         if right_wall:
             for child in right_wall.obj_bp.children:
-                if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES"):
+                if child.get("IS_BP_L_SHELVES") or child.get("IS_BP_CORNER_SHELVES") or child.get("IS_CORNER"):
                     if child.location.x < unit.inch(6):
                         corner_shelves += 1
 
@@ -2339,9 +2346,8 @@ class VIEW_OT_generate_2d_views(Operator):
                 assemblies.append(candidate)
             if 'l shelves' in candidate.name.lower():
                 assemblies.append(candidate)
-            # if "IS_CORNER" in candidate:
-            #     print("candidate.name=" + candidate.name + ": IS_CORNER=True")
-            #     assemblies.append(candidate)
+            if "IS_CORNER" in candidate:
+                assemblies.append(candidate)
             
         if len(assemblies) > 0:
             return assemblies
@@ -3193,7 +3199,7 @@ class VIEW_OT_generate_2d_views(Operator):
 
         negative_x_loc = item_loc_x < 0
 
-        corner_shelves = item.get("IS_BP_CORNER_SHELVES") or item.get("IS_BP_L_SHELVES")
+        corner_shelves = item.get("IS_BP_CORNER_SHELVES") or item.get("IS_BP_L_SHELVES") or item.get("IS_CORNER")
 
         if corner_shelves:
             positive_x_dim = item_loc_x > wall_length
@@ -3437,7 +3443,7 @@ class VIEW_OT_generate_2d_views(Operator):
             curr_wall_width = sn_types.Assembly(curr_wall_key).obj_x.location.x
             re_origin = None
             left_name = f'{curr_wall_name}_left'
-
+        
             if left_slot and left_parts_data is not None:
                 prvs_wall_width = self.to_inch(sn_types.Assembly(prvs_wall_key).obj_x.location.x)
                 prvs_parts_max = assemblies_dict[prvs_wall_key]['max_loc_data']
@@ -3533,6 +3539,7 @@ class VIEW_OT_generate_2d_views(Operator):
                 corner_instances = []
 
                 for corner in corner_result:
+                    blind_panel = None
                     origin_loc_x = 0
                     origin_rot = (0, 0, 0)
 
@@ -3544,13 +3551,22 @@ class VIEW_OT_generate_2d_views(Operator):
                     instance.instance_type = 'COLLECTION'
                     instance.instance_collection = grp
 
-                    origin_loc_x = offset + corner.location.x
-
-                    if corner.rotation_euler.z == 0.0:
-                        origin_rot = (0, 0, math.radians(-90))
-                        
-                    else:
+                    if corner.get("IS_CORNER"):
+                        for child in corner.children:
+                            if child.get("IS_BP_BLIND_PANEL"):
+                                blind_panel = child
+                                break
+                    if blind_panel and blind_panel.get("BLIND_SIDE") == "Right":
+                        blind_cabinet = sn_types.Assembly(corner)
+                        origin_loc_x = offset + corner.location.x + blind_cabinet.obj_x.location.x
                         origin_rot = (0, 0, math.radians(90))
+                    else:    
+                        origin_loc_x = offset + corner.location.x
+                        if corner.rotation_euler.z == 0.0:
+                            origin_rot = (0, 0, math.radians(-90))
+                            
+                        else:
+                            origin_rot = (0, 0, math.radians(90))
 
                     re_origin = {"origin_loc_x": origin_loc_x, "origin_rot": origin_rot}
 
@@ -3903,6 +3919,8 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def make_flat_crown_label(self, labels, item):
         flat_crown_layers = 0
+        fc_assy = None
+
         for ch in item.children:
             is_layered = ch.get('IS_BP_LAYERED_CROWN')
             snap_attr = hasattr(ch, 'snap')
@@ -3940,6 +3958,10 @@ class VIEW_OT_generate_2d_views(Operator):
                     fc_str += ' (1 layer)'
                 elif flat_crown_layers == 2:
                     fc_str += ' (2 layers)'
+                labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
+            else:
+                fc_assy = assy
+                fc_str = f'Flat Crown {self.to_inch_lbl(fc_h)}'
                 labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
 
         if fc_assy:
@@ -4002,9 +4024,158 @@ class VIEW_OT_generate_2d_views(Operator):
         csh_dim += toe_kick_height
         return csh_dim
 
+    def add_kb_corner_accordion_dims(self, insert):
+        carcass = None
+        splitters = []
+        corner_objects = []
+        blind_panel = None
+        left_side = math.isclose(insert.rotation_euler.z, math.radians(-90), abs_tol=1e-3)
+
+        for obj in insert.instance_collection.all_objects:
+            if obj.parent.get("IS_CORNER"):
+                corner_objects.append(obj)
+
+        for part in corner_objects:
+            if part.get("IS_BP_CARCASS"):
+                carcass = sn_types.Assembly(part)
+            elif part.get("IS_BP_BLIND_PANEL"):
+                blind_panel = sn_types.Assembly(part)
+                left_side = part.get("BLIND_SIDE") == "Left"
+            elif part.get("IS_BP_SPLITTER"):
+                splitters.append(sn_types.Assembly(part))  # show these too??
+                                 
+        if carcass:
+            self.kb_corner_width_lbl(insert, carcass, left_side)
+            self.kb_corner_dpeth_lbl(insert, carcass, left_side, blind_panel)
+            self.kb_corner_side_height_lbl(insert, carcass, left_side)
+
+            for part in carcass.obj_bp.children:
+                if part.get("IS_SHELF"):
+                    assembly = sn_types.Assembly(part.parent)
+                    self.kb_corner_kd_lbl(insert, assembly, part, left_side)
+  
+    def kb_corner_kd_lbl(self, insert, assembly, part, left_side):
+        width = assembly.obj_y.location.y
+        height = assembly.obj_bp.parent.location.z
+        part_height = part.location.z 
+
+        kd_dim = sn_types.Dimension()
+        kd_dim.set_label("KD")
+        utils.copy_world_loc(insert, kd_dim.anchor)
+
+        if assembly.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+            kd_dim.anchor.location[2] = height + part_height
+        else:
+            kd_dim.anchor.location[2] = part_height
+
+        if left_side:
+            kd_dim.anchor.location[0] += width / 2
+        else:
+            kd_dim.anchor.location[0] -= width / 2
+
+    def kb_corner_side_height_lbl(self, insert, assembly, left_side):
+        toe_kick_height = 0
+        toe_kick_ppt = assembly.get_prompt('Toe Kick Height')
+        if toe_kick_ppt:
+            toe_kick_height = toe_kick_ppt.get_value()
+            
+        height = assembly.obj_z.location.z / 2 
+        base_height = assembly.obj_bp.parent.location.z
+        width = assembly.obj_y.location.y
+
+        if assembly.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+            abs_x_loc = math.fabs(unit.meter_to_inch(abs(assembly.obj_z.location.z)))
+        else:
+            abs_x_loc = math.fabs(unit.meter_to_inch(abs(assembly.obj_z.location.z) - toe_kick_height - unit.inch(3.52)))
+        dim_x_label = str(round(abs_x_loc, 2)) + '\"'
+
+        if width != 0:
+            dim = sn_types.Dimension()
+            dim.set_label(dim_x_label)
+            utils.copy_world_loc(insert, dim.anchor)
+            utils.copy_world_rot(insert, dim.anchor)
+
+            dim.anchor.rotation_euler.y = math.radians(-90)
+            if assembly.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+                dim.anchor.location[2] = base_height + height 
+            else:
+                dim.anchor.location[2] = height + unit.inch(1.5)
+
+            if left_side:
+                dim.anchor.location[0] += width + unit.inch(1)
+            else:
+                dim.anchor.location[0] += unit.inch(1.5)
+
+    def kb_corner_dpeth_lbl(self, insert, assembly, left_side, is_blind_panel):
+        toe_kick_height = 0
+        toe_kick_ppt = assembly.get_prompt('Toe Kick Height')
+        if toe_kick_ppt:
+            toe_kick_height = toe_kick_ppt.get_value()
+            
+        depth = assembly.obj_y.location.y
+        height = assembly.obj_bp.parent.location.z
+        part_height = assembly.obj_z.location.z
+   
+        hashmark = sn_types.Line(unit.inch(6), (0, 45, 0))
+        utils.copy_world_loc(insert, hashmark.anchor)
+
+        if assembly.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+            hashmark.anchor.location[2] += height + part_height
+        else:
+            hashmark.anchor.location[2] += toe_kick_height 
+
+        if left_side:
+            hashmark.anchor.location[0] += (depth - unit.inch(0.75))
+        else:
+            hashmark.anchor.location[0] += - unit.inch(0.75)
+        
+        hashmark.anchor.rotation_euler[1] = math.radians(45)
+        depth_dim = sn_types.Dimension()
+        depth_dim.parent(hashmark.end_point)
+        depth_dim.start_z(value=unit.inch(1.25))
+
+        if is_blind_panel:
+            if assembly.obj_bp.parent:
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+            bcp_depth = parent_assembly.get_prompt("Blind Panel Width").get_value() 
+            depth_val = math.fabs(unit.meter_to_inch(bcp_depth))
+            depth_label = str(round(depth_val, 2)) + '\"'
+        else:
+            depth_val = math.fabs(unit.meter_to_inch(depth))
+            depth_label = str(round(depth_val, 2)) + '\"'
+        depth_dim.set_label(depth_label)
+
+    def kb_corner_width_lbl(self, insert, assembly, left_side):
+        width = assembly.obj_y.location.y
+        base_height = assembly.obj_bp.parent.location.z
+
+        if assembly.obj_bp.get("IS_BP_CARCASS"):
+            dim = sn_types.Dimension()
+            utils.copy_world_loc(insert, dim.anchor)
+
+            if assembly.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+                dim.anchor.location[2] = base_height + unit.inch(5)
+            else:
+                dim.anchor.location[2] = unit.inch(-5)
+            if assembly.obj_bp['CARCASS_TYPE'] == 'Upper':
+                dim.anchor.location[1] = unit.inch(8)
+            else:
+                dim.anchor.location[1] = unit.inch(3)
+
+            if left_side:
+                dim.anchor.location[0] += width - unit.inch(0.75)
+                dim.end_point.location[0] -= width - unit.inch(0.75)
+            else:
+                dim.end_point.location[0] -= width - unit.inch(0.75)
+
+            width_val = math.fabs(unit.meter_to_inch(width))
+            width_label = str(round(width_val, 2)) 
+            if width_label.endswith('.0'):
+                width_label = width_label[:2] 
+            dim.set_label(width_label + '\"')
+
     def add_csh_lsh_accordion_dims(self, insert):
         csh_lsh_objects = []
-
         # Find corner shelves and l shelves
         for obj in insert.instance_collection.all_objects:
             if hasattr(obj, 'name') and hasattr(obj.parent, 'name'):
@@ -4256,14 +4427,29 @@ class VIEW_OT_generate_2d_views(Operator):
             prv_wall_obj = bpy.data.objects[prv_wall_name]
 
             for obj in prv_wall_obj.children:
-                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES"):
-                    distance_to_wall_end = wall_assy.obj_x.location.x - obj.location.x
-                    if distance_to_wall_end < unit.inch(6):
-                        csh_lsh_count += 1
+                blind_cabinet = None
+                blind_panel = None
+                distance_to_wall_end = None
+                
+                if obj.get("IS_CORNER"):
+                    for child in obj.children:
+                        if child.get("IS_BP_BLIND_PANEL"):
+                            blind_panel = child
+                            break
+                    if blind_panel and blind_panel.get("BLIND_SIDE") == "Right":
+                        blind_cabinet = sn_types.Assembly(obj)
 
+                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES") or (obj.get("IS_CORNER") and not blind_cabinet):
+                    distance_to_wall_end = wall_assy.obj_x.location.x - obj.location.x
+                elif obj.get("IS_CORNER") and blind_cabinet:
+                    obj_assy = sn_types.Assembly(obj)
+                    distance_to_wall_end = wall_assy.obj_x.location.x - obj.location.x - obj_assy.obj_x.location.x
+                
+                if distance_to_wall_end != None and distance_to_wall_end < unit.inch(6):
+                    csh_lsh_count += 1
+            
             if csh_lsh_count > 0:
                 return True
-
         return False
 
     def next_wall_has_lsh_csh(self, walls_list, wall):
@@ -4281,13 +4467,12 @@ class VIEW_OT_generate_2d_views(Operator):
             next_wall_obj = bpy.data.objects[next_wall_name]
 
             for obj in next_wall_obj.children:
-                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES"):
+                if obj.get("IS_BP_L_SHELVES") or obj.get("IS_BP_CORNER_SHELVES") or obj.get("IS_CORNER"):
                     if obj.location.x < unit.inch(6):
                         csh_lsh_count += 1
 
             if csh_lsh_count > 0:
                 return True
-
         return False
 
     def accordion_orthoscale_ratio(self, width):
@@ -4672,7 +4857,8 @@ class VIEW_OT_generate_2d_views(Operator):
     def add_accordion_views(self, context):        
         main_sc_objs = bpy.data.scenes["_Main"].objects
         dimprops = get_dimension_props()
-        any_csh_lsh = [o for o in bpy.data.objects if 'cshlsh' in o.name.lower()]
+        # any_csh_lsh = [o for o in bpy.data.objects if 'cshlsh' in o.name.lower()]
+        any_csh_lsh = [o for o in bpy.data.objects if sn_utils.get_corner_bp(o) is not None]
         has_csh_lsh = len(any_csh_lsh) > 0
         show_csh_lsh = dimprops.corner_shelves_l_shelves
         wall_groups = {}
@@ -4781,6 +4967,7 @@ class VIEW_OT_generate_2d_views(Operator):
                                     self.add_csh_lsh_accordion_dims(instance)
                                     # adjust if needed for right corner at end of wall
                                     self.adjust_accordion_dims(instance)
+                                    self.add_kb_corner_accordion_dims(instance)
 
                 wall_assy = sn_types.Assembly(wall) 
                 acc_floor = self.create_elevation_floor(new_scene, wall_assy)
@@ -5388,8 +5575,8 @@ class VIEW_OT_generate_2d_views(Operator):
                     CT_info = CT_type
                 else:
                     CT_info = CT_type + " " + CT_color
-            CT_dim = self.to_inch_lbl(CT_x) + "x" + self.to_inch_lbl(CT_y)
-            label = CT_info + " CT - " + CT_dim
+                CT_dim = self.to_inch_lbl(CT_x) + "x" + self.to_inch_lbl(CT_y)
+                label = CT_info + " CT - " + CT_dim
         else:
             Add_Left_Waterfall = ctop_assembly.get_prompt("Add Left Waterfall").get_value()
             Add_Right_Waterfall = ctop_assembly.get_prompt("Add Right Waterfall").get_value()

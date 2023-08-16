@@ -933,6 +933,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
+        self.splitter.partition_right_1 = True
         self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
@@ -955,6 +956,7 @@ class PRODUCT_1_Door_1_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
+        self.splitter.partition_left_1 = True
         self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_1_Drawer()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
@@ -977,6 +979,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Right_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
+        self.splitter.partition_right_1 = True
         self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}
@@ -999,6 +1002,7 @@ class PRODUCT_2_Door_2_Drawer_Blind_Left_Corner_Base(cabinets.Blind_Corner):
         self.depth = props.base_cabinet_depth
         self.carcass = carcass_simple.INSERT_Base_Carcass()
         self.splitter = frameless_splitters.INSERT_2_Vertical_Openings()
+        self.splitter.partition_left_1 = True
         self.splitter.opening_1_height = sn_unit.millimeter(float(props.top_drawer_front_height)) - sn_unit.inch(0.58)
         self.splitter.exterior_1 = frameless_exteriors.INSERT_Horizontal_Drawers()
         self.splitter.exterior_1.prompts = {'Half Overlay Bottom':True}

@@ -62,6 +62,10 @@ class Pdf_Builder(ABC):
         elif proportion > 2.5: 
             start_x, start_y = 0, 95
             target_w, target_h = width, height - 140
+
+        # Add space for header labels...
+        target_h -= 20
+
         self.c.drawImage(image, start_x, start_y, width=target_w,
                          height=target_h,
                          mask='auto', preserveAspectRatio=True) 

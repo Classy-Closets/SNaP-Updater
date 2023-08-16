@@ -615,7 +615,8 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 obj_props.is_closet_top_bp,
                 obj_props.is_splitter_bp, 
                 "IS_BP_ROD_AND_SHELF" in child,
-                "IS_BP_TOE_KICK_INSERT" in child]
+                "IS_BP_TOE_KICK_INSERT" in child,
+                "IS_BP_SHOE_SHELVES" in child]
 
             if any(props):
                 insert_bp.append(child)
@@ -644,8 +645,10 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                     if all(prompts):
                         if parent_remove_bottom_shelf.get_value() or floor.get_value():
                             parent_has_bottom_kd.set_value(True)
+                            remove_bottom_shelf.set_value(False)
                         else:
                             parent_remove_bottom_shelf.set_value(False)
+                            remove_bottom_shelf.set_value(True)
                             parent_has_bottom_kd.set_value(False)
 
                 for child in self.closet.obj_bp.children:
@@ -675,7 +678,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         if Cleat_Loc:
                                             Cleat_Loc.set_value(0)
 
-                                    if "IS_BP_ROD_AND_SHELF" in obj_bp or obj_props.is_splitter_bp:
+                                    if "IS_BP_ROD_AND_SHELF" in obj_bp or obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
                                         if CTR.get_value():
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
@@ -740,8 +743,8 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
                                             else:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
-
-                                    if obj_props.is_splitter_bp:
+                                    
+                                    if obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
                                         if single_back:
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
@@ -821,7 +824,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         else:
                                             Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
-                                    if obj_props.is_splitter_bp:
+                                    if obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
                                         if full_back or top_ctr_back:
                                             if CBT.get_value() == 1:
                                                 Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))

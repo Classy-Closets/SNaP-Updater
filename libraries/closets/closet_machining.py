@@ -443,14 +443,18 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                         corbeled_partition = True
                 #ALWAYS DRILL BOTTOM
                 if single_sided:
+                    drill_side = '5'
+                    if 'DRILL_22MM_FROM_TOP' in assembly.obj_bp:
+                        drill_side = '6'
+
                     if right_depth.get_value() > 0 or sdbr > 0:
-                        obj, token = assembly.add_machine_token('System Holes Right Bottom Front','BORE','5')
+                        obj, token = assembly.add_machine_token('System Holes Right Bottom Front','BORE', drill_side)
                         token.dim_in_y = right_depth.get_value() - dim_to_front
                         token.end_dim_in_x = macp.dim_to_system_bottom_hole if sdbr == 0 else sdbr
                         token.end_dim_in_y = right_depth.get_value() - dim_to_front
                         tokens.append(token)
                         
-                        obj, token = assembly.add_machine_token('System Holes Right Bottom Rear','BORE','5')
+                        obj, token = assembly.add_machine_token('System Holes Right Bottom Rear','BORE', drill_side)
                         token.dim_in_y = dim_to_rear
                         token.end_dim_in_x = macp.dim_to_system_bottom_hole if sdbr == 0 else sdbr
                         token.end_dim_in_y = dim_to_rear
@@ -537,7 +541,11 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 print("NO PROMPT - TRYING TO ADD PANEL DRILLING TO:", assembly.obj_bp, assembly.obj_bp.snap.name_object)                
 
         for token in tokens:
-            token.dim_in_x = part_length - macp.dim_to_system_top_hole
+            if assembly.obj_bp.get('DRILL_22MM_FROM_TOP'):
+                token.dim_in_x = part_length - macp.dim_to_system_top_hole_22mm
+            else:
+                token.dim_in_x = part_length - macp.dim_to_system_top_hole
+
             token.dim_in_z = macp.system_hole_bore_depth
             token.face_bore_dia = macp.system_hole_dia
             token.distance_between_holes = macp.dim_between_holes
@@ -1717,6 +1725,13 @@ class PROPS_Machining_Defaults(bpy.types.PropertyGroup):
         name="Dim To First System Hole",
         description="Enter the distance from the top of the part to center of the top system hole.",
         default=sn_unit.millimeter(9.5),
+        unit='LENGTH'
+        )
+
+    dim_to_system_top_hole_22mm: FloatProperty(
+        name="Dim To First System Hole 22mm",
+        description="Enter the distance from the top of the part to center of the top system hole.",
+        default=sn_unit.millimeter(22),
         unit='LENGTH'
         )
 

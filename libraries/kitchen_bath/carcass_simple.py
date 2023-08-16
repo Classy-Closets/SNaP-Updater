@@ -265,6 +265,7 @@ class Standard_Carcass(sn_types.Assembly):
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
 
         left_side = common_parts.add_panel(self)
+        left_side.set_name("Base Side Left")
         left_side.obj_bp["IS_BP_PANEL"] = True
 
         right_depth = left_side.get_prompt("Right Depth")
@@ -280,6 +281,7 @@ class Standard_Carcass(sn_types.Assembly):
         add_side_height_dimension(left_side)
 
         right_side = common_parts.add_panel(self)
+        right_side.set_name("Base Side Right")
         right_side.obj_bp["IS_BP_PANEL"] = True
         
         left_depth = right_side.get_prompt("Left Depth")
@@ -308,6 +310,7 @@ class Standard_Carcass(sn_types.Assembly):
         Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
 
         left_side = common_parts.add_panel(self)
+        left_side.set_name("Appliance Side Left")
         left_side.obj_bp["IS_BP_PANEL"] = True
 
         right_depth = left_side.get_prompt("Right Depth")
@@ -322,6 +325,7 @@ class Standard_Carcass(sn_types.Assembly):
         add_side_height_dimension(left_side)
   
         right_side = common_parts.add_panel(self)
+        right_side.set_name("Appliance Side Right")
         right_side.obj_bp["IS_BP_PANEL"] = True
         left_depth = right_side.get_prompt("Left Depth")
         left_depth.set_formula('fabs(Depth)', [Depth])
@@ -349,6 +353,7 @@ class Standard_Carcass(sn_types.Assembly):
         Top_Thickness = self.get_prompt('Top Thickness').get_var()
 
         left_side = common_parts.add_panel(self)
+        left_side.set_name("Tall Side Left")
         right_depth = left_side.get_prompt("Right Depth")
         right_depth.set_formula('fabs(Depth)', [Depth])
         left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
@@ -360,6 +365,7 @@ class Standard_Carcass(sn_types.Assembly):
         add_side_height_dimension(left_side)
 
         right_side = common_parts.add_panel(self)
+        right_side.set_name("Tall Side Right")
         left_depth = right_side.get_prompt("Left Depth")
         left_depth.set_formula('fabs(Depth)', [Depth])
         right_side.loc_x('Width',[Width])
@@ -384,6 +390,7 @@ class Standard_Carcass(sn_types.Assembly):
         Valance_Height_Bottom = self.get_prompt('Valance Height Bottom').get_var()
 
         left_side = common_parts.add_panel(self)
+        left_side.set_name("Upper Side Left")
         right_depth = left_side.get_prompt("Right Depth")
         right_depth.set_formula('fabs(Depth)', [Depth])
         left_side.loc_z('IF(Left_Side_Full_Height,0,-Valance_Height_Top)',[Left_Side_Full_Height,Valance_Height_Top])
@@ -395,6 +402,7 @@ class Standard_Carcass(sn_types.Assembly):
         add_side_height_dimension(left_side)
         
         right_side = common_parts.add_panel(self)
+        right_side.set_name("Upper Side Right")
         left_depth = right_side.get_prompt("Left Depth")
         left_depth.set_formula('fabs(Depth)', [Depth])
         right_side.loc_x('Width',[Width])
@@ -901,7 +909,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
     
         if self.carcass_type in {"Base","Tall","Sink"}:
             left_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-            left_side.set_name(self.carcass_type + " Left Side")
+            left_side.set_name(self.carcass_type + " Side Left")
             left_side.rot_y(value=math.radians(-90))
             left_side.loc_y('depth',[depth])
             left_side.loc_z('Toe_Kick_Height', [Toe_Kick_Height])
@@ -912,7 +920,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             add_side_height_dimension(left_side)
         
             right_side = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-            right_side.set_name(self.carcass_type + " Right Side")
+            right_side.set_name(self.carcass_type + " Side Right")
             right_side.loc_x('width',[width])
             right_side.loc_z('Toe_Kick_Height', [Toe_Kick_Height])
             right_side.rot_y(value=math.radians(-90))
@@ -922,7 +930,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
 
         if self.carcass_type in {"Upper","Suspended"}:
             left_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-            left_side.set_name(self.carcass_type + " Left Side")
+            left_side.set_name(self.carcass_type + " Side Left")
             left_side.rot_y(value=math.radians(-90))
             left_side.loc_y('depth',[depth])
             left_side.dim_x('height',[height])
@@ -932,7 +940,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
             add_side_height_dimension(left_side)
         
             right_side = add_part(self, PART_WITH_FRONT_AND_BOTTOM_EDGEBANDING)
-            right_side.set_name(self.carcass_type + " Right Side")
+            right_side.set_name(self.carcass_type + " Side Right")
             right_side.loc_x('width',[width])
             right_side.rot_y(value=math.radians(-90))
             right_side.dim_x('height',[height])
@@ -1364,7 +1372,7 @@ class Island_Carcass(sn_types.Assembly):
 
                     left_side = common_parts.add_panel(self)
                     left_side.obj_bp["IS_BP_PANEL"] = True
-                    part_label = "Base Left Side " + part_nbr if row == ISLAND_FRONT_ROW else "Base Right Side " + part_nbr
+                    part_label = "Base Side Left " + part_nbr if row == ISLAND_FRONT_ROW else "Base Side Right " + part_nbr
                     left_side.set_name(part_label)
                     left_side.add_prompt("Is Cutpart",'CHECKBOX',True)
 
@@ -1394,7 +1402,7 @@ class Island_Carcass(sn_types.Assembly):
                     
                     right_side = common_parts.add_panel(self)
                     right_side.obj_bp["IS_BP_PANEL"] = True
-                    part_label = "Base Right Side " + part_nbr if row == ISLAND_FRONT_ROW else "Base Left Side " + part_nbr
+                    part_label = "Base Side Right " + part_nbr if row == ISLAND_FRONT_ROW else "Base Side Left " + part_nbr
                     right_side.set_name(part_label)
                     right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
 
@@ -1443,7 +1451,7 @@ class Island_Carcass(sn_types.Assembly):
 
                     left_side = common_parts.add_panel(self)
                     left_side.obj_bp["IS_BP_PANEL"] = True
-                    part_label = "Appliance Left Side " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Right Side " + part_nbr
+                    part_label = "Appliance Side Left " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Side Right " + part_nbr
                     left_side.set_name(part_label)
                     left_side.add_prompt("Is Cutpart",'CHECKBOX',True)
                     
@@ -1475,7 +1483,7 @@ class Island_Carcass(sn_types.Assembly):
             
                     right_side = common_parts.add_panel(self)
                     right_side.obj_bp["IS_BP_PANEL"] = True
-                    part_label = "Appliance Right Side " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Left Side " + part_nbr
+                    part_label = "Appliance Side Right " + part_nbr if row == ISLAND_FRONT_ROW else "Appliance Side Left " + part_nbr
                     right_side.set_name(part_label)
                     right_side.add_prompt("Is Cutpart",'CHECKBOX',True)
 
@@ -1515,7 +1523,7 @@ class Island_Carcass(sn_types.Assembly):
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
 
         left_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        left_chase_cap.set_name("Left Chase Cap")
+        left_chase_cap.set_name("Chase Cap Left")
         left_chase_cap.dim_x('Height',[Height])
         left_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
         left_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
@@ -1524,7 +1532,7 @@ class Island_Carcass(sn_types.Assembly):
         left_chase_cap.get_prompt('Hide').set_formula('IF(Chase_Depth>0,False,True)', [Chase_Depth])
 
         right_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        right_chase_cap.set_name("Right Chase Cap")
+        right_chase_cap.set_name("Chase Cap Right")
         right_chase_cap.dim_x('Height',[Height])
         right_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
         right_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
@@ -1873,7 +1881,7 @@ class Island_Carcass(sn_types.Assembly):
                     loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
 
                     back = common_parts.add_back(self)
-                    back.set_name(self.carcass_type + " Back " + part_nbr)
+                    # back.set_name(self.carcass_type + " Back " + part_nbr)
 
                     back.rot_y(value=math.radians(-90))
                     

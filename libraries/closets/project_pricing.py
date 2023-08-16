@@ -162,6 +162,8 @@ def get_project_xml(self):
     props = bpy.context.window_manager.sn_project
     proj = props.get_project()
     cleaned_name = proj.get_clean_name(proj.name)
+    if proj.lead_id:
+        LEAD_ID = proj.lead_id
     project_dir = bpy.context.preferences.addons['snap'].preferences.project_dir
     selected_project = os.path.join(project_dir, cleaned_name)
     xml_file = os.path.join(selected_project, "snap_job.xml")
@@ -413,16 +415,20 @@ def generate_retail_pricing_summary(parts_file):
     wb = openpyxl.Workbook()
     pricing_sheet = wb.active
     pricing_sheet.title = "Retail Pricing Summary"
-    pricing_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-    pricing_sheet.HeaderFooter.oddHeader.center.text = "Pricing Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+    pricing_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+    pricing_sheet.HeaderFooter.oddHeader.center.text = "Pricing Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
     pricing_sheet.HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+
+    cell = pricing_sheet.cell(row=1, column=1)
+    cell.value = "{} - {}".format(PROJECT_NAME, LEAD_ID)
+    cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
     pricing_sheet.merge_cells('B1:C1')
     cell = pricing_sheet.cell(row=1, column=2)
     cell.value = "SNaP Version: {}.{}.{}".format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2])
     cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     cell.fill = openpyxl.styles.PatternFill("solid", start_color="bcbcbc")
-    cell2 = pricing_sheet.cell(row=1, column=1)
+    cell2 = pricing_sheet.cell(row=1, column=4)
     cell2.value = "Designer: {}".format(CLIENT_DESIGNER) 
     cell2.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     cell2.fill = openpyxl.styles.PatternFill("solid", start_color="bcbcbc")
@@ -430,11 +436,14 @@ def generate_retail_pricing_summary(parts_file):
     erp_sheet = wb.create_sheet()
     erp_sheet.sheet_state = 'hidden'
     erp_sheet.title = "ERP Pricing Summary"
-    erp_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-    erp_sheet.HeaderFooter.oddHeader.center.text = "ERP Pricing Sheet\nJob Number: {}".format(JOB_NUMBER)
+    erp_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+    erp_sheet.HeaderFooter.oddHeader.center.text = "ERP Pricing Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
     erp_sheet.HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
     row_start = 2
     erp_row = 0
+    cell = erp_sheet.cell(row=1, column=1)
+    cell.value = "{} - {}".format(PROJECT_NAME, LEAD_ID)
+    cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
     erp_sheet["A" + str(erp_row + 1)] = "Room Name"
     erp_sheet["A" + str(erp_row + 1)].font = openpyxl.styles.Font(bold=True)
@@ -673,16 +682,20 @@ def generate_franchise_pricing_summary(parts_file):
     wb = openpyxl.Workbook()
     pricing_sheet = wb.active
     pricing_sheet.title = "Franchise Pricing Summary"
-    pricing_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-    pricing_sheet.HeaderFooter.oddHeader.center.text = "Pricing Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+    pricing_sheet.HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+    pricing_sheet.HeaderFooter.oddHeader.center.text = "Pricing Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
     pricing_sheet.HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+
+    cell = pricing_sheet.cell(row=1, column=1)
+    cell.value = "{} - {}".format(PROJECT_NAME, LEAD_ID)
+    cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
 
     pricing_sheet.merge_cells('B1:C1')
     cell = pricing_sheet.cell(row=1, column=2)
     cell.value = "SNaP Version: {}.{}.{}".format(bl_info['version'][0], bl_info['version'][1], bl_info['version'][2])
     cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     cell.fill = openpyxl.styles.PatternFill("solid", start_color="bcbcbc")
-    cell2 = pricing_sheet.cell(row=1, column=1)
+    cell2 = pricing_sheet.cell(row=1, column=4)
     cell2.value = "Designer: {}".format(CLIENT_DESIGNER) 
     cell2.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
     cell2.fill = openpyxl.styles.PatternFill("solid", start_color="bcbcbc")
@@ -906,15 +919,20 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                         and (PART_NAME.str.contains("Drawer Bottom")==False)',
                                                                                         engine='python')
             if df_materials.shape[0] > 0:
-                materials_summary = pandas.pivot_table(df_materials,
-                                                        index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'DRILLING', 'PULL_DRILLING'],
-                                                        values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
-                                                        aggfunc=[numpy.sum])
+                materials_summary = pandas.pivot_table(
+                    df_materials,
+                    index=['ROOM_NAME', 'WALL_NAME', 'MATERIAL', 'PART_NAME', 'PART_DIMENSIONS', 'THICKNESS', 'EDGEBANDING', 'PART_PRICE', 'SQUARE_FT', 'DRILLING', 'PULL_DRILLING'],
+                    values=['LABOR', 'QUANTITY', 'TOTAL_PRICE'],
+                    aggfunc=[numpy.sum])
+
                 if not materials_summary.empty:
                     materials_summary.to_excel(writer, sheet_name='Materials Summary')
-                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                    writer.sheets['Materials Summary'].HeaderFooter.oddHeader.center.text = "Materials Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                     writer.sheets['Materials Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
+                    cell = writer.sheets['Materials Summary'].cell(row=1, column=1)
+                    cell.value = "{} - {}".format(PROJECT_NAME, LEAD_ID)
+                    cell.alignment = openpyxl.styles.Alignment(horizontal='center', vertical='center')
                     set_column_width(writer.sheets['Materials Summary'])
                 else:
                     print("Drawers summary DataFrame is empty. Skipping writing to Excel.")
@@ -926,23 +944,23 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                                                     or (PART_NAME.str.contains("Drawer Side")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Sub Front")==True and SKU_NUMBER.str.contains("EB")==False) \
                                                                                     or (PART_NAME.str.contains("Drawer Back")==True and SKU_NUMBER.str.contains("EB")==False) \
-                                                                                    or (PART_NAME.str.contains("Drawer Bottom")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Bottom - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Side - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Back - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Front - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Bttm DT - BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Side DT - BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Back DT - BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Front DT - BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - Mel")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- BB")==True) \
-                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - BB")==True)',
+                                                                                    or (PART_NAME.str.contains("Drawer Bottom")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Bottom - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Bttm DT - BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side DT - BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back DT - BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front DT - BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - Mel")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Inset Bttm - BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Side Inset Bttm- BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Back Inset Bttm- BB")==True and SKU_NUMBER.str.contains("EB")==False) \
+                                                                                    or (PART_NAME.str.contains("DrwrBox Front Inset Bttm - BB")==True and SKU_NUMBER.str.contains("EB")==False) ',
                                                                                     engine='python')
 
             if df_drawers.shape[0] > 0:
@@ -954,8 +972,8 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
 
                 if not drawers_summary.empty:
                     drawers_summary.to_excel(writer, sheet_name='Drawers Summary')
-                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.center.text = "Drawers Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                    writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.center.text = "Drawers Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                     writer.sheets['Drawers Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                     set_column_width(writer.sheets['Drawers Summary'])
                 else:
@@ -969,8 +987,8 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                         values=['QUANTITY', 'TOTAL_PRICE'],
                                                         aggfunc=[numpy.sum])
                 hardware_summary.to_excel(writer, sheet_name='Hardware Summary')
-                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.center.text = "Hardware Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.center.text = "Hardware Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                 writer.sheets['Hardware Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                 set_column_width(writer.sheets['Hardware Summary'])
             
@@ -982,8 +1000,8 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                             values=['QUANTITY', 'TOTAL_PRICE'],
                                                             aggfunc=[numpy.sum])
                 accessories_summary.to_excel(writer, sheet_name='Accessories Summary')
-                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.center.text = "Accessories Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.center.text = "Accessories Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                 writer.sheets['Accessories Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                 set_column_width(writer.sheets['Accessories Summary'])
 
@@ -995,8 +1013,8 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                             values=['QUANTITY', 'TOTAL_PRICE'],
                                                             aggfunc=[numpy.sum])
                 upgraded_panel_summary.to_excel(writer, sheet_name='Upgraded Panels Summary')
-                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.center.text = "Upgraded Panels Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.center.text = "Upgraded Panels Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                 writer.sheets['Upgraded Panels Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                 set_column_width(writer.sheets['Upgraded Panels Summary'])
 
@@ -1008,8 +1026,8 @@ def generate_parts_summary(parts_file, materials_sheet, hardware_sheet, accessor
                                                     values=['QUANTITY', 'TOTAL_PRICE'],
                                                     aggfunc=[numpy.sum])
                 glass_summary.to_excel(writer, sheet_name='Glass Summary')
-                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nClient ID: {}".format(CLIENT_NAME, CLIENT_ID)
-                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.center.text = "Glass Summary Sheet\nJob Number: {}".format(JOB_NUMBER)
+                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.left.text = "Client Name: {}\nLead ID: {}".format(CLIENT_NAME, LEAD_ID)
+                writer.sheets['Glass Summary'].HeaderFooter.oddHeader.center.text = "Glass Summary Sheet\nDesigner Name: {}".format(CLIENT_DESIGNER)
                 writer.sheets['Glass Summary'].HeaderFooter.oddHeader.right.text = "Project Name: {}\nDesign Date: {}".format(PROJECT_NAME, DESIGN_DATE)
                 set_column_width(writer.sheets['Glass Summary'])
 
@@ -1130,8 +1148,12 @@ def generate_retail_parts_list():
 
             if sku_num[:2] in material_types:
                 if 'SF' in uom:
-                    sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
-                    sheet1["M" + str((i + 1) + 1)] = "--"
+                    if part_name == "Flat Crown":
+                        sheet1["L" + str((i + 1) + 1)] = "--"
+                        sheet1["M" + str((i + 1) + 1)] = get_linear_footage(float(length))
+                    else:
+                        sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
+                        sheet1["M" + str((i + 1) + 1)] = "--"
 
                     is_vn_sku = 'VN' in sku_num[:2]
                     is_wd_sku = 'WD' in sku_num[:2]
@@ -1140,6 +1162,11 @@ def generate_retail_parts_list():
                     # TOTAL_PRICE
                     if is_vn_sku or is_wd_sku and not is_pbi_sku:
                         sheet1["P" + str((i + 1) + 1)] = (float(retail_price) * int(quantity))
+                    elif part_name == "Flat Crown":
+                        retail_price = (float(length) / 12) * float(17.00)
+                        price = retail_price
+                        sheet1["P" + str((i + 1) + 1)] = price
+
                     else:
                         price = (float(retail_price) * int(quantity)) * get_square_footage(float(length), float(width))
                         labor = float(r_labor)
@@ -1161,6 +1188,13 @@ def generate_retail_parts_list():
                                 else:
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S_" + str(EDGEBANDING[index][2]) + "L"
                 if 'LF' in uom:
+                    is_bb_sku = 'BB' in sku_num[:2]
+
+                    if is_bb_sku:
+                        sheet1["L" + str((i + 1) + 1)] = 0
+                        sheet1["M" + str((i + 1) + 1)] = str(get_linear_footage(float(length)))
+                        sheet1["P" + str((i + 1) + 1)] = (float(retail_price) * int(quantity)) * get_linear_footage(float(length))   #TOTAL_PRICE
+
                     if edgebanding is not None:
                         eb_length = get_eb_measurements(edgebanding, float(length), float(width))
                         if eb_length:
@@ -1848,6 +1882,13 @@ def generate_franchise_parts_list():
                                     sheet1["Q" + str((i + 1) + 1)] = str(EDGEBANDING[index][1]) + "S_" + str(EDGEBANDING[index][2]) + "L"
     
                 if 'LF' in uom:
+                    is_bb_sku = 'BB' in sku_num[:2]
+
+                    if is_bb_sku:
+                        sheet1["L" + str((i + 1) + 1)] = 0
+                        sheet1["M" + str((i + 1) + 1)] = str(get_linear_footage(float(length)))
+                        sheet1["P" + str((i + 1) + 1)] = (float(franchise_price) * int(quantity)) * get_linear_footage(float(length))   #TOTAL_PRICE
+
                     if edgebanding is not None:
                         eb_length = get_eb_measurements(edgebanding, float(length), float(width))
                         if eb_length:
@@ -2684,10 +2725,18 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                     R_GLASS_PRICES.append(retail_price * int(qty))
                     F_GLASS_PRICES.append(franchise_price * int(qty))
             else:
-                R_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + r_labor_price) * int(qty))
-                R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+                # Retail price for flat crown = $17/LF
+                if part_name == "Flat Crown":
+                    price = (((get_linear_footage(length_inches) * 17.0)) * int(qty))
+                    R_MATERIAL_PRICES.append(price)
+                    retail_price = 17.0
+                else:
+                    R_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + r_labor_price) * int(qty))
+                    R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+
                 F_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * franchise_price) + f_labor_price) * int(qty))
                 F_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
+
     if 'LF' in uom and not sku_num[:2] in hardware_types and not sku_num[:2] in accessory_types:
         if eb_orientation is not None:
             eb_length = get_eb_measurements(eb_orientation, length_inches, width_inches)

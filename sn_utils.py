@@ -190,7 +190,7 @@ def get_part_thickness(obj):
         if obj.get("IS_BP_FILE_RAIL") or obj.parent.get("IS_BP_FILE_RAIL"):
             return sn_unit.inch(0.5)
 
-        if obj.get("IS_BP_LIGHT_RAIL") or obj.parent.get("IS_BP_LIGHT_RAIL"):
+        if obj.get("IS_BP_FLAT_CROWN") or obj.parent.get("IS_BP_FLAT_CROWN"):
             return sn_unit.inch(0.75)
 
     if obj.snap.type_mesh == 'CUTPART':
@@ -275,7 +275,14 @@ def get_closet_bp(obj):
         return obj
     elif obj.parent:
         return get_closet_bp(obj.parent)
-
+    
+def get_corner_bp(obj):
+    if not obj:
+        return None
+    if "IS_BP_L_SHELVES" in obj or 'IS_BP_CORNER_SHELVES' in obj or 'IS_CORNER' in obj:
+        return obj
+    elif obj.parent:
+        return get_corner_bp(obj.parent)
 
 def get_carcass_bp(obj):
     if not obj:
@@ -311,6 +318,14 @@ def get_appliance_bp(obj):
         return obj
     elif obj.parent:
         return get_appliance_bp(obj.parent)
+    
+def get_applied_panel_bp(obj):
+    if not obj:
+        return None
+    if "IS_BP_APPLIED_PANEL" in obj:
+        return obj
+    elif obj.parent:
+        return get_applied_panel_bp(obj.parent)
 
 
 def get_obstacle_bp(obj):

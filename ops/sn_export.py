@@ -915,9 +915,18 @@ class OPS_Export_XML(Operator):
 
     single_exposed_flat_crown = []
     top_edgebanded_flat_crown = []
+
+    flat_crown_bp = None
     flat_crown_heights = []
     flat_crown_lengths = []
-    flat_crown_bp = None
+
+    valance_bp = None
+    valance_heights = []
+    valance_lengths = []
+
+    light_rail_bp = None
+    light_rail_heights = []
+    light_rail_lengths = []
 
     crown_molding_lengths = []
     crown_molding_bp = None
@@ -942,6 +951,7 @@ class OPS_Export_XML(Operator):
 
     cleat_bp = None
     is_wrap_around = False
+    cleat_stock_amt = 0
 
     plastic_leg_list = []
     metal_leg_list = []
@@ -1335,7 +1345,7 @@ class OPS_Export_XML(Operator):
 
         # Crown Molding
         if obj.get("IS_BP_CROWN_MOLDING"):
-            if "Valance" in part_name:
+            if "Valance" in part_name or "Light Rail" in part_name:
                 category_number = material_number + "62"
             elif obj.get('IS_BP_FLAT_CROWN'):
                 category_number = material_number + "78"
@@ -2411,6 +2421,23 @@ class OPS_Export_XML(Operator):
         designer_id = proj_user_prefs.designer_id
         self.job_number = "{0:0=3d}.{1:0=4d}".format(designer_id, project_id)
 
+    def set_full_size_flat_molding_obj(self, obj_bp, molding_type):
+        # Filter out left and right end returns
+        right_in_name = obj_bp.snap.name_object == "Right"
+        left_in_name = obj_bp.snap.name_object == "Left"
+        not_flat_crown_return = not right_in_name and not left_in_name
+
+        if not_flat_crown_return:
+            if molding_type == "Flat Crown":
+                if not self.flat_crown_bp:
+                    self.flat_crown_bp = obj_bp
+            elif molding_type == "Valance":
+                if not self.valance_bp:
+                    self.valance_bp = obj_bp
+            elif molding_type == "Light Rail":
+                if not self.light_rail_bp:
+                    self.light_rail_bp = obj_bp
+
     def write_oversize_top_shelf_part(self, node, obj, side="", shelf_length_inch=97):
         # shelf_length_inch = 97 #96
         closet_materials = bpy.context.scene.closet_materials
@@ -2715,7 +2742,7 @@ class OPS_Export_XML(Operator):
         if not spec_group:
             spec_group = specgroups[0]
         self.write_full_sized_cover_cleat(elm_product,spec_group)
-        self.write_full_sized_flat_crown(elm_product,spec_group)
+        self.write_all_full_sized_flat_molding(elm_product, spec_group)
         self.write_full_sized_crown_molding(elm_product,spec_group)
         self.write_full_sized_inverted_base(elm_product,spec_group)
         self.write_full_sized_base_molding(elm_product,spec_group)
@@ -2797,49 +2824,142 @@ class OPS_Export_XML(Operator):
                         if not child.hide_viewport:
                             self.write_part_node(elm_parts, child, spec_group)    
 
-    def write_full_sized_flat_crown(self, elm_parts, spec_group):
-        if self.flat_crown_bp:
-            flat_crown = sn_types.Assembly(self.flat_crown_bp)
+    def set_full_size_flat_molding_edgebanding(self, molding_assy, eb_type):
+        if eb_type == "L1":
+            molding_assy.get_prompt("Exposed Left").set_value(value=False)
+            molding_assy.get_prompt("Exposed Right").set_value(value=False)
+            molding_assy.get_prompt("Exposed Back").set_value(value=False)
+        if eb_type == "L2":
+            molding_assy.get_prompt("Exposed Left").set_value(value=False)
+            molding_assy.get_prompt("Exposed Right").set_value(value=False)
+            molding_assy.get_prompt("Exposed Back").set_value(value=True) 
+        if eb_type == "S1_L1":
+            molding_assy.get_prompt("Exposed Left").set_value(value=True)
+            molding_assy.get_prompt("Exposed Right").set_value(value=False)
+            molding_assy.get_prompt("Exposed Back").set_value(value=False)
+        if eb_type == "S1_L2":
+            molding_assy.get_prompt("Exposed Left").set_value(value=True)
+            molding_assy.get_prompt("Exposed Right").set_value(value=False)
+            molding_assy.get_prompt("Exposed Back").set_value(value=True)
 
-            different_heights = []
+    def write_full_sized_flat_molding(self, molding_assy, molding_type, heights, lengths, elm_parts, spec_group):
+        different_eb_heights = []
+        L1_heights = []
+        L2_heights = []
+        S1_L1_heights = []
+        S1_L2_heights = []
 
-            for height in self.flat_crown_heights:
-                if height not in different_heights:
-                    different_heights.append(height)
+        for height in heights:
+            height_val = height[0]
+            eb_type = height[1]
 
+            if eb_type == "L1":
+                heights_L1 = [height[0] for height in L1_heights]
+
+                if height_val not in heights_L1:
+                    L1_heights.append(height)
+
+                if L1_heights:
+                    if L1_heights not in different_eb_heights:
+                        different_eb_heights.append(L1_heights)
+
+            elif eb_type == "L2":
+                heights_L2 = [height[0] for height in L2_heights]
+
+                if height_val not in heights_L2:
+                    L2_heights.append(height)
+                
+                if L2_heights:
+                    if L2_heights not in different_eb_heights:
+                        different_eb_heights.append(L2_heights)
+
+            elif eb_type == "S1_L1":
+                heights_S1_L1 = [height[0] for height in S1_L1_heights]
+
+                if height_val not in heights_S1_L1:
+                    S1_L1_heights.append(height)
+
+                if S1_L1_heights:
+                    if S1_L1_heights not in different_eb_heights:
+                        different_eb_heights.append(S1_L1_heights)
+
+            elif eb_type == "S1_L2":
+                heights_S1_L2 = [height[0] for height in S1_L2_heights]
+
+                if height_val not in heights_S1_L2:
+                    S1_L2_heights.append(height)
+
+                if S1_L2_heights:
+                    if S1_L2_heights not in different_eb_heights:
+                        different_eb_heights.append(S1_L2_heights)
+
+        for different_heights in different_eb_heights:
             for height in different_heights:
-                total_flat_crown = 0
-                for i in range(len(self.flat_crown_lengths) - 1):
-                    if(float(self.flat_crown_heights[i]) == float(height)):
-                        total_flat_crown += float(self.flat_crown_lengths[i])
+                height_val = height[0]
+                eb_type = height[1]
+                total_molding = 0
+
+                print("\n{} Heights".format(molding_type), [height[0] for height in different_heights])
+                print("{} Lengths".format(molding_type), [length[0] for length in lengths])
+
+                for i in range(len(lengths)):
+                    if float(heights[i][0]) == float(height_val):
+                        if lengths[i][1] == eb_type:
+                            total_molding += float(lengths[i][0])
 
                 needed_full_lengths = 0
-                if(total_flat_crown < 80):  # In inches, total_flat_crown has already been converted to inches
+                print("{} Total:".format(molding_type), total_molding)
+
+                if total_molding < 80:  # In inches, total_flat_crown has already been converted to inches
                     needed_full_lengths = 1
+                    print("{} Needed Full Length:".format(molding_type), str(needed_full_lengths), "EB:", eb_type)
                 else:
-                    needed_full_lengths = math.ceil((total_flat_crown / 96))  # 96
-                    if(needed_full_lengths < 4):
+                    needed_full_lengths = math.ceil((total_molding / 96))
+                    print("{} Initial Needed Full Lengths:".format(molding_type), str(needed_full_lengths), "EB:",eb_type)
+
+                    if needed_full_lengths < 4:
                         needed_full_lengths += 1
-                    elif(needed_full_lengths < 7):
+                        print("{} Full lengths less than 4, adding 1 additional full length".format(molding_type), "EB:", eb_type)
+                    elif needed_full_lengths < 7:
                         needed_full_lengths += 2
+                        print("{} Full lengths greater than 4 and less than 7, adding 2 additional full lengths".format(molding_type), "EB:", eb_type)
                     else:
+                        print("{} Full lengths more than 7, adding 3 additional full lengths".format(molding_type), "EB:", eb_type)
                         needed_full_lengths += 3
 
                 for i in range(0, needed_full_lengths):
-                    flat_crown.obj_y.location.y = float(sn_unit.inch_to_millimeter(height) / 1000)
-                    flat_crown.obj_x.location.x = sn_unit.inch(96)
-                    flat_crown.obj_bp["IS_FULL_LENGTH"] = True
+                    molding_assy.obj_y.location.y = float(sn_unit.inch_to_millimeter(height_val) / 1000)
+                    molding_assy.obj_x.location.x = sn_unit.inch(96)
+                    molding_assy.obj_bp["IS_FULL_LENGTH"] = True
 
-                    if flat_crown.obj_bp.get("IS_KB_MOLDING"):
-                        self.write_part_node(elm_parts, flat_crown.obj_bp, spec_group)
+                    self.set_full_size_flat_molding_edgebanding(molding_assy, eb_type)
+
+                    if molding_assy.obj_bp.get("IS_KB_MOLDING"):
+                        self.write_part_node(elm_parts, molding_assy.obj_bp, spec_group)
                 
                     else:
-                        for child in flat_crown.obj_bp.children:
+                        for child in molding_assy.obj_bp.children:
                             if child.snap.type_mesh == 'CUTPART':
                                 if not child.hide_viewport:
                                     self.write_part_node(elm_parts, child, spec_group)
 
-    def write_full_sized_crown_molding(self,elm_parts,spec_group):
+    def write_all_full_sized_flat_molding(self, elm_parts, spec_group):
+        if self.flat_crown_bp:
+            flat_crown = sn_types.Assembly(self.flat_crown_bp)
+            self.write_full_sized_flat_molding(
+                flat_crown, "Flat Crown", self.flat_crown_heights, self.flat_crown_lengths, elm_parts, spec_group)
+
+        if self.valance_bp:
+            valance = sn_types.Assembly(self.valance_bp)
+            self.write_full_sized_flat_molding(
+                valance, "Valance", self.valance_heights, self.valance_lengths, elm_parts, spec_group)
+
+        if self.light_rail_bp:
+            light_rail = sn_types.Assembly(self.light_rail_bp)
+            self.write_full_sized_flat_molding(
+                light_rail, "Light Rail", self.light_rail_heights, self.light_rail_lengths, elm_parts, spec_group)
+
+    def write_full_sized_crown_molding(self, elm_parts, spec_group):
         if self.crown_molding_bp:
             crown_molding = sn_types.Assembly(self.crown_molding_bp)
             
@@ -2961,7 +3081,7 @@ class OPS_Export_XML(Operator):
             self.hang_rod_bp["IS_FULL_LENGTH"] = True
             self.write_hardware_node(elm_parts, self.hang_rod_bp, qty=rod_qty)
      
-    def write_full_sized_cleat_stock(self,elm_parts,spec_group):
+    def write_full_sized_cleat_stock(self, elm_parts, spec_group):
         if self.cleat_bp:
             closet_materials = bpy.context.scene.closet_materials
             cleat_assembly = sn_types.Assembly(self.cleat_bp)
@@ -2972,10 +3092,37 @@ class OPS_Export_XML(Operator):
             cleat_assembly.obj_bp.name = "Cleat Stock"
             cleat_assembly.obj_bp.snap.name_object = "Cleat Stock"
 
+            # Add cleat stock for light rail(s)
+            needed_full_lengths = math.ceil((self.cleat_stock_amt / 96))  # 96
+            if needed_full_lengths > 0:
+                part = None
+                print(
+                    "Light Rail - Adding cleat stock. Total light rail length:",
+                    self.cleat_stock_amt, "Nedded full lengths:",
+                    needed_full_lengths)
+
+                for child in cleat_assembly.obj_bp.children:
+                    if child.snap.type_mesh == 'CUTPART':
+                        if not child.hide_viewport:
+                            part = child
+                if part:
+                    for i in range(0, needed_full_lengths):
+                        self.write_part_node(elm_parts, part, spec_group)
+
             mat_sku = closet_materials.get_mat_sku(cleat_assembly.obj_bp, cleat_assembly)
             mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku)
 
-            if(mat_inventory_name == "Winter White (Oxford White)" or mat_inventory_name == "Cafe Au Lait (Cabinet Almond)" or mat_inventory_name == "Duraply Almond" or mat_inventory_name == "Duraply White" or mat_inventory_name == "Winter White" or mat_inventory_name == "Mountain Peak" or mat_inventory_name == "Snow Drift"):
+            mat_inventory_names = (
+                mat_inventory_name == "Winter White (Oxford White)",
+                mat_inventory_name == "Cafe Au Lait (Cabinet Almond)",
+                mat_inventory_name == "Duraply Almond",
+                mat_inventory_name == "Duraply White",
+                mat_inventory_name == "Winter White",
+                mat_inventory_name == "Mountain Peak",
+                mat_inventory_name == "Snow Drift",
+            )
+
+            if any(mat_inventory_names):
                 if self.is_wrap_around:
                     for child in cleat_assembly.obj_bp.children:
                         if child.snap.type_mesh == 'CUTPART':
@@ -3392,8 +3539,103 @@ class OPS_Export_XML(Operator):
 
         self.part_count += 1
 
+    def process_flat_molding(self, elm_parts, flat_crown_assembly, spec_group):
+        p_flat_crown_assembly = sn_types.Assembly(flat_crown_assembly.obj_bp.parent)
+        has_exposed_left = flat_crown_assembly.get_prompt("Exposed Left").get_value()
+        has_exposed_right = flat_crown_assembly.get_prompt("Exposed Right").get_value()
+        # For flat crown orientation, exposed back = exposed top
+        has_exposed_top = flat_crown_assembly.get_prompt("Exposed Back").get_value()
+        only_left = has_exposed_left and not has_exposed_right
+        only_right = has_exposed_right and not has_exposed_left
+        extend_to_ceiling_ppt = p_flat_crown_assembly.get_prompt("Extend To Ceiling")
+        length = self.get_part_length(flat_crown_assembly)
+        height = float(self.get_part_width(flat_crown_assembly))
 
-    def write_parts_for_product(self,elm_parts,obj_bp,spec_group):
+        if extend_to_ceiling_ppt:
+            if extend_to_ceiling_ppt.get_value():
+                height = height + 2
+
+        molding_type = "Flat Crown"
+        heights = self.flat_crown_heights
+        lengths = self.flat_crown_lengths
+
+        if flat_crown_assembly.obj_bp.parent.get("IS_BP_VALANCE"):
+            molding_type = "Valance"
+            heights = self.valance_heights
+            lengths = self.valance_lengths
+
+        if flat_crown_assembly.obj_bp.parent.get("IS_BP_LIGHT_RAIL"):
+            molding_type = "Light Rail"
+            heights = self.light_rail_heights
+            lengths = self.light_rail_lengths
+            # Add to cleat stock amount
+            self.cleat_stock_amt += float(length)
+
+        # No exposed ends
+        if not has_exposed_left and not has_exposed_right:
+            if has_exposed_top:
+                eb_type = "L2"
+            else:
+                eb_type = "L1"
+
+            heights.append([height, eb_type])
+
+        # Both exposed ends
+        if has_exposed_left and has_exposed_right:
+            if float(length) > 96:
+                flat_crown_assembly.get_prompt("Exposed Left").set_value(False)
+                flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
+                self.set_full_size_flat_molding_obj(flat_crown_assembly.obj_bp, molding_type)
+                number_of_lengths = math.ceil(float(length) / 96)
+
+                if number_of_lengths == 2:
+                    eb_type = "S1"
+
+                    if has_exposed_top:
+                        eb_type += "_L2"
+                    else:
+                        eb_type += "_L1"
+
+                    lengths.append([96, eb_type])  # Inches
+                    lengths.append([96, eb_type])  # Inches
+                    heights.append([height, eb_type])
+                    heights.append([height, eb_type])
+
+                if number_of_lengths > 2:
+                    number_of_lengths = number_of_lengths - 2
+
+                    for x in range(number_of_lengths):
+                        if has_exposed_top:
+                            self.top_edgebanded_flat_crown.append(True)
+
+                        lengths.append([96, eb_type])  # Inches
+                        heights.append([height, eb_type])
+            else:
+                self.write_part_node(elm_parts, flat_crown_assembly.obj_bp, spec_group)
+
+        # One exposed end
+        elif only_left or only_right:
+            eb_type = "S1"
+            if has_exposed_top:
+                eb_type += "_L2"
+            else:
+                eb_type += "_L1"
+
+            self.set_full_size_flat_molding_obj(flat_crown_assembly.obj_bp, molding_type)
+            self.single_exposed_flat_crown.append(True)
+
+            if has_exposed_top:
+                self.top_edgebanded_flat_crown.append(True)
+
+            lengths.append([self.get_part_length(flat_crown_assembly), eb_type])
+            heights.append([height, eb_type])
+
+        else:
+            self.set_full_size_flat_molding_obj(flat_crown_assembly.obj_bp, molding_type)
+
+            lengths.append([self.get_part_length(flat_crown_assembly), eb_type])
+
+    def write_parts_for_product(self, elm_parts, obj_bp, spec_group):
         for child in obj_bp.children:
             #Write part nodes for cleat and append cover cleat length to cover_cleat_lengths
             if child.sn_closets.is_cleat_bp:
@@ -3436,19 +3678,23 @@ class OPS_Export_XML(Operator):
                         self.crown_molding_bp = crown_molding_assembly.obj_bp
                         self.crown_molding_lengths.append(length)
                         crown_to_ceiling = crown_molding_assembly.get_prompt("Crown To Ceiling")
+
                         if crown_to_ceiling:
                             if crown_to_ceiling.get_value():
                                 self.inverted_base_bp = crown_molding_assembly.obj_bp
                                 self.inverted_base_lengths.append(length)
-                    elif(child.sn_closets.is_base_molding):
+
+                    elif child.sn_closets.is_base_molding:
                         base_molding_assembly = sn_types.Assembly(child)
                         self.base_molding_bp = child
                         self.base_molding_lengths.append(self.get_part_length(base_molding_assembly))
                 else:
                     flat_crown_assembly = None
+                    flat_crown_assemblies = []
 
                     if kb_molding:
                         flat_crown_assembly = sn_types.Assembly(child)
+                        flat_crown_assemblies.append(flat_crown_assembly)
                     else:
                         for nchild in child.children:
                             for nnchild in nchild.children:
@@ -3456,72 +3702,13 @@ class OPS_Export_XML(Operator):
                                     if not nnchild.hide_viewport:
                                         if "IS_BP_FLAT_CROWN" in nchild:
                                             flat_crown_assembly = sn_types.Assembly(nnchild.parent)
+                                            flat_crown_assemblies.append(flat_crown_assembly)
 
-                    if flat_crown_assembly:
-                        p_flat_crown_assembly = sn_types.Assembly(flat_crown_assembly.obj_bp.parent)
-                        EL = flat_crown_assembly.get_prompt("Exposed Left").get_value()
-                        ER = flat_crown_assembly.get_prompt("Exposed Right").get_value()
-                        EB = flat_crown_assembly.get_prompt("Exposed Back").get_value()
-                        var_height = p_flat_crown_assembly.get_prompt("Extend To Ceiling")
-                        length = self.get_part_length(flat_crown_assembly)
-                        height = float(self.get_part_width(flat_crown_assembly))
-                        if var_height:
-                            if var_height.get_value():
-                                height = height + 2
+                    if flat_crown_assemblies:
+                        for flat_crown_assembly in flat_crown_assemblies:
+                            self.process_flat_molding(elm_parts, flat_crown_assembly, spec_group)
 
-                        if(not EL and not ER):
-                            print("Not EL and not ER")
-                            self.flat_crown_heights.append(height)
-                        if(EL and ER):
-                            print("EL ER")
-                            if(float(length) > 96):
-                                flat_crown_assembly.get_prompt("Exposed Left").set_value(False)
-                                flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
-                                if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                    self.flat_crown_bp = flat_crown_assembly.obj_bp
-                                number_of_lengths = math.ceil(float(length)/96)
-                                if(number_of_lengths == 2):
-                                    self.single_exposed_flat_crown.append(True)
-                                    self.single_exposed_flat_crown.append(True)
-                                    if(EB):
-                                        self.top_edgebanded_flat_crown.append(True)
-                                        self.top_edgebanded_flat_crown.append(True)
-                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                    self.flat_crown_heights.append(height)
-                                else:
-                                    self.single_exposed_flat_crown.append(True)
-                                    self.single_exposed_flat_crown.append(True)
-                                    if(EB):
-                                        self.top_edgebanded_flat_crown.append(True)
-                                        self.top_edgebanded_flat_crown.append(True)
-                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                    self.flat_crown_lengths.append(sn_unit.inch(96))
-                                    self.flat_crown_heights.append(height)
-                                    number_of_lengths = number_of_lengths - 2
-                                    for x in range(number_of_lengths):
-                                        if(EB):
-                                            self.top_edgebanded_flat_crown.append(True)
-                                        self.flat_crown_lengths.append(sn_unit.inch(96))
-                                        self.flat_crown_heights.append(height)
-                            else:
-                                print("Writing Part Node")
-                                self.write_part_node(elm_parts, flat_crown_assembly.obj_bp, spec_group)
-                        elif((EL and not ER) or (not EL and ER)):
-                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                self.flat_crown_bp = flat_crown_assembly.obj_bp
-                            self.single_exposed_flat_crown.append(True)
-                            if(EB):
-                                self.top_edgebanded_flat_crown.append(True)
-                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly))
-                            self.flat_crown_heights.append(height)
-                        else:
-                            if(flat_crown_assembly.obj_bp.snap.name_object != "Right" and flat_crown_assembly.obj_bp.snap.name_object != "Left"):
-                                self.flat_crown_bp = flat_crown_assembly.obj_bp
-                            if(EB):
-                                self.top_edgebanded_flat_crown.append(True)
-                            self.flat_crown_lengths.append(self.get_part_length(flat_crown_assembly))
-                    continue
+                continue
 
             if child.sn_closets.is_toe_kick_skin_bp:
                 for nchild in child.children:
@@ -3704,7 +3891,6 @@ class OPS_Export_XML(Operator):
                         
                         print('Hamper Basket ' + basket_color + ' ' + basket_export_width + 'x' + basket_export_depth + 'x19')
                         self.write_hardware_node(elm_subassembly, obj_bp, name='Hamper Basket ' + basket_color + ' ' + basket_export_width + 'x' + basket_export_depth + 'x19')
-
 
     def write_nested_subassemblies(self,elm_subassembly, obj_bp, spec_group):
         for child in obj_bp.children:
@@ -4442,8 +4628,8 @@ class OPS_Export_XML(Operator):
             # Shoe Shelf Lip
             if assembly.obj_bp.get("IS_SHOE_SHELF"):
                 for child in assembly.obj_bp.children:
-                    if child.get("IS_BP_MEL_SHELF_LIP"):
-                        self.write_part_node(node, child, spec_group)
+                    # if child.get("IS_BP_MEL_SHELF_LIP"):
+                    #     self.write_part_node(node, child, spec_group)
                     if child.get("IS_SHOE_SHELF_LIP") and 'Fence' not in child.name:
                         self.write_part_node(node, child, spec_group)
                     if child.get("IS_SHOE_SHELF_LIP") and 'Fence' in child.name:
@@ -4606,14 +4792,17 @@ class OPS_Export_XML(Operator):
                             edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                             edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                 else:
-                    if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
+                    if abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y):
                         edge_2 = "L1"
+                        edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
                     else:
-                        edge_2 = "S1"
-                    edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_1 = "S1"
+                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
                     exposed_bottom = assembly.get_prompt("Exposed Bottom")
+
                     if exposed_bottom:
-                        if exposed_bottom.get_value() or assembly.obj_x.location.x <= sn_unit.inch(46.10):
+                        if exposed_bottom.get_value() or assembly.obj_x.location.x < sn_unit.inch(46.11):
                             if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
                                 edge_1 = "S1"
                                 edge_3 = "S2"
@@ -4625,6 +4814,14 @@ class OPS_Export_XML(Operator):
                             edge_1_color_name = secondary_edge_color_name
                             edge_3_color_name = secondary_edge_color_name
 
+            if assembly.obj_bp.get('IS_BP_SLANTED_SHELF'):
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                shelf_lip_type = parent_assembly.get_prompt("Shelf Lip Type")
+                if shelf_lip_type:
+                    if shelf_lip_type.get_value() == 0 or shelf_lip_type.get_value() == 3:
+                        edge_2 = "L1"
+                        edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        
             #Blind Corner Panels
             if obj_props.is_blind_corner_panel_bp:
                 if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
@@ -5180,7 +5377,6 @@ class OPS_Export_XML(Operator):
                             else:
                                 edge_2 = "L1"
                                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                            
 
             #Flat Crown
             if "IS_BP_FLAT_CROWN" in assembly.obj_bp:
@@ -5189,35 +5385,51 @@ class OPS_Export_XML(Operator):
                 exposed_back_ppt = assembly.get_prompt("Exposed Back")
 
                 if exposed_left_ppt:
-                    EL = exposed_left_ppt.get_value()
+                    has_exposed_left = exposed_left_ppt.get_value()
                 if exposed_right_ppt:
-                    ER = exposed_right_ppt.get_value()
+                    has_exposed_right = exposed_right_ppt.get_value()
                 if exposed_back_ppt:
-                    EB = exposed_back_ppt.get_value()
+                    # For flat crown orientation, exposed back = exposed top
+                    has_exposed_top = exposed_back_ppt.get_value()
 
                 edge_2 = "L1"
                 edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
+                # EDGEBANDING FOR FLAT CROWN
                 if not "IS_KB_MOLDING" in assembly.obj_bp:
-                    if((EL and ER) and assembly.obj_y.location.y < sn_unit.inch(96)):
-                        edge_1 = "S1"
-                        edge_3 = "S2"
-                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                        edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                        if(EB):
-                            edge_4 = "L2"
-                            edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                    else:
-                        if(len(self.single_exposed_flat_crown) > 0 ):
-                            if(self.single_exposed_flat_crown[0]):
-                                edge_1 = "S1"
-                                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                                self.single_exposed_flat_crown.pop()
-                        if(len(self.top_edgebanded_flat_crown) > 0 ):
-                            if(self.top_edgebanded_flat_crown[0]):
+                    if assembly.obj_x.location.x < sn_unit.inch(96):
+
+                        if has_exposed_left and has_exposed_right:
+                            edge_1 = "S1"
+                            edge_3 = "S2"
+                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                            edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+
+                            if has_exposed_top:
                                 edge_4 = "L2"
                                 edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                                self.top_edgebanded_flat_crown.pop()
+
+                        else:
+                            if len(self.single_exposed_flat_crown) > 0:
+                                if self.single_exposed_flat_crown[0]:
+                                    edge_1 = "S1"
+                                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                    self.single_exposed_flat_crown.pop()
+
+                            if len(self.top_edgebanded_flat_crown) > 0 :
+                                if self.top_edgebanded_flat_crown[0]:
+                                    edge_4 = "L2"
+                                    edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                                    self.top_edgebanded_flat_crown.pop()
+
+                    # Full size flat molding EB
+                    else:
+                        if has_exposed_left:
+                            edge_1 = "S1"
+                            edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        if has_exposed_top:
+                            edge_4 = "L2"
+                            edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             # Island capping back
             if "IS_BP_CAPPING_BACK" in assembly.obj_bp:
@@ -5645,6 +5857,10 @@ class OPS_Export_XML(Operator):
         project_name = wm.current_file_project
         customer_name = elm_pinfo.find("customer_name").text
         client_id = elm_pinfo.find("client_id").text
+        if elm_pinfo.find("lead_id") != None:
+            lead_id = elm_pinfo.find("lead_id").text
+        else:
+            lead_id = ""
         proj_address = elm_pinfo.find("project_address").text
         city = elm_pinfo.find("city").text
         state = elm_pinfo.find("state").text
@@ -5661,7 +5877,7 @@ class OPS_Export_XML(Operator):
                 ('jobnumber', self.write_job_info_var(self.job_number)),
                 ('customername', self.write_job_info_var(customer_name)),
                 ('clientid', self.write_job_info_var(client_id)),
-                ('leadid', self.write_job_info_var("")),
+                ('leadid', self.write_job_info_var(lead_id)),
                 ('projectaddress', self.write_job_info_var(proj_address)),
                 ('city', self.write_job_info_var(city)),
                 ('state', self.write_job_info_var(state)),

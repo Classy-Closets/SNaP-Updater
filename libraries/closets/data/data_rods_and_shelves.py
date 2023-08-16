@@ -532,8 +532,8 @@ class Glass_Shelves(sn_types.Assembly):
         self.add_prompt("Shelf Qty", 'QUANTITY', 5)
 
     def add_glass_thickness_prompts(self):
-        glass_thickness = self.add_prompt("Glass Shelf Thickness", 'COMBOBOX', 0, ['1/4"', '3/8"', '1/2"'])
-        glass_thickness.combobox_columns = 3
+        glass_thickness = self.add_prompt("Glass Shelf Thickness", 'COMBOBOX', 0, ['1/4"', '3/8"'])
+        glass_thickness.combobox_columns = 2
         ST = self.get_prompt("Glass Shelf Thickness").get_var("ST")
 
         self.shelf_thickness_ppt_obj = self.add_empty("OBJ_PROMPTS_Shelf_Thickness")
@@ -541,7 +541,7 @@ class Glass_Shelves(sn_types.Assembly):
         shelf_thickness_ppt = self.shelf_thickness_ppt_obj.snap.add_prompt('DISTANCE', "Shelf Thickness")
         shelf_thickness_ppt.set_value(sn_unit.inch(0.75))
         self.shelf_thickness_ppt_obj.snap.get_prompt('Shelf Thickness').set_formula(
-            'IF(ST==0,INCH(0.25),IF(ST==1,INCH(0.375),INCH(0.5)))', [ST])
+            'IF(ST==0,INCH(0.25),INCH(0.375))', [ST])
 
     def glass_shelves(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
@@ -1000,8 +1000,7 @@ class PROMPTS_Glass_Shelf_Prompts(sn_types.Prompts_Interface):
         name="Glass Thickness",
         items=[
             ('0', '1/4"', '1/4"'),
-            ('1', '3/8"', '3/8"'),
-            ('2', '1/2"', '1/2"')],
+            ('1', '3/8"', '3/8"')],
         default='0')
 
     glass_thickness_prompt = None

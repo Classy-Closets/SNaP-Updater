@@ -1105,32 +1105,40 @@ class SNAP_OT_Auto_Dimension(Operator):
 
     def query_openings_data(self, context, wall_bp):
         wall_dict = {}
+
         for obj in wall_bp.children:
             section = 'section' in obj.name.lower()
             opng_dict = {}
+
             if section:
                 openings = []
                 sorted_openings = []
+
                 for op in obj.children:
                     inner_opng = 'opening' in op.name.lower()
                     if inner_opng:
                         x_loc = self.to_inch(op.location[0])
                         openings.append((x_loc, op))
+
                 sorted_openings = sorted(openings, key=lambda tup: tup[0])
                 filtered_openings = []
+
                 for sorted_opng in sorted_openings:
                     if sn_types.Assembly(sorted_opng[1]).obj_x is not None:
                         filtered_openings.append(sorted_opng)
+
                 obj_assy = sn_types.Assembly(obj)
                 hang_opng_width = obj_assy.obj_x.location.x
                 start_point = obj.location[0]
                 end_point = start_point + hang_opng_width
+
                 for i in range(1, 10):
                     floor_pmpt_query = "Opening " + str(i) + " Floor Mounted"
                     height_pmpt_query = "Opening " + str(i) + " Height"
                     floor_mounted = obj_assy.get_prompt(floor_pmpt_query)
                     opng_height_pmpt = obj_assy.get_prompt(height_pmpt_query)
                     has_floor_value = floor_mounted is not None
+
                     if has_floor_value:
                         opng_props = None
                         is_floor = floor_mounted.get_value()
@@ -1138,10 +1146,9 @@ class SNAP_OT_Auto_Dimension(Operator):
                         matching_opng = filtered_openings[i-1]
                         opng = matching_opng[1]
                         matching = self.find_matching_partition_cutpart(opng)
+
                         if matching is not None:
-                            opng_props = self.get_partition_props(wall_bp,
-                                                                  matching,
-                                                                  opng)
+                            opng_props = self.get_partition_props(wall_bp, matching, opng)
                         elif matching is None:
                             opng_props = (False, False, True)
 
@@ -1158,10 +1165,12 @@ class SNAP_OT_Auto_Dimension(Operator):
                             "is_full_upper": opng_props[1],
                             "is_lower": opng_props[2]
                         }
+
                 result = sorted(opng_dict.items(), key=lambda x: x[1]["x_loc"])
                 wall_dict[obj] = {"start": round(start_point, 4),
                                   "end": round(end_point, 4),
                                   "openings": result}
+
         return wall_dict
 
     def one_hanging_opening(self, opng_data):
@@ -1176,23 +1185,43 @@ class SNAP_OT_Auto_Dimension(Operator):
     def get_lower_openings_for_matching(self, opng_data):
         hang_opngs_dict = {}
         hang_opngs_list = [op for op in opng_data.keys()]
+
         for hang_opng in hang_opngs_list:
-            height_metric = sn_types.Assembly(hang_opng).obj_z.location.z
-            height = self.to_inch(height_metric)
-            hang_opngs_dict[height] = hang_opng
+            assembly = sn_types.Assembly(hang_opng)
+
+            for child in assembly.obj_bp.children:
+                if child.get("IS_BP_PANEL") and child.get("PARTITION_NUMBER") == 1:
+                    height_metric = child.location.z
+                    height = self.to_inch(height_metric)
+                    break
+
+            if height:
+                hang_opngs_dict[height] = hang_opng
+
         lowest = min(hang_opngs_dict.keys())
         result = hang_opngs_dict[lowest]
+
         return result
 
     def get_upper_openings_for_matching(self, opng_data):
         hang_opngs_dict = {}
         hang_opngs_list = [op for op in opng_data.keys()]
+
         for hang_opng in hang_opngs_list:
-            height_metric = sn_types.Assembly(hang_opng).obj_z.location.z
-            height = self.to_inch(height_metric)
-            hang_opngs_dict[height] = hang_opng
+            assembly = sn_types.Assembly(hang_opng)
+
+            for child in assembly.obj_bp.children:
+                if child.get("IS_BP_PANEL") and child.get("PARTITION_NUMBER") == 1:
+                    height_metric = child.location.z
+                    height = self.to_inch(height_metric)
+                    break
+
+            if height:
+                hang_opngs_dict[height] = hang_opng
+
         highest = max(hang_opngs_dict.keys())
         result = hang_opngs_dict[highest]
+
         return result
 
     def overlapping_different_hang_opng_count(self, opng_data):
@@ -1384,13 +1413,16 @@ class SNAP_OT_Auto_Dimension(Operator):
             for key, value in opng_data.items():
                 for opening in value["openings"]:
                     self.section_width_apply_lbl(opening[0], "down")
+
         elif overlapping:
             matching = self.has_matching_opngs_while_overlapping(opng_data)
             different = self.overlapping_different_hang_opng_count(opng_data)
             only_one = self.overlapping_diff_hang_opng_only_one(opng_data)
             near_match = self.overlapping_near_match_hang_opng_count(opng_data)
+
             if matching or different:
                 self.apply_labels_grouped_up_down(opng_data)
+
             elif only_one and not matching and not different:
                 for key, value in opng_data.items():
                     for opening in value["openings"]:
@@ -1398,6 +1430,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                             self.section_width_apply_lbl(opening[0], "up")
                         if opening[1]["is_lower"]:
                             self.section_width_apply_lbl(opening[0], "down")
+
             elif near_match and not only_one and not matching and not different:
                 self.apply_labels_grouped_up_down(opng_data)
             else:
@@ -1419,10 +1452,13 @@ class SNAP_OT_Auto_Dimension(Operator):
     def apply_labels_grouped_up_down(self, opng_data):
         lowest = self.get_lower_openings_for_matching(opng_data)
         desired_lowers = opng_data[lowest]['openings']
+
         for desired_low in desired_lowers:
             self.section_width_apply_lbl(desired_low[0], "down")
+
         highest = self.get_upper_openings_for_matching(opng_data)
         desired_uppers = opng_data[highest]['openings']
+
         for desired_high in desired_uppers:
             self.section_width_apply_lbl(desired_high[0], "up")
 
@@ -2365,7 +2401,7 @@ class SNAP_OT_Auto_Dimension(Operator):
             x_offset = width / 2
             z_offset = -(abs(height) + abs(location))
             rotation = (135, 0, 90)
-            label = f'Light Rails {self.to_inch_lbl(abs(height))}'
+            label = f'Light Rail {self.to_inch_lbl(abs(height))}'
             hashmark = sn_types.Line(sn_unit.inch(2), rotation)
             hashmark.parent(light_rail_obj)
             hashmark.start_x(value=x_offset)
@@ -3333,9 +3369,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                 self.capping_bottom_label(assembly)
 
             # Valances Labeling
-            is_valance = ('valance' in assembly.obj_bp.name.lower() and
-                          'flat' not in assembly.obj_bp.name.lower())
-            if scene_props.valances and is_valance:
+            if scene_props.valances and assembly.obj_bp.get("IS_BP_VALANCE"):
                 self.valances_labeling(assembly)
 
             # Light Rails Labeling

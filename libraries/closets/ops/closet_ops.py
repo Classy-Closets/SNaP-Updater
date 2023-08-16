@@ -1061,6 +1061,7 @@ class SNAP_OT_place_applied_panel(Operator):
 
         self.assembly = sn_types.Assembly(bp)
         self.assembly.obj_bp["ALLOW_PART_DELETE"] = True
+        self.assembly.obj_bp["IS_BP_APPLIED_PANEL"] = True
         self.assembly.set_name(props.get_door_style())
         self.exclude_objects.append(self.get_door_mesh())
 
@@ -1168,6 +1169,9 @@ class SNAP_OT_place_applied_panel(Operator):
 
         self.assembly.obj_bp.rotation_euler = (0, math.radians(-90), math.radians(-90))
         self.assembly.obj_x.location.x = x_loc
+        kb_island_backing_cap = part.obj_bp.name == 'Backing Cap'
+        if kb_island_backing_cap:
+            self.assembly.obj_bp.location.y = self.assembly.obj_bp.location.y + sn_unit.inch(0.75) 
         self.assembly.obj_y.location.y = self.sel_product.obj_x.location.x
 
     def is_first_panel(self, panel):

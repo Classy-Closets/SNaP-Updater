@@ -758,7 +758,11 @@ class Assembly:
 
                                             if right_blind_corner.get_value():
                                                 prev_group_depth += sn_unit.inch(0.75)
-
+                                    if prev_group.obj_bp.get("IS_BP_CABINET") and prev_group.obj_bp.get("IS_CORNER"):
+                                        blind_panel_thickness = prev_group.get_prompt("Blind Panel Thickness")
+                                        if blind_panel_thickness:
+                                            prev_group_depth += blind_panel_thickness.get_value()
+                                            
                                     return prev_group_depth
                 return 0
 
@@ -791,6 +795,7 @@ class Assembly:
                                     left_filler = next_group.get_prompt("Add Left Filler")
                                     left_filler_amt = next_group.get_prompt("Left Side Wall Filler")
                                     left_blind_corner = next_group.get_prompt("Blind Corner Left")
+                                
                                     corner_product = False
 
                                     if "IS_BP_L_SHELVES" in next_group.obj_bp:
@@ -805,6 +810,11 @@ class Assembly:
                                             next_group_depth = next_group.get_prompt("Opening 1 Depth").get_value()
                                             if left_blind_corner.get_value():
                                                 next_group_depth += sn_unit.inch(0.75)
+
+                                    if next_group.obj_bp.get("IS_BP_CABINET") and next_group.obj_bp.get("IS_CORNER"):
+                                        blind_panel_thickness = next_group.get_prompt("Blind Panel Thickness")
+                                        if blind_panel_thickness:
+                                            next_group_depth += blind_panel_thickness.get_value()
 
                                     return wall_length - next_group_depth
 

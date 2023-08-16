@@ -103,7 +103,7 @@ class New_Template_Builder(Pdf_Builder):
         """
         bigger_fonts = ['customer_name', 'cphone', 'design_date', 'designer']
         bigger_fonts += ['signature', 'install_date', 'job_number', 'sheet']
-        bigger_fonts += ['room_name', 'leadid']
+        bigger_fonts += ['room_name', 'lead_id']
         self.c.setFont("Calibri", 8)
         form = self.c.acroForm
         for idx, field in enumerate(form_info):

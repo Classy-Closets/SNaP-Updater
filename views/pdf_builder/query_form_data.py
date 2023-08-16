@@ -478,7 +478,10 @@ class Query_PDF_Form_Data:
         root = tree.getroot()
         elm_pinfo = root.find("ProjectInfo")
         customer_name = elm_pinfo.find("customer_name").text
-        lead_id = elm_pinfo.find("client_id").text
+        if elm_pinfo.find("lead_id") != None:
+            lead_id = elm_pinfo.find("lead_id").text
+        else:
+            lead_id = ""
         job_dict["customer_name"] = customer_name
         job_dict["lead_id"] = lead_id
         cphone_1 = elm_pinfo.find("customer_phone_1").text
@@ -973,7 +976,10 @@ class Query_PDF_Form_Data:
             'wood': {}
         }
         for door in scene_objects:
-            is_hidden = sn_types.Assembly(door).get_prompt("Hide").get_value()
+            is_hidden = None
+            hidden_ppt = sn_types.Assembly(door).get_prompt("Hide")
+            if hidden_ppt:
+                is_hidden = hidden_ppt.get_value()
             has_glass = False
             is_wood = False
             within_walls = False
@@ -1150,7 +1156,7 @@ class Query_PDF_Form_Data:
             "wood_door": "",
         }
         scene_doors = (o for o in self.main_sc_objs\
-            if o.sn_closets.is_door_bp and not sn_utils.get_wallbed_bp(o))
+            if (o.sn_closets.is_door_bp or sn_utils.get_applied_panel_bp(o)) and not sn_utils.get_wallbed_bp(o))
         door_styled_data = self.__get_obj_styling(walls, scene_doors)
         wallbed_melamine_doors = wallbeds_dict["melamine"]
         wallbed_wood_doors = wallbeds_dict["wood"]
@@ -1392,10 +1398,11 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["job_number"] = ''
         self.data_dict[page]["sheet"] = paging
         self.data_dict[page]["customer_name"] = self.job_info.get("customer_name", '')
+        self.data_dict[page]["lead_id"] = self.job_info.get("lead_id", '')
         self.data_dict[page]["cphone"] = self.job_info.get("cphone", '')
         self.data_dict[page]["designer"] = self.job_info.get("designer", '')
         self.data_dict[page]["proj_notes"] = self.job_info.get("proj_notes", '')
         self.data_dict[page]["design_date"] = self.job_info.get("design_date", '')
-        self.data_dict[page]["leadid"] = self.job_info.get("lead_id", '')
+        self.data_dict[page]["lead_id"] = self.job_info.get("lead_id", '')
         self.data_dict[page]["room_name"] = self.room_name
             

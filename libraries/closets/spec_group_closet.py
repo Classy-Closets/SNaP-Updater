@@ -4,12 +4,12 @@ from bpy.types import Panel, UIList
 
 from snap import sn_types, sn_unit
 
-EXPOSED_MATERIAL = ("Closet Materials V2", "Snow Drift")
+EXPOSED_MATERIAL = ("Closet Materials V2", "Winter White")
 CHROME_MATERIAL = ("Finished Metals", "Chrome")
 GLASS_MATERIAL = ("Glass", "Glass")
 MIRROR_MATERIAL = ("Glass", "Mirror")
 LUCITE_MATERIAL = ("Glass", "Lucite")
-COUNTERTOP_MATERIAL = ("Closet Materials V2", "Snow Drift")
+COUNTERTOP_MATERIAL = ("Closet Materials V2", "Winter White")
 COUNTERTOP_HPL_MATERIAL = ("Countertop Materials", "Butterum Granite")
 COUNTERTOP_GRANITE_MATERIAL = ("Countertop Materials", "Alpine White")
 COUNTERTOP_QUARTZ_MATERIAL = ("Countertop Materials", "Airy Concrete")
@@ -26,11 +26,11 @@ ALUMINUM_MATERIAL = ("Finished Metals", "Aluminum")
 GOLD_MATERIAL = ("Finished Metals", "Matte Gold")
 SLATE_MATERIAL = ("Finished Metals", "Gray Anodized Metal")
 BRONZE_MATERIAL = ("Finished Metals", "Oil Rubbed Bronze")
-WHITE = ("Closet Materials V2", "Snow Drift")
+WHITE = ("Closet Materials V2", "Winter White")
 CEDAR_AROMATIC_VENEER = ("Closet Materials", "CEDAR AROMATIC VEN250 G1")
 MOLDING_PAINT_MATERIAL = ("Closet Materials V2", "Winter White")
 
-EXPOSED_INTERIOR_MATERIAL = ("Closet Materials V2", "Snow Drift")
+EXPOSED_INTERIOR_MATERIAL = ("Closet Materials V2", "Winter White")
 EXPOSED_EXTERIOR_MATERIAL = ("Closet Materials", "Duraply Almond")
 
 

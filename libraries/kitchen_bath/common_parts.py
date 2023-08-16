@@ -142,3 +142,34 @@ def add_toe_kick(assembly):
     kick.set_name("Toe Kick")
     kick.cutpart("Toe_Kick")
     return kick
+
+
+def add_drawer_partition(assembly):
+    part = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_NO_EDGEBANDING))
+    assembly.add_assembly(part)
+    part.obj_bp['IS_BP_DRAWER_PART'] = True
+    part.obj_bp['DRILL_22MM_FROM_TOP'] = True
+    # part.obj_bp.snap.comment_2 = "1034"
+    # props = part.obj_bp.sn_closets
+    # props.is_toe_kick_bp = True
+    part.set_name("Drawer Partition")
+    part.cutpart("Panel")
+    part.obj_bp.sn_closets.is_panel_bp = True
+
+    # Machining info
+    part.add_prompt("Left Depth", 'DISTANCE', 0)
+    part.add_prompt("Right Depth", 'DISTANCE', 0)
+    part.add_prompt("Stop Drilling Bottom Left", 'DISTANCE', 0)
+    part.add_prompt("Stop Drilling Top Left", 'DISTANCE', 0)
+    part.add_prompt("Stop Drilling Bottom Right", 'DISTANCE', 0)
+    part.add_prompt("Stop Drilling Top Right", 'DISTANCE', 0)
+    part.cutpart("Panel")
+    part.edgebanding("Edge", l2=True)
+    part.set_material_pointers("Closet_Part_Edges", "FrontBackEdge")
+
+    for child in part.obj_bp.children:
+        if child.snap.type_mesh == 'CUTPART':
+            child.snap.use_multiple_edgeband_pointers = True
+            child.snap.delete_protected = True
+
+    return part

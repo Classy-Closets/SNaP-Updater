@@ -269,7 +269,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
     prv_use_black_edge: BoolProperty(default=False)
 
-    default_color = "Snow Drift"
+    default_color = "Winter White"
     default_edge_color = "Winter White"
     default_paint_color = "Winter White"
     default_mat_type = "Solid Color Smooth Finish"
@@ -1207,9 +1207,6 @@ class SnapMaterialSceneProps(PropertyGroup):
         color_code = self.materials.get_mat_color().color_code
         color_name = self.materials.get_mat_color().name
 
-        if color_name == "Snow Drift":
-            return 'PM-0000690'
-
         exterior_parts = [
             "Garage_End_Panel",
             "Garage_Slab_Door",
@@ -1254,6 +1251,9 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         if part_thickness == 1:
             return "PM-0000475"
+        
+        if color_name == "Snow Drift":
+            return 'PM-0000690'
 
         if cutpart_name in exterior_parts:
             sku = sn_db.query_db(

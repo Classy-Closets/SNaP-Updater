@@ -428,6 +428,7 @@ class PRODUCT_Flat_Crown(data_closet_flat_molding.Flat_Crown):
     def __init__(self):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PRODUCTS_BASIC
+        self.id_prompt = "sn_closets.prompts_flat_crown"
         self.width = sn_unit.inch(34)
         self.height = sn_unit.inch(4)
         self.depth = sn_unit.inch(.75)
@@ -435,14 +436,14 @@ class PRODUCT_Flat_Crown(data_closet_flat_molding.Flat_Crown):
                         "Extend To Right Panel": True,
                         "Exposed Left": False,
                         "Exposed Right": False,
-                        "Exposed Back": False,
+                        "Exposed Back": True,  # Top edge
                         "Return Left": False,
                         "Return Right": False,
                         "Extend Left Amount": 0,
                         "Extend Right Amount": 0,
                         "Front Overhang": 0,
                         "Molding Height": sn_unit.inch(3),
-                        "Molding Location": 0}        
+                        "Molding Location": 0}
 
 
 class PRODUCT_Light_Rail(data_closet_flat_molding.Flat_Molding):
@@ -451,6 +452,7 @@ class PRODUCT_Light_Rail(data_closet_flat_molding.Flat_Molding):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PRODUCTS_BASIC
         self.flat_molding_type = 'LIGHT RAIL'
+        self.id_prompt = "sn_closets.prompts_light_rail"
         self.width = sn_unit.inch(34)
         self.height = sn_unit.inch(4)
         self.depth = sn_unit.inch(.75)
@@ -474,6 +476,7 @@ class PRODUCT_Valance(data_closet_flat_molding.Flat_Molding):
         self.library_name = LIBRARY_NAME
         self.category_name = CLOSET_PRODUCTS_BASIC
         self.flat_molding_type = 'VALANCE'
+        self.id_prompt = "sn_closets.prompts_valance"
         self.width = sn_unit.inch(34)
         self.height = sn_unit.inch(4)
         self.depth = sn_unit.inch(.75)
@@ -481,7 +484,7 @@ class PRODUCT_Valance(data_closet_flat_molding.Flat_Molding):
                         "Extend To Right Panel": True,
                         "Exposed Left": False,
                         "Exposed Right": False,
-                        "Exposed Back": True,
+                        "Exposed Back": False,
                         "Return Left": False,
                         "Return Right": False,
                         "Extend Left Amount": sn_unit.inch(-0.75),

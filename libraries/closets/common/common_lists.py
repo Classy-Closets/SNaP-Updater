@@ -1019,6 +1019,7 @@ EMPTY_PDF_FIELDS = {
     "install_date": "",
     "sheet": "",
     "customer_name": "",
+    "lead_id": "",
     "cphone": "",
     "design_date": "",
     "designer": ""

@@ -87,7 +87,7 @@ class Flat_Molding(sn_types.Assembly):
             if self.flat_molding_type == "VALANCE":
                 flat_crown = common_parts.add_flat_crown(self)
                 flat_crown.obj_bp.snap.comment_2 = "1040"
-                flat_crown.set_name("Flat Valance")
+                flat_crown.set_name("Valance")
                 flat_crown.loc_x(
                     'IF(Extend_Left,0,Panel_Thickness/2)-Extend_Left_Amount',
                     [Extend_Left, Extend_Left_Amount, Panel_Thickness])
@@ -360,7 +360,7 @@ class Flat_Crown(Flat_Molding):
 
 
 class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
-    bl_idname = "sn_closets.prompts_flat_molding"
+    bl_idname = "sn_closets.prompts_flat_molding_base_class"
     bl_label = "Flat Crown Prompt"
     bl_options = {'UNDO'}
 
@@ -381,12 +381,16 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
 
     def check(self, context):
         """ This is called everytime a change is made in the UI """
-        etc = self.insert.get_prompt("Extend To Ceiling")
-        if etc:
-            if(self.insert.get_prompt("Molding Height").get_value() < sn_unit.inch(3) or etc.get_value()):
+        extend_to_ceiling = self.insert.get_prompt("Extend To Ceiling")
+        layered_molding = self.insert.get_prompt("Show Layered Molding")
+
+        if extend_to_ceiling:
+            height_under_3_in = self.insert.get_prompt("Molding Height").get_value() < sn_unit.inch(3)
+
+            if height_under_3_in or extend_to_ceiling.get_value() or layered_molding.get_value():
                 self.insert.get_prompt("Exposed Back").set_value(False)
-            if etc.get_value():
-                layered_molding = self.insert.get_prompt("Show Layered Molding")
+
+            if extend_to_ceiling.get_value():
                 if layered_molding:
                     layered_molding.set_value(False)
 
@@ -399,12 +403,14 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
         if layer_num:
             if layer_num.get_value() != float(self.layer_num):
                 layer_num.set_value(float(self.layer_num))
-        if etc and dfc:
-            if etc.get_value():
+
+        if extend_to_ceiling and dfc:
+            if extend_to_ceiling.get_value():
                 wall_bp = sn_utils.get_wall_bp(self.insert.obj_bp)
                 wall = sn_types.Assembly(wall_bp)
                 closet_bp = sn_utils.get_closet_bp(self.insert.obj_bp)
                 closet = sn_types.Assembly(closet_bp)
+
                 if wall.obj_bp:
                     dfc.set_value(wall.obj_z.location.z - self.insert.obj_bp.location.z)
 
@@ -428,10 +434,10 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
                     if top_KD_vertical_offset:
                         top_KD_vertical_offset.set_value(0)
 
-            if (self.insert.get_prompt("Show Layered Molding")):
+            if layered_molding:
                 for obj in self.insert.obj_bp.children:
                     if obj.get('IS_BP_FLAT_CROWN'):
-                        obj['IS_BP_LAYERED_CROWN'] = self.insert.get_prompt("Show Layered Molding").get_value()
+                        obj['IS_BP_LAYERED_CROWN'] = layered_molding.get_value()
 
         TE_Prompt = self.insert.get_prompt('Topshelf Exists')
         if TE_Prompt:
@@ -452,8 +458,6 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
 
         closet_props.update_render_materials(self, context)
 
-
-        # self.update_product_size()
         return True
 
     def execute(self, context):
@@ -481,12 +485,10 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
 
         return super().invoke(context, event, width=400)
 
-
     def draw(self, context):
         """ This is where you draw the interface """
         super().draw(context)
         layout = self.layout
-        layout.label(text=self.insert.obj_bp.name)
         box = layout.box()
 
         molding_height = self.insert.get_prompt("Molding Height")
@@ -552,6 +554,32 @@ class PROMPTS_prompts_flat_molding(sn_types.Prompts_Interface):
             if show_layered.get_value():
                 row.label(text='Number of Layers')
                 row.prop(self, 'layer_num', expand=True)
+
+
+class PROMPTS_prompts_flat_molding_v265(PROMPTS_prompts_flat_molding):
+    bl_idname = "sn_closets.prompts_flat_molding"
+    bl_label = "Flat Crown Prompt"
+    bl_options = {'UNDO'}
+
+    """Backwards compatibility for v265 - All flat molding prompt ids are the same"""
+
+
+class PROMPTS_prompts_flat_crown(PROMPTS_prompts_flat_molding):
+    bl_idname = "sn_closets.prompts_flat_crown"
+    bl_label = "Flat Crown Prompt"
+    bl_options = {'UNDO'}
+
+
+class PROMPTS_prompts_valance(PROMPTS_prompts_flat_molding):
+    bl_idname = "sn_closets.prompts_valance"
+    bl_label = "Valance Prompt"
+    bl_options = {'UNDO'}
+
+
+class PROMPTS_prompts_light_rail(PROMPTS_prompts_flat_molding):
+    bl_idname = "sn_closets.prompts_light_rail"
+    bl_label = "LIght Rail Prompt"
+    bl_options = {'UNDO'}
 
 
 class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
@@ -645,33 +673,37 @@ class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
                                 self.asset.obj_y.location.y = math.fabs(self.selected_panel_1.obj_y.location.y)
                             else:
                                 self.asset.obj_y.location.y = math.fabs(self.selected_panel_2.obj_y.location.y)
-                            for child in self.asset.obj_bp.parent.children:
-                                if not child.hide_get():
-                                    if 'IS_BP_CLOSET_TOP' in child:
-                                        ts_assembly = sn_types.Assembly(child)
-                                        ts_overhang = ts_assembly.get_prompt("Front Overhang")
-                                        fc_overhang = self.asset.get_prompt("Front Overhang")
-                                        self.asset.obj_y.location.y = math.fabs(ts_assembly.obj_y.location.y)
-                                        if(ts_overhang and fc_overhang):
-                                            fc_overhang.set_value(ts_overhang.get_value())
 
-                                        ts_left_extend = ts_assembly.get_prompt('Extend Left Amount')
-                                        ts_right_extend = ts_assembly.get_prompt('Extend Right Amount')
-                                        if ts_left_extend and ts_right_extend:
-                                            if ts_left_extend.get_value() > 0:
-                                                sn_utils.set_prompt_if_exists(self.asset, 'Extend Left Amount', ts_left_extend.get_value())
-                                            if ts_right_extend.get_value() > 0:
-                                                sn_utils.set_prompt_if_exists(self.asset, 'Extend Right Amount', ts_right_extend.get_value())
+                            light_rail = self.asset.obj_bp.get("IS_BP_LIGHT_RAIL")
+                            valance = self.asset.obj_bp.get("IS_BP_VALANCE")
+                            skip_top_shelf_adjustment = light_rail or valance
 
-                                        ts_exposed_right = ts_assembly.get_prompt('Exposed Right')
-                                        if ts_exposed_right:
-                                            sn_utils.set_prompt_if_exists(self.asset, 'Return Right', ts_exposed_right.get_value())
-                                        
-                                        ts_exposed_left = ts_assembly.get_prompt('Exposed Left')
-                                        if ts_exposed_left:
-                                            sn_utils.set_prompt_if_exists(self.asset, 'Return Left', ts_exposed_left.get_value())
+                            if not skip_top_shelf_adjustment:
+                                for child in self.asset.obj_bp.parent.children:
+                                    if not child.hide_get():
+                                        if 'IS_BP_CLOSET_TOP' in child:
+                                            ts_assembly = sn_types.Assembly(child)
+                                            ts_overhang = ts_assembly.get_prompt("Front Overhang")
+                                            fc_overhang = self.asset.get_prompt("Front Overhang")
+                                            self.asset.obj_y.location.y = math.fabs(ts_assembly.obj_y.location.y)
+                                            if(ts_overhang and fc_overhang):
+                                                fc_overhang.set_value(ts_overhang.get_value())
 
-                                        
+                                            ts_left_extend = ts_assembly.get_prompt('Extend Left Amount')
+                                            ts_right_extend = ts_assembly.get_prompt('Extend Right Amount')
+                                            if ts_left_extend and ts_right_extend:
+                                                if ts_left_extend.get_value() > 0:
+                                                    sn_utils.set_prompt_if_exists(self.asset, 'Extend Left Amount', ts_left_extend.get_value())
+                                                if ts_right_extend.get_value() > 0:
+                                                    sn_utils.set_prompt_if_exists(self.asset, 'Extend Right Amount', ts_right_extend.get_value())
+
+                                            ts_exposed_right = ts_assembly.get_prompt('Exposed Right')
+                                            if ts_exposed_right:
+                                                sn_utils.set_prompt_if_exists(self.asset, 'Return Right', ts_exposed_right.get_value())
+                                            
+                                            ts_exposed_left = ts_assembly.get_prompt('Exposed Left')
+                                            if ts_exposed_left:
+                                                sn_utils.set_prompt_if_exists(self.asset, 'Return Left', ts_exposed_left.get_value())
 
                             parent = sn_types.Assembly(obj_bp=self.asset.obj_bp.parent)
                             Width = parent.obj_x.snap.get_var('location.x', 'Width')
@@ -710,4 +742,8 @@ class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
         return self.insert_drop(context, event)
 
 bpy.utils.register_class(PROMPTS_prompts_flat_molding)
+bpy.utils.register_class(PROMPTS_prompts_flat_molding_v265)
+bpy.utils.register_class(PROMPTS_prompts_flat_crown)
+bpy.utils.register_class(PROMPTS_prompts_valance)
+bpy.utils.register_class(PROMPTS_prompts_light_rail)
 bpy.utils.register_class(DROP_OPERATOR_Place_Top)

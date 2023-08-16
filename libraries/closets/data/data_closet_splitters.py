@@ -176,7 +176,9 @@ class Shelf_Stack(sn_types.Assembly):
                 if i != amt:  # Not last Shelf
                     Previous_Z_Loc = previous_splitter.obj_bp.snap.get_var("location.z", "Previous_Z_Loc")
                     splitter.loc_z('Previous_Z_Loc-opening_{}_height-Thickness'.format(str(i)), [Previous_Z_Loc, opening_height, Thickness])
+                    splitter.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),Thickness) *-1', [Thickness, TAS, IBEKD])
                 else:
+                    splitter.dim_z('Thickness*-1', [Thickness, TAS, IBEKD])
                     is_locked_shelf = splitter.get_prompt("Is Locked Shelf")
                     is_locked_shelf.set_value(True)
                     hide = splitter.get_prompt("Hide")
@@ -184,6 +186,8 @@ class Shelf_Stack(sn_types.Assembly):
                         'IF(Remove_Bottom_Shelf,True,IF(Parent_Has_Bottom_KD,True,False)) or Hide',
                         [Remove_Bottom_Shelf, Parent_Has_Bottom_KD, parent_hide])
                     splitter.get_prompt("Is Forced Locked Shelf").set_value(value=True)
+
+                    # splitter.get_prompt("Is Bottom Exposed KD").set_value(value=True)
             else:
                 splitter.loc_z('Height-opening_{}_height'.format(str(i)), [Height, opening_height])
 
@@ -193,7 +197,7 @@ class Shelf_Stack(sn_types.Assembly):
             splitter.dim_y(
                 '-Depth+IF(Is_Locked_Shelf,Locked_Shelf_Setback,Adj_Shelf_Setback)+Shelf_Backing_Setback',
                 [Depth, Locked_Shelf_Setback, Is_Locked_Shelf, Adj_Shelf_Setback, Shelf_Backing_Setback])
-            splitter.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),Thickness) *-1', [Thickness, TAS, IBEKD])
+            
             splitter.get_prompt("Adj Shelf Setback").set_formula(
                 'IF(Individual_Shelf_Setbacks,Shelf_Setback,Shelf_Setback_All)',
                 [Shelf_Setback, Shelf_Setback_All, Individual_Shelf_Setbacks])
@@ -1189,12 +1193,18 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
         prompts = [floor, parent_remove_bottom_shelf, remove_bottom_shelf, parent_has_bottom_kd]
 
         if all(prompts):
-            if parent_remove_bottom_shelf.get_value() or floor.get_value():
-                parent_has_bottom_kd.set_value(True)
-                remove_bottom_shelf.set_value(True)
-            else:
-                parent_remove_bottom_shelf.set_value(False)
+            if remove_bottom_shelf.get_value():
                 parent_has_bottom_kd.set_value(False)
+                parent_remove_bottom_shelf.set_value(False)
+            else:
+                parent_has_bottom_kd.set_value(True)
+                parent_remove_bottom_shelf.set_value(True)
+            # if parent_remove_bottom_shelf.get_value() or floor.get_value():
+            #     parent_has_bottom_kd.set_value(True)
+            #     remove_bottom_shelf.set_value(True)
+            # else:
+            #     parent_remove_bottom_shelf.set_value(False)
+            #     parent_has_bottom_kd.set_value(False)
 
         self.run_calculators(self.assembly.obj_bp)
         closet_props.update_render_materials(self, context)
@@ -1282,10 +1292,11 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
         if all(prompts):
             if parent_remove_bottom_shelf.get_value() or floor.get_value():
                 parent_has_bottom_kd.set_value(True)
-                remove_bottom_shelf.set_value(True)
+                remove_bottom_shelf.set_value(False)
             else:
                 parent_remove_bottom_shelf.set_value(False)
                 parent_has_bottom_kd.set_value(False)
+                remove_bottom_shelf.set_value(True)
         elif door_type:
             if door_type.get_value() == 0:
                 remove_bottom_shelf.set_value(True)
@@ -1481,14 +1492,73 @@ class OPERATOR_Vertical_Splitters_Drop(Operator, PlaceClosetInsert):
         prompts = [floor, parent_remove_bottom_shelf, remove_bottom_shelf, parent_has_bottom_kd]
 
         if all(prompts):
-            if parent_remove_bottom_shelf.get_value() or floor.get_value():
-                parent_has_bottom_kd.set_value(True)
-            else:
-                parent_remove_bottom_shelf.set_value(False)
-                parent_has_bottom_kd.set_value(False)
+            parent_remove_bottom_shelf.set_value(True)
+            parent_has_bottom_kd.set_value(True)
         elif door_type:
             if door_type.get_value() == 0:
                 remove_bottom_shelf.set_value(True)
+    
+    def set_shelf_backing_setback(self, context):
+        parent_obj = self.insert.obj_bp.parent
+        parent_assembly = sn_types.Assembly(parent_obj)
+        opening = self.insert.obj_bp.sn_closets.opening_name
+
+        Shelf_Backing_Setback = self.insert.get_prompt("Shelf Backing Setback")
+
+        for child in parent_assembly.obj_bp.children:
+            if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
+                if child.sn_closets.opening_name == opening:
+                    # Upadate for backing configurations
+                    back_assembly = sn_types.Assembly(child)
+                    B_Sec = back_assembly.get_prompt('Backing Sections')
+                    TOP = back_assembly.get_prompt("Top Section Backing")
+                    CTR = back_assembly.get_prompt("Center Section Backing")
+                    BTM = back_assembly.get_prompt("Bottom Section Backing")
+                    BIB = back_assembly.get_prompt("Bottom Insert Backing")
+                    BIG = back_assembly.get_prompt("Bottom Insert Gap")
+                    SB = back_assembly.get_prompt("Single Back")
+                    TBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Top Backing Thickness')
+                    CBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Center Backing Thickness')
+                    BBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Bottom Backing Thickness')
+                    prompts = [B_Sec, TOP, CTR, BTM, SB, TBT, CBT, BBT]
+                    if all(prompts):
+                        if B_Sec.get_value() == 1:
+                            if CTR.get_value():
+                                if CBT.get_value() == 1:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                else:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                            else:
+                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                        if B_Sec.get_value() == 2:
+                            single_back = SB.get_value() and TOP.get_value() and BTM.get_value()
+
+                            if single_back:
+                                if CBT.get_value() == 1:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                else:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                            elif TOP.get_value():
+                                if TBT.get_value() == 1:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                else:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                            else:
+                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                        if B_Sec.get_value() == 3:
+                            full_back = SB.get_value() and TOP.get_value() and CTR.get_value() and BTM.get_value()
+                            top_ctr_back = SB.get_value() and TOP.get_value() and CTR.get_value()
+                            btm_ctr_back = SB.get_value() and BTM.get_value() and CTR.get_value()
+                            top_back = TOP.get_value()
+                            if full_back or top_ctr_back:
+                                if CBT.get_value() == 1:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                else:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                            else:
+                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
     def modal(self, context, event):
         self.run_asset_calculators()
@@ -1513,6 +1583,7 @@ class OPERATOR_Vertical_Splitters_Drop(Operator, PlaceClosetInsert):
         if self.event_is_place_first_point(event) and self.selected_opening:
             self.confirm_placement(context)
             self.set_carcass_bottom_kd_formula(context)
+            self.set_shelf_backing_setback(context)
             return self.finish(context)
 
         if self.event_is_cancel_command(event):

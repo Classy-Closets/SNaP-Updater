@@ -167,23 +167,26 @@ def add_product_blind_width_dimension(product):
         dim.anchor["IS_KB_LABEL"] = True
         dim.anchor["BLIND_LABEL"] = True
 
-        dim.start_z(value=sn_unit.inch(10))
-
         if carcass.obj_bp['CARCASS_TYPE'] == 'Upper':
             dim.start_x(value=sn_unit.inch(8))
         else:
             dim.start_x(value=sn_unit.inch(8))
 
-        
-        # dim.start_x('Left_Side_Wall_Filler',[Left_Side_Wall_Filler])
-        # dim.end_y('Panel_Width-INCH(2.25)',[Panel_Width])
-        # dim.start_y('-Left_Side_Thickness',[Left_Side_Thickness])
         if blind_panel.obj_bp["BLIND_SIDE"] == "Left":
-            dim.end_y('Panel_Width+Right_Side_Thickness',[Panel_Width,Right_Side_Thickness])
+            dim.start_y("INCH(-1)")
+            dim.end_y('Panel_Width+Right_Side_Thickness+INCH(1)',[Panel_Width,Right_Side_Thickness])
         else:
-            dim.start_y('Panel_Width-Right_Side_Thickness',[Panel_Width,Right_Side_Thickness])
-            dim.end_y('-Panel_Width+Right_Side_Thickness',[Panel_Width,Right_Side_Thickness])
+            dim.start_y('Panel_Width-Right_Side_Thickness+INCH(0)',[Panel_Width,Right_Side_Thickness])
+            dim.end_y('-Panel_Width+Right_Side_Thickness+INCH(0.75)',[Panel_Width,Right_Side_Thickness])
 
+        lbl = sn_types.Dimension()
+        lbl.parent(blind_panel.obj_bp)
+        lbl.anchor["IS_KB_LABEL"] = True
+        lbl.anchor["BCP_LABEL"] = True
+        lbl.set_label("BCP")
+
+        lbl.start_x(value=sn_unit.inch(12))
+        lbl.start_y('Panel_Width/2-INCH(0.35)',[Panel_Width])
 
 def create_dimensions(assembly):
     
@@ -217,33 +220,25 @@ def update_dimensions(assembly):
     blind_panel_bp = None
 
     for child in assembly.obj_bp.children:
-        # print("child=",child.name)
         if 'DEPTH_LABEL' in child:
             prod_dimensions.append(child)
         elif 'IS_BP_BLIND_PANEL' in child:
-            # print("found blind panel!")
             blind_panel_bp = child
             for subchild in blind_panel_bp.children:
                 if 'BLIND_LABEL' in subchild:
-                    # print("found blind_label")
                     blind_width_dimensions.append(subchild)
        
     for anchor in prod_dimensions:
-        assembly = sn_types.Assembly(anchor.parent)
-        abs_y_loc = math.fabs(sn_unit.meter_to_inch(assembly.obj_y.location.y))
+        prod_assembly = sn_types.Assembly(anchor.parent)
+        abs_y_loc = math.fabs(sn_unit.meter_to_inch(prod_assembly.obj_y.location.y))
         dim_y_label = str(round(abs_y_loc, 2)) + '\"'
         anchor.snap.opengl_dim.gl_label = str(dim_y_label)
 
     for anchor in blind_width_dimensions:
-        assembly = sn_types.Assembly(blind_panel_bp)
         parent = sn_types.Assembly(blind_panel_bp.parent)
         panel_width = math.fabs(parent.get_prompt("Blind Panel Width").get_value())
         panel_label = str(round(sn_unit.meter_to_inch(panel_width),2)) + '\"'
-        print("blind_label=",panel_label)
         anchor.snap.opengl_dim.gl_label = panel_label
-
-        print("anchor.label=",anchor.snap.opengl_dim.gl_label )
-
 
     inserts = sn_utils.get_insert_bp_list(assembly.obj_bp, [])
 
@@ -269,6 +264,8 @@ def update_dimensions(assembly):
             if "IS_BP_HORIZONTAL_SPLITTER" in obj_bp:
                 splitter_insert = Horizontal_Splitters(obj_bp)
                 splitter_insert.update_dimensions()
+
+    bpy.context.view_layer.update()
 
     bpy.context.view_layer.update()
 
@@ -707,13 +704,14 @@ class Blind_Corner(sn_types.Assembly):
             add_opening(self)
 
         if self.carcass.carcass_type == 'Base':
-            self.add_prompt("Blind Panel Width", 'DISTANCE', props.base_cabinet_depth)
+            self.add_prompt("Blind Panel Width", 'DISTANCE', props.base_cabinet_depth + sn_unit.inch(3))
         if self.carcass.carcass_type == 'Tall':
             self.add_prompt("Blind Panel Width", 'DISTANCE', props.tall_cabinet_depth)
         if self.carcass.carcass_type == 'Upper':
             self.mirror_z = True
             self.add_prompt("Blind Panel Width", 'DISTANCE', props.upper_cabinet_depth)
-        self.add_prompt("Blind Panel Reveal", 'DISTANCE', props.blind_panel_reveal)
+        # self.add_prompt("Blind Panel Reveal", 'DISTANCE', props.blind_panel_reveal)
+        self.add_prompt("Blind Panel Reveal", 'DISTANCE', 0)
         self.add_prompt("Inset Blind Panel", 'CHECKBOX', props.inset_blind_panel)
         self.add_prompt("Blind Panel Thickness", 'DISTANCE', sn_unit.inch(.75))
                 
@@ -739,31 +737,29 @@ class Blind_Corner(sn_types.Assembly):
                 ctop.get_prompt('Add Left Backsplash').set_value(value=True)
             if self.blind_side == "Right":
                 ctop.get_prompt('Add Right Backsplash').set_value(value=True)
-        
+
         blind_panel = common_parts.add_panel(self)
         blind_panel.obj_bp.snap.name_object = "Blind Panel"
         blind_panel.obj_bp["IS_BP_BLIND_PANEL"] = True
         if self.blind_side == "Left":
             blind_panel.obj_bp["BLIND_SIDE"] = "Left"
-            blind_panel.loc_x('IF(Inset_Blind_Panel,Left_Side_Thickness,0)',[Inset_Blind_Panel,Left_Side_Thickness])
             blind_panel.dim_y('(Blind_Panel_Width+Blind_Panel_Reveal-IF(Inset_Blind_Panel,Left_Side_Thickness,0))*-1',[Blind_Panel_Width,Blind_Panel_Reveal,Inset_Blind_Panel,Left_Side_Thickness])
         if self.blind_side == "Right":
             blind_panel.obj_bp["BLIND_SIDE"] = "Right"
-            blind_panel.loc_x('Carcass_Width-IF(Inset_Blind_Panel,Right_Side_Thickness,0)',[Carcass_Width,Inset_Blind_Panel,Right_Side_Thickness])
+            blind_panel.loc_x('Carcass_Width',[Carcass_Width,Inset_Blind_Panel,Right_Side_Thickness])
             blind_panel.dim_y('Blind_Panel_Width+Blind_Panel_Reveal-IF(Inset_Blind_Panel,Right_Side_Thickness,0)',[Blind_Panel_Width,Blind_Panel_Reveal,Right_Side_Thickness,Inset_Blind_Panel])
-        blind_panel.loc_y('Carcass_Depth+IF(Inset_Blind_Panel,Blind_Panel_Thickness,0)',[Carcass_Depth,Inset_Blind_Panel,Blind_Panel_Thickness])
+        blind_panel.loc_y('Carcass_Depth',[Carcass_Depth])
         if self.carcass.carcass_type in {"Base","Tall","Sink"}:
             Toe_Kick_Height = self.carcass.get_prompt("Toe Kick Height").get_var()
             Toe_Kick_Setback = self.carcass.get_prompt("Toe Kick Setback").get_var()
-            blind_panel.loc_z('Toe_Kick_Height+IF(Inset_Blind_Panel,Bottom_Thickness,0)',[Toe_Kick_Height,Inset_Blind_Panel,Bottom_Thickness])
-            blind_panel.dim_x('Carcass_Height-Toe_Kick_Height-IF(Inset_Blind_Panel,Top_Thickness+Bottom_Thickness,0)',[Carcass_Height,Toe_Kick_Height,Inset_Blind_Panel,Top_Thickness,Bottom_Thickness])
+            blind_panel.loc_z('Toe_Kick_Height+Bottom_Thickness-INCH(0.29)',[Toe_Kick_Height,Bottom_Thickness])
+            blind_panel.dim_x('Carcass_Height-Toe_Kick_Height-Bottom_Thickness-Top_Thickness+(Top_Thickness-INCH(0.29)+INCH(0.125))',[Carcass_Height,Toe_Kick_Height,Top_Thickness,Bottom_Thickness])      
         if self.carcass.carcass_type in {"Upper","Suspended"}:
-            blind_panel.loc_z('Carcass_Height+Bottom_Inset-IF(Inset_Blind_Panel,0,Bottom_Thickness)',[Carcass_Height,Bottom_Inset,Inset_Blind_Panel,Bottom_Thickness])
-            blind_panel.dim_x('fabs(Carcass_Height)-Top_Inset-Bottom_Inset+IF(Inset_Blind_Panel,0,Top_Thickness+Bottom_Thickness)',[Carcass_Height,Top_Inset,Bottom_Inset,Inset_Blind_Panel,Top_Thickness,Bottom_Thickness])
+            blind_panel.loc_z('Carcass_Height+Bottom_Thickness-INCH(0.29)',[Carcass_Height,Bottom_Thickness])
+            blind_panel.dim_x('abs(Carcass_Height)-Bottom_Thickness-Top_Thickness+(Top_Thickness-INCH(0.29)+INCH(0.125))',[Carcass_Height,Top_Thickness,Bottom_Thickness]) 
         blind_panel.rot_y(value=math.radians(-90))
         blind_panel.rot_z(value=math.radians(90))
         blind_panel.dim_z('Blind_Panel_Thickness',[Blind_Panel_Thickness])
-        # blind_panel.cutpart("Cabinet_Blind_Panel")
 
         # Toe kick
         if self.carcass.carcass_type in {"Base","Tall","Sink"}:
@@ -786,12 +782,12 @@ class Blind_Corner(sn_types.Assembly):
            
             if self.blind_side == "Left":
                 self.splitter.loc_x('Blind_Panel_Width+Blind_Panel_Reveal',[Blind_Panel_Width,Blind_Panel_Reveal])
-            if self.blind_side == "Right":
+            elif self.blind_side == "Right":
                 self.splitter.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
             self.splitter.loc_y('Carcass_Depth',[Carcass_Depth])
             if self.carcass.carcass_type in {"Base","Tall","Sink"}:
                 self.splitter.loc_z('Bottom_Inset',[Bottom_Inset])
-            if self.carcass.carcass_type in {"Upper","Suspended"}:
+            elif self.carcass.carcass_type in {"Upper","Suspended"}:
                 self.splitter.z_loc('Carcass_Height+Bottom_Inset',[Carcass_Height,Bottom_Inset])
             if self.blind_side == "Left":
                 self.splitter.dim_x('Carcass_Width-(Blind_Panel_Width+Blind_Panel_Reveal+Right_Side_Thickness)',[Carcass_Width,Blind_Panel_Width,Blind_Panel_Reveal,Right_Side_Thickness])
@@ -799,7 +795,12 @@ class Blind_Corner(sn_types.Assembly):
                 self.splitter.dim_x('Carcass_Width-(Blind_Panel_Width+Blind_Panel_Reveal+Left_Side_Thickness)',[Carcass_Width,Blind_Panel_Width,Blind_Panel_Reveal,Left_Side_Thickness])
             self.splitter.dim_y('fabs(Carcass_Depth)-Back_Inset-IF(Inset_Blind_Panel,Blind_Panel_Thickness,0)',[Carcass_Depth,Back_Inset,Inset_Blind_Panel,Blind_Panel_Thickness])
             self.splitter.dim_z('fabs(Carcass_Height)-Bottom_Inset-Top_Inset',[Carcass_Height,Bottom_Inset,Top_Inset])
-            
+
+            if self.splitter.interior_2:
+                if self.blind_side == "Left":
+                    self.splitter.interior_2.loc_x("-Blind_Panel_Width+Left_Side_Thickness",[Blind_Panel_Width,Left_Side_Thickness])
+                self.splitter.interior_2.dim_x("Carcass_Width-Left_Side_Thickness-Right_Side_Thickness",[Carcass_Width,Left_Side_Thickness,Right_Side_Thickness])
+
         if self.interior:
             self.interior.draw()
             self.interior.obj_bp.parent = self.obj_bp

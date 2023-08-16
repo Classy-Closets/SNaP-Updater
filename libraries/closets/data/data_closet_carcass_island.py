@@ -876,6 +876,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     stained_edge_type_prompt = None
     is_painted = False
     is_stained = False
+    no_countertop = False
     
     product = None
     countertop = None
@@ -933,6 +934,13 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         if self.countertop_type_ppt:
             self.prev_countertop_type = self.countertop_type_ppt.get_value()
             self.countertop_type_ppt.set_value(int(self.countertop_type))
+        
+        no_countertop = self.product.get_prompt("No Countertop")
+        if no_countertop:
+            if self.no_countertop != no_countertop.get_value():
+                self.countertop = self.product.add_countertop()
+                self.product.update()
+                self.no_countertop = no_countertop.get_value()
 
         if self.prev_countertop_type != int(self.countertop_type):
             self.countertop = self.product.add_countertop()

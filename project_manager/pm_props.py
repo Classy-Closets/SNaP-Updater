@@ -288,6 +288,7 @@ class Project(PropertyGroup, CollectionMixIn):
                                   description="Customer Name",
                                   update=update_project_props)
     client_id: StringProperty(name="Client ID", description="Client ID", update=update_project_props)
+    lead_id: StringProperty(name="Lead ID", description="Lead ID", update=update_project_props)
     project_address: StringProperty(name="Project Address",
                                     description="Project Address",
                                     update=update_project_props)
@@ -347,6 +348,10 @@ class Project(PropertyGroup, CollectionMixIn):
         bpy.ops.wm.save_userpref()
         return addon_prefs.project_id_count
 
+    def get_lead_id(self):
+        if self.lead_id:
+            return self.lead_id
+
     def create_file(self, project_id):
         ccp = pm_utils.CCP()
         ccp.filename = self.file_name
@@ -357,6 +362,7 @@ class Project(PropertyGroup, CollectionMixIn):
         ccp.add_element_with_text(project_info, "name", self.name)
         ccp.add_element_with_text(project_info, "customer_name", "None")
         ccp.add_element_with_text(project_info, "client_id", "None")
+        ccp.add_element_with_text(project_info, "lead_id", "None")
         ccp.add_element_with_text(project_info, "project_address", "None")
         ccp.add_element_with_text(project_info, "city", "None")
         ccp.add_element_with_text(project_info, "state", "None")
@@ -373,11 +379,13 @@ class Project(PropertyGroup, CollectionMixIn):
         ccp.write(os.path.join(self.dir_path, ".snap"))
 
     def modify_project_file(self):
+        ccp = pm_utils.CCP()
         tree = ET.parse(self.file_path)
         root = tree.getroot()
 
         for elm in root.findall("ProjectInfo"):
             items = list(elm)
+            missing_lead_id = True
 
             for item in items:
                 if item.tag == 'customer_name':
@@ -385,6 +393,10 @@ class Project(PropertyGroup, CollectionMixIn):
 
                 if item.tag == 'client_id':
                     item.text = self.client_id
+                
+                if item.tag == 'lead_id':
+                    missing_lead_id = False
+                    item.text = self.lead_id
 
                 if item.tag == 'project_address':
                     item.text = self.project_address
@@ -416,6 +428,9 @@ class Project(PropertyGroup, CollectionMixIn):
                 if item.tag == 'design_date':
                     item.text = self.design_date
 
+            if missing_lead_id:
+                ccp.add_element_with_text(elm, "lead_id", self.lead_id)
+
         tree.write(self.file_path)
 
     def read_project_file(self):
@@ -436,6 +451,9 @@ class Project(PropertyGroup, CollectionMixIn):
 
                     if item.tag == 'client_id':
                         self.client_id = item.text
+
+                    if item.tag == 'lead_id':
+                        self.lead_id = item.text
 
                     if item.tag == 'project_address':
                         self.project_address = item.text

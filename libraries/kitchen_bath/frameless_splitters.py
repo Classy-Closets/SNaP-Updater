@@ -96,6 +96,9 @@ class Vertical_Splitters(sn_types.Assembly):
     opening_8_height = 0
     opening_9_height = 0
     opening_10_height = 0
+
+    partition_left_1 = False
+    partition_right_1 = False
     
     remove_splitter_1 = False
     remove_splitter_2 = False
@@ -262,13 +265,53 @@ class Vertical_Splitters(sn_types.Assembly):
 
             if remove_splitter:
                 splitter.get_prompt('Hide').set_fomula(value=True)
+
+            add_left_part = eval('self.partition_left_' + str(i))
+            add_right_part = eval('self.partition_right_' + str(i))
+            if add_left_part or add_right_part:
+                z_loc_vars.extend([Thickness, Height, Depth, Width])
+                if add_left_part:
+                    left_partition = common_parts.add_drawer_partition(self)
+                    right_depth_ppt = left_partition.get_prompt("Right Depth")
+                    right_depth_ppt.set_formula('fabs(Depth)', [Depth])
+
+                    left_partition.loc_y('Depth', [Depth])
+
+                    if previous_splitter:
+                        left_partition.loc_z('Splitter_Z_Loc-Opening_' + str(i) + '_Height-Thickness',z_loc_vars)
+                    else:
+                        left_partition.loc_z('Height-Opening_' + str(i) + '_Height-Thickness',z_loc_vars)
+
+                    left_partition.rot_y(value=math.radians(-90))
+                    left_partition.dim_x('Opening_' + str(i) + '_Height+Thickness',z_loc_vars)
+                    left_partition.dim_y('-Depth', z_loc_vars)
+                    left_partition.dim_z('Thickness',z_loc_vars)
+
+                if add_right_part:
+                    right_partition = common_parts.add_drawer_partition(self)
+                    left_depth = right_partition.get_prompt("Left Depth")
+                    left_depth.set_formula('fabs(Depth)', [Depth])
+
+                    right_partition.loc_y('Depth', [Depth])
+
+                    right_partition.loc_x('Width+Thickness',z_loc_vars)
+                    if previous_splitter:
+                        right_partition.loc_z('Splitter_Z_Loc-Opening_' + str(i) + '_Height-Thickness',z_loc_vars)
+                    else:
+                        right_partition.loc_z('Height-Opening_' + str(i) + '_Height-Thickness',z_loc_vars)
+
+                    right_partition.rot_y(value=math.radians(-90))
+                    right_partition.dim_x('Opening_' + str(i) + '_Height+Thickness',z_loc_vars)
+                    right_partition.dim_y('-Depth',z_loc_vars)
+                    right_partition.dim_z('Thickness',z_loc_vars)
             
             previous_splitter = splitter
             
             opening_z_loc_vars = []
             opening_z_loc = previous_splitter.obj_bp.snap.get_var("location.z", "Splitter_Z_Loc")
             opening_z_loc_vars.append(opening_z_loc)
-            
+
+              
             opening = self.get_opening(i)
             self.add_insert(opening, i, opening_z_loc_vars, "Splitter_Z_Loc", opening.obj_bp["OPENING_NBR"])
 
