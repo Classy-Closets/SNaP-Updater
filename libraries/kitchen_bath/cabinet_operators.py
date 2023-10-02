@@ -75,7 +75,6 @@ def get_product_profile_mesh(carcass_shape, name, size):
 
    
     if carcass_shape == 'DIAGONAL':
-        print("diagonal")
         verts = [(0.0, 0.0, 0.0),
              (0.0, y, 0.0),
              (l, y, 0.0),
@@ -98,7 +97,6 @@ def get_product_profile_mesh(carcass_shape, name, size):
                 ]
 
     elif carcass_shape == 'NOTCHED':
-        print("notched")
         verts = [(0.0, 0.0, 0.0),
              (0.0, y, 0.0),
              (l, y, 0.0),
@@ -124,7 +122,6 @@ def get_product_profile_mesh(carcass_shape, name, size):
                  (5, 0, 6, 11),
                 ]
     else:
-        print("rectangle")
         verts = [(0.0, 0.0, 0.0),
              (0.0, y, 0.0),
              (x, y, 0.0),
@@ -160,40 +157,35 @@ def add_rectangle_molding(product,is_crown=True):
         right_end_condition = carcass.get_prompt("Right End Condition")
         if not right_end_condition:
             right_end_condition = carcass.add_prompt("Right End Condition", 'COMBOBOX', 0, ['MP', 'EP'])
-        left_side_wall_filler = carcass.get_prompt("Left Side Wall Filler")
-        right_side_wall_filler = carcass.get_prompt("Right Side Wall Filler")
+
         setback = 0
         if toe_kick_setback and is_crown == False:
             setback = toe_kick_setback.get_value()
-        
+
         points = []
 
-        #LEFT
-        if left_side_wall_filler.get_value() > 0:
-            points.append((-left_side_wall_filler.get_value(),depth+setback,0))
-        elif left_end_condition.get_value() == 1:  # End Panel
-            points.append((0,0,0))
-            points.append((0,depth+setback,0))
-        elif left_fin_end.get_value() == True:
-            points.append((0,0,0))
-            points.append((0,depth+setback,0))
+        # LEFT
+        if left_end_condition.get_value() == 1:  # End Panel
+            points.append((0, 0, 0))
+            points.append((0, depth + setback, 0))
+        elif left_fin_end.get_value():
+            points.append((0, 0, 0))
+            points.append((0, depth + setback, 0))
         else:
-            points.append((0,depth+setback,0))
-            
-        #RIGHT
-        if right_side_wall_filler.get_value() > 0:
-            points.append((width + right_side_wall_filler.get_value(),depth+setback,0))
-        elif right_end_condition.get_value() == 1:  # End Panel
-            points.append((width,depth+setback,0))
-            points.append((width,0,0))
-        elif right_fin_end.get_value() == True:
-            points.append((width,depth+setback,0))
-            points.append((width,0,0))
+            points.append((0, depth + setback, 0))
+
+        # RIGHT
+        if right_end_condition.get_value() == 1:  # End Panel
+            points.append((width, depth + setback, 0))
+            points.append((width, 0, 0))
+        elif right_fin_end.get_value():
+            points.append((width, depth + setback, 0))
+            points.append((width, 0, 0))
         else:
-            points.append((width,depth+setback,0))
-        
+            points.append((width, depth + setback, 0))
+
         return points
-      
+
 def add_inside_molding(product,is_crown=True,is_notched=True):
     carcass = get_carcass_insert(product)
     width = product.obj_x.location.x
@@ -363,24 +355,6 @@ class OPERATOR_Frameless_Standard_Draw_Plan(bpy.types.Operator):
         assembly_mesh.matrix_world = self.product.obj_bp.matrix_world
         assembly_mesh.snap.type = 'CAGE'
         assembly_mesh['IS_BP_CABINET'] = True
-        
-        if self.left_filler_amount > 0:
-            l_filler_mesh = sn_utils.create_cube_mesh(self.product.obj_bp.snap.name_object,
-                                                (-self.left_filler_amount,
-                                                 sn_unit.inch(.75),
-                                                 self.product.obj_z.location.z))
-            l_filler_mesh.parent = assembly_mesh
-            l_filler_mesh.location.y = self.product.obj_y.location.y
-            
-        if self.right_filler_amount > 0:
-            r_filler_mesh = sn_utils.create_cube_mesh(self.product.obj_bp.snap.name_object,
-                                                (self.right_filler_amount,
-                                                 sn_unit.inch(.75),
-                                                 self.product.obj_z.location.z))
-            r_filler_mesh.parent = assembly_mesh   
-            r_filler_mesh.location.x = self.product.obj_x.location.x
-            r_filler_mesh.location.y = self.product.obj_y.location.y
-            
 
         wall_bp = sn_utils.get_wall_bp(self.product.obj_bp)
         parent_rot = 0
@@ -663,26 +637,30 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
         empty_assembly = sn_types.Assembly()
         empty_assembly.create_assembly()
         empty_assembly.set_name(curve.name)
+        empty_assembly.obj_bp.snap.type_group = 'INSERT'
         empty_assembly.obj_bp["IS_KB_MOLDING"] = True
         empty_assembly.add_prompt("Exposed Left", 'CHECKBOX', False)
         empty_assembly.add_prompt("Exposed Right", 'CHECKBOX', False)
         empty_assembly.add_prompt("Exposed Back", 'CHECKBOX', False)
 
         if self.is_crown:
+            empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
             if "Flat Crown" in context.scene.lm_cabinets.crown_molding:
-                empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
+                # empty_assembly.obj_bp["IS_BP_CROWN_MOLDING"] = True
                 empty_assembly.obj_bp.snap.comment_2 = "1078"
                 empty_assembly.obj_bp["IS_BP_FLAT_CROWN"] = True
                 empty_assembly.obj_bp.sn_closets.flat_crown_bp = True
             
         if self.is_light_rail:
+            empty_assembly.obj_bp["IS_BP_LIGHT_RAIL"] = True
             if "Light Rail" in curve.name:
-                empty_assembly.obj_bp["IS_BP_LIGHT_RAIL"] = True
                 empty_assembly.obj_bp.snap.comment_2 = "1040"
                 empty_assembly.set_name("Light Rail")
                 empty_assembly.get_prompt("Exposed Left").set_value(value=True)
                 empty_assembly.get_prompt("Exposed Right").set_value(value=True)
                 empty_assembly.get_prompt("Exposed Back").set_value(value=True)
+        if self.is_base:
+            empty_assembly.obj_bp["IS_BP_BASE_MOLDING"] = True
 
         # curve.snap.type_mesh = 'CUTPART'
         # curve.snap.use_multiple_edgeband_pointers = True
@@ -709,57 +687,79 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
     def execute(self, context):
         self.is_base = True if self.molding_type == 'Base' else False
         self.is_crown = True if self.molding_type == 'Crown' else False
-        self.is_light_rail = True if self.molding_type == 'Light' else False        
-        
+        self.is_light_rail = True if self.molding_type == 'Light' else False
+
         self.clean_up_room(context)
         self.profile = None
         products = self.get_products()
         for product in products:
             shape = product.obj_bp.lm_cabinets.product_shape
 
+            # Check for stacked upper cabinets and skip adding light rail
+            if self.is_light_rail and product.obj_bp.lm_cabinets.product_sub_type == 'Upper':
+                product_below = product.get_adjacent_assembly(direction='BELOW')
+
+                # Skip adding light rail if cabinet below is within 6" of this cabinet
+                if product_below:
+                    space = sn_unit.inch(6)
+                    product_below_z_loc = product_below.obj_bp.location.z
+                    product_below_height = product_below.obj_z.location.z
+
+                    if product_below.obj_bp.lm_cabinets.product_sub_type == 'Upper':
+                        if product_below_z_loc > product.obj_bp.location.z - abs(product.obj_z.location.z) - space:
+                            continue
+                    else:
+                        if product_below_z_loc + product_below_height > product.obj_bp.location.z + product.obj_z.location.z - space:
+                            continue
+
             if (self.is_crown or self.is_light_rail) and product.obj_bp.lm_cabinets.product_sub_type == 'Base':
-                continue # DONT ADD CROWN OR LIGHT RAIL MOLDING TO BASE
-            
+                continue  # DONT ADD CROWN OR LIGHT RAIL MOLDING TO BASE
+
             if (self.is_crown or self.is_light_rail) and product.obj_bp.lm_cabinets.product_sub_type == 'Sink':
-                continue # DONT ADD CROWN OR LIGHT RAIL MOLDING TO SINK            
-            
+                continue  # DONT ADD CROWN OR LIGHT RAIL MOLDING TO SINK
+
             if self.is_light_rail and product.obj_bp.lm_cabinets.product_sub_type == 'Tall':
-                continue # DONT ADD LIGHT RAIL MOLDING TO TALL            
-            
+                continue  # DONT ADD LIGHT RAIL MOLDING TO TALL
+
             if product.obj_bp.lm_cabinets.product_sub_type == 'Suspended':
-                continue # DONT ADD MOLDING TO SUSPENDED
-            
+                continue  # DONT ADD MOLDING TO SUSPENDED
+
             if self.is_base and product.obj_bp.lm_cabinets.product_sub_type == 'Upper':
-                continue # DONT ADD BASE MOLDING TO UPPER        
-            
+                continue  # DONT ADD BASE MOLDING TO UPPER
+
             if shape == 'RECTANGLE':
-                points = add_rectangle_molding(product,self.is_crown)
+                points = add_rectangle_molding(product, self.is_crown)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
+                    curve = self.create_extrusion(
+                        context, points, self.is_crown, self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
-                    
+
             if shape == 'INSIDE_NOTCH':
-                points = add_inside_molding(product,self.is_crown,True)
+                points = add_inside_molding(product, self.is_crown, True)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
+                    curve = self.create_extrusion(
+                        context, points, self.is_crown, self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
-                
+
             if shape == 'INSIDE_DIAGONAL':
-                points = add_inside_molding(product,self.is_crown,False)
+                points = add_inside_molding(product, self.is_crown, False)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
+                    curve = self.create_extrusion(
+                        context, points, self.is_crown, self.is_light_rail, self.is_base, product)
                     self.set_curve_location(context, product, curve, self.is_crown)
-                
+
             if shape == 'OUTSIDE_DIAGONAL':
-                pass #TODO
-            
+                pass  # TODO
+
             if shape == 'OUTSIDE_RADIUS':
-                pass #TODO
-            
+                pass  # TODO
+
             if shape == 'TRANSITION':
-                points = add_transition_molding(product,self.is_crown)
+                points = add_transition_molding(product, self.is_crown)
                 if points:
-                    curve = self.create_extrusion(context, points, self.is_crown ,self.is_light_rail, self.is_base, product)
+                    curve = self.create_extrusion(
+                        context, points, self.is_crown, self.is_light_rail, self.is_base, product)
+
                     self.set_curve_location(context, product, curve, self.is_crown)
 
         return {'FINISHED'}

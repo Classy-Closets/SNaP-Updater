@@ -78,7 +78,7 @@ class SN_SCENE_OT_user_clear_2d_views(Operator):
                 obstacle_bp = sn_utils.get_obstacle_bp(obj)
                 annotation = obj.get('IS_ANNOTATION')
                 cabinet_product = sn_utils.get_cabinet_bp(obj)
-                if cabinet_product:
+                if cabinet_product or obj.get('IS_KB_LABEL'):
                     continue
                 if obstacle_bp or annotation:
                     continue

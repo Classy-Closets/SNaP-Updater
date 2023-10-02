@@ -5,6 +5,7 @@ from . import drawer_boxes
 from . import cabinet_properties
 from snap.libraries.closets import closet_paths
 from snap.libraries.closets.ops.drop_closet import PlaceClosetInsert
+from snap.libraries.appliances import appliance_inserts
 from os import path
 import math
 
@@ -674,3 +675,148 @@ class INSERT_Rollouts(Rollouts):
         self.height = sn_unit.inch(34)
         self.depth = sn_unit.inch(23)
         self.rollout_qty = 2
+
+
+
+
+
+# #---------INSERT: PARAMETRIC APPLIANCES        
+        
+# class INSERT_Microwave_Generic(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Microwave Generic"
+#         self.appliance_name = "Microwave Generic"      
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Microwave"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+        
+# class INSERT_Wall_Oven_Generic(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Wall Oven Generic"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wall Oven"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+#         self.appliance_name = "Wall Oven Generic"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wall Oven"
+        
+# class INSERT_Wall_Oven_30_Monogram(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Wall Oven 30 Monogram"
+#         self.appliance_name = "Wall Oven 30 Monogram"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wall Oven"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+        
+# class INSERT_Microwave_30_Monogram(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Microwave 30 Monogram"
+#         self.appliance_name = "Microwave 30 Monogram"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wall Oven"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+
+# class INSERT_Wall_Oven_Hearth_30_Monogram(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Wall Oven Hearth 30 Monogram"
+#         self.appliance_name = "Wall Oven Hearth 30 Monogram"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wall Oven"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+
+
+# class INSERT_Dishwasher_Generic(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Dishwasher Generic"
+#         self.appliance_name = "Dishwasher Generic"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Dishwasher"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+        
+# class INSERT_Dishwasher_24_Cove(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Dishwasher 24 Cove"
+#         self.appliance_name = "Dishwasher 24 Cove"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Dishwasher"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+
+# class INSERT_Wine_Cooler_Generic(appliance_inserts.Parametric_Built_In_Appliance):
+    
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Wine Cooler Generic"
+#         self.appliance_name = "Wine Cooler Generic"
+#         self.appliance_type = "Built-In Appliance"
+#         self.appliance_subtype = "Wine Cooler"
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+
+# class INSERT_Gas_Rangetop_36_Monogram(appliance_inserts.Parametric_Built_In_Appliance):
+
+#     def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Gas Rangetop 36 Monogram"
+#         self.appliance_name = "Gas Rangetop 36 Monogram"
+#         self.appliance_type = "Rangetop Appliance"
+#         self.appliance_subtype = "Rangetop"
+#         # self.appliance_path = os.path.join(COOKTOP_APPLIANCE_PATH, "Gas Rangetop 36 Monogram.blend")
+#         # super().__init__()
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+
+# class INSERT_Gas_Rangetop_48_Monogram(appliance_inserts.Parametric_Built_In_Appliance):
+
+#        def __init__(self):
+#         self.library_name = LIBRARY_NAME
+#         self.category_name = appliance_inserts.INSERT_APPLIANCE_CATEGORY_NAME
+#         self.assembly_name = "Gas Rangetop 48 Monogram"
+#         self.appliance_name = "Gas Rangetop 48 Monogram"
+#         self.appliance_type = "Rangetop Appliance"
+#         self.appliance_subtype = "Rangetop"
+#         # self.appliance_path = os.path.join(COOKTOP_APPLIANCE_PATH, "Gas Rangetop 48 Monogram.blend")
+#         # super().__init__()
+#         self.width = sn_unit.inch(30)
+#         self.height = sn_unit.inch(14)
+#         self.depth = sn_unit.inch(12.5)
+        
+

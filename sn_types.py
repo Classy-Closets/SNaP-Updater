@@ -680,7 +680,7 @@ class Assembly:
         if grp1_x_1 >= grp2_x_1 and grp1_x_1 < grp2_x_2:
             return True
 
-        if grp1_x_1 <= grp2_x_1 and grp1_x_2 >= grp2_x_1:
+        if grp1_x_1 <= grp2_x_1 and grp1_x_2 > grp2_x_1:
             return True
 
     def get_collision_location(self, direction='LEFT'):
@@ -864,6 +864,13 @@ class Assembly:
         for index, obj_bp in enumerate(list_obj_bp_z):
             if obj_bp.name == self.obj_bp.name:
                 list_obj_below_bp = list_obj_bp_z[:index]
+                list_obj_below_bp.reverse()  # Reverse the list so we can check for the closest object below
+
+        # for obj_bp in list_obj_below_bp:
+        #     if not self.has_width_collision(Assembly(obj_bp)):
+        #         if self.obj_bp.name == "2 Door Upper.002":
+        #             pass
+        #             #print("Collision detected:", self.obj_bp, obj_bp)
 
         if direction == 'LEFT':
             list_obj_left_bp.reverse()
@@ -879,7 +886,7 @@ class Assembly:
                     return Assembly(obj_bp)
 
         if direction == 'ABOVE':
-            if not "IS_BP_CABINET" in self.obj_bp:
+            if "IS_BP_CABINET" not in self.obj_bp:
                 colliding_products = [
                     Assembly(obj_bp) for obj_bp in list_obj_bp if self.has_width_collision(Assembly(obj_bp))]
                 for assy in colliding_products:

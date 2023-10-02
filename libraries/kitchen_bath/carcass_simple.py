@@ -1195,6 +1195,14 @@ class Island_Carcass(sn_types.Assembly):
     opening_6_width = 0
     opening_7_width = 0
     opening_8_width = 0
+    opening_9_width = 0
+    opening_10_width = 0
+    opening_11_width = 0
+    opening_12_width = 0
+    opening_13_width = 0
+    opening_14_width = 0
+    opening_15_width = 0
+    opening_16_width = 0
 
     def create_dimensions(self):
         create_dimensions(self) # Call module level function to create/recreate door dim labels
@@ -1550,6 +1558,8 @@ class Island_Carcass(sn_types.Assembly):
 
         backing_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
         backing_cap.set_name("Backing Cap")
+        backing_cap.obj_bp['IS_BACK'] = True
+        backing_cap.obj_bp['IS_BACKING_CAP'] = True
         backing_cap.dim_x('Height',[Height])
         backing_cap.dim_y('-Chase_Cap_Thickness',[Chase_Cap_Thickness])
         backing_cap.dim_z('-Width', [Width])
@@ -1803,7 +1813,6 @@ class Island_Carcass(sn_types.Assembly):
 
         toe_kick.get_prompt('Toe Kick Height').set_formula('Toe_Kick_Height', [Toe_Kick_Height])
   
-
     def add_toe_kick(self):
         row_start_nbr, row_end_nbr = self.get_row_opening_nbrs(ISLAND_FRONT_ROW)
 
@@ -1811,7 +1820,7 @@ class Island_Carcass(sn_types.Assembly):
         tk_end_nbr = row_start_nbr + 1 if row_start_nbr < row_end_nbr else row_start_nbr
         self.create_toe_kick(ISLAND_FRONT_ROW, tk_start_nbr, tk_end_nbr)
 
-        if tk_end_nbr < row_end_nbr:
+        while tk_end_nbr < row_end_nbr:
             tk_start_nbr = tk_end_nbr + 1
             tk_end_nbr = tk_start_nbr + 1 if tk_start_nbr < row_end_nbr else tk_start_nbr
             self.create_toe_kick(ISLAND_FRONT_ROW, tk_start_nbr, tk_end_nbr)
@@ -1823,7 +1832,7 @@ class Island_Carcass(sn_types.Assembly):
             tk_end_nbr = row_start_nbr + 1 if row_start_nbr < row_end_nbr else row_start_nbr
             self.create_toe_kick(ISLAND_BACK_ROW, tk_start_nbr, tk_end_nbr)
 
-            if tk_end_nbr < row_end_nbr:
+            while tk_end_nbr < row_end_nbr:
                 tk_start_nbr = tk_end_nbr + 1
                 tk_end_nbr = tk_start_nbr + 1 if tk_start_nbr < row_end_nbr else tk_start_nbr
                 self.create_toe_kick(ISLAND_BACK_ROW, tk_start_nbr, tk_end_nbr)

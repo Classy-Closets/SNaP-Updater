@@ -13,9 +13,12 @@ import math
 
 
 LIBRARY_NAME_SPACE = "sn_kitchen_bath"
-MICROWAVE =  os.path.join(os.path.dirname(__file__),"Appliances","Conventional Microwave.blend")
-VENT =  os.path.join(os.path.dirname(__file__),"Appliances","Wall Mounted Range Hood.blend")
-REFRIGERATOR = os.path.join(os.path.dirname(__file__),"Appliances", "Professional Refrigerator Generic.blend")
+# MICROWAVE =  os.path.join(os.path.dirname(__file__),"Appliances","Microwave Hood Generic.blend")
+# VENT =  os.path.join(os.path.dirname(__file__),"Appliances","Range Hood Generic.blend")
+# REFRIGERATOR = os.path.join(os.path.dirname(__file__),"Appliances", "Refrigerator Generic.blend")
+MICROWAVE =  os.path.join(sn_paths.APPLIANCE_DIR,"assets","Built-In","Microwave Hood Generic.blend")
+VENT =  os.path.join(sn_paths.APPLIANCE_DIR,"assets","Built-In","Range Hood Generic.blend")
+REFRIGERATOR = os.path.join(sn_paths.APPLIANCE_DIR,"assets","Refrigerators", "Refrigerator Generic.blend")
 BLIND_PANEL = os.path.join(closet_paths.get_closet_assemblies_path(), "Part with Edgebanding.blend")
 
 ISLAND_FRONT_ROW = 0
@@ -31,7 +34,6 @@ def add_product_width_dimension(product):
         if not carcass and child.get("IS_BP_CARCASS"):
             carcass = sn_types.Assembly(child)
         if child.get("WIDTH_LABEL"):
-            # print("PREV_product_width_dimensions - product.obj_bp.child=",child)
             sn_utils.delete_object_and_children(child)
 
     Product_Width = product.obj_x.snap.get_var('location.x','Product_Width')
@@ -52,8 +54,8 @@ def add_product_width_dimension(product):
         dim.start_y(value=sn_unit.inch(8))
     else:
         dim.start_y(value=sn_unit.inch(3))
-    dim.start_x('Left_Side_Wall_Filler',[Left_Side_Wall_Filler])
-    dim.end_x('Product_Width-Left_Side_Wall_Filler-Right_Side_Wall_Filler',[Product_Width,Left_Side_Wall_Filler,Right_Side_Wall_Filler])
+
+    dim.start_x('Left_Side_Wall_Filler+Product_Width/2',[Left_Side_Wall_Filler,Product_Width])
 
 def add_product_depth_dimension(product):
     carcass = product.carcass
@@ -66,16 +68,17 @@ def add_product_depth_dimension(product):
             sn_utils.delete_object_and_children(child)
 
     Product_Height = product.obj_z.snap.get_var('location.z','Product_Height')
+    Filler = carcass.get_prompt("Left Side Wall Filler").get_var('Filler')
     Toe_Kick_Height_ppt = carcass.get_prompt('Toe Kick Height')
     Toe_Kick_Height = None
     if Toe_Kick_Height_ppt:
         Toe_Kick_Height = Toe_Kick_Height_ppt.get_var()
-
+    
     hashmark = sn_types.Line(sn_unit.inch(6), (0, 45, 0))
-    # hashmark.parent(carcass.obj_bp)
     hashmark.parent(product.obj_bp)
     hashmark.anchor["IS_KB_LABEL"] = True
     hashmark.anchor['DEPTH_HASHMARK_LABEL'] = True
+    hashmark.start_x("Filler",[Filler])
    
     if (hasattr(product, "mirror_z") and product.mirror_z) or carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
         hashmark.anchor.location.z = product.obj_z.location.z 
@@ -97,10 +100,10 @@ def add_product_depth_dimension(product):
     dim.anchor["DEPTH_LABEL"] = True
 
     if Toe_Kick_Height:
-        dim.start_x("1.4*IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)",[Toe_Kick_Height])
+        dim.start_x("1.4*IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)+Filler",[Toe_Kick_Height,Filler])
         dim.start_z("2*IF(Toe_Kick_Height==0,INCH(3.52),Toe_Kick_Height)+INCH(1.5)",[Toe_Kick_Height])
     else:
-        dim.start_x("INCH(5)")
+        dim.start_x("INCH(5)+Filler",[Filler])
         dim.start_z("Product_Height+INCH(5)",[Product_Height])
 
     abs_y_loc = math.fabs(sn_unit.meter_to_inch(product.obj_y.location.y))
@@ -114,7 +117,6 @@ def add_product_filler_dimension(product, filler_side):
         if not carcass and child.get("IS_BP_CARCASS"):
             carcass = sn_types.Assembly(child)
         if child.get("FILLER_WIDTH_" + filler_side.upper() + "_LABEL"):
-            # print("PREV_product_filler_width_dimensions - product.obj_bp.child=",child)
             sn_utils.delete_object_and_children(child)
 
     Product_Width = product.obj_x.snap.get_var('location.x','Product_Width')
@@ -136,10 +138,9 @@ def add_product_filler_dimension(product, filler_side):
         dim.start_y(value=sn_unit.inch(3))
     
     if filler_side == 'Left':
-        dim.end_x('Filler',[Filler])
+        dim.start_x('Filler/2',[Filler])
     else:
-        dim.start_x('Product_Width-Filler',[Product_Width,Filler])
-        dim.end_x('Filler',[Filler])
+        dim.start_x('Product_Width-Filler/2',[Product_Width,Filler])
 
 def add_product_blind_width_dimension(product):
     carcass = product.carcass
@@ -215,24 +216,62 @@ def create_dimensions(assembly):
             drawers_insert.create_dimensions()
 
 def update_dimensions(assembly):
-    prod_dimensions = []
+    depth_dimensions = []
+    width_dimensions = []
+    filler_dimensions = []
+    carcass = None
     blind_width_dimensions = []
     blind_panel_bp = None
 
+
     for child in assembly.obj_bp.children:
-        if 'DEPTH_LABEL' in child:
-            prod_dimensions.append(child)
+        if 'WIDTH_LABEL' in child:
+            width_dimensions.append(child)
+        elif 'FILLER_WIDTH_LEFT_LABEL' in child or 'FILLER_WIDTH_RIGHT_LABEL' in child:
+            filler_dimensions.append(child)
+        elif 'DEPTH_LABEL' in child:
+            depth_dimensions.append(child)
+        elif 'IS_BP_CARCASS' in child:
+            carcass = sn_types.Assembly(child)
         elif 'IS_BP_BLIND_PANEL' in child:
             blind_panel_bp = child
             for subchild in blind_panel_bp.children:
                 if 'BLIND_LABEL' in subchild:
                     blind_width_dimensions.append(subchild)
        
-    for anchor in prod_dimensions:
-        prod_assembly = sn_types.Assembly(anchor.parent)
-        abs_y_loc = math.fabs(sn_unit.meter_to_inch(prod_assembly.obj_y.location.y))
+    for anchor in depth_dimensions:
+        parent = sn_types.Assembly(anchor.parent)
+        abs_y_loc = math.fabs(sn_unit.meter_to_inch(parent.obj_y.location.y))
         dim_y_label = str(round(abs_y_loc, 2)) + '\"'
         anchor.snap.opengl_dim.gl_label = str(dim_y_label)
+
+    for anchor in width_dimensions:
+        parent = sn_types.Assembly(anchor.parent)
+        width = parent.obj_x.location.x
+        left_filler_ppt = carcass.get_prompt("Left Side Wall Filler")
+        if left_filler_ppt:
+            left_filler = left_filler_ppt.get_value()
+            right_filler = carcass.get_prompt("Right Side Wall Filler").get_value()
+
+        abs_x_loc = math.fabs(sn_unit.meter_to_inch(width-left_filler-right_filler))
+        dim_x_label = str(round(abs_x_loc, 2)) + '\"'
+        anchor.snap.opengl_dim.gl_label = str(dim_x_label)
+
+    for anchor in filler_dimensions:
+        parent = sn_types.Assembly(anchor.parent)
+        width_ppt = None
+        if anchor.get("FILLER_WIDTH_LEFT_LABEL"):
+            width_ppt = carcass.get_prompt("Left Side Wall Filler")
+        elif anchor.get("FILLER_WIDTH_RIGHT_LABEL"):
+            width_ppt = carcass.get_prompt("Right Side Wall Filler")
+
+        if width_ppt:
+            if width_ppt.get_value() > 0.01:
+                width_value = math.fabs(sn_unit.meter_to_inch(width_ppt.get_value()))
+                width_label = str(round(width_value, 2)) + '\"' + '|Filler'
+            else:
+                width_label = ""
+        anchor.snap.opengl_dim.gl_label = str(width_label)
 
     for anchor in blind_width_dimensions:
         parent = sn_types.Assembly(blind_panel_bp.parent)
@@ -481,6 +520,7 @@ class Standard(sn_types.Assembly):
     splitter = None
     interior = None
     exterior = None
+    rangetop = None
     add_empty_opening = False
     add_microwave = False
     add_vent_hood = False
@@ -496,6 +536,21 @@ class Standard(sn_types.Assembly):
 
     def update_dimensions(self):
         update_dimensions(self)  # Call module level function to find and update door/drawer dim labels
+
+    def add_rangetop_appliance(self, insert):
+        if insert:
+            if not insert.obj_bp:
+                insert.draw()
+                insert.obj_bp.parent = self.obj_bp
+
+        # insert.obj_bp['OPENING_NBR'] = 1
+
+        Product_Width = self.obj_x.snap.get_var('location.x','Product_Width')
+        Product_Height = self.obj_z.snap.get_var('location.z','Product_Height')
+        Product_Depth = self.obj_y.snap.get_var('location.y','Product_Depth')
+        insert.loc_x(value=0)
+        insert.loc_z('Product_Height',[Product_Height])
+    
 
     def update(self):
         props = cabinet_properties.get_scene_props().size_defaults
@@ -537,6 +592,9 @@ class Standard(sn_types.Assembly):
 
         if self.exterior:
             add_insert(self, self.exterior)
+
+        if self.rangetop:
+            self.add_rangetop_appliance(self.rangetop)
 
         if self.add_empty_opening:
             add_opening(self)
@@ -633,8 +691,10 @@ class Refrigerator(sn_types.Assembly):
             ref_bp = self.add_assembly_from_file(REFRIGERATOR)
             ref = sn_types.Assembly(ref_bp)
             ref.set_name("Refrigerator")
-            self.obj_bp['IS_BP_APPLIANCE'] = True
-            self.obj_bp['PLACEMENT_TYPE'] = "Exterior"
+            ref.obj_bp['IS_BP_APPLIANCE'] = True
+            ref.obj_bp['PLACEMENT_TYPE'] = "Exterior"
+            ref.obj_bp['APPLIANCE_TYPE'] = "Wall Appliance"
+            ref.obj_bp['APPLIANCE_SUBTYPE'] = "Refrigerator"
             ref.obj_bp['SPLITTER_NBR'] = self.splitter.obj_bp['SPLITTER_NBR']
             ref.obj_bp['OPENING_NBR'] = 2
 
@@ -642,7 +702,7 @@ class Refrigerator(sn_types.Assembly):
             ref.loc_y("Product_Depth", [Product_Depth])
            
             ref.dim_x('Product_Width-(Left_Side_Thickness+Right_Side_Thickness)',[Product_Width,Left_Side_Thickness,Right_Side_Thickness])
-            ref.dim_y('-Product_Depth',[Product_Depth])
+            # ref.dim_y('-Product_Depth',[Product_Depth])
             ref.dim_y('-INCH(1.5)')
             # ref.dim_z('Opening_2_Height+INCH(4)',[Opening_2_Height])     
             ref.dim_z('INCH(71.5)')       

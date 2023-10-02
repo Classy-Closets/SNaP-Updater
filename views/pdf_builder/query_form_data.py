@@ -228,13 +228,16 @@ class Query_PDF_Form_Data:
                 walls[wall_letter]["drawer"].append(realname)
             elif dad_door and not hidden_pull:
                 walls[wall_letter]["door"].append(realname)
+
         for page, pg_walls in page_walls_dict.items():
-            pages_pulls[page] = {
-                "hamper": [], "door": [], "drawer": []}
+            pages_pulls[page] = {"hamper": [], "door": [], "drawer": []}
+
             for each in pg_walls:
-                pages_pulls[page]["hamper"] += walls[each]["hamper"]
-                pages_pulls[page]["door"] += walls[each]["door"]
-                pages_pulls[page]["drawer"] += walls[each]["drawer"]
+                if walls.get(each):
+                    pages_pulls[page]["hamper"] += walls[each]["hamper"]
+                    pages_pulls[page]["door"] += walls[each]["door"]
+                    pages_pulls[page]["drawer"] += walls[each]["drawer"]
+
         for page in pages_pulls.keys():
             hamper_count = dict(Counter(pages_pulls[page]["hamper"]))
             door_count = dict(Counter(pages_pulls[page]["door"]))

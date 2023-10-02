@@ -456,7 +456,8 @@ class PlaceClosetInsert(PlaceClosetAsset):
         if self.insert.obj_bp.snap.placement_type == 'INTERIOR':
             self.selected_opening.obj_bp.snap.interior_open = False
         if self.insert.obj_bp.snap.placement_type == 'EXTERIOR':
-            self.selected_opening.obj_bp.snap.exterior_open = False
+            if not self.insert.obj_bp.get("IS_BP_APPLIANCE"):
+                self.selected_opening.obj_bp.snap.exterior_open = False
         if self.insert.obj_bp.snap.placement_type == 'SPLITTER':
             self.selected_opening.obj_bp.snap.interior_open = False
             self.selected_opening.obj_bp.snap.exterior_open = False
@@ -610,10 +611,18 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
     bl_label = "Place Closet Product"
 
     is_corner_product = None
+    kb_is_targeting_back = False
+    original_asset_width = 0
 
     def position_asset(self, context):
         wall_bp = sn_utils.get_wall_bp(self.selected_obj)
         product_bp = sn_utils.get_closet_bp(self.selected_obj)
+        cabinet_bp = sn_utils.get_cabinet_bp(self.selected_obj)
+        island_bp = sn_utils.get_island_bp(self.selected_obj)
+        sel_assembly_bp = sn_utils.get_assembly_bp(self.selected_obj)
+        sel_assembly = sn_types.Assembly(sel_assembly_bp)
+        self.asset.obj_x.location.x = self.original_asset_width
+        self.kb_is_targeting_back = False
 
         if product_bp:
             self.selected_asset = sn_types.Assembly(product_bp)
@@ -634,27 +643,39 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             rot = self.selected_asset.obj_bp.rotation_euler.z
             x_loc = 0
             y_loc = 0
-
+             
             if wall_bp:
                 self.current_wall = sn_types.Assembly(wall_bp)
                 rot += self.current_wall.obj_bp.rotation_euler.z
-
-            if dist_to_bp < dist_to_x:
+            elif cabinet_bp and island_bp:
+                if "backing" in sel_assembly_bp.name.lower() or sel_assembly_bp.get("IS_BACK"):
+                    self.kb_is_targeting_back = True
+                    rot += math.radians(180)
+                else:
+                    self.asset.obj_x.location.x = self.original_asset_width
+           
+            if cabinet_bp and island_bp and self.kb_is_targeting_back:
+                self.placement = 'BACK'
+                add_x_loc = 0
+                add_y_loc = 0
+                x_loc = self.selected_asset.obj_x.matrix_world.translation.x
+                y_loc = sel_asset_loc_y - math.sin(rot) * self.asset.obj_x.location.x + add_y_loc
+                self.asset.obj_x.matrix_world.translation.x = self.selected_asset.obj_bp.matrix_world.translation.x
+            elif dist_to_bp < dist_to_x:
                 self.placement = 'LEFT'
                 add_x_loc = 0
                 add_y_loc = 0
                 x_loc = sel_asset_loc_x - math.cos(rot) * self.asset.obj_x.location.x + add_x_loc
-                y_loc = sel_asset_loc_y - math.sin(rot) * self.asset.obj_x.location.x + add_y_loc
-
+                y_loc = sel_asset_loc_y - math.sin(rot) * self.asset.obj_x.location.x + add_y_loc 
             else:
                 self.placement = 'RIGHT'
                 x_loc = sel_asset_loc_x + math.cos(rot) * self.selected_asset.obj_x.location.x
                 y_loc = sel_asset_loc_y + math.sin(rot) * self.selected_asset.obj_x.location.x
-
+            
             self.asset.obj_bp.rotation_euler.z = rot
             self.asset.obj_bp.location.x = x_loc
             self.asset.obj_bp.location.y = y_loc
-
+                  
         elif wall_bp:
             self.placement = 'WALL'
             self.current_wall = sn_types.Wall(wall_bp)
@@ -705,9 +726,26 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
 
         return floor_coll
 
+    def kb_update_island_backing_caps(self, obj_bp, hide=True):
+                hide_ppt = None
+                asset_back = None
+
+                for child in obj_bp.children:
+                    if "IS_BP_CARCASS" in child:
+                        for subchild in child.children:
+                            if "IS_BACKING_CAP" in subchild:
+                                asset_back = sn_types.Assembly(subchild)
+                                hide_ppt = asset_back.get_prompt("Hide")
+                                break
+                        break
+                if hide_ppt:
+                    hide_ppt.set_value(hide)
+
     def confirm_placement(self, context):
         has_floor_parent = False
         asset_will_fit = True
+        cabinet_bp = sn_utils.get_cabinet_bp(self.selected_obj)
+        island_bp = sn_utils.get_island_bp(self.selected_obj)
 
         if self.current_wall:
             x_loc = sn_utils.calc_distance(
@@ -741,11 +779,17 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
 
         if self.selected_obj.sn_roombuilder.is_floor or has_floor_parent:
             floor = self.selected_obj
+            
+            if not cabinet_bp and not island_bp:
+                self.asset.obj_bp.parent = floor
+                global_coord = self.asset.obj_bp.matrix_world.translation
+                local_coord = floor.matrix_world.inverted() @ global_coord
+                self.asset.obj_bp.location = local_coord
+            else:
+                self.asset.obj_bp.parent = floor_parent
+                self.kb_update_island_backing_caps(self.asset.obj_bp, self.kb_is_targeting_back)
+                self.kb_update_island_backing_caps(self.selected_asset.obj_bp, self.kb_is_targeting_back)
 
-            self.asset.obj_bp.parent = floor
-            global_coord = self.asset.obj_bp.matrix_world.translation
-            local_coord = floor.matrix_world.inverted() @ global_coord
-            self.asset.obj_bp.location = local_coord
             floor_coll = self.get_floor_collection(context)
 
             if floor.name not in floor_coll.objects:
@@ -755,7 +799,7 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             sn_utils.add_assembly_to_collection(self.asset.obj_bp, floor_coll, recursive=True)
             sn_utils.remove_assembly_from_collection(self.asset.obj_bp, context.scene.collection, recursive=True)
 
-        if not self.is_corner_product:
+        if not self.is_corner_product and not cabinet_bp and not island_bp:
             if self.placement == 'LEFT' and asset_will_fit:
                 self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
                 constraint_obj = self.asset.obj_x
@@ -801,6 +845,7 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
         self.draw_asset()
         self.run_asset_calculators()
         self.check_floor_scale(context)
+        self.original_asset_width = self.asset.obj_x.location.x
         l_shelf = "IS_BP_L_SHELVES" in self.asset.obj_bp
         corner_shelves = "IS_BP_CORNER_SHELVES" in self.asset.obj_bp
         if l_shelf or corner_shelves:

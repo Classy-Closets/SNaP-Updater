@@ -170,6 +170,15 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                                 items=get_panel_heights,
                                                 description="Default height in hole amt for base cabinets")
     
+    rangetop_cabinet_depth: bpy.props.FloatProperty(name="Rangetop Cabinet Depth",
+                                                description="Default depth for rangetop base cabinets",
+                                                default=sn_unit.inch(24.0),
+                                                unit='LENGTH')
+
+    rangetop_cabinet_height: bpy.props.EnumProperty(name="Rangetop Cabinet Height",
+                                                items=get_panel_heights,
+                                                description="Default height in hole amt for rangetop base cabinets")
+        
     base_inside_corner_size: bpy.props.FloatProperty(name="Base Inside Corner Size",
                                                      description="Default width and depth for the inside base corner cabinets",
                                                      default=sn_unit.inch(36.0),
@@ -257,12 +266,12 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
 
     width_dishwasher: bpy.props.FloatProperty(name="Width Dishwasher",
                                            description="Default width for dishwasher cabinets",
-                                           default=sn_unit.inch(24.0),
+                                           default=sn_unit.inch(25.5),
                                            unit='LENGTH')
 
     width_wine_cooler: bpy.props.FloatProperty(name="Width Wine Cooler",
                                            description="Default width for wine cooler cabinets",
-                                           default=sn_unit.inch(24.0),
+                                           default=sn_unit.inch(25.5),
                                            unit='LENGTH')
 
     base_width_blind: bpy.props.FloatProperty(name="Base Width Blind",
@@ -306,6 +315,7 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
     def load_default_heights(self):
 
         self.base_cabinet_height = '787'  #24 H
+        self.rangetop_cabinet_height = '627'   #19 H
         self.tall_cabinet_height = '2355'  #73 H
         self.upper_cabinet_height = '1011'   #31 H
         self.sink_cabinet_height = '787'    #24 H

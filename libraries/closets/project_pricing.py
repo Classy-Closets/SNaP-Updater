@@ -1149,11 +1149,11 @@ def generate_retail_parts_list():
             if sku_num[:2] in material_types:
                 if 'SF' in uom:
                     if part_name == "Flat Crown":
-                        sheet1["L" + str((i + 1) + 1)] = "--"
+                        sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
                         sheet1["M" + str((i + 1) + 1)] = get_linear_footage(float(length))
                     else:
                         sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
-                        sheet1["M" + str((i + 1) + 1)] = "--"
+                        sheet1["M" + str((i + 1) + 1)] = 0
 
                     is_vn_sku = 'VN' in sku_num[:2]
                     is_wd_sku = 'WD' in sku_num[:2]
@@ -1690,7 +1690,7 @@ def generate_retail_parts_list():
     )
 
     sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
-    
+
     df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
     sf_glass = pandas.pivot_table(df_glass, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
 
@@ -1849,7 +1849,7 @@ def generate_franchise_parts_list():
             if sku_num[:2] in material_types:
                 if 'SF' in uom:
                     sheet1["L" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
-                    sheet1["M" + str((i + 1) + 1)] = "--"
+                    sheet1["M" + str((i + 1) + 1)] = 0
 
                     is_vn_sku = 'VN' in sku_num[:2]
                     is_wd_sku = 'WD' in sku_num[:2]
@@ -2680,10 +2680,25 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                     sf_door_glass = get_square_footage(((length_inches-6.75)/2), width_inches-4.75)
                 else:
                     sf_door_glass = get_square_footage(length_inches-4.75, width_inches-4.75)
-                retail_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * retail_price) + door_labor_price[0]) * int(qty))
-                franchise_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * franchise_price) + door_labor_price[1]) * int(qty))
+                retail_glass_door_labor = 0
+                franchise_glass_door_labor = 0
+                # Melamine and Traviso Glass Door Labor Charges
+                if 'Traviso' in style_name:
+                    glass_door_labor_charge = get_price_by_sku('LB-0000020')
+                    R_LABOR_PRICES.append(glass_door_labor_charge[0] * int(qty))
+                    F_LABOR_PRICES.append(glass_door_labor_charge[1] * int(qty))
+                    retail_glass_door_labor = glass_door_labor_charge[0]
+                    franchise_glass_door_labor = glass_door_labor_charge[1]
+                elif "Melamine Door" in style_name:
+                    glass_door_labor_charge = get_price_by_sku('LB-0000021')
+                    R_LABOR_PRICES.append(glass_door_labor_charge[0] * int(qty))
+                    F_LABOR_PRICES.append(glass_door_labor_charge[1] * int(qty))
+                    retail_glass_door_labor = glass_door_labor_charge[0]
+                    franchise_glass_door_labor = glass_door_labor_charge[1]
+                retail_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * retail_price) + door_labor_price[0] + retail_glass_door_labor) * int(qty))
+                franchise_price = ((((get_square_footage(length_inches, width_inches) - sf_door_glass) * franchise_price) + door_labor_price[1] + franchise_glass_door_labor) * int(qty))
                 R_UPGRADED_PANEL_PRICES.append(retail_price)
-                F_UPGRADED_PANEL_PRICES.append(franchise_price)   
+                F_UPGRADED_PANEL_PRICES.append(franchise_price)
             else:
                 retail_price = (((get_square_footage(length_inches, width_inches) * retail_price) + door_labor_price[0]) * int(qty))
                 franchise_price = (((get_square_footage(length_inches, width_inches) * franchise_price) + door_labor_price[1]) * int(qty))
@@ -2963,9 +2978,11 @@ def calculate_project_price(xml_file, cos_flag=False):
                             if VALUE == "Left Door" or VALUE == "Right Door":
                                 VALUE = "Door"
                             dcname = VALUE
-                        if 'sku' in NAME:
+                        if NAME == 'sku':
                             sku_value = VALUE
                             if sku_value == 'Unknown':
+                                sku_value = 'SO-0000001'
+                            elif sku_value == 'None':
                                 sku_value = 'SO-0000001'
                         if NAME == 'wallname':
                             wall_name = VALUE
@@ -3209,9 +3226,11 @@ def calculate_project_price(xml_file, cos_flag=False):
                                 if VALUE == "Left Door" or VALUE == "Right Door":
                                     VALUE = "Door"
                                 dcname = VALUE
-                            if 'sku' in NAME:
+                            if NAME == 'sku':
                                 sku_value = VALUE
                                 if sku_value == 'Unknown':
+                                    sku_value = 'SO-0000001'
+                                elif sku_value == 'None':
                                     sku_value = 'SO-0000001'
                             if NAME == 'wallname':
                                 wall_name = VALUE
@@ -3456,9 +3475,11 @@ def calculate_project_price(xml_file, cos_flag=False):
                                     if VALUE == "Left Door" or VALUE == "Right Door":
                                         VALUE = "Door"
                                     dcname = VALUE
-                                if 'sku' in NAME:
+                                if NAME == 'sku':
                                     sku_value = VALUE
                                     if sku_value == 'Unknown':
+                                        sku_value = 'SO-0000001'
+                                    elif sku_value == 'None':
                                         sku_value = 'SO-0000001'
                                 if NAME == 'wallname':
                                     wall_name = VALUE

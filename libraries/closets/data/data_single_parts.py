@@ -1496,32 +1496,46 @@ class OPERATOR_Place_Valet_Rod(bpy.types.Operator, PlaceClosetInsert):
                     self.asset.obj_bp.location.z = 0
                     self.asset.obj_x.location.x = math.fabs(selected_assembly.obj_y.location.y)  # SET DEPTH
 
-                    if selected_assembly.obj_z.location.z < 0:  # LEFT PANEL
-                        if dist_to_bp > dist_to_z:  # PLACE ON RIGHT SIDE
-                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
-                            self.asset.obj_bp.rotation_euler.x = math.radians(90)
-                            self.asset.obj_bp.rotation_euler.y = math.radians(0)
-                            self.asset.obj_bp.rotation_euler.z = math.radians(270)
-                            self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
-                        else:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y + self.asset.obj_y.location.y
-                            self.asset.obj_bp.rotation_euler.x = math.radians(90)
-                            self.asset.obj_bp.rotation_euler.y = math.radians(180)
+                    product_bp = sn_utils.get_closet_bp(selected_assembly.obj_bp)
+
+                    if product_bp.get("IS_BP_L_SHELVES") or product_bp.get("IS_BP_CORNER_SHELVES"):
+                        self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
+
+                        if math.isclose(selected_assembly.obj_bp.rotation_euler.z, math.radians(180), rel_tol=1e-3):
+                            self.asset.obj_bp.rotation_euler.x = math.radians(-90)
                             self.asset.obj_bp.rotation_euler.z = math.radians(90)
-                            self.asset.obj_bp.location.z = 0
-                    else:  # CENTER AND RIGHT PANEL
-                        if dist_to_bp > dist_to_z:  # PLACE ON LEFT SIDE
-                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
+                            self.asset.obj_bp.location.z = sn_unit.inch(0.75)
+
+                        else:
                             self.asset.obj_bp.rotation_euler.x = math.radians(90)
-                            self.asset.obj_bp.rotation_euler.y = math.radians(180)
                             self.asset.obj_bp.rotation_euler.z = math.radians(90)
-                            self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
-                        else:  # PLACE ON RIGHT SIDE
-                            self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
-                            self.asset.obj_bp.rotation_euler.x = math.radians(90)
-                            self.asset.obj_bp.rotation_euler.y = math.radians(0)
-                            self.asset.obj_bp.rotation_euler.z = math.radians(270)
-                            self.asset.obj_bp.location.z = 0
+                    else:
+                        if selected_assembly.obj_z.location.z < 0:  # LEFT PANEL
+                            if dist_to_bp > dist_to_z:  # PLACE ON RIGHT SIDE
+                                self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
+                                self.asset.obj_bp.rotation_euler.x = math.radians(90)
+                                self.asset.obj_bp.rotation_euler.y = math.radians(0)
+                                self.asset.obj_bp.rotation_euler.z = math.radians(270)
+                                self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
+                            else:  # PLACE ON LEFT SIDE
+                                self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y + self.asset.obj_y.location.y
+                                self.asset.obj_bp.rotation_euler.x = math.radians(90)
+                                self.asset.obj_bp.rotation_euler.y = math.radians(180)
+                                self.asset.obj_bp.rotation_euler.z = math.radians(90)
+                                self.asset.obj_bp.location.z = 0
+                        else:  # CENTER AND RIGHT PANEL
+                            if dist_to_bp > dist_to_z:  # PLACE ON LEFT SIDE
+                                self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
+                                self.asset.obj_bp.rotation_euler.x = math.radians(90)
+                                self.asset.obj_bp.rotation_euler.y = math.radians(180)
+                                self.asset.obj_bp.rotation_euler.z = math.radians(90)
+                                self.asset.obj_bp.location.z = selected_assembly.obj_z.location.z
+                            else:  # PLACE ON RIGHT SIDE
+                                self.asset.obj_bp.location.y = selected_assembly.obj_y.location.y
+                                self.asset.obj_bp.rotation_euler.x = math.radians(90)
+                                self.asset.obj_bp.rotation_euler.y = math.radians(0)
+                                self.asset.obj_bp.rotation_euler.z = math.radians(270)
+                                self.asset.obj_bp.location.z = 0
 
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
             bpy.context.window.cursor_set('DEFAULT')

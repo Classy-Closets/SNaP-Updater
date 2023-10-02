@@ -211,6 +211,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                 if sn_utils.get_obstacle_bp(item) or "IS_ANNOTATION" in item:
                     continue
                 else:
+                    print("removing: " + item.name)
                     bpy.data.objects.remove(item, do_unlink=True)
 
         for obj in context.scene.collection.objects:
@@ -2226,27 +2227,27 @@ class SNAP_OT_Auto_Dimension(Operator):
                 if shelf.type == "MESH" and glass and shf:
                     self.add_glass_cutpart_dim(child, shelf, thickness)
 
-    # Its to figure out if has variable children
-    variable_sections_list = []
-
-    def has_variable_descendants(self, item):
+    def has_variable_descendants(self, item, variable_sections_list):
         opn = item.sn_closets.opening_name
         if opn:
             crcss_assy = sn_types.Assembly(item.parent)
             var_sect_ppt = crcss_assy.get_prompt(f'CTF Opening {opn}')
             if var_sect_ppt:
                 if var_sect_ppt.get_value():
-                    self.variable_sections_list.append(opn)
+                    variable_sections_list.append(opn)
             if len(item.children) > 0:
                 for i in item.children:
-                    self.has_variable_descendants(i)
+                    self.has_variable_descendants(i, variable_sections_list)
+
+        return variable_sections_list
 
     def variable_opening_label(self, item):
         for n_item in item.children:
             if n_item.snap.type_group == 'OPENING':
-                self.has_variable_descendants(n_item)
-                variable_sections = set(self.variable_sections_list)
-                self.variable_sections_list = []
+                variable_sections_list = []
+                variable_sections_list = self.has_variable_descendants(n_item, variable_sections_list)
+                variable_sections = set(variable_sections_list)
+
                 if len(variable_sections) > 0:
                     section_width = sn_types.Assembly(n_item).obj_x.location.x
                     dim = self.add_tagged_dimension(n_item)
@@ -2409,6 +2410,27 @@ class SNAP_OT_Auto_Dimension(Operator):
             dim = self.add_tagged_dimension(hashmark.end_point)
             dim.start_z(value=sn_unit.inch(2))
             dim.set_label(label)
+
+    def light_rails_kb_labeling(self, assembly):
+        parent_assy = sn_types.Assembly(assembly.obj_bp.parent)
+        cabinet_height = parent_assy.obj_z.location.z
+       
+        width = parent_assy.obj_x.location.x
+        height = assembly.obj_y.location.y
+        location = cabinet_height - height
+
+        x_offset = width / 2
+        z_offset = location
+
+        rotation = (135, 0, 90)
+        label = f'Light Rail {self.to_inch_lbl(abs(height))}'
+        hashmark = sn_types.Line(sn_unit.inch(2), rotation)
+        hashmark.parent(assembly.obj_bp)
+        hashmark.start_x(value=x_offset)
+        hashmark.start_z(value=z_offset)
+        dim = self.add_tagged_dimension(hashmark.end_point)
+        dim.start_z(value=sn_unit.inch(2))
+        dim.set_label(label)
 
     def wall_cleat_dimensions(self, assy):
         obj = assy.obj_bp
@@ -3170,25 +3192,27 @@ class SNAP_OT_Auto_Dimension(Operator):
                 is_kd = assembly.get_prompt("Is Locked Shelf")
                 obj_mesh = self.shelf_obj_mesh(assembly)
                 is_kd_on = scene_props.kds
+
                 if is_kd and is_kd.get_value() and is_kd_on and obj_mesh:
                     parent_assy = sn_utils.get_closet_bp(assembly.obj_bp)
-                    is_mesh = obj_mesh.type == 'MESH'
-                    if is_mesh:
-                        assy_bp = assembly.obj_bp
-                        width_middle = assembly.obj_x.location.x / 2
-                        height_middle = assembly.obj_z.location.z / 2
-                        minus_height_middle = -math.fabs(height_middle)
-                        x, y, z = self.get_object_global_location(obj_mesh)
-                        x, y, z = round(x, 2), round(y, 2), round(z, 2)
-                        has_near_kd = self.has_nearest_kd(
-                            (parent_assy.name, (x, y, z)))
-                        if not has_near_kd:
-                            tagged_kds.append((parent_assy.name, (x, y, z)))
-                            shelf_label = self.add_tagged_dimension(assy_bp)
-                            shelf_label.start_x(value=width_middle)
-                            shelf_label.start_y(value=0)
-                            shelf_label.start_z(value=minus_height_middle)
-                            shelf_label.set_label("KD")
+
+                    if parent_assy:
+                        if obj_mesh.type == 'MESH':
+                            assy_bp = assembly.obj_bp
+                            width_middle = assembly.obj_x.location.x / 2
+                            height_middle = assembly.obj_z.location.z / 2
+                            minus_height_middle = -math.fabs(height_middle)
+                            x, y, z = self.get_object_global_location(obj_mesh)
+                            x, y, z = round(x, 2), round(y, 2), round(z, 2)
+                            has_near_kd = self.has_nearest_kd((parent_assy.name, (x, y, z)))
+
+                            if not has_near_kd:
+                                tagged_kds.append((parent_assy.name, (x, y, z)))
+                                shelf_label = self.add_tagged_dimension(assy_bp)
+                                shelf_label.start_x(value=width_middle)
+                                shelf_label.start_y(value=0)
+                                shelf_label.start_z(value=minus_height_middle)
+                                shelf_label.set_label("KD")
 
             # DOOR HEIGHT LABEL
             if props.is_door_bp and scene_props.door_face_height:
@@ -3374,7 +3398,10 @@ class SNAP_OT_Auto_Dimension(Operator):
 
             # Light Rails Labeling
             if scene_props.light_rails and assembly.obj_bp.get("IS_BP_LIGHT_RAIL"):
-                self.light_rails_labeling(assembly)
+                if assembly.obj_bp.get("IS_KB_MOLDING"):
+                    self.light_rails_kb_labeling(assembly)
+                else:
+                    self.light_rails_labeling(assembly)
 
             # Partition Height
             # if scene_props.partition_height and props.is_panel_bp:

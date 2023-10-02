@@ -795,6 +795,7 @@ class SnapMaterialSceneProps(PropertyGroup):
 
             if any(door_drawer_parts):
                 door_style = assembly.get_prompt("Door Style")
+
                 if door_style:
                     if "Traviso" in door_style.get_value() or "Melamine Door Glass" in door_style.get_value():
                         if self.get_five_piece_melamine_door_color().name != 'None':
@@ -812,6 +813,13 @@ class SnapMaterialSceneProps(PropertyGroup):
                                     has_paint = door_color in self.get_paint_colors()
                                     if has_paint:
                                         return self.paint_colors[door_color].sku
+
+                    elif door_style.get_value() == "Slab Door":
+                        if type_code == 10:
+                            if self.upgrade_options.get_type().name == "Stain":
+                                return "VN-0000014"
+                            else:
+                                return "WD-0000010"
 
                 mat_type = self.door_drawer_materials.get_mat_type()
                 type_code = mat_type.type_code

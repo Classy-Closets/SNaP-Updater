@@ -1186,6 +1186,8 @@ class OPS_Export_XML(Operator):
 
         if "IS_KB_MOLDING" in assembly.obj_bp and not full_length_molding:
             length = 0
+            curve = None
+
             for child in assembly.obj_bp.children:
                 if child.type == 'CURVE':
                     curve = child
@@ -1334,7 +1336,9 @@ class OPS_Export_XML(Operator):
             category_number = drawer_material_number + "03"
         if obj.get("IS_BP_DRAWER_BOTTOM"):
             category_number = drawer_material_number + "04"
-        
+        if obj.get("IS_BP_FILE_RAIL"):
+            category_number = material_number + "68"
+
         # Melamine Hamper Face
         if obj.get("IS_BP_HAMPER_FRONT"):
             category_number = material_number + "58"
@@ -1379,6 +1383,8 @@ class OPS_Export_XML(Operator):
             category_number = material_number + "93"
         if obj.get("IS_BP_TOE_KICK_SKIN"):
             category_number = material_number + "99"
+        if obj.get("IS_BP_TOE_KICK_CAPPING_BASE"):
+            category_number = material_number + "79"
 
         # Countertop
         if obj.get("IS_BP_COUNTERTOP"):

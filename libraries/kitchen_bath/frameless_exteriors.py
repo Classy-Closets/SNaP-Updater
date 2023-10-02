@@ -814,8 +814,11 @@ class Vertical_Drawers(sn_types.Assembly):
         calc_distance_obj = self.add_empty(self.calculator_obj_name)
         calc_distance_obj.empty_display_size = .001
         self.calculator = self.obj_prompts.snap.add_calculator(self.calculator_name, calc_distance_obj)
+        # self.calculator.set_total_distance(
+        #     "Height-Vertical_Gap*(" + str(self.drawer_qty) +"-1)+Top_Overlay+Bottom_Overlay-(" + str(self.drawer_qty) +"-1)*INCH(0.025)",
+        #     [Height, Vertical_Gap, Top_Overlay, Bottom_Overlay])
         self.calculator.set_total_distance(
-            "Height-Vertical_Gap*(" + str(self.drawer_qty) +"-1)+Top_Overlay+Bottom_Overlay-(" + str(self.drawer_qty) +"-1)*INCH(0.025)",
+            "Height-Vertical_Gap*(" + str(self.drawer_qty) +"-1)+Top_Overlay+Bottom_Overlay+(" + str(self.drawer_qty) +"-1)*INCH(0.025)",
             [Height, Vertical_Gap, Top_Overlay, Bottom_Overlay])
 
         empties = []

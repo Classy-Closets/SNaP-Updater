@@ -233,8 +233,8 @@ class SNAP_OT_brd_library_items(Operator):
         script_file.write("select_objects()\n")
         script_file.write("bpy.ops.view3d.camera_to_view_selected()\n")
 
-        script_file.write("for mat in bpy.data.materials:\n")
-        script_file.write("    bpy.data.materials.remove(mat,do_unlink=True)\n")
+        # script_file.write("for mat in bpy.data.materials:\n")
+        # script_file.write("    bpy.data.materials.remove(mat,do_unlink=True)\n")
 
         #RENDER
         script_file.write("bpy.context.scene.camera.data.lens = 40\n")

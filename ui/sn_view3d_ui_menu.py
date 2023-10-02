@@ -172,9 +172,9 @@ class VIEW3D_MT_object_context_menu(Menu):
                     'sn_closets.delete_closet_insert',
                     text="Delete - {}".format(appliance_bp.snap.name_object),
                     icon='X')
-
+                
             if insert_bp:
-                if not carcass_bp and not countertop_bp:
+                if not appliance_bp and not carcass_bp and not countertop_bp:
                     layout.operator(
                         'sn_closets.copy_insert',
                         text="Copy - {}".format(insert_bp.snap.name_object),

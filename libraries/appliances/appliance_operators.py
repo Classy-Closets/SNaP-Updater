@@ -236,22 +236,79 @@ class SN_OT_place_appliance(bpy.types.Operator, PlaceApplianceAsset):
     bl_options = {'UNDO'}
 
     def drop(self, context, event):
+        appliance_swap = False
         selected_point, selected_obj, _ = sn_utils.get_selection_point(context, event, exclude_objects=self.exclude_objects)
         bpy.ops.object.select_all(action='DESELECT')
 
         if selected_obj:
             wall_bp = sn_utils.get_wall_bp(selected_obj)
             if wall_bp:
+                self.current_wall = sn_types.Assembly(wall_bp)
                 self.asset.obj_bp.rotation_euler.z = wall_bp.rotation_euler.z
+           
+            selected_appliance_bp = sn_utils.get_appliance_bp(selected_obj)
+            selected_cabinet_bp = sn_utils.get_cabinet_bp(selected_obj)
+            selected_cabinet_assembly = sn_types.Assembly(selected_cabinet_bp)
+            if selected_appliance_bp:   
+                if selected_appliance_bp.get("APPLIANCE_TYPE") == self.asset.obj_bp.get("APPLIANCE_TYPE"):
+                    selected_obj.select_set(True)
+                    appliance_swap = True
 
-        self.asset.obj_bp.location = selected_point
-
+        if appliance_swap:
+            self.asset.obj_bp.location.x = selected_appliance_bp.location.x
+            if selected_cabinet_bp:
+                self.asset.obj_bp.parent = selected_cabinet_bp
+                self.asset.obj_bp.rotation_euler = (0, 0, 0)
+                self.asset.obj_bp.location = selected_appliance_bp.location
+                self.asset.obj_bp.location = (0,sn_unit.inch(1),0)
+            else:
+                self.asset.obj_bp.parent = selected_appliance_bp.parent
+                self.asset.obj_bp.rotation_euler = (0, 0, 0)
+                self.asset.obj_bp.location = selected_appliance_bp.location
+        else:
+            self.asset.obj_bp.parent = None
+            self.asset.obj_bp.location = selected_point
+               
+        if self.asset.obj_bp.get("APPLIANCE_SUBTYPE") != 'Range Hood':
+            self.asset.obj_bp.location.z = 0
+ 
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
+
+            if hasattr(self, "current_wall"):
+                if selected_appliance_bp:
+                    if selected_appliance_bp.get("id_prompt"):
+                        self.asset.obj_bp["id_prompt"] = selected_appliance_bp["id_prompt"]
+                    sn_utils.delete_object_and_children(selected_appliance_bp)
+
+                if selected_cabinet_bp:
+                    self.asset.obj_bp.rotation_euler = (0, 0, 0)
+                    self.asset.obj_bp.location.x = sn_unit.inch(0.75)
+                    self.asset.obj_bp.location.y = selected_cabinet_assembly.obj_y.location.y
+                    self.asset.obj_bp.location.y -= self.asset.obj_y.location.y
+                elif selected_appliance_bp:
+                    self.asset.obj_bp.rotation_euler = (0, 0, 0)
+                else:
+                    x_loc = sn_utils.calc_distance(
+                        (
+                            self.asset.obj_bp.location.x,
+                            self.asset.obj_bp.location.y,
+                            0),
+                        (
+                            self.current_wall.obj_bp.matrix_local[0][3],
+                            self.current_wall.obj_bp.matrix_local[1][3],
+                            0))
+
+                    self.asset.obj_bp.location = (0, 0, self.asset.obj_bp.location.z)
+                    self.asset.obj_bp.rotation_euler = (0, 0, 0)
+                    self.asset.obj_bp.parent = self.current_wall.obj_bp
+                    self.asset.obj_bp.location.x = x_loc
+
             self.asset.display_type = 'TEXTURED'
             bpy.context.window.cursor_set('DEFAULT')
             bpy.ops.object.select_all(action='DESELECT')
             sn_utils.set_wireframe(self.asset.obj_bp, False)
             context.view_layer.objects.active = self.asset.obj_bp
+            self.asset.update_dimensions()
             self.asset.obj_bp.select_set(True)
             self.finish(context)
             return {'FINISHED'}
@@ -276,7 +333,8 @@ class SN_OT_drop_appliance(Operator, PlaceApplianceAsset):
             eval('bpy.ops.{}("INVOKE_DEFAULT", filepath=self.filepath)'.format(drop_id))
             return {'FINISHED'}
 
-        bpy.ops.windows_and_doors.place_product('INVOKE_DEFAULT', filepath=self.filepath)
+        # bpy.ops.windows_and_doors.place_product('INVOKE_DEFAULT', filepath=self.filepath)
+        bpy.ops.sn_appliances.place_appliance('INVOKE_DEFAULT', filepath=self.filepath)
 
         return {'FINISHED'}
 

@@ -59,6 +59,7 @@ class PDF_Director:
         # Add centered text at the top of the page
         builder.c.setFont(centered_style.fontName, centered_style.fontSize)
         builder.c.drawCentredString(builder.pagesize[0] / 2, builder.pagesize[1] - 36, text)
+        # builder.c.drawCentredString(builder.page_width / 2, builder.page_height - 36, text)
 
     def make(self, template: str, query_result) -> None:
         """Make the .pdf file with the style indicated in 'template'."""
@@ -87,6 +88,8 @@ class PDF_Director:
                     is_box_build = True
                     break
                 
+            # page_text = "Centered Text on Page {}".format(i + 1)
+            # self.add_centered_text(builder, page_text)
             if is_box_build:
                 self.add_centered_text(builder, "Box Build")
 
