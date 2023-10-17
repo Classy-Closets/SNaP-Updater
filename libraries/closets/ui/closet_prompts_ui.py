@@ -162,6 +162,15 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     Opening_7_Height: EnumProperty(name="Opening 7 Height", items=get_panel_heights)
     Opening_8_Height: EnumProperty(name="Opening 8 Height", items=get_panel_heights)
     Opening_9_Height: EnumProperty(name="Opening 9 Height", items=get_panel_heights)
+    Opening_1_Floor_Mounted: BoolProperty(name="Opening 1 Floor Mounted", default=False)
+    Opening_2_Floor_Mounted: BoolProperty(name="Opening 2 Floor Mounted", default=False)
+    Opening_3_Floor_Mounted: BoolProperty(name="Opening 3 Floor Mounted", default=False)
+    Opening_4_Floor_Mounted: BoolProperty(name="Opening 4 Floor Mounted", default=False)
+    Opening_5_Floor_Mounted: BoolProperty(name="Opening 5 Floor Mounted", default=False)
+    Opening_6_Floor_Mounted: BoolProperty(name="Opening 6 Floor Mounted", default=False)
+    Opening_7_Floor_Mounted: BoolProperty(name="Opening 7 Floor Mounted", default=False)
+    Opening_8_Floor_Mounted: BoolProperty(name="Opening 8 Floor Mounted", default=False)
+    Opening_9_Floor_Mounted: BoolProperty(name="Opening 9 Floor Mounted", default=False)
     Left_End_Condition: EnumProperty(name="Left Side", items=common_lists.END_CONDITIONS, default='WP')
     Right_End_Condition: EnumProperty(name="Right Side", items=common_lists.END_CONDITIONS, default='WP')
     add_left_filler: BoolProperty(name="Add Left Filler", default=False)
@@ -257,6 +266,15 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             if opening_height:
                 height = eval("float(self.Opening_" + str(i) + "_Height)/1000")
                 opening_height.set_value(height)
+    
+    def update_opening_floors(self):
+        opening_qty = self.closet.get_prompt("Opening Quantity").get_value()
+
+        for i in range(1, opening_qty + 1):
+            opening_floor = self.closet.get_prompt("Opening " + str(i) + " Floor Mounted")
+            if opening_floor:
+                floor = eval("self.Opening_" + str(i) + "_Floor_Mounted")
+                opening_floor.set_value(floor)
 
     def update_flat_molding_heights(self):
         molding_bps = [obj for obj in self.closet.obj_bp.children if 'IS_BP_CROWN_MOLDING' in obj]
@@ -533,6 +551,25 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 max_depth = max([max_depth, current_depth])
             self.countertop.obj_y.location.y = max_depth
             self.countertop.obj_bp.location.y = - max_depth
+    
+    def update_hutch_backing(self, context):
+        hutch_vertical_grain = self.closet.get_prompt('Hutch Vertical Grain')
+        height_left_side = self.closet.get_prompt('Height Left Side')
+        height_right_side = self.closet.get_prompt('Height Right Side')
+        has_capping_bottom = self.closet.get_prompt('Has Capping Bottom')
+        prompts = [hutch_vertical_grain, height_left_side, height_right_side, has_capping_bottom]
+        if all(prompts):
+            hutch_height = 0
+            if height_left_side.get_value() >= height_right_side.get_value():
+                hutch_height = height_left_side.get_value()
+            else:
+                hutch_height = height_right_side.get_value()
+            if has_capping_bottom.get_value():
+                hutch_height = hutch_height - sn_unit.inch(0.75)
+            if self.closet.obj_x.location.x - sn_unit.inch(1.5) > sn_unit.inch(48.01) and hutch_height < sn_unit.inch(48.01):
+                hutch_vertical_grain.set_value(False)
+            else:
+                hutch_vertical_grain.set_value(True)
 
     def check(self, context):
         start_time = time.perf_counter()
@@ -547,6 +584,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         self.update_placement(context)
         self.update_fillers(context)
         self.update_backing(context)
+        self.update_hutch_backing(context)
         self.update_flat_molding_heights()
 
         # props = context.scene.sn_closets
@@ -562,6 +600,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         blind_corner_right = self.closet.get_prompt("Blind Corner Right")
 
         self.update_opening_heights()
+        self.update_opening_floors()
 
         left_end_condition = self.closet.get_prompt("Left End Condition")
         right_end_condition = self.closet.get_prompt("Right End Condition")
@@ -1111,6 +1150,14 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 max_height = height
         self.hang_height = max_height
         self.prev_hang_height = self.hang_height
+    
+    def set_floor_mounted(self):
+        opening_qty = self.closet.get_prompt("Opening Quantity").get_value()
+
+        for i in range(1, opening_qty + 1):
+            opening_floor = self.closet.get_prompt("Opening " + str(i) + " Floor Mounted")
+            if opening_floor:
+                exec("self.Opening_" + str(i) + "_Floor_Mounted = opening_floor.get_value()")
 
     def execute(self, context):
         self.show_tk_mess = False
@@ -1174,6 +1221,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
         self.closet_name = self.closet.obj_bp.name
         self.get_assemblies(context)
         self.run_calculators(self.closet.obj_bp)
+        self.set_floor_mounted()
         self.set_hang_height()
 
         if self.closet.obj_bp:
@@ -1512,7 +1560,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 else:
                     row.prop(width, 'distance_value', text="")
 
-                row.prop(floor, "checkbox_value", text="", icon='TRIA_DOWN' if floor.get_value() else 'TRIA_UP')
+                row.prop(self, 'Opening_' + str(i) + '_Floor_Mounted', text="", icon='TRIA_DOWN' if floor.get_value() else 'TRIA_UP')
 
                 if props.closet_defaults.use_32mm_system:
                     row.prop(self, 'Opening_' + str(i) + '_Height',text="")

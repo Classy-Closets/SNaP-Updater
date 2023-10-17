@@ -82,9 +82,24 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         else:
             return 2    
     
-    def get_hinge_name(self):
+    def get_hinge_name(self, assembly=None):
         p = get_machining_props()
         options = bpy.context.scene.sn_closets.closet_options
+
+        if assembly:
+            large_hinge = assembly.get_prompt("Large Hinge")
+            if large_hinge:
+                if large_hinge.get_value():
+                    return 'Hinge- 165 Half Ovrly'
+            if assembly.obj_bp.parent:
+                if assembly.obj_bp.parent.get('IS_BP_CORNER_SHELVES'):
+                    return 'Hinge- Corner cabinet'
+                if assembly.obj_bp.parent.get('IS_BP_L_SHELVES'):
+                    parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                    if parent_assembly.get_prompt('Door Type'):
+                        if parent_assembly.get_prompt('Door Type').get_value() == 1:
+                            if 'Left Door' in assembly.obj_bp.name:
+                                return 'Hinge - Lazy Susan'
 
         return options.hinge_name
     
@@ -144,7 +159,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             if door_swing.get_value() == 0 or door_swing.get_value() == 1:  # Left or Right
             
                 if macp.use_associative_hardware_for_hinges:
-                    hinge = self.add_hardware(self.get_hinge_name(),assembly)
+                    hinge = self.add_hardware(self.get_hinge_name(assembly),assembly)
                     hinge.snap.is_hinge = True
                     hinge.location.z = sn_unit.inch(.1)
                     hinge.location.y = macp.hinge_cup_off_door_edge if door_width > 0 else -macp.hinge_cup_off_door_edge
@@ -160,7 +175,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                     
             if door_swing.get_value() == 2:  # Top
                 if macp.use_associative_hardware_for_hinges:
-                    hinge = self.add_hardware(self.get_hinge_name(),assembly)
+                    hinge = self.add_hardware(self.get_hinge_name(assembly),assembly)
                     hinge.snap.is_hinge = True
                     hinge.location.z = sn_unit.inch(.1)
                     hinge.location.y = door_length - macp.hinge_cup_off_door_edge
@@ -176,7 +191,7 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             
             if door_swing.get_value() == 3:  # Bottom
                 if macp.use_associative_hardware_for_hinges:
-                    hinge = self.add_hardware(self.get_hinge_name(),assembly)
+                    hinge = self.add_hardware(self.get_hinge_name(assembly),assembly)
                     hinge.snap.is_hinge = True
                     hinge.location.z = sn_unit.inch(.1)
                     hinge.location.y = (macp.hinge_location_from_top_and_bottom + spacing_32mm*i) *-1
@@ -276,14 +291,14 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         door_width = assembly.obj_y.location.y
         
         if macp.use_associative_hardware_for_hinges:
-            hinge = self.add_hardware(self.get_hinge_name(),assembly)
+            hinge = self.add_hardware(self.get_hinge_name(assembly),assembly)
             hinge.snap.is_hinge = True
             hinge.location.z = sn_unit.inch(.1)
             hinge.location.y = door_width + macp.hinge_location_from_top_and_bottom
             hinge.location.x = macp.hinge_cup_off_door_edge
             hinge.snap.associative_rotation = 0
         
-            hinge = self.add_hardware(self.get_hinge_name(),assembly)
+            hinge = self.add_hardware(self.get_hinge_name(assembly),assembly)
             hinge.snap.is_hinge = True
             hinge.location.z = sn_unit.inch(.1)
             hinge.location.y = - macp.hinge_location_from_top_and_bottom
@@ -1797,9 +1812,11 @@ class PROPS_Machining_Defaults(bpy.types.PropertyGroup):
                                         description="Enter the face drilling depth for cams. This is the depth to drill on the associated panel.",
                                         default=sn_unit.millimeter(15.7),unit='LENGTH')    
     
-    cam_bore_edge_depth: FloatProperty(name="Cam Bore Edge Depth",
-                                        description="Enter the edge drilling depth for cams.",
-                                        default=sn_unit.inch(.5),unit='LENGTH')        
+    cam_bore_edge_depth: FloatProperty(
+        name="Cam Bore Edge Depth",
+        description="Enter the edge drilling depth for cams.",
+        default=sn_unit.inch(.5),
+        unit='LENGTH')
     
     cam_dia: FloatProperty(name="Cam Dia",
                             description="Enter the face drilling dia for the cam. This is the drilling on the shelf for the cam. ENTER VALUE IN MILLIMETERS",

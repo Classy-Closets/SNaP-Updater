@@ -142,7 +142,7 @@ class L_Shelves(sn_types.Assembly):
         self.obj_z.location.z = self.height
 
         props = bpy.context.scene.sn_closets
-
+        closet_defaults = bpy.context.scene.sn_closets.closet_defaults
         self.add_prompt("Panel Height", 'DISTANCE', sn_unit.millimeter(2003))
         self.add_prompt("Back Inset", 'DISTANCE', sn_unit.inch(.25))
         self.add_prompt("Spine Width", 'DISTANCE', sn_unit.inch(1))
@@ -172,7 +172,7 @@ class L_Shelves(sn_types.Assembly):
         self.add_prompt("Add Top Shelf", 'CHECKBOX', False)
         self.add_prompt("Exposed Left", 'CHECKBOX', False)
         self.add_prompt("Exposed Right", 'CHECKBOX', False)
-        self.add_prompt("Top Shelf Overhang", 'DISTANCE', sn_unit.inch(0.5))
+        self.add_prompt("Front Overhang", 'DISTANCE', closet_defaults.top_shelf_overhang)
         self.add_prompt("Extend Left", 'DISTANCE', 0)
         self.add_prompt("Extend Right", 'DISTANCE', 0)
 
@@ -186,6 +186,9 @@ class L_Shelves(sn_types.Assembly):
         self.add_prompt("Right Filler Setback Amount", 'DISTANCE', 0.0)
         self.add_prompt("Edge Bottom of Left Filler", 'CHECKBOX', False)
         self.add_prompt("Edge Bottom of Right Filler", 'CHECKBOX', False)
+
+        self.add_prompt("Left Large Hinge", 'CHECKBOX', False)
+        self.add_prompt("Right Large Hinge", 'CHECKBOX', False)
 
         self.add_prompt("Thick Adjustable Shelves", 'CHECKBOX', props.closet_defaults.thick_adjustable_shelves)
 
@@ -233,7 +236,7 @@ class L_Shelves(sn_types.Assembly):
         Add_Top_Shelf = self.get_prompt('Add Top Shelf').get_var('Add_Top_Shelf')
         Exposed_Left = self.get_prompt('Exposed Left').get_var('Exposed_Left')
         Exposed_Right = self.get_prompt('Exposed Right').get_var('Exposed_Right')
-        Top_Shelf_Overhang = self.get_prompt('Top Shelf Overhang').get_var('Top_Shelf_Overhang')
+        Top_Shelf_Overhang = self.get_prompt('Front Overhang').get_var('Top_Shelf_Overhang')
         Left_Side_Wall_Filler = self.get_prompt('Left Side Wall Filler').get_var('Left_Side_Wall_Filler')
         Panel_Thickness = self.get_prompt('Panel Thickness').get_var('Panel_Thickness')
         Left_Filler_Setback_Amount = self.get_prompt('Left Filler Setback Amount').get_var()
@@ -245,6 +248,9 @@ class L_Shelves(sn_types.Assembly):
         Add_Capping_Right_Filler = self.get_prompt("Add Capping Right Filler").get_var()
         Extend_Left = self.get_prompt('Extend Left').get_var('Extend_Left')
         Extend_Right = self.get_prompt('Extend Right').get_var('Extend_Right')
+
+        Left_Large_Hinge = self.get_prompt("Left Large Hinge").get_var('Left_Large_Hinge')
+        Right_Large_Hinge = self.get_prompt("Right Large Hinge").get_var('Right_Large_Hinge')
 
         top = common_parts.add_l_shelf(self)
         top.loc_z('(Height+IF(Is_Hanging,0,Toe_Kick_Height))', [Height, Toe_Kick_Height, Is_Hanging])
@@ -424,10 +430,11 @@ class L_Shelves(sn_types.Assembly):
         l_door_reach_back_left.rot_y(value=math.radians(-90))
         l_door_reach_back_left.rot_z("radians(180)-IF(DT==0,IF(Pull_Location==0,IF(Open<=Half,radians((Open*2)*Rotation),radians(Rotation)),IF(Open>Half,radians((Open-Half)*2*Rotation),0)),0)",
                                      [Pull_Location, Open, Rotation, DT, Half])
-        l_door_reach_back_left.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        l_door_reach_back_left.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         l_door_reach_back_left.dim_y('Depth+Right_Depth+(PT)+IF(Pull_Location==0,INCH(0.62),0)', [Depth, Right_Depth, PT, Pull_Location])
         l_door_reach_back_left.dim_z('PT', [PT])
         l_door_reach_back_left.get_prompt('Hide').set_formula('IF(Door,IF(DT==0,False,True),True)', [Door, DT])
+        l_door_reach_back_left.get_prompt("Large Hinge").set_formula("Left_Large_Hinge", [Left_Large_Hinge])
 
         l_door_reach_back_right = common_parts.add_door(self)
         l_door_reach_back_right.set_name("Right Door")
@@ -438,10 +445,11 @@ class L_Shelves(sn_types.Assembly):
         l_door_reach_back_right.rot_y(value=math.radians(-90))
         l_door_reach_back_right.rot_z("radians(90)+IF(DT==0,IF(Pull_Location==1,IF(Open<=Half,radians((Open*2)*Rotation),radians(Rotation)),IF(Open>Half,radians((Open-Half)*2*Rotation),0)),0)",
                                       [Pull_Location, Open, Rotation, DT, Half])
-        l_door_reach_back_right.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        l_door_reach_back_right.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         l_door_reach_back_right.dim_y('Width-Left_Depth-(PT)-IF(Pull_Location==1,INCH(0.62),0)', [Width, Left_Depth, PT, Pull_Location])
         l_door_reach_back_right.dim_z('PT', [PT])
         l_door_reach_back_right.get_prompt('Hide').set_formula('IF(Door,IF(DT==0,False,True),True)', [Door, DT])
+        l_door_reach_back_right.get_prompt("Large Hinge").set_formula("Right_Large_Hinge", [Right_Large_Hinge])
 
         # L Doors Lazy Susan
         l_door_lazy_susan_left = common_parts.add_door(self)
@@ -472,7 +480,7 @@ class L_Shelves(sn_types.Assembly):
         l_door_lazy_susan_left.rot_x(value=0)
         l_door_lazy_susan_left.rot_y("IF(Pull_Location==0,radians(90),radians(-90))", [Pull_Location])
         l_door_lazy_susan_left.rot_z('IF(Pull_Location==0,(IF(Open>Half,((Open-Half)*2)*radians(45),0)),radians(180)-(Open*radians(180)))', [Open, Half, Pull_Location])
-        l_door_lazy_susan_left.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        l_door_lazy_susan_left.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         l_door_lazy_susan_left.dim_y('Depth+Right_Depth+(PT)+INCH(0.25)', [Depth, Right_Depth, PT])
         l_door_lazy_susan_left.dim_z('PT', [PT])
         l_door_lazy_susan_left.get_prompt('Hide').set_formula('IF(Door,IF(DT==1,False,True),True)', [Door, DT])
@@ -505,10 +513,11 @@ class L_Shelves(sn_types.Assembly):
         l_door_lazy_susan_right.rot_x(value=0)
         l_door_lazy_susan_right.rot_y("IF(Pull_Location==0,radians(-90),radians(90))", [Pull_Location])
         l_door_lazy_susan_right.rot_z('IF(Pull_Location==0,radians(90)+(Open*radians(180)),radians(-90)-IF(Open>Half,((Open-Half)*2)*radians(45),0))', [Open, Pull_Location, Half])
-        l_door_lazy_susan_right.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        l_door_lazy_susan_right.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         l_door_lazy_susan_right.dim_y('Width-Left_Depth-(PT)-INCH(0.25)', [Width, Left_Depth, PT])
         l_door_lazy_susan_right.dim_z('PT', [PT])
         l_door_lazy_susan_right.get_prompt('Hide').set_formula('IF(Door,IF(DT==1,False,True),True)', [Door, DT])
+        l_door_lazy_susan_right.get_prompt("Large Hinge").set_formula("Right_Large_Hinge", [Right_Large_Hinge])
 
         # Left L Reachback Pull
         l_door_reachback_left_pull = common_parts.add_drawer_pull(self)
@@ -908,7 +917,7 @@ class Corner_Shelves(sn_types.Assembly):
         self.add_prompt("Add Top Shelf", 'CHECKBOX', False)
         self.add_prompt("Exposed Left", 'CHECKBOX', False)
         self.add_prompt("Exposed Right", 'CHECKBOX', False)
-        self.add_prompt("Top Shelf Overhang", 'DISTANCE', sn_unit.inch(0.5))
+        self.add_prompt("Front Overhang", 'DISTANCE', closet_defaults.top_shelf_overhang)
 
         self.add_prompt("Add Left Filler", 'CHECKBOX', False)
         self.add_prompt("Add Right Filler", 'CHECKBOX', False)
@@ -1043,7 +1052,7 @@ class Corner_Shelves(sn_types.Assembly):
         World_Z = self.obj_bp.snap.get_var('matrix_world[2][3]', 'World_Z')
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
         Add_Top_Shelf = self.get_prompt('Add Top Shelf').get_var('Add_Top_Shelf')
-        Top_Shelf_Overhang = self.get_prompt('Top Shelf Overhang').get_var('Top_Shelf_Overhang')
+        Top_Shelf_Overhang = self.get_prompt('Front Overhang').get_var('Top_Shelf_Overhang')
         Left_Side_Wall_Filler = self.get_prompt('Left Side Wall Filler').get_var('Left_Side_Wall_Filler')
         Panel_Thickness = self.get_prompt('Panel Thickness').get_var('Panel_Thickness')
         Left_Filler_Setback_Amount = self.get_prompt('Left Filler Setback Amount').get_var()
@@ -1302,7 +1311,7 @@ class Corner_Shelves(sn_types.Assembly):
         angled_door_l.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2)', [Height, Panel_Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness])
         angled_door_l.rot_y(value=math.radians(-90))
         angled_door_l.rot_z('(atan((Width-Left_Depth)/(Depth+Right_Depth)))+3.14159-radians(Open*Rotation)', [Width, Depth, Right_Depth, Left_Depth, Open, Rotation])
-        angled_door_l.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        angled_door_l.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         angled_door_l.dim_y('IF(Force_Double_Doors,(sqrt((Width-Left_Depth-PT)**2+(Depth+Right_Depth+PT)**2)/2)-0.0015875,(sqrt((Width-Left_Depth-PT)**2+(Depth+Right_Depth+PT)**2)))*-1',
                             [Width, Left_Depth, Depth, Right_Depth, PT, Force_Double_Doors])
         angled_door_l.dim_z('PT', [PT])
@@ -1318,7 +1327,7 @@ class Corner_Shelves(sn_types.Assembly):
         angled_door_r.loc_z('IF(Is_Hanging,Height-Panel_Height,Toe_Kick_Height)+(Shelf_Thickness/2)', [Height, Panel_Height, Is_Hanging, Toe_Kick_Height, Shelf_Thickness])
         angled_door_r.rot_y(value=math.radians(-90))
         angled_door_r.rot_z('(atan((Width-Left_Depth)/(Depth+Right_Depth)))+3.14159+radians(Open*Rotation)', [Width, Depth, Right_Depth, Left_Depth, Open, Rotation])
-        angled_door_r.dim_x('Panel_Height-(Shelf_Thickness)', [Panel_Height, Shelf_Thickness])
+        angled_door_r.dim_x('Panel_Height-(Shelf_Thickness)-INCH(0.155)', [Panel_Height, Shelf_Thickness])
         angled_door_r.dim_y('IF(Force_Double_Doors,(sqrt((Width-Left_Depth-PT)**2+(Depth+Right_Depth+PT)**2)/2)-0.0015875,(sqrt((Width-Left_Depth-PT)**2+(Depth+Right_Depth+PT)**2)))',
                             [Width, Left_Depth, Depth, Right_Depth, PT, Force_Double_Doors])
         angled_door_r.dim_z('PT', [PT])
@@ -1693,7 +1702,6 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
 
         prompts = [door_type, pull_location, pull_type, is_hanging, panel_height, shelf_quantity, shelf_thickness, toe_kick_height]
         if all(prompts):
-            door_type.set_value(int(self.Door_Type))
             pull_location.set_value(int(self.Pull_Location))
             pull_type.set_value(int(self.Pull_Type))
             if is_hanging.get_value():
@@ -1701,6 +1709,12 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
             else:
                 panel_height.set_value(float(self.Product_Height) / 1000)
                 self.product.obj_z.location.z = float(self.Product_Height) / 1000
+            
+            if panel_height.get_value() < inch(42):
+                door_type.set_value(int(self.Door_Type))
+            else:
+                door_type.set_value(int(0))
+                self.Door_Type = '0'
 
             shelf_quantity.set_value(int(self.shelf_quantity))
 
@@ -1723,6 +1737,12 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
                 if not round(panel_height.get_value() * 1000, 0) >= int(height[0]):
                     self.Product_Height = common_lists.PANEL_HEIGHTS[index - 1][0]
                     break
+
+            if panel_height.get_value() < inch(42):
+                self.Door_Type = str(door_type.get_value())
+            else:
+                door_type.set_value(int(0))
+                self.Door_Type = '0'
 
             self.shelf_quantity = str(shelf_quantity.get_value())
 
@@ -1913,7 +1933,7 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         Add_Top_Shelf = self.product.get_prompt("Add Top Shelf")
         Exposed_Left = self.product.get_prompt("Exposed Left")
         Exposed_Right = self.product.get_prompt("Exposed Right")
-        Top_Shelf_Overhang = self.product.get_prompt("Top Shelf Overhang")
+        Top_Shelf_Overhang = self.product.get_prompt("Front Overhang")
 
         if Add_Top_Shelf:
             row = box.row()
@@ -1936,6 +1956,11 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
         Tall_Pull_Location = self.product.get_prompt("Tall Pull Location")
         Upper_Pull_Location = self.product.get_prompt("Upper Pull Location")
         No_Pulls = self.product.get_prompt("No Pulls")
+        panel_height = self.product.get_prompt("Panel Height")
+
+        Left_Large_Hinge = self.product.get_prompt("Left Large Hinge")
+        Right_Large_Hinge = self.product.get_prompt("Right Large Hinge")
+
         show_pull_info = True  # 2.6.1 hides pull info if "No Pulls" is used, previous versions are missing this ppt
 
         row = box.row()
@@ -1954,10 +1979,15 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
                 row = box.row()
                 row.label(text=Open_Door.name)
                 row.prop(Open_Door, "factor_value", text="")
-
-            if Door_Type:
-                row = box.row()
-                row.prop(self, 'Door_Type', text="Door Type")
+            
+            if panel_height.get_value() < inch(42):
+                if Door_Type:
+                    row = box.row()
+                    row.prop(self, 'Door_Type', text="Door Type")
+            else:
+                row=box.row()
+                row.label(text="Door Type")
+                row.label(text="Reach Back")
 
 
             # Pull options
@@ -1975,6 +2005,18 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
                     row.prop(Tall_Pull_Location, "distance_value", text="")
                 else:
                     row.prop(Upper_Pull_Location, "distance_value", text="")
+
+            prompts = [Left_Large_Hinge, Right_Large_Hinge, Door_Type]
+            if all(prompts):
+                hinge_box = box.box()
+                hinge_box.label(text="Hinge Options:")
+                if Door_Type.get_value() == 0: 
+                    row = hinge_box.row()
+                    row.label(text="165 Hinge Left")
+                    row.prop(Left_Large_Hinge, 'checkbox_value', text="")
+                row = hinge_box.row()
+                row.label(text="165 Hinge Right")
+                row.prop(Right_Large_Hinge, 'checkbox_value', text="")
 
 
     def draw(self, context):
@@ -2404,7 +2446,7 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
         Add_Top_Shelf = self.product.get_prompt("Add Top Shelf")
         Exposed_Left = self.product.get_prompt("Exposed Left")
         Exposed_Right = self.product.get_prompt("Exposed Right")
-        Top_Shelf_Overhang = self.product.get_prompt("Top Shelf Overhang")
+        Top_Shelf_Overhang = self.product.get_prompt("Front Overhang")
 
         if Add_Top_Shelf:
             row = box.row()

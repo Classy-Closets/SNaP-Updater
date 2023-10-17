@@ -475,9 +475,9 @@ class PlaceClosetInsert(PlaceClosetAsset):
         if self.selected_opening.obj_bp.get('OPENING_NBR'):
             self.insert.obj_bp['OPENING_NBR'] = self.selected_opening.obj_bp['OPENING_NBR']
 
-        is_cabinet = sn_utils.get_cabinet_bp(self.insert.obj_bp)
         floor_parent = sn_utils.get_floor_parent(self.insert.obj_bp)
-        if is_cabinet and floor_parent:
+
+        if floor_parent:
             self.link_to_floor_collection(context, self.insert.obj_bp)
 
     def position_asset(self, context):

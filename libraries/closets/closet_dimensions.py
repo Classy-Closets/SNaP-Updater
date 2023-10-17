@@ -1652,6 +1652,33 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_z(value=sn_unit.inch(2))
         dim.set_label(self.to_inch_lbl(abs(ts_depth)))
         self.topshelf_exposed_labels(obj_bp)
+    
+    def corner_topshelf_overhang(self, ts_assembly):
+        obj_bp = ts_assembly.obj_bp
+        ts_width = ts_assembly.obj_x.location.x
+        ts_depth = ts_assembly.obj_y.location.y
+        ts_height = ts_assembly.obj_z.location.z
+        overhang_value = 0
+        parent_obj = obj_bp.parent
+        if parent_obj:
+            if parent_obj.get("IS_BP_CORNER_SHELVES"):
+                parent_assembly = sn_types.Assembly(parent_obj)
+                front_overhang = parent_assembly.get_prompt("Front Overhang")
+                if front_overhang:
+                    overhang_value = front_overhang.get_value()
+
+        rotation = (0, 45, 0)
+
+        offset_x = ts_width / 2
+        offset_y = ts_depth / 2
+        hashmark = sn_types.Line(sn_unit.inch(6), rotation)
+        hashmark.start_x(value=offset_x)
+        hashmark.start_y(value=offset_y)
+        hashmark.start_z(value=ts_height)
+        hashmark.parent(obj_bp)
+        dim = self.add_tagged_dimension(hashmark.end_point)
+        dim.start_z(value=sn_unit.inch(2))
+        dim.set_label(self.to_inch_lbl(abs(overhang_value)) + ' Overhang')
 
     def is_labeled_toe_kick(self, toe_kick_assy):
         toe_kick = toe_kick_assy.obj_bp
@@ -3357,6 +3384,9 @@ class SNAP_OT_Auto_Dimension(Operator):
             is_top_shelf = 'IS_BP_PLANT_ON_TOP' in assembly.obj_bp
             if scene_props.top_shelf_depth and is_top_shelf:
                 self.topshelf_depth(assembly)
+
+            if "Corner Top Shelf" in assembly.obj_bp.name:
+                self.corner_topshelf_overhang(assembly)
 
             # SSS labeling
             if scene_props.slanted_shoe_shelves and props.is_slanted_shelf_bp:

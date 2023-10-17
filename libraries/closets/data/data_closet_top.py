@@ -46,6 +46,8 @@ class Top(sn_types.Assembly):
         super().update()
     
     def draw(self):
+        scene_props = bpy.context.scene.sn_closets
+        defaults = scene_props.closet_defaults
         self.create_assembly()
         self.add_prompt("Extend To Left Panel", 'CHECKBOX', True)
         self.add_prompt("Extend To Right Panel", 'CHECKBOX', True)
@@ -54,7 +56,7 @@ class Top(sn_types.Assembly):
         self.add_prompt("Exposed Back", 'CHECKBOX', False)
         self.add_prompt("Extend Left Amount", 'DISTANCE', sn_unit.inch(0))
         self.add_prompt("Extend Right Amount", 'DISTANCE', sn_unit.inch(0))
-        self.add_prompt("Front Overhang", 'DISTANCE', sn_unit.inch(.5))
+        self.add_prompt("Front Overhang", 'DISTANCE', defaults.top_shelf_overhang)
         self.add_prompt("Max Panel Depth", 'DISTANCE', 0)
         ppt_obj_panel_max = self.add_prompt_obj("Panel_Max")
         self.add_prompt("Max Panel Front Chamfer", 'DISTANCE', 0, prompt_obj=ppt_obj_panel_max)

@@ -5352,27 +5352,36 @@ class VIEW_OT_generate_2d_views(Operator):
             parent_obj = shelf_obj.parent
             lock_shelf_pmt = shelf_part.get_prompt('Is Locked Shelf')
             lock_shelf = ''
+
             if lock_shelf_pmt:
                 lock_shelf = lock_shelf_pmt.get_value()
             top_bot_kd = False
 
-            # Check parent assembly
-            in_drawer = parent_obj.sn_closets.is_drawer_stack_bp
+            if parent_obj:
+                # Check parent assembly
+                in_drawer = parent_obj.sn_closets.is_drawer_stack_bp
 
-            if shelf_obj.animation_data:
+                if shelf_obj.animation_data:
+                    for d in shelf_obj.animation_data.drivers:
+                        exp = d.driver.expression
+                        rem_top_str = 'Remove_Top_Shelf'
+                        rem_bot_str = 'Remove_Bottom_Shelf'
+                        rem_bot_hang_str = 'Remove_Bottom_Hanging_Shelf'
+                        top_kd_str = 'Top_KD'
+                        bot_kd_str = 'Bottom_KD'
 
-                for d in shelf_obj.animation_data.drivers:
-                    exp = d.driver.expression
-                    rem_top_str = 'Remove_Top_Shelf'
-                    rem_bot_str = 'Remove_Bottom_Shelf'
-                    rem_bot_hang_str = 'Remove_Bottom_Hanging_Shelf'
-                    top_kd_str = 'Top_KD'
-                    bot_kd_str = 'Bottom_KD'
-                    if (rem_top_str in exp or rem_bot_str in exp or
-                    top_kd_str in exp or bot_kd_str in exp or rem_bot_hang_str):
-                        top_bot_kd = True
+                        exp_strings = (
+                            rem_top_str in exp,
+                            rem_bot_str in exp,
+                            top_kd_str in exp,
+                            bot_kd_str in exp,
+                            rem_bot_hang_str in exp
+                        )
 
-                return lock_shelf and (top_bot_kd or in_drawer)
+                        if any(exp_strings):
+                            top_bot_kd = True
+
+                    return lock_shelf and (top_bot_kd or in_drawer)
             else:
                 return False
         else:

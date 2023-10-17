@@ -519,6 +519,8 @@ class Materials(PropertyGroup):
             row = box.row()
             if self.get_mat_type().name == "Garage Material":
                 row.label(text="Two Sided Color Schemes Come With White Interiors")
+            if (self.get_mat_type().name == "Solid Color Matte Finish") and (scene_props.use_custom_color_scheme == False) and self.get_mat_color().name != 'Cloud':
+                row.label(text="Painted Wooden Door/Drawer Faces Will NOT Be Matte")
 
         else:
             row = box.row()
@@ -587,10 +589,18 @@ class DoorDrawerMaterialType(PropertyGroup):
 
         row = layout.row()
         split = row.split(factor=0.25)
-        split.label(text="Color:")            
+
+        if self.name == "Garage Material":
+            split.label(text="Exterior Color:")
+            color_name = color.two_sided_display_name
+        else:
+            split.label(text="Color:")
+            color_name = color.name
+
+        # split.label(text="Color:")            
         split.menu(
             "SNAP_MATERIAL_MT_Door_Drawer_Mat_Colors",
-            text=color.name,
+            text=color_name,
             icon='RADIOBUT_ON' if color.has_render_mat else 'ERROR')
 
         if not color.has_render_mat:

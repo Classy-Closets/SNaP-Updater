@@ -77,6 +77,7 @@ def update_material_and_edgeband_colors(self, context):
         self.set_default_upgrade_selection()
 
     # Paint/Stain
+    previous_upgrade_index = self.upgrade_type_index
     if mat_color_name in stain_colors:
         self.upgrade_type_index = 2
         self.stain_color_index = self.stain_colors.find(mat_color_name)
@@ -90,6 +91,14 @@ def update_material_and_edgeband_colors(self, context):
     if mat_color_name in paint_colors:
         self.upgrade_type_index = 1
         self.paint_color_index = self.paint_colors.find(mat_color_name)
+    
+    if mat_color_name == "Onyx":
+        if previous_upgrade_index == 1:
+            self.upgrade_type_index = 1
+            self.paint_color_index = self.paint_colors.find(mat_color_name)
+        else:
+            self.upgrade_type_index = 2
+            self.stain_color_index = self.stain_colors.find(mat_color_name)
     
     if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak") and not self.use_custom_color_scheme:
         self.upgrade_type_index = 1
@@ -825,6 +834,12 @@ class SnapMaterialSceneProps(PropertyGroup):
                 type_code = mat_type.type_code
                 color_code = self.door_drawer_materials.get_mat_color().color_code
                 color_name = self.door_drawer_materials.get_mat_color().name
+                # This is usually only ever necessary if the user selects Garage Material for Doors when Custom Color Scheme is selected
+                if type_code == 1:
+                    sku = self.get_garage_material_sku(obj, assembly, part_name)
+                    if sku != "Unknown":
+                        return sku
+                    type_code = 8
 
             if any(backing_parts):
                 if obj_props.use_unique_material:
@@ -1210,7 +1225,8 @@ class SnapMaterialSceneProps(PropertyGroup):
     def get_garage_material_sku(self, obj=None, assembly=None, part_name=None):
         part_thickness = 0
         cutpart_name = ""
-        mat_type = self.materials.get_mat_type()
+        obj_props = assembly.obj_bp.sn_closets
+        
         type_code = 8
         color_code = self.materials.get_mat_color().color_code
         color_name = self.materials.get_mat_color().name
@@ -1231,6 +1247,21 @@ class SnapMaterialSceneProps(PropertyGroup):
             "Garage_Cover_Cleat",
             "Garage_Cleat"
         ]
+
+        door_drawer_parts = [
+                obj_props.is_door_bp,
+                obj_props.is_drawer_front_bp,
+                obj_props.is_hamper_front_bp
+            ]
+        
+        if any(door_drawer_parts):
+            mat_type = self.door_drawer_materials.get_mat_type()
+            color_code = self.door_drawer_materials.get_mat_color().color_code
+            color_name = self.door_drawer_materials.get_mat_color().name
+        else:
+            mat_type = self.materials.get_mat_type()
+            color_code = self.materials.get_mat_color().color_code
+            color_name = self.materials.get_mat_color().name
 
         if assembly:
             obj_props = assembly.obj_bp.sn_closets

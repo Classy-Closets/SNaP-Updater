@@ -313,10 +313,15 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Colors(bpy.types.Menu):
 
             if index % MAX_COL_LEN == 0:
                 col = row.column()
+            
+            if item.two_sided_display_name:
+                label = item.two_sided_display_name
+            else:
+                label = item.name
 
             op = col.operator(
                 'closet_materials.change_active_index',
-                text=item.name,
+                text=label,
                 icon='RADIOBUT_ON' if index == cab_mat_props.door_drawer_mat_color_index else item.get_icon()
             )                
 
@@ -336,7 +341,7 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Types(bpy.types.Menu):
 
         for index, item in enumerate(types):
             if cab_mat_props.use_custom_color_scheme:
-                if item.name in ("Upgrade Options", "Garage Material"):
+                if item.name in ("Upgrade Options"):
                     continue
 
             if index % MAX_COL_LEN == 0:

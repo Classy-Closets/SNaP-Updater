@@ -1116,12 +1116,14 @@ class SNAP_OT_place_applied_panel(Operator):
             self.assembly.obj_bp.rotation_euler = (0,math.radians(-90),0)
             self.assembly.obj_x.location.x = math.fabs(self.sel_product.obj_z.location.z) - toe_kick_height
             self.assembly.obj_y.location.y = self.sel_product.obj_y.location.y
+            self.valid_placement = True
 
         else:
             self.assembly.obj_bp.parent = part.obj_bp
             self.assembly.obj_bp.location.y = part.obj_y.location.y
             self.assembly.obj_y.location.y = math.fabs(part.obj_y.location.y)
             self.assembly.obj_x.location.x = part.obj_x.location.x
+            self.valid_placement = True
 
     def add_to_right(self, part):
         if self.sel_product_bp.get("IS_BP_CABINET"):
@@ -1141,12 +1143,14 @@ class SNAP_OT_place_applied_panel(Operator):
             self.assembly.obj_bp.rotation_euler = (0,math.radians(-90),math.radians(180))
             self.assembly.obj_x.location.x = math.fabs(self.sel_product.obj_z.location.z) - toe_kick_height
             self.assembly.obj_y.location.y = math.fabs(self.sel_product.obj_y.location.y)
+            self.valid_placement = True
 
         else:
             self.assembly.obj_bp.parent = part.obj_bp
             self.assembly.obj_bp.rotation_euler.x = math.radians(-180)
             self.assembly.obj_y.location.y = math.fabs(part.obj_y.location.y)
             self.assembly.obj_x.location.x = part.obj_x.location.x
+            self.valid_placement = True
 
     def add_to_back(self, part, add_to_island=False):
         self.assembly.obj_bp.parent = self.sel_product.obj_bp
@@ -1173,6 +1177,7 @@ class SNAP_OT_place_applied_panel(Operator):
         if kb_island_backing_cap:
             self.assembly.obj_bp.location.y = self.assembly.obj_bp.location.y + sn_unit.inch(0.75) 
         self.assembly.obj_y.location.y = self.sel_product.obj_x.location.x
+        self.valid_placement = True
 
     def is_first_panel(self, panel):
         if panel.obj_z.location.z < 0:
@@ -1204,6 +1209,7 @@ class SNAP_OT_place_applied_panel(Operator):
         props = context.scene.sn_closets.closet_options
         self.sel_product_bp = sn_utils.get_bp(self.selected_obj, 'PRODUCT')
         sel_assembly_bp = sn_utils.get_assembly_bp(self.selected_obj)
+        self.valid_placement = False
 
         if sel_assembly_bp and self.sel_product_bp:
             sel_assembly = sn_types.Assembly(sel_assembly_bp)
@@ -1234,17 +1240,20 @@ class SNAP_OT_place_applied_panel(Operator):
             self.assembly.obj_bp.location = self.selected_point
 
         if event.type == 'LEFTMOUSE' and event.value == 'PRESS':
-            if not sel_assembly_bp:
+            if not sel_assembly_bp or not self.valid_placement:
                 self.cancel_drop(context, event)
                 return {'FINISHED'}
 
             wall_bp = sn_utils.get_wall_bp(sel_assembly.obj_bp)
+            floor = sn_utils.get_floor_parent(sel_assembly.obj_bp)
 
             if wall_bp:
                 wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-                scene_coll = context.scene.collection
-                sn_utils.add_assembly_to_collection(self.assembly.obj_bp, wall_coll)
-                sn_utils.remove_assembly_from_collection(self.assembly.obj_bp, scene_coll)
+                self.asssign_to_collection(context, self.assembly.obj_bp, wall_coll)
+
+            if floor:
+                floor_coll = bpy.data.collections[floor.snap.name_object]
+                self.asssign_to_collection(context, self.assembly.obj_bp, floor_coll)
 
             self.set_wire_and_xray(self.assembly.obj_bp, False)
             bpy.context.window.cursor_set('DEFAULT')
@@ -1255,6 +1264,11 @@ class SNAP_OT_place_applied_panel(Operator):
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
+
+    def asssign_to_collection(self, context, obj_bp, collection):
+        scene_coll = context.scene.collection
+        sn_utils.add_assembly_to_collection(obj_bp, collection)
+        sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
 
     def modal(self, context, event):
         context.area.tag_redraw()

@@ -57,11 +57,20 @@ class Closet_Island_Carcass(sn_types.Assembly):
 
     def add_to_wall_collection(self, obj_bp):
         wall_bp = sn_utils.get_wall_bp(self.obj_bp)
+        floor = sn_utils.get_floor_parent(self.obj_bp)
+
         if wall_bp:
             wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-            scene_coll = bpy.context.scene.collection
-            sn_utils.add_assembly_to_collection(obj_bp, wall_coll)
-            sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
+            self.asssign_to_collection(obj_bp, wall_coll)
+
+        if floor:
+            floor_coll = bpy.data.collections[floor.snap.name_object]
+            self.asssign_to_collection(obj_bp, floor_coll)
+
+    def asssign_to_collection(self, obj_bp, collection):
+        scene_coll = bpy.context.scene.collection
+        sn_utils.add_assembly_to_collection(obj_bp, collection)
+        sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
 
     def add_opening_prompts(self):
         for i in range(1, self.opening_qty + 1):
@@ -81,6 +90,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
         self.add_prompt("TK Skin Thickness", 'DISTANCE', sn_unit.inch(0.25))
         self.add_prompt("Add Capping Base", 'CHECKBOX', False)
         self.add_prompt("Material Max Width", 'DISTANCE', sn_unit.inch(48))
+        self.add_prompt("Vertical Grain", 'CHECKBOX', True)
 
         if self.is_double_sided:
             self.add_prompt("Depth 1", 'DISTANCE', props.panel_depth)
@@ -289,21 +299,23 @@ class Closet_Island_Carcass(sn_types.Assembly):
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
         Panel_Thickness = self.get_prompt('Panel Thickness').get_var()
         Max_Width = self.get_prompt('Material Max Width').get_var("Max_Width")
+        Vertical_Grain = self.get_prompt('Vertical Grain').get_var("Vertical_Grain")
 
         backing = common_parts.add_back(self)
         backing.obj_bp["IS_BP_CAPPING_BACK"] = True
         backing.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
 
-        backing.rot_x("IF(Product_Width>Max_Width,radians(90),0)", [Product_Width, Max_Width])
-        backing.rot_y("IF(Product_Width>Max_Width,0,radians(-90))", [Product_Width, Max_Width])
-        backing.rot_z("IF(Product_Width>Max_Width,0,radians(-90))", [Product_Width, Max_Width])
+        backing.rot_x("IF(Vertical_Grain,0,radians(90))", [Vertical_Grain])
+        backing.rot_y("IF(Vertical_Grain,radians(-90),0)", [Vertical_Grain])
+        backing.rot_z("IF(Vertical_Grain,radians(-90),0)", [Vertical_Grain])
 
-        backing.dim_x("IF(Product_Width>Max_Width,Product_Width,Product_Height)",
-                      [Product_Height, Product_Width, Max_Width])
-        backing.dim_y('IF(Product_Width>Max_Width,Product_Height,Product_Width)',
-                      [Product_Width, Product_Height, Max_Width])
-        backing.dim_z('IF(Product_Width>Max_Width,-Panel_Thickness,Panel_Thickness)',
-                      [Product_Width, Max_Width, Panel_Thickness])
+        backing.dim_x("IF(Vertical_Grain,Product_Height,Product_Width)",
+                      [Product_Height, Product_Width, Vertical_Grain])
+        backing.dim_y('IF(Vertical_Grain,Product_Width,Product_Height)',
+                      [Product_Width, Product_Height, Vertical_Grain])
+        backing.dim_z('IF(Vertical_Grain,Panel_Thickness,-Panel_Thickness)',
+                      [Product_Width, Vertical_Grain, Panel_Thickness])
+        backing.get_prompt('Vertical Grain').set_formula('Vertical_Grain', [Vertical_Grain])
 
     def add_double_sided_back(self,i,panel):
         width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
@@ -967,11 +979,20 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                         if region.width == 1:
                                             bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")      
         self.set_edge_type_prompts()      
+    
+    def update_backing(self, context):
+        vertical_grain = self.product.get_prompt('Vertical Grain')
+        if vertical_grain:
+            if self.product.obj_x.location.x > sn_unit.inch(48.01) and sn_unit.millimeter(float(self.height)) <= sn_unit.inch(48):
+                vertical_grain.set_value(False)
+            else:
+                vertical_grain.set_value(True)
 
     def check(self, context):
         self.update_edges()
         self.update_countertop_type(context)
         self.update_placement(context)
+        self.update_backing(context)
         self.run_calculators(self.product.obj_bp)
         closet_props.update_render_materials(self, context)
 

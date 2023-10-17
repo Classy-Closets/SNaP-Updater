@@ -545,58 +545,59 @@ def assign_materials_from_pointers(obj):
 
     elif obj.snap.type_mesh == 'CUTPART':
         part_bp = sn_utils.get_assembly_bp(obj)
-        bp_props = part_bp.sn_closets
-        unique_mel_ct = False
+        if part_bp:
+            bp_props = part_bp.sn_closets
+            unique_mel_ct = False
 
-        if 'IS_BP_COUNTERTOP' in part_bp and part_bp.sn_closets.use_unique_material:
-            unique_mel_ct = True
+            if 'IS_BP_COUNTERTOP' in part_bp and part_bp.sn_closets.use_unique_material:
+                unique_mel_ct = True
 
-            # W
-            unique_mat_name = bp_props.unique_mat
+                # W
+                unique_mat_name = bp_props.unique_mat
 
-            # if bp_props.unique_mat_types == 'MELAMINE':
-            #     unique_mat_name = bp_props.unique_mat_mel
-            # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
-            #     unique_mat_name = bp_props.unique_mat_tex_mel
-
-            for slot in obj.snap.material_slots:
-                slot.category_name = "Closet Materials"
-                slot.item_name = unique_mat_name
-
-        if obj.snap.cutpart_name == 'Back':
-            if bp_props.use_unique_material:
                 # if bp_props.unique_mat_types == 'MELAMINE':
                 #     unique_mat_name = bp_props.unique_mat_mel
                 # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
                 #     unique_mat_name = bp_props.unique_mat_tex_mel
-                # if bp_props.unique_mat_types == 'VENEER':
-                #     unique_mat_name = bp_props.unique_mat_veneer
-
-                unique_mat_name = bp_props.unique_mat
 
                 for slot in obj.snap.material_slots:
                     slot.category_name = "Closet Materials"
                     slot.item_name = unique_mat_name
 
-        if spec_group and not unique_mel_ct:
-            if obj.snap.cutpart_name in spec_group.cutparts:
-                cutpart = spec_group.cutparts[obj.snap.cutpart_name]
-                for index, slot in enumerate(obj.snap.material_slots):
-                    if slot.name == 'Core':
-                        slot.pointer_name = cutpart.core
-                    elif slot.name in {'Top', 'Exterior'}:
-                        slot.pointer_name = cutpart.top
-                    elif slot.name in {'Bottom', 'Interior'}:
-                        slot.pointer_name = cutpart.bottom
-                    elif not obj.snap.use_multiple_edgeband_pointers:
-                        if obj.snap.edgepart_name in spec_group.edgeparts:
-                            edgepart = spec_group.edgeparts[obj.snap.edgepart_name]
-                            slot.pointer_name = edgepart.material
+            if obj.snap.cutpart_name == 'Back':
+                if bp_props.use_unique_material:
+                    # if bp_props.unique_mat_types == 'MELAMINE':
+                    #     unique_mat_name = bp_props.unique_mat_mel
+                    # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
+                    #     unique_mat_name = bp_props.unique_mat_tex_mel
+                    # if bp_props.unique_mat_types == 'VENEER':
+                    #     unique_mat_name = bp_props.unique_mat_veneer
 
-                    if slot.pointer_name in spec_group.materials:
-                        material_pointer = spec_group.materials[slot.pointer_name]
-                        slot.category_name = material_pointer.category_name
-                        slot.item_name = material_pointer.item_name
+                    unique_mat_name = bp_props.unique_mat
+
+                    for slot in obj.snap.material_slots:
+                        slot.category_name = "Closet Materials"
+                        slot.item_name = unique_mat_name
+
+            if spec_group and not unique_mel_ct:
+                if obj.snap.cutpart_name in spec_group.cutparts:
+                    cutpart = spec_group.cutparts[obj.snap.cutpart_name]
+                    for index, slot in enumerate(obj.snap.material_slots):
+                        if slot.name == 'Core':
+                            slot.pointer_name = cutpart.core
+                        elif slot.name in {'Top', 'Exterior'}:
+                            slot.pointer_name = cutpart.top
+                        elif slot.name in {'Bottom', 'Interior'}:
+                            slot.pointer_name = cutpart.bottom
+                        elif not obj.snap.use_multiple_edgeband_pointers:
+                            if obj.snap.edgepart_name in spec_group.edgeparts:
+                                edgepart = spec_group.edgeparts[obj.snap.edgepart_name]
+                                slot.pointer_name = edgepart.material
+
+                        if slot.pointer_name in spec_group.materials:
+                            material_pointer = spec_group.materials[slot.pointer_name]
+                            slot.category_name = material_pointer.category_name
+                            slot.item_name = material_pointer.item_name
 
     elif obj.snap.type_mesh == 'EDGEBANDING':
         obj.show_bounds = False

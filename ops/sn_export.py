@@ -98,6 +98,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         has_blind_left_corner_ppt = parent_assembly.get_prompt("Has Blind Left Corner")
         has_blind_right_corner_ppt = parent_assembly.get_prompt("Has Blind Right Corner")
         has_door_swing_ppt = assembly.get_prompt("Door Swing")
+        large_hinge = assembly.get_prompt("Large Hinge")
 
         if full_overlay_ppt:
             if full_overlay_ppt.get_value():
@@ -110,6 +111,16 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 return 'HW-0000046'
             if has_blind_right_corner_ppt.get_value() and has_door_swing_ppt.get_value() == 1:
                 return 'HW-0000046'
+        
+        if large_hinge:
+            if large_hinge.get_value():
+                return 'HW-0000047'
+        
+        if item_name == 'Hinge- Corner cabinet':
+            return 'HW-0000045'
+        
+        if item_name == 'Hinge - Lazy Susan':
+            return 'HW-0000229'
             
         cursor.execute(
             "SELECT\
@@ -2172,7 +2183,7 @@ class OPS_Export_XML(Operator):
         return circles
 
     def get_shelf_kd_drilling(self, assembly, token, token_name, circles):
-        #Two Left Holes For KD Shelf
+        # Two Left Holes For KD Shelf
         if token_name == 'Left Drilling':
             normal_z = 1
             org_displacement = 0
@@ -2183,15 +2194,15 @@ class OPS_Export_XML(Operator):
 
             param_dict = token.create_parameter_dictionary()
             if param_dict['Par1'] != '':
-                dim_in_x_1,dim_in_x_2 = param_dict['Par1'].split(",")
+                dim_in_x_1, dim_in_x_2 = param_dict['Par1'].split(",")
             else:
                 dim_in_x_1 = 0
                 dim_in_x_2 = 0
             dim_in_y = param_dict['Par7']
-            bore_depth,irrelevant = param_dict['Par6'].split(",")
-            more_irrelevant,cam_hole_dia = param_dict['Par5'].split(",")                                  
+            bore_depth, irrelevant = param_dict['Par6'].split(",")
+            more_irrelevant, cam_hole_dia = param_dict['Par5'].split(",")
 
-            #Back Left Hole
+            # Back Left Hole
             cir = {}
             cir['cen_x'] = -float(dim_in_x_2)
             cir['cen_y'] = float(dim_in_y)
@@ -2201,7 +2212,7 @@ class OPS_Export_XML(Operator):
             cir['org_displacement'] = org_displacement
             circles.append(cir)
 
-            #Front Left Hole
+            # Front Left Hole
             cir = {}
             cir['cen_x'] = -float(dim_in_x_1)
             cir['cen_y'] = float(dim_in_y)
@@ -2211,9 +2222,8 @@ class OPS_Export_XML(Operator):
             cir['org_displacement'] = org_displacement
             circles.append(cir)
 
-
-        #Two Right Holes For KD Shelf
-        if token_name == 'Right Drilling':                                   
+        # Two Right Holes For KD Shelf
+        if token_name == 'Right Drilling':
             normal_z = 1
             org_displacement = 0
             if token.face == '5':
@@ -2222,15 +2232,15 @@ class OPS_Export_XML(Operator):
 
             param_dict = token.create_parameter_dictionary()
             if param_dict['Par1'] != '':
-                dim_in_x_1,dim_in_x_2 = param_dict['Par1'].split(",")
+                dim_in_x_1, dim_in_x_2 = param_dict['Par1'].split(",")
             else:
                 dim_in_x_1 = 0
                 dim_in_x_2 = 0
-            dim_in_y = param_dict['Par7']                          
-            bore_depth,irrelevant = param_dict['Par6'].split(",")
-            more_irrelevant,cam_hole_dia = param_dict['Par5'].split(",")                                   
+            dim_in_y = param_dict['Par7']
+            bore_depth, irrelevant = param_dict['Par6'].split(",")
+            more_irrelevant, cam_hole_dia = param_dict['Par5'].split(",")
 
-            #Back Right Hole
+            # Back Right Hole
             cir = {}
             cir['cen_x'] = -float(dim_in_x_2)
             cir['cen_y'] = float(dim_in_y)
@@ -2240,7 +2250,7 @@ class OPS_Export_XML(Operator):
             cir['org_displacement'] = org_displacement
             circles.append(cir)
             
-            #Front Right Hole
+            # Front Right Hole
             cir = {}
             cir['cen_x'] = -float(dim_in_x_1)
             cir['cen_y'] = float(dim_in_y)
@@ -2249,7 +2259,6 @@ class OPS_Export_XML(Operator):
             cir['normal_z'] = normal_z
             cir['org_displacement'] = org_displacement
             circles.append(cir)
-
 
         return circles
 
@@ -3675,6 +3684,24 @@ class OPS_Export_XML(Operator):
                                 self.backing_assembly = backing_assembly
                                 self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
                                 self.cover_cleat_lengths.append(self.get_part_width(backing_assembly))
+
+                            # X is Height, Y is Width
+                            if backing_assembly.obj_x.location.x > sn_unit.inch(48) or backing_assembly.obj_y.location.y > sn_unit.inch(48):
+                                print("Found Extra Large Backing")
+                                backing_name = backing_assembly.obj_bp.name
+
+                                vertical_grain = backing_assembly.get_prompt('Vertical Grain')
+                                if vertical_grain:
+                                    if vertical_grain.get_value():
+                                        if backing_assembly.obj_y.location.y > sn_unit.inch(48):
+                                            temp_width = backing_assembly.obj_y.location.y
+                                            backing_assembly.obj_y.location.y = temp_width/2
+                                            backing_assembly.add_prompt("Was Split", 'CHECKBOX', True)
+                                            backing_assembly.obj_bp.sn_closets.is_back_bp = True
+                                            for bchild in backing_assembly.obj_bp.children:
+                                                if bchild.snap.type_mesh == 'CUTPART':
+                                                    self.write_part_node(elm_parts, bchild, spec_group)
+                                            continue
 
             if closet_crown_molding or closet_base_molding or kb_molding:
                 if child.sn_closets.is_empty_molding:
@@ -5439,14 +5466,33 @@ class OPS_Export_XML(Operator):
 
             # Island capping back
             if "IS_BP_CAPPING_BACK" in assembly.obj_bp:
-                edge_1 = "S1"
-                edge_2 = "L1"
-                edge_3 = "S2"
-                edge_4 = "L2"
-                edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
-                edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                was_split = assembly.get_prompt("Was Split")
+                if was_split:
+                    if was_split.get_value():
+                        edge_1 = "S1"
+                        edge_2 = "L1"
+                        edge_3 = "S2"
+                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                    else:
+                        edge_1 = "S1"
+                        edge_2 = "L1"
+                        edge_3 = "S2"
+                        edge_4 = "L2"
+                        edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                        edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                else:
+                    edge_1 = "S1"
+                    edge_2 = "L1"
+                    edge_3 = "S2"
+                    edge_4 = "L2"
+                    edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                    edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                    edge_3_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
+                    edge_4_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
 
             # Capping Base
             if "IS_BP_TOE_KICK_CAPPING_BASE" in assembly.obj_bp:
@@ -5516,10 +5562,15 @@ class OPS_Export_XML(Operator):
             # Ken Needs anything new added to the label section to be added before SKU
 
             mat_type = closet_materials.materials.get_mat_type()
+            paint_or_stain = ""
+            if closet_materials.upgrade_options.get_type().name == "Stain":
+                paint_or_stain = 'S'
+            else:
+                paint_or_stain = 'PL'
 
             if mat_type.name == "Upgrade Options":
                 upgrade_option_lbl = [
-                    ("upgradeoption", "text", mat_type.get_mat_color().name)
+                    ("upgradeoption", "text", mat_type.get_mat_color().name+'-'+paint_or_stain)
                 ]
                 lbl.extend(upgrade_option_lbl)
 

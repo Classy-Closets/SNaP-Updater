@@ -778,6 +778,8 @@ class Closet_Defaults(PropertyGroup):
     toe_kick_height: FloatProperty(name="Toe Kick Height", default=sn_unit.inch(4.39), unit='LENGTH', precision=4)
     
     toe_kick_setback: FloatProperty(name="Toe Kick Setback",default=sn_unit.inch(1.5),unit='LENGTH', precision=4)
+
+    top_shelf_overhang: FloatProperty(name="Front Overhang",default=sn_unit.inch(0.75),unit='LENGTH', precision=4)
     
     adj_shelf_clip_gap: FloatProperty(name="Adjustable Shelf Clip Gap",default=0,unit='LENGTH', precision=4)
     
@@ -957,6 +959,15 @@ class Closet_Defaults(PropertyGroup):
         props.prompt_type = 'DISTANCE'
         props.float_value = self.toe_kick_setback
 
+        row = box.row()
+        row.label(text="Top Shelf Overhang:")
+        row.prop(self, 'top_shelf_overhang', text="")
+        props = row.operator(
+            'sn_prompt.update_all_prompts_in_scene', text="", icon='FILE_REFRESH')
+        props.prompt_name = 'Front Overhang'
+        props.prompt_type = 'DISTANCE'
+        props.float_value = self.top_shelf_overhang
+
         mat_type = bpy.context.scene.closet_materials.materials.get_mat_type()
         if mat_type.name == "Garage Material":
             row = box.row()
@@ -979,6 +990,11 @@ class Closet_Defaults(PropertyGroup):
         row = box.row()
         row.label(text="Drill Drawer Boxes:")
         row.prop(self, 'drill_drawer_boxes', text="")
+        row.label(text="", icon='BLANK1')
+
+        row = box.row()
+        row.label(text="KD Shelf Drill Depth:")
+        row.prop(closet_machining, 'cam_bore_edge_depth', text="")
         row.label(text="", icon='BLANK1')
 
         row = box.row()

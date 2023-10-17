@@ -341,6 +341,7 @@ def add_door(assembly):
     door.add_prompt("Door Type", 'COMBOBOX', 0, ['Base','Tall','Upper'])
     door.add_prompt("Door Swing", 'COMBOBOX', 0, ['Left','Right','Top','Bottom'])
     door.add_prompt("No Pulls", 'CHECKBOX', False)
+    door.add_prompt("Large Hinge", 'CHECKBOX', False)
     door.obj_bp['IS_DOOR'] = True
     obj_props = door.obj_bp.sn_closets
     obj_props.is_door_bp = True  # TODO: remove
@@ -926,6 +927,7 @@ def add_back(assembly):
     backing.obj_bp.snap.comment_2 = "1037"
     backing.obj_bp['IS_BP_ASSEMBLY'] = True
     backing.obj_bp["IS_BACK"] = True
+    backing.add_prompt("Vertical Grain", 'CHECKBOX', True)
     props = backing.obj_bp.sn_closets
     props.is_back_bp = True
     backing.set_name("Backing")

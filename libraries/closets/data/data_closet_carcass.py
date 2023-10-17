@@ -1238,6 +1238,7 @@ class Closet_Carcass(sn_types.Assembly):
         Height_1 = self.get_prompt('Opening 1 Height').get_var('Height_1')
         Last_Height = self.get_prompt('Opening ' + str(self.opening_qty) + ' Height').get_var("Last_Height")
         Panel_Thickness = self.get_prompt("Panel Thickness").get_var()
+        Vertical_Grain = self.get_prompt("Hutch Vertical Grain").get_var('Vertical_Grain')
 
         hutch_backing = common_parts.add_back(self)
         hutch_backing.obj_bp.sn_closets.is_hutch_back_bp = True
@@ -1246,16 +1247,22 @@ class Closet_Carcass(sn_types.Assembly):
         hutch_backing.loc_z(
             "Product_Height-IF(Height_1>=Last_Height,Height_1,Last_Height)-IF(Has_Capping_Bottom,Panel_Thickness,0)",
             [Product_Height, Height_1, Last_Height, Has_Capping_Bottom, Panel_Thickness])
-        hutch_backing.rot_x(value=math.radians(-90))
-        hutch_backing.dim_x("Width-(Panel_Thickness*2)",[Width,Panel_Thickness])
+        hutch_backing.rot_x('IF(Vertical_Grain,0,radians(-90))',[Vertical_Grain])
+        hutch_backing.rot_y('IF(Vertical_Grain,radians(90),0)',[Vertical_Grain])
+        hutch_backing.rot_z('IF(Vertical_Grain,radians(-90),0)',[Vertical_Grain])
+        hutch_backing.dim_x(
+            "IF(Vertical_Grain,IF(Height_Left_Side>=Height_Right_Side,Height_Left_Side,Height_Right_Side)"
+            "-IF(Has_Capping_Bottom,Panel_Thickness,0),Width-(Panel_Thickness*2))",
+            [Width, Panel_Thickness, Height_Left_Side, Height_Right_Side, Has_Capping_Bottom, Vertical_Grain])
         hutch_backing.dim_y(
-            "IF(Height_Left_Side>=Height_Right_Side,Height_Left_Side,Height_Right_Side)"
-            "-IF(Has_Capping_Bottom,Panel_Thickness,0)",
-            [Height_Left_Side, Height_Right_Side, Has_Capping_Bottom, Panel_Thickness])
-        hutch_backing.dim_z("-Panel_Thickness", [Panel_Thickness])
+            "IF(Vertical_Grain,Width-(Panel_Thickness*2),IF(Height_Left_Side>=Height_Right_Side,Height_Left_Side,Height_Right_Side)"
+            "-IF(Has_Capping_Bottom,Panel_Thickness,0))",
+            [Height_Left_Side, Height_Right_Side, Has_Capping_Bottom, Panel_Thickness, Width, Panel_Thickness, Vertical_Grain])
+        hutch_backing.dim_z("IF(Vertical_Grain,Panel_Thickness,-Panel_Thickness)", [Panel_Thickness, Vertical_Grain])
         hutch_backing.get_prompt('Hide').set_formula(
             "IF(OR(Extend_Left_End_Pard_Down,Extend_Right_End_Pard_Down),IF(Add_Hutch_Backing,False,True),True)",
             [Extend_Left_End_Pard_Down, Extend_Right_End_Pard_Down, Add_Hutch_Backing])
+        hutch_backing.get_prompt("Vertical Grain").set_formula("Vertical_Grain", [Vertical_Grain])
 
     def add_system_holes(self,i,panel):
         calculator = self.get_calculator(self.calculator_name)

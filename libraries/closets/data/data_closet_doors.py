@@ -113,6 +113,9 @@ class Doors(sn_types.Assembly):
         self.add_prompt("Shelf Backing Setback", 'DISTANCE', 0)
         self.add_prompt("Glass Shelf Thickness", 'COMBOBOX', 0, ['1/4"', '3/8"', '1/2"'])
 
+        self.add_prompt("Left Large Hinge", 'CHECKBOX', False)
+        self.add_prompt("Right Large Hinge", 'CHECKBOX', False)
+
         ST = self.get_prompt("Glass Shelf Thickness").get_var("ST")
         glass_thickness.set_formula('IF(ST==0,INCH(0.25),IF(ST==1,INCH(0.375),INCH(0.5)))', [ST])
 
@@ -372,6 +375,9 @@ class Doors(sn_types.Assembly):
 
         TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')
 
+        Left_Large_Hinge = self.get_prompt("Left Large Hinge").get_var('Left_Large_Hinge')
+        Right_Large_Hinge = self.get_prompt("Right Large Hinge").get_var('Right_Large_Hinge')
+
         door_backing_gap = self.get_prompt('Doors Backing Gap')
         door_backing_gap.set_formula('Insert_Height+ST*2', [Insert_Height, ST])  
 
@@ -411,6 +417,8 @@ class Doors(sn_types.Assembly):
         no_pulls.set_formula('No_Pulls', [No_Pulls])
         cat_num = left_door.get_prompt('CatNum')
         cat_num.set_formula('IF(OR(double_door,Width>DDAS),51,52)', [double_door, Width, DDAS])
+        large_hinge = left_door.get_prompt('Large Hinge')
+        large_hinge.set_formula('IF(BLC,False,Left_Large_Hinge)', [Left_Large_Hinge, BLC])
 
         left_pull = common_parts.add_door_pull(self)
         self.set_pull_drivers(left_pull)
@@ -442,6 +450,8 @@ class Doors(sn_types.Assembly):
         no_pulls.set_formula('No_Pulls', [No_Pulls])
         cat_num = right_door.get_prompt('CatNum')
         cat_num.set_formula('IF(OR(double_door,Width>DDAS),51,52)', [double_door, Width, DDAS])
+        large_hinge = right_door.get_prompt('Large Hinge')
+        large_hinge.set_formula('IF(BRC,False,Right_Large_Hinge)', [Right_Large_Hinge, BRC])
 
         right_pull = common_parts.add_door_pull(self)
         self.set_pull_drivers(right_pull)
@@ -530,17 +540,23 @@ class Doors(sn_types.Assembly):
         
         self.update()
 
-    def add_to_wall_collection(self, obj_bp):
-        wall_bp = sn_utils.get_wall_bp(self.obj_bp)
-        if wall_bp:
-            wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-            scene_coll = bpy.context.scene.collection
-            sn_utils.add_assembly_to_collection(obj_bp, wall_coll)
-            sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
-
     def update_collections(self):
+        wall_bp = sn_utils.get_wall_bp(self.obj_bp)
+        floor = sn_utils.get_floor_parent(self.obj_bp)
+
         for i, shelf in enumerate(self.shelves):
-            self.add_to_wall_collection(shelf.obj_bp)
+            if wall_bp:
+                wall_coll = bpy.data.collections[wall_bp.snap.name_object]
+                self.asssign_to_collection(shelf.obj_bp, wall_coll)
+
+            if floor:
+                floor_coll = bpy.data.collections[floor.snap.name_object]
+                self.asssign_to_collection(shelf.obj_bp, floor_coll)
+
+    def asssign_to_collection(self, obj_bp, collection):
+        scene_coll = bpy.context.scene.collection
+        sn_utils.add_assembly_to_collection(obj_bp, collection)
+        sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
 
 
 class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
@@ -1199,6 +1215,11 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                 center_rail_distance_from_center = self.assembly.get_prompt("Center Rail Distance From Center")
                 shelf_quantity = self.assembly.get_prompt("Shelf Quantity")   
                 add_shelves = self.assembly.get_prompt("Add Shelves")
+                has_blind_left_corner = self.assembly.get_prompt("Has Blind Left Corner")                
+                has_blind_right_corner = self.assembly.get_prompt("Has Blind Right Corner")
+                left_large_hinge = self.assembly.get_prompt("Left Large Hinge")
+                right_large_hinge = self.assembly.get_prompt("Right Large Hinge")
+                
                 door_type_name = door_type.combobox_items[door_type.get_value()].name
                       
                 box = layout.box()
@@ -1315,6 +1336,33 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         if self.is_glass_door():
                             row = box.row()
                             use_mirror.draw_prompt(row)
+                    
+                    prompts = [force_double_door, has_blind_left_corner, has_blind_right_corner, left_large_hinge, right_large_hinge, use_left_swing]
+                    if all(prompts):
+                        if force_double_door.get_value():
+                            hinge_box = box.box()
+                            hinge_box.label(text="Hinge Options:")
+                            if not has_blind_left_corner.get_value():
+                                row = hinge_box.row()
+                                row.label(text="165 Hinge Left")
+                                row.prop(left_large_hinge, 'checkbox_value', text="")
+                            if not has_blind_right_corner.get_value():
+                                row = hinge_box.row()
+                                row.label(text="165 Hinge Right")
+                                row.prop(right_large_hinge, 'checkbox_value', text="")
+                        else:
+                            if not has_blind_left_corner.get_value() and use_left_swing.get_value():
+                                hinge_box = box.box()
+                                hinge_box.label(text="Hinge Options:")
+                                row = hinge_box.row()
+                                row.label(text="165 Hinge Left")
+                                row.prop(left_large_hinge, 'checkbox_value', text="")
+                            if not has_blind_right_corner.get_value() and not use_left_swing.get_value():
+                                hinge_box = box.box()
+                                hinge_box.label(text="Hinge Options:")
+                                row = hinge_box.row()
+                                row.label(text="165 Hinge Right")
+                                row.prop(right_large_hinge, 'checkbox_value', text="")
 
                 elif self.tabs == 'SHELVES':
                     adj_shelf_setback = self.assembly.get_prompt("Adj Shelf Setback")

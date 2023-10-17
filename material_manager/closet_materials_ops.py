@@ -110,21 +110,26 @@ class SN_MAT_OT_Assign_Materials(Operator):
             if obj.snap.type_mesh == 'CUTPART':
                 cab_mat_props = self.props_closet_materials
                 mat_type = cab_mat_props.door_drawer_materials.get_mat_type()
-                mat_color_name = cab_mat_props.materials.get_mat_color().name
+                mat_color_name = cab_mat_props.door_drawer_materials.get_mat_color().name
                 edge_type = cab_mat_props.door_drawer_edges.get_edge_type()
                 door_part = sn_types.Part(assembly.obj_bp)
                 custom_colors = cab_mat_props.use_custom_color_scheme
 
-                if mat_type.name == "Garage Material" and not custom_colors:
+                if mat_type.name == "Garage Material":
                     door_part.cutpart("Garage_Slab_Door")
                     if mat_color_name == "Cosmic Dust" or self.use_black_edge and mat_color_name == "Steel Grey":
                         door_part.edgebanding("Black_Edge", l1=True, w1=True, l2=True, w2=True)
                         door_part.set_material_pointers("Black", "TopBottomEdge")
                         door_part.set_material_pointers("Black", "LeftRightEdge")
                     else:
-                        door_part.edgebanding("Exterior_Edge", l1=True, w1=True, l2=True, w2=True)
-                        door_part.set_material_pointers("Garage_Panel_Edges", "TopBottomEdge")
-                        door_part.set_material_pointers("Garage_Panel_Edges", "LeftRightEdge")
+                        if custom_colors:
+                            door_part.edgebanding('Door_Edges', l1=True, w1=True, l2=True, w2=True)
+                            door_part.set_material_pointers("Door_Edge", "TopBottomEdge")
+                            door_part.set_material_pointers("Door_Edge", "LeftRightEdge")
+                        else:
+                            door_part.edgebanding("Exterior_Edge", l1=True, w1=True, l2=True, w2=True)
+                            door_part.set_material_pointers("Garage_Panel_Edges", "TopBottomEdge")
+                            door_part.set_material_pointers("Garage_Panel_Edges", "LeftRightEdge")
                 else:
                     door_part.cutpart("Slab_Door")
                     door_part.edgebanding('Door_Edges', l1=True, w1=True, l2=True, w2=True)
@@ -290,7 +295,8 @@ class SN_MAT_OT_Assign_Materials(Operator):
             custom_colors = mat_props.use_custom_color_scheme
             white_color = (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak")
             is_antique_white = (mat_color_name == "Bridal Shower (Antique White) Δ")
-            if  (white_color or is_antique_white) and not custom_colors:
+            is_coastal_living = mat_color_name == "Coastal Living"
+            if  (white_color or is_antique_white or is_coastal_living) and not custom_colors:
                 has_paint = True
 
             if not custom_colors:
@@ -299,6 +305,8 @@ class SN_MAT_OT_Assign_Materials(Operator):
                         wood_door_pointer.item_name = "Winter White"
                     elif is_antique_white:
                         wood_door_pointer.item_name = "Warm Spring"
+                    elif is_coastal_living:
+                        wood_door_pointer.item_name = "Deep Blue"
                     else:
                         wood_door_pointer.item_name = mat_props.materials.get_mat_color().name
                 elif has_stain:
@@ -707,7 +715,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 assembly.obj_bp.sn_closets.use_unique_material = False
 
         if not assembly.obj_bp.sn_closets.use_unique_material:
-            if mat_type.name == "Garage Material":
+            if mat_type.name == "Garage Material" and "Melamine" in countertop_type.name:
                 if mat_color_name == "Cosmic Dust" or self.use_black_edge and mat_color_name == "Steel Grey":
                     countertop_part.edgebanding('Black_Edge', l1=True, l2=True, w1=True, w2=True)
                     countertop_part.set_material_pointers("Black", "Edgebanding")

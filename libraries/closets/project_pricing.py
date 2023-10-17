@@ -2571,6 +2571,24 @@ def get_mat_sku(mat_name):
         sku = row[0]
     return sku
 
+def get_paint_stain_mat_sku(mat_name):
+    name, product_type = mat_name.split('-')
+    rows = sn_db.query_db(
+        "SELECT\
+            SKU\
+        FROM\
+            {CCItems}\
+        WHERE\
+            ProductType IN ('{Product_Type}') AND DisplayName LIKE '%{DisplayName}%';\
+        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, Product_Type=product_type.strip(), DisplayName=name.strip())
+    )
+    if len(rows) == 0:
+        sku = 'SO-0000001'
+        print("No Pricing SKU Returned for Material Name:  " + mat_name)
+        print("Special Order SKU given to:  " + mat_name)
+    for row in rows:
+        sku = row[0]
+    return sku
 
 def get_mat_display_name(mat_sku):
     rows = sn_db.query_db(
@@ -2626,7 +2644,12 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
         print("No Prices Returned for SKU:  " + sku_num)
     for row in rows:
         name = row[1]
-        retail_price = float(row[2])
+
+        if type(row[2]) == str:
+            retail_price = float(row[2].replace(',', ''))
+        else:
+            retail_price = float(row[2])
+
         franchise_price = float(row[3])
         uom = row[4]
         vendor_name = row[5]
@@ -2711,7 +2734,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
 
             if is_vn_sku or is_wd_sku and not is_pbi_sku:
                 if upgrade_color is not None:
-                    paint_stain_price = get_price_by_sku(get_mat_sku(upgrade_color))
+                    paint_stain_price = get_price_by_sku(get_paint_stain_mat_sku(upgrade_color))
                 paint_stain_labor = get_price_by_sku('LB-0000014')
                 sf_part = get_square_footage(length_inches, width_inches)
                 r_stain_total = (paint_stain_price[0] * sf_part) * 2
@@ -2978,12 +3001,13 @@ def calculate_project_price(xml_file, cos_flag=False):
                             if VALUE == "Left Door" or VALUE == "Right Door":
                                 VALUE = "Door"
                             dcname = VALUE
-                        if NAME == 'sku':
+                        if 'sku' in NAME:
                             sku_value = VALUE
                             if sku_value == 'Unknown':
                                 sku_value = 'SO-0000001'
-                            elif sku_value == 'None':
-                                sku_value = 'SO-0000001'
+                            if NAME == 'sku':
+                                if sku_value == 'None':
+                                    sku_value = 'SO-0000001'
                         if NAME == 'wallname':
                             wall_name = VALUE
                         if NAME == 'lenx':
@@ -3226,12 +3250,13 @@ def calculate_project_price(xml_file, cos_flag=False):
                                 if VALUE == "Left Door" or VALUE == "Right Door":
                                     VALUE = "Door"
                                 dcname = VALUE
-                            if NAME == 'sku':
+                            if 'sku' in NAME:
                                 sku_value = VALUE
                                 if sku_value == 'Unknown':
                                     sku_value = 'SO-0000001'
-                                elif sku_value == 'None':
-                                    sku_value = 'SO-0000001'
+                                if NAME == 'sku':
+                                    if sku_value == 'None':
+                                        sku_value = 'SO-0000001'
                             if NAME == 'wallname':
                                 wall_name = VALUE
                             if NAME == 'lenx':
@@ -3475,12 +3500,13 @@ def calculate_project_price(xml_file, cos_flag=False):
                                     if VALUE == "Left Door" or VALUE == "Right Door":
                                         VALUE = "Door"
                                     dcname = VALUE
-                                if NAME == 'sku':
+                                if 'sku' in NAME:
                                     sku_value = VALUE
                                     if sku_value == 'Unknown':
                                         sku_value = 'SO-0000001'
-                                    elif sku_value == 'None':
-                                        sku_value = 'SO-0000001'
+                                    if NAME == 'sku':
+                                        if sku_value == 'None':
+                                            sku_value = 'SO-0000001'
                                 if NAME == 'wallname':
                                     wall_name = VALUE
                                 if NAME == 'lenx':

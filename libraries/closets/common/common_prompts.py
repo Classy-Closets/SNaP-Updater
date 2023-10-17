@@ -69,6 +69,7 @@ def add_closet_carcass_prompts(assembly):
     assembly.add_prompt(
         "Backing Throughout Type",
         'COMBOBOX', 0, ['1/4"', '3/4"', 'Cedar Backing'])
+    assembly.add_prompt("Hutch Vertical Grain", 'CHECKBOX', True)
 
     # For adding individual opening prompts
     for i in range(1, assembly.opening_qty + 1):

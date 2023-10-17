@@ -55,22 +55,34 @@ def assign_material_pointers(scene=None):
         else:
             mat_type = mat_props.materials.get_mat_type()
             if mat_type.name == "Upgrade Options":
-                for color_idx, color in enumerate(mat_props.paint_colors):
-                    if room_mat_color in color.name:
-                        mat_props.upgrade_type_index = 1
-                        mat_props.paint_color_index = color_idx
-                        return 8, color_idx
+                if "Onyx" in room_mat_color:
+                    if mat_props.upgrade_type_index == 1:
+                        for color_idx, color in enumerate(mat_props.paint_colors):
+                            if room_mat_color in color.name:
+                                mat_props.paint_color_index = color_idx
+                                return 8, color_idx
+                    else:
+                        for color_idx, color in enumerate(mat_props.stain_colors):
+                            if room_mat_color in color.name:
+                                mat_props.stain_color_index = color_idx
+                                return 8, 13
+                else:
+                    for color_idx, color in enumerate(mat_props.paint_colors):
+                        if room_mat_color in color.name:
+                            mat_props.upgrade_type_index = 1
+                            mat_props.paint_color_index = color_idx
+                            return 8, color_idx
 
-                    if "Bridal Shower (Antique White)" in room_mat_color:
-                        mat_props.upgrade_type_index = 1
-                        mat_props.paint_color_index = 13  # Warm Spring
-                        return 8, 13
+                        if "Bridal Shower (Antique White)" in room_mat_color:
+                            mat_props.upgrade_type_index = 1
+                            mat_props.paint_color_index = 13  # Warm Spring
+                            return 8, 13
 
-                for color_idx, color in enumerate(mat_props.stain_colors):
-                    if room_mat_color in color.name:
-                        mat_props.upgrade_type_index = 2
-                        mat_props.stain_color_index = color_idx
-                        return 8, 13
+                    for color_idx, color in enumerate(mat_props.stain_colors):
+                        if room_mat_color in color.name:
+                            mat_props.upgrade_type_index = 2
+                            mat_props.stain_color_index = color_idx
+                            return 8, 13
             else:
                 for mat_idx, mat_type in enumerate(mat_types):
                     for color_idx, color in enumerate(mat_type.colors):
@@ -145,10 +157,15 @@ def assign_material_pointers(scene=None):
             is_garage_material = False
             current_mat_color = mat_type.get_mat_color()
 
-            if mat_type.type_code == 1 or mat_type.type_code == 4:
+            if mat_type.type_code == 1 and custom_colors:
+                cutpart_name = None
+                if obj.snap.type_mesh == 'CUTPART':
+                    cutpart_name = obj.snap.cutpart_name
+                if cutpart_name == 'Garage_Top_KD' or cutpart_name == 'Garage_End_Panel' or cutpart_name == 'Garage_Bottom_KD':
+                    part_mesh = get_part_mesh(obj, 'CUTPART')
+            elif  mat_type.type_code == 1 and mat_type.type_code == 4:
                 if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
                     part_mesh = get_part_mesh(obj, 'CUTPART')
-
             else:
                 if "IS_BP_PANEL" in obj:
                     part_mesh = get_part_mesh(obj, 'CUTPART')
