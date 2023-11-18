@@ -35,6 +35,17 @@ def get_room_version():
         return ""
 
 
+def get_franchise_location():
+    franchise_location = bpy.context.preferences.addons['snap'].preferences.franchise_location
+
+    # Use Phoenix pricing table for Dallas franchise
+    if franchise_location == 'DAL':
+        return "PHX"
+
+    else:
+        return franchise_location
+
+
 def get_object_icon(obj):
     if 'IS_BP_ASSEMBLY' in obj:
         return 'FILE_3D'
@@ -461,13 +472,15 @@ def set_main_scene(context):
 def assign_materials_from_pointers(obj):
     library = bpy.context.scene.snap
     spec_group = library.spec_groups[obj.snap.spec_group_index]
+    scene = bpy.context.scene
+    mat_type = scene.closet_materials.materials.get_mat_type()
+    is_upgrade_mat = mat_type.name == "Upgrade Options"
 
     # ASSIGN POINTERS TO MESH BASED ON MESH TYPE
     if obj.snap.type_mesh == 'BUYOUT':
         part_bp = sn_utils.get_assembly_bp(obj)
         bp_props = part_bp.sn_closets
         unique_ct_color = False
-
         if 'IS_BP_COUNTERTOP' in part_bp:
             if part_bp.sn_closets.use_unique_material:
                 unique_ct_color = True
@@ -549,7 +562,7 @@ def assign_materials_from_pointers(obj):
             bp_props = part_bp.sn_closets
             unique_mel_ct = False
 
-            if 'IS_BP_COUNTERTOP' in part_bp and part_bp.sn_closets.use_unique_material:
+            if 'IS_BP_COUNTERTOP' in part_bp and bp_props.use_unique_material:
                 unique_mel_ct = True
 
                 # W
@@ -560,9 +573,10 @@ def assign_materials_from_pointers(obj):
                 # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
                 #     unique_mat_name = bp_props.unique_mat_tex_mel
 
-                for slot in obj.snap.material_slots:
-                    slot.category_name = "Closet Materials"
-                    slot.item_name = unique_mat_name
+                # EnumProperty for unique material list does not support UTF delta symbol
+                # The "(Discontinued)" placeholder is used instead
+                if "(Discontinued)" in unique_mat_name:
+                    unique_mat_name = unique_mat_name.replace("(Discontinued)", "Δ")
 
             if obj.snap.cutpart_name == 'Back':
                 if bp_props.use_unique_material:
@@ -575,6 +589,72 @@ def assign_materials_from_pointers(obj):
 
                     unique_mat_name = bp_props.unique_mat
 
+                    for slot in obj.snap.material_slots:
+                        slot.category_name = "Closet Materials"
+                        slot.item_name = unique_mat_name
+
+            if spec_group and not unique_mel_ct:
+                if obj.snap.cutpart_name in spec_group.cutparts:
+                    cutpart = spec_group.cutparts[obj.snap.cutpart_name]
+                    for index, slot in enumerate(obj.snap.material_slots):
+                        if slot.name == 'Core':
+                            slot.pointer_name = cutpart.core
+                        elif slot.name in {'Top', 'Exterior'}:
+                            slot.pointer_name = cutpart.top
+                        elif slot.name in {'Bottom', 'Interior'}:
+                            slot.pointer_name = cutpart.bottom
+                        elif not obj.snap.use_multiple_edgeband_pointers:
+                            if obj.snap.edgepart_name in spec_group.edgeparts:
+                                edgepart = spec_group.edgeparts[obj.snap.edgepart_name]
+                                slot.pointer_name = edgepart.material
+
+                        if slot.pointer_name in spec_group.materials:
+                            material_pointer = spec_group.materials[slot.pointer_name]
+                            slot.category_name = material_pointer.category_name
+                            slot.item_name = material_pointer.item_name
+
+        elif "IS_BP_HOOD_BODY" in part_bp:
+            for slot in obj.snap.material_slots:
+                slot.category_name = "Closet Materials"
+
+                if part_bp.sn_closets.use_unique_material:
+                    unique_mat_name = bp_props.unique_upgrade_color
+                    slot.item_name = unique_mat_name
+                else:
+                    material_pointer = spec_group.materials[slot.pointer_name]
+                    slot.category_name = material_pointer.category_name
+                    slot.item_name = material_pointer.item_name
+
+                # elif is_upgrade_mat:
+                #     print("UPGRADE OPTIONS")
+                #     material_pointer = spec_group.materials[slot.pointer_name]
+                #     slot.item_name = material_pointer.item_name
+                # else:
+                #     print("NOT UPGRADE OPTIONS")
+                #     slot.item_name = "Winter White"
+
+    elif obj.snap.type_mesh == 'CUTPART':
+        part_bp = sn_utils.get_assembly_bp(obj)
+        if part_bp:
+            bp_props = part_bp.sn_closets
+            unique_mel_ct = False
+
+            if bp_props.use_unique_material:
+                unique_mat_name = bp_props.unique_mat
+
+                # EnumProperty for unique material list does not support UTF delta symbol
+                # The "(Discontinued)" placeholder is used instead
+                if "(Discontinued)" in unique_mat_name:
+                    unique_mat_name = unique_mat_name.replace("(Discontinued)", "Δ")
+
+                if 'IS_BP_COUNTERTOP' in part_bp:
+                    unique_mel_ct = True
+
+                    for slot in obj.snap.material_slots:
+                        slot.category_name = "Closet Materials"
+                        slot.item_name = unique_mat_name
+
+                if obj.snap.cutpart_name == 'Back':
                     for slot in obj.snap.material_slots:
                         slot.category_name = "Closet Materials"
                         slot.item_name = unique_mat_name
@@ -900,7 +980,9 @@ def create_object_from_verts_and_faces(verts, faces, name):
 
 
 def delete_obj_list(obj_list):
+    start_time = time.time()
     bpy.ops.object.select_all(action='DESELECT')
+
     for obj in obj_list:
         if obj.animation_data:
             for driver in obj.animation_data.drivers:
@@ -923,16 +1005,78 @@ def delete_obj_list(obj_list):
     for obj in obj_list:
         bpy.data.objects.remove(obj, do_unlink=True)
 
+    print("Delete Object List: %s seconds ---" % (time.time() - start_time))
 
-def delete_object_and_children(obj_bp):
-    obj_list = []
+
+def get_garbage_collection_scene():
+    gc_scene = None
+
+    if "Garbage Collector" not in bpy.data.scenes:
+        gc_scene = bpy.data.scenes.new("Garbage Collector")
+        gc_scene.snap.scene_type = 'GARBAGE_COLLECTION'
+    else:
+        gc_scene = bpy.data.scenes["Garbage Collector"]
+
+    if gc_scene:
+        return gc_scene
+
+
+def remove_obj_and_children_from_collections(obj, scene, gc_scene):
+    scene_collection = bpy.context.scene.collection
+
+    # Remove from scene collection
+    if obj.name in scene_collection.objects:
+        scene_collection.objects.unlink(obj)
+
+    # Remove from all other collections
+    for collection in bpy.data.collections:
+        if obj.name in collection.objects:
+            collection.objects.unlink(obj)
+
+    for child in obj.children:
+        if child.name in scene_collection.objects:
+            scene_collection.objects.unlink(child)
+
+        for collection in bpy.data.collections:
+            if child.name in collection.objects:
+                collection.objects.unlink(child)
+
+        remove_obj_and_children_from_collections(child, scene, gc_scene)
+
+
+def add_object_and_children_to_list(obj_bp, obj_list):
+    # Add the current object to the list
     obj_list.append(obj_bp)
+
+    # Recursively process children
     for child in obj_bp.children:
-        if len(child.children) > 0:
-            delete_object_and_children(child)
+        add_object_and_children_to_list(child, obj_list)
+
+
+def delete_object_and_children(obj_bp, obj_bp_list=[]):
+    start_time = time.time()
+    delete_objs = []
+
+    if obj_bp_list:
+        for obj_bp in obj_bp_list:
+            add_object_and_children_to_list(obj_bp, delete_objs)
+
+    # Deselect all objects first
+    bpy.ops.object.select_all(action='DESELECT')
+
+    main_scene = get_main_scene()
+    gc_scene = get_garbage_collection_scene()
+
+    if main_scene and gc_scene:
+        if delete_objs:
+            for obj_bp in delete_objs:
+                remove_obj_and_children_from_collections(obj_bp, main_scene, gc_scene)
         else:
-            obj_list.append(child)
-    delete_obj_list(obj_list)
+            remove_obj_and_children_from_collections(obj_bp, main_scene, gc_scene)
+
+    bpy.ops.outliner.orphans_purge()
+
+    print("Delete Object and Children: %s seconds ---" % (time.time() - start_time))
 
 
 def calc_distance(point1, point2):
@@ -1419,6 +1563,18 @@ def get_material_name_from_pointer(pointer, spec_group):
         bottom_material = "NA"
     return format_material_name(thickness, core_material, top_material, bottom_material)
 
+
+def get_unique_material_name(name):
+    """EnumProperty for unique material list does not support UTF delta symbol
+    The "(Discontinued)" placeholder is used instead
+    """
+
+    if "(Discontinued)" in name:
+        return name.replace("(Discontinued)", "Δ")
+    else:
+        return name
+
+
 # -------LIBRARY FUNCTIONS
 
 
@@ -1714,32 +1870,27 @@ def get_tagged_bp_list(obj_bp, tag, insert_list):
         insert_list.sort(key=lambda obj: obj.location.z, reverse=True)
     return insert_list
 
+
 def init_objects(obj_bp):
     """ This Function is used to init all of the objects in an assembly
             -Sets the names of the children
             -Sets the materials
     """
-    # set_object_name(obj_bp)
+
     for child in obj_bp.children:
-        # set_object_name(child)
+        if child.name in bpy.context.view_layer.objects:
+            if 'IS_BP_ASSEMBLY' in child:
+                init_objects(child)
+                child.hide_set(True)
 
-        if child.type == 'EMPTY':
-            child.hide_set(True)
+            if child.type == 'EMPTY':
+                child.hide_set(True)
 
-        if child.type == 'MESH':
-            assign_materials_from_pointers(child)
+            if child.type == 'MESH':
+                assign_materials_from_pointers(child)
 
-        if 'IS_VISDIM_A' in child:
-            child.hide_set(True)
-            for dim_child in child.children:
-                dim_child.hide_set(True)
-
-        if 'IS_BP_ASSEMBLY' in child:
-            init_objects(child)
-            child.hide_set(True)
-
-        if 'use_as_bool_obj' in child:
-            child.display_type = 'WIRE'
+            if 'use_as_bool_obj' in child:
+                child.display_type = 'WIRE'
 
 
 def render_assembly(assembly, path):

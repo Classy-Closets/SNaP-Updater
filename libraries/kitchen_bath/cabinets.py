@@ -16,6 +16,8 @@ LIBRARY_NAME_SPACE = "sn_kitchen_bath"
 # MICROWAVE =  os.path.join(os.path.dirname(__file__),"Appliances","Microwave Hood Generic.blend")
 # VENT =  os.path.join(os.path.dirname(__file__),"Appliances","Range Hood Generic.blend")
 # REFRIGERATOR = os.path.join(os.path.dirname(__file__),"Appliances", "Refrigerator Generic.blend")
+
+HOOD_CABINET_1 = os.path.join(os.path.dirname(__file__),"Hood Cabinets", "Hood Cabinet 1.blend")
 MICROWAVE =  os.path.join(sn_paths.APPLIANCE_DIR,"assets","Built-In","Microwave Hood Generic.blend")
 VENT =  os.path.join(sn_paths.APPLIANCE_DIR,"assets","Built-In","Range Hood Generic.blend")
 REFRIGERATOR = os.path.join(sn_paths.APPLIANCE_DIR,"assets","Refrigerators", "Refrigerator Generic.blend")
@@ -45,17 +47,20 @@ def add_product_width_dimension(product):
     dim.anchor["IS_KB_LABEL"] = True
     dim.anchor["WIDTH_LABEL"] = True
 
-    if (hasattr(product, "mirror_z") and product.mirror_z) or carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended"]:
+    if (hasattr(product, "mirror_z") and product.mirror_z) or carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Suspended","Hood"]:
         dim.start_z(value=sn_unit.inch(5))
     else:
         dim.start_z(value=-sn_unit.inch(5))
 
-    if carcass.obj_bp['CARCASS_TYPE'] == 'Upper':
+    if carcass.obj_bp['CARCASS_TYPE'] in ["Upper","Hood"]:
         dim.start_y(value=sn_unit.inch(8))
     else:
         dim.start_y(value=sn_unit.inch(3))
 
-    dim.start_x('Left_Side_Wall_Filler+Product_Width/2',[Left_Side_Wall_Filler,Product_Width])
+    if carcass.obj_bp['CARCASS_TYPE'] != 'HOOD':
+        dim.start_x('Left_Side_Wall_Filler+Product_Width/2',[Left_Side_Wall_Filler,Product_Width])
+    else:
+        dim.start_x('Product_Width/2',[Product_Width])
 
 def add_product_depth_dimension(product):
     carcass = product.carcass
@@ -218,6 +223,7 @@ def create_dimensions(assembly):
 def update_dimensions(assembly):
     depth_dimensions = []
     width_dimensions = []
+    hood_dimensions = []
     filler_dimensions = []
     carcass = None
     blind_width_dimensions = []
@@ -226,7 +232,10 @@ def update_dimensions(assembly):
 
     for child in assembly.obj_bp.children:
         if 'WIDTH_LABEL' in child:
-            width_dimensions.append(child)
+            if 'HOOD_WIDTH_LABEL' in child:
+                hood_dimensions.append(child)
+            else:
+                width_dimensions.append(child)
         elif 'FILLER_WIDTH_LEFT_LABEL' in child or 'FILLER_WIDTH_RIGHT_LABEL' in child:
             filler_dimensions.append(child)
         elif 'DEPTH_LABEL' in child:
@@ -254,6 +263,13 @@ def update_dimensions(assembly):
             right_filler = carcass.get_prompt("Right Side Wall Filler").get_value()
 
         abs_x_loc = math.fabs(sn_unit.meter_to_inch(width-left_filler-right_filler))
+        dim_x_label = str(round(abs_x_loc, 2)) + '\"'
+        anchor.snap.opengl_dim.gl_label = str(dim_x_label)
+
+    for anchor in hood_dimensions:
+        parent = sn_types.Assembly(anchor.parent)
+        width = parent.obj_x.location.x
+        abs_x_loc = math.fabs(sn_unit.meter_to_inch(width))
         dim_x_label = str(round(abs_x_loc, 2)) + '\"'
         anchor.snap.opengl_dim.gl_label = str(dim_x_label)
 
@@ -1363,3 +1379,84 @@ class Island(sn_types.Assembly):
         add_product_filler_dimension(self, 'Right')
 
         self.update()
+
+class Hood(sn_types.Assembly):
+    """ Standard Frameless Cabinet
+    """
+    type_assembly = "PRODUCT"
+    category_name = "Classy Hoods"
+    show_in_library = True
+    # id_prompt = cabinet_properties.LIBRARY_NAME_SPACE + ".frameless_cabinet_prompts"
+    id_prompt = "sn_appliances.parametric_wall_appliance"
+    id_update = cabinet_properties.LIBRARY_NAME_SPACE + ".update"
+    hood_name = None
+    resize_enabled = False
+
+    def add_hood_width_dimension(product):
+        for child in product.obj_bp.children:
+            if child.get("WIDTH_LABEL"):
+                sn_utils.delete_object_and_children(child)
+
+        Product_Width = product.obj_x.snap.get_var('location.x','Product_Width')
+        Product_Height = product.obj_z.snap.get_var('location.z','Product_Height')
+
+        dim = sn_types.Dimension()
+        dim.parent(product.obj_bp)
+        dim.anchor["IS_KB_LABEL"] = True
+        dim.anchor["WIDTH_LABEL"] = True
+        dim.anchor["HOOD_WIDTH_LABEL"] = True
+
+        dim.start_z(value=sn_unit.inch(5))
+        dim.start_z('Product_Height-INCH(3.5)',[Product_Height])
+        dim.start_y(value=sn_unit.inch(8))
+        dim.start_x('Product_Width/2',[Product_Width])
+
+    def update_dimensions(self):
+        update_dimensions(self)  
+
+    def draw(self):
+        self.create_assembly()
+        self.obj_bp["ID_PROMPT"] = "sn_appliances.parametric_wall_appliance"
+        # self.obj_bp["IS_BP_APPLIANCE"] = True
+        # self.obj_bp["TYPE_ASSEMBLY"] = self.type_assembly
+        # self.obj_bp["APPLIANCE_TYPE"] = self.appliance_type
+        # self.obj_bp["APPLIANCE_SUBTYPE"] = self.appliance_subtype
+        # self.obj_bpzzz["RESIZE_ENABLED"] = self.resize_enabled
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.obj_z['IS_MIRROR'] = True
+        self.obj_bp.location.z = props.hood_height_above_floor
+        self.obj_bp["IS_BP_APPLIANCE_CABINET"] = True
+        self.obj_bp["RESIZE_ENABLED"] = self.resize_enabled 
+        self.obj_bp["IS_BP_CLOSET"] = True
+        self.obj_bp["IS_BP_CABINET"] = True
+
+        dim_x = self.obj_x.snap.get_var('location.x', 'dim_x')
+        dim_y = self.obj_y.snap.get_var('location.y', 'dim_y')
+        dim_z = self.obj_z.snap.get_var('location.z', 'dim_z')
+
+        cabinet_file = os.path.join(os.path.dirname(__file__),"Hood Cabinets", self.hood_name + ".blend")
+        obj = self.add_assembly_from_file(cabinet_file)
+
+        part = sn_types.Part(obj_bp=obj)
+        part.obj_bp["IS_BP_HOOD_BODY"] = True
+        part.dim_x("dim_x", [dim_x])
+        part.dim_y("dim_y", [dim_y])
+        part.dim_z("dim_z", [dim_z])
+
+        self.obj_x.location.x = part.obj_x.location.x
+        self.obj_y.location.y = part.obj_y.location.y
+        self.obj_z.location.z = part.obj_z.location.z
+
+        # part.set_name(get_file_name(self.appliance_path))
+        # part.assign_material("Chrome", MATERIAL_FILE, "Chrome")
+        # part.assign_material("Stainless Steel", MATERIAL_FILE, "Stainless Steel")
+        # part.assign_material("Black Anodized Metal", MATERIAL_FILE, "Black Anodized Metal")
+
+        self.add_hood_width_dimension()
+
+        self.update()
+
+        # if hasattr(self, "height_above_floor"):
+        #     self.loc_z(value=self.height_above_floor)
+
+        # add_product_width_dimension(self)

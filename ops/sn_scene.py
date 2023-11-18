@@ -9,7 +9,12 @@ class SN_SCENE_OT_clear_2d_views(Operator):
     bl_idname = "sn_scene.clear_2d_views"
     bl_label = "Delete 2d View Scenes"
     bl_description = "Delete all 2d view scenes"
-    bl_options = {'UNDO'}     
+    bl_options = {'UNDO'}
+
+    def set_main_scene(self):
+        scene = bpy.data.scenes.get("_Main")
+        if bpy.data.scenes.get("_Main"):
+            bpy.context.window.scene = scene
 
     def execute(self, context):
 
@@ -41,6 +46,9 @@ class SN_SCENE_OT_clear_2d_views(Operator):
                 if isinstance(mesh, bpy.types.Mesh) and mesh.users == 0:
                     bpy.data.meshes.remove(mesh)
                 # finally, the object, if it still exists. (for some reason, it doesn't always...)
+
+        self.set_main_scene()
+
         return {'FINISHED'}
 
 
@@ -72,6 +80,7 @@ class SN_SCENE_OT_user_clear_2d_views(Operator):
         self.remove_pdf_xml_file()
         self.show_annotation_objects()
         bpy.ops.sn_scene.clear_2d_views()
+
         for obj in bpy.data.objects:
             if obj.get('IS_VISDIM_A') or obj.get('IS_VISDIM_B'):
                 # Preserve wall obstacle annotations

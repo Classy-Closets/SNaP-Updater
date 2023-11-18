@@ -18,6 +18,7 @@ STARTER_CATEGORY_NAME = "Starter Cabinets"
 DRAWER_CATEGORY_NAME = "Drawer Cabinets"
 BLIND_CORNER_CATEGORY_NAME = "Blind Corner Cabinets"
 INSIDE_CORNER_CATEGORY_NAME = "Inside Corner Cabinets"
+HOOD_CATEGORY_NAME = "Hood Cabinets"
 
 
 class PRODUCT_1_Door_Base(cabinets.Standard):
@@ -1475,3 +1476,72 @@ class PRODUCT_Toe_Kick(data_base_assembly.Base_Assembly):
         self.depth = sn_unit.inch(12)
         self.drop_id = cabinet_properties.LIBRARY_NAME_SPACE + ".place_toe_kick_assembly"
 
+
+
+
+
+class PRODUCT_Classy_Hood_Tapered(cabinets.Hood):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = HOOD_CATEGORY_NAME
+        self.hood_name = "Hood Cabinet Tapered"
+        self.width = props.width_hood
+        self.height = props.hood_cabinet_height
+        self.depth = props.hood_cabinet_depth
+        self.mirror_z = True
+        self.resize_enabled = True
+
+class PRODUCT_Classy_Hood_Angled(cabinets.Hood):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = HOOD_CATEGORY_NAME
+        self.hood_name = "Hood Cabinet Angled"
+        self.width = props.width_hood
+        self.height = props.hood_cabinet_height
+        self.depth = props.hood_cabinet_depth
+        self.mirror_z = True
+        self.resize_enabled = True
+
+class PRODUCT_Classy_Hood_Straight_Shiplap(cabinets.Hood):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = HOOD_CATEGORY_NAME
+        self.hood_name = "Hood Cabinet Straight Shiplap"
+        self.width = props.width_hood
+        self.height = props.hood_cabinet_height
+        self.depth = props.hood_cabinet_depth
+        self.mirror_z = True
+        self.resize_enabled = True
+
+class PRODUCT_Classy_Hood_Curved(cabinets.Hood): 
+        
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = HOOD_CATEGORY_NAME
+        self.hood_name = "Hood Cabinet Curved"
+        self.width = props.width_hood
+        self.height = props.hood_cabinet_height
+        self.depth = props.hood_cabinet_depth
+        self.mirror_z = True
+        self.resize_enabled = True  
+ 
+class PRODUCT_Classy_Hood_Tapered_No_Trim(cabinets.Hood):
+            
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = HOOD_CATEGORY_NAME
+        self.hood_name = "Hood Cabinet Tapered No Trim"
+        self.width = props.width_hood
+        self.height = props.hood_cabinet_height
+        self.depth = props.hood_cabinet_depth
+        self.mirror_z = True
+        self.resize_enabled = True
+        

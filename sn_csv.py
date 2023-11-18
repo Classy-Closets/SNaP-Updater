@@ -1,6 +1,7 @@
 import bpy
 import csv
 from snap import sn_db
+from snap import sn_utils
 
 
 class CsvOptions:
@@ -21,7 +22,7 @@ class CsvFileInfo:
             self.options = CsvOptions()
 
     def get_table_name(self):
-        return "CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location
+        return "CCItems_" + sn_utils.get_franchise_location()
 
     def get_minimal_type(self, value):
         try:

@@ -600,6 +600,11 @@ class SNAP_OT_Prepare_Project_XML(Operator):
         path = os.path.join(pm_utils.get_project_dir(), proj_name, self.xml_filename)
         proj = proj_props.projects[proj_props.project_index]
 
+        if bpy.data.is_dirty:
+            # If file has not been saved, prepare closet for export and save main file
+            bpy.ops.closet_machining.prepare_closet_for_export()
+            bpy.ops.wm.save_mainfile()
+
         if os.path.exists(path):
             os.remove(path)
 
@@ -617,7 +622,7 @@ class SNAP_OT_Prepare_Project_XML(Operator):
                 for obj in bpy.data.collections["Machining"].objects:
                     obj.display_type = 'WIRE'
 
-        return{'FINISHED'}
+        return {'FINISHED'}
 
 
 class SNAP_OT_Load_Projects(Operator):

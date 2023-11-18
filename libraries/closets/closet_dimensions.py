@@ -1718,6 +1718,8 @@ class SNAP_OT_Auto_Dimension(Operator):
         lbl_text = 'TK'
         lbl_tgt = toe_kick
         skin_pmt = parent_assy.get_prompt('Add TK Skin')
+        mitered_tk_ppt = parent_assy.get_prompt('Mitered TK')
+        capping_base_ppt = parent_assy.get_prompt('Add Capping Base')
         toe_kick_x = toe_kick_assy.obj_x
         toe_kick_y = toe_kick_assy.obj_y
 
@@ -1761,6 +1763,14 @@ class SNAP_OT_Auto_Dimension(Operator):
 
         if skin_pmt and skin_pmt.get_value():
             lbl_text += ' + 1/4" Skin'
+
+        if mitered_tk_ppt:
+            if mitered_tk_ppt.get_value():
+                lbl_text += ' Mitered'
+
+        if capping_base_ppt:
+            if capping_base_ppt.get_value():
+                lbl_text += ' + 3/4" Base'
 
         lbl = self.add_tagged_dimension(lbl_tgt)
         lbl.anchor.location = lbl_loc

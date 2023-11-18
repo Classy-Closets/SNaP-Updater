@@ -111,7 +111,7 @@ def get_slide_price(assembly):
             Name LIKE '%{name}%' AND\
             Name LIKE '%{len}%'\
                 ;\
-        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, name=slide_name, len=str(int(slide_len)))
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), name=slide_name, len=str(int(slide_len)))
     )
     for row in rows:
         sku = row[0]

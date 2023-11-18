@@ -107,9 +107,15 @@ def check_oversize_color_selection(scene=None):
     """
     current_room_ver = sn_utils.get_room_version()
     closet_materials = bpy.context.scene.closet_materials
+    mat_type = closet_materials.materials.get_mat_type()
 
     if current_room_ver < "2.6.3":
         print("Room file created pre 2.6.3. Version 2.6.3 removes all oversize color options except 'Snow Drift XL', setting index to 0")
+        if mat_type.name == "Oversized Material":
+            closet_materials.color_change = True
+        else:
+            closet_materials.color_change = False
+
         closet_materials.oversized_color_index = 0
         closet_materials.dd_oversized_color_index = 0
 

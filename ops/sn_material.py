@@ -244,7 +244,7 @@ class SN_MAT_OT_sync_material_slots(Operator):
         else:
             for index, mat_slot in enumerate(obj.material_slots):
                 slot = obj.snap.material_slots.add()
-                
+
         sn_utils.assign_materials_from_pointers(obj)
         return {'FINISHED'}
 

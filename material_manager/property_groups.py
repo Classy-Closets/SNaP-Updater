@@ -346,6 +346,27 @@ class MaterialType(PropertyGroup):
         if mat_type.name == "Oversized Material":
             scene_props.oversized_color_index = index
 
+    def get_color_index(self):
+        scene_props = bpy.context.scene.closet_materials
+        mat_type = scene_props.materials.get_mat_type()
+
+        if mat_type.name == "Solid Color Smooth Finish":
+            return scene_props.solid_color_index
+        if mat_type.name == "Grain Pattern Smooth Finish":
+            return scene_props.grain_color_index
+        if mat_type.name == "Solid Color Textured Finish":
+            return scene_props.solid_tex_color_index
+        if mat_type.name == "Grain Pattern Textured Finish":
+            return scene_props.grain_tex_color_index
+        if mat_type.name == "Linen Pattern Linen Finish":
+            return scene_props.linen_color_index
+        if mat_type.name == "Solid Color Matte Finish":
+            return scene_props.matte_color_index
+        if mat_type.name == "Garage Material":
+            return scene_props.garage_color_index
+        if mat_type.name == "Oversized Material":
+            return scene_props.oversized_color_index
+
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
         if self.name == "Upgrade Options":
@@ -485,7 +506,11 @@ class Materials(PropertyGroup):
     def get_mat_color_list(self, type_name):
         colors = []
         for color in self.mat_types[type_name].colors:
-            colors.append((color.name, color.name, color.name))
+            if "Δ" in color.name:
+                clean_name = color.name.replace("Δ", "(Discontinued)")
+                colors.append((clean_name, clean_name, clean_name))
+            else:
+                colors.append((color.name, color.name, color.name))
         return colors
 
     def get_mat_color(self):

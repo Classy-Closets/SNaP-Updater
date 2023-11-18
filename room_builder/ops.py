@@ -649,11 +649,14 @@ class ROOM_BUILDER_OT_Add_Obstacle(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        if bpy.context.scene.name != bpy.data.scenes[0].name:
+        main_scene = sn_utils.get_main_scene()
+
+        if bpy.context.scene.name != main_scene.name:
             bpy.ops.snap.message_box(
                 'INVOKE_DEFAULT',
                 message="You can only create objects in the main scene")
             return {'CANCELLED'}
+
         self.click_ok = False
         self.modify_existing = False if self.obstacle_bp_name == "" else True
 

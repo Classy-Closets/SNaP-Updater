@@ -1,9 +1,13 @@
 
+
+import os
+
 import bpy
 from bpy.types import Panel
 from bpy.types import Menu, UIList
 
 from . import pm_utils
+from snap import sn_utils
 
 
 class SNAP_UL_Projects(UIList):
@@ -25,6 +29,14 @@ class SNAP_UL_Rooms(UIList):
         layout.label(text="", icon='SNAP_PEEL_OBJECT')
         layout.prop(item, 'name', text='', emboss=False)
         if item.name == room.name:
+            if bpy.data.is_saved:
+                directory, file_name = os.path.split(bpy.data.filepath)
+                file_name = os.path.splitext(file_name)[0]  # Remove extension
+
+                # If this item is the open file, show the room info popover
+                if file_name == item.name:
+                    layout.popover("SNAP_PT_Room_Info", icon='INFO', text="")
+
             layout.operator("project_manager.delete_room", text="", icon='X', emboss=True).index = index
 
 
@@ -172,6 +184,25 @@ class SNAP_PT_Project_Info(Panel):
         col.prop(proj_props, 'design_date')
 
 
+class SNAP_PT_Room_Info(Panel):
+    bl_space_type = 'INFO'
+    bl_label = "Room Info"
+    bl_region_type = 'HEADER'
+    bl_ui_units_x = 7
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Room Info")
+        box = layout.box()
+        row = box.row()
+        text = sn_utils.get_room_version()
+
+        if not text:
+            text = "Unknown"
+
+        row.label(text=f"Room Version: {text}")
+
+
 classes = (
     SNAP_UL_Projects,
     SNAP_UL_Rooms,
@@ -180,6 +211,7 @@ classes = (
     SNAP_PT_Projects,
     SNAP_PT_Project_Tools,
     SNAP_PT_Project_Info,
+    SNAP_PT_Room_Info,
     SNAP_MT_Room_Tools,
 )
 

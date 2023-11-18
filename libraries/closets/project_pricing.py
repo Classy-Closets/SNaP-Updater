@@ -256,6 +256,22 @@ def get_glass_inset_size(length, width, center_rail, style_name):
     return adjusted_length, adjusted_width
 
 
+def get_admin_fee():
+    franchise_location = bpy.context.preferences.addons['snap'].preferences.franchise_location
+
+    # Update Dallas admin fee while still using Phoenix pricing table
+    if franchise_location == 'DAL':
+        admin_fee = 0.20
+    else:
+        admin_fee = 0.15
+
+    return admin_fee
+
+
+def get_admin_fee_string():
+    return "{:.0%}".format(get_admin_fee())
+
+
 def price_check(sku_num, franchise, retail):
     if franchise > retail:
         print("$$$$$$$$$$$$$$$$ Price discrepancy within database $$$$$$$$$$$$$$$$")
@@ -543,9 +559,9 @@ def generate_retail_pricing_summary(parts_file):
         pricing_sheet["A" + str(row_start + 10)].font = openpyxl.styles.Font(bold=True)
         pricing_sheet["C" + str(row_start + 10)] = "=SUM(C" + str(row_start + 3) + ":C" + str(row_start + 8) + ")" + "-" + "C" + str(row_start + 9)
         pricing_sheet["C" + str(row_start + 10)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
-        pricing_sheet["A" + str(row_start + 11)] = "Admin Fee (15%)"
+        pricing_sheet["A" + str(row_start + 11)] = f"Admin Fee ({get_admin_fee_string()})"
         pricing_sheet["A" + str(row_start + 11)].font = openpyxl.styles.Font(bold=True)
-        pricing_sheet["C" + str(row_start + 11)] = "=C" + str(row_start + 10) + "*.150"
+        pricing_sheet["C" + str(row_start + 11)] = f"=C{str(row_start + 10)}*{str(get_admin_fee())}"
         pricing_sheet["C" + str(row_start + 11)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
         pricing_sheet["A" + str(row_start + 12)] = "Adjusted Room Subtotal"
         pricing_sheet["A" + str(row_start + 12)].font = openpyxl.styles.Font(bold=True)
@@ -635,9 +651,9 @@ def generate_retail_pricing_summary(parts_file):
     pricing_sheet["A" + str(row_start + 16)].font = openpyxl.styles.Font(bold=True)
     pricing_sheet["C" + str(row_start + 16)] = "=C" + str(row_start + 9) + "+C" + str(row_start + 10) + "+C" + str(row_start + 11) + "+C" + str(row_start + 12) + "+C" + str(row_start + 13) + "+C" + str(row_start + 14) +"-C" + str(row_start + 15)
     pricing_sheet["C" + str(row_start + 16)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
-    pricing_sheet["A" + str(row_start + 17)] = "Admin Fee (15%)"
+    pricing_sheet["A" + str(row_start + 17)] = f"Admin Fee ({get_admin_fee_string()})"
     pricing_sheet["A" + str(row_start + 17)].font = openpyxl.styles.Font(bold=True)
-    pricing_sheet["C" + str(row_start + 17)] = "=C" + str(row_start + 16) + "*.150"
+    pricing_sheet["C" + str(row_start + 17)] = f"=C{str(row_start + 16)}*{str(get_admin_fee())}"
     pricing_sheet["C" + str(row_start + 17)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD
     pricing_sheet["A" + str(row_start + 18)] = "Adjusted Project Subtotal"
     pricing_sheet["A" + str(row_start + 18)].font = openpyxl.styles.Font(bold=True)
@@ -2459,7 +2475,7 @@ def get_labor_costs(part_name):
         WHERE\
             ProductType == 'LBR' AND\
             DisplayName LIKE 'LABOR - {}'\
-        ;".format(part_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+        ;".format(part_name, CCItems="CCItems_" + sn_utils.get_franchise_location())
     )
     if len(rows) == 0:
         retail_price = 0
@@ -2506,7 +2522,7 @@ def get_price_by_sku(sku_num):
             {CCItems}\
         WHERE\
             SKU = '{SKU}'\
-        ;".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, SKU=sku_num)
+        ;".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), SKU=sku_num)
     )
     if len(rows) == 0:
         retail_price = 0
@@ -2542,7 +2558,7 @@ def get_glass_sku(glass_color):
             ProductType = 'GL' AND\
             Thickness == '{GlassThickness}' AND\
             DisplayName LIKE '%{DisplayName}%';\
-        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, DisplayName=glass_color, GlassThickness=glass_thickness)
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), DisplayName=glass_color, GlassThickness=glass_thickness)
     )
     if len(rows) == 0:
         sku = 'SO-0000001'
@@ -2561,7 +2577,7 @@ def get_mat_sku(mat_name):
             {CCItems}\
         WHERE\
             DisplayName LIKE '%{DisplayName}%';\
-        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, DisplayName=mat_name)
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), DisplayName=mat_name)
     )
     if len(rows) == 0:
         sku = 'SO-0000001'
@@ -2580,7 +2596,7 @@ def get_paint_stain_mat_sku(mat_name):
             {CCItems}\
         WHERE\
             ProductType IN ('{Product_Type}') AND DisplayName LIKE '%{DisplayName}%';\
-        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, Product_Type=product_type.strip(), DisplayName=name.strip())
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), Product_Type=product_type.strip(), DisplayName=name.strip())
     )
     if len(rows) == 0:
         sku = 'SO-0000001'
@@ -2598,7 +2614,7 @@ def get_mat_display_name(mat_sku):
             {CCItems}\
         WHERE\
             SKU LIKE '%{mat_sku}%';\
-        ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, mat_sku=mat_sku)
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), mat_sku=mat_sku)
     )
     if len(rows) == 0:
         display_name = 'Unknown'
@@ -2632,7 +2648,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
             {CCItems}\
         WHERE\
             SKU = '{SKU}'\
-        ;".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, SKU=sku_num)
+        ;".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), SKU=sku_num)
     )
     if len(rows) == 0:
         retail_price = 0
@@ -4020,12 +4036,13 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
                     generate_franchise_parts_list()
         else:
             raise NameError("The 'snap_job.xml' was not created and returned a NoneType. Pricing NOT Generated.")
-            
 
     def draw(self, layout):
         box = layout.box()
         row = box.row(align=True)
         row.operator(PRICING_PROPERTY_NAMESPACE + ".calculate_price",icon='FILE_TICK')
+
+        admin_fee = get_admin_fee()
 
         if bpy.context.preferences.addons['snap'].preferences.debug_mode:
             row.menu('SNAP_MT_Pricing_Tools', text="", icon='DOWNARROW_HLT')
@@ -4037,8 +4054,6 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
         # row = split.row()
         # row = layout.row(align=True)
         # row.prop(self, "use_tearout_pricing", text="Include Tearout Pricing")
-
-
         # if self.use_tearout_pricing:
         #     box = layout.box()
         #     box.enabled = self.use_tearout_pricing
@@ -4071,8 +4086,7 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
         #     if self.heavy_prior_bool_1:
         #         row.prop(self, "heavy_prior_int_1",text="$")
 
-
-        box = layout.box()        
+        box = layout.box()
         main_col = box.column(align=True)
         row = main_col.row(align=True)
         row.scale_y = 1
@@ -4091,8 +4105,8 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
                 col.label(text="Glass Price: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][9])),icon='BLANK1')
                 # col.label(text="Labor Price: " + sn_unit.draw_dollar_price(R_ROOM_PRICING_LIST[i][8]),icon='BLANK1')
                 col.label(text="Room Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][10])),icon='BLANK1')
-                col.label(text="Admin Fee: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][10] * .150)),icon='BLANK1')
-                col.label(text="Adjusted Room Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][10] + (R_ROOM_PRICING_LIST[i][10] * .150))),icon='BLANK1')
+                col.label(text="Admin Fee: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][10] * admin_fee)),icon='BLANK1')
+                col.label(text="Adjusted Room Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(R_ROOM_PRICING_LIST[i][10] + (R_ROOM_PRICING_LIST[i][10] * admin_fee))),icon='BLANK1')
                 col.separator()
 
             col.separator()
@@ -4106,8 +4120,8 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
             col.label(text="Glass Price: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_GLASS)))),icon='BLANK1')
             # col.label(text="Labor Price: " + sn_unit.draw_dollar_price(sum(map(float, R_PROJECT_TOTAL_LABOR))),icon='BLANK1')
             col.label(text="Project Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_PRICE)))),icon='BLANK1')
-            col.label(text="Admin Fee: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_PRICE)) * .150)),icon='BLANK1')
-            col.label(text="Adjusted Project Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_PRICE)) + (sum(map(float, R_PROJECT_TOTAL_PRICE)) * .150))),icon='BLANK1')
+            col.label(text="Admin Fee: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_PRICE)) * admin_fee)),icon='BLANK1')
+            col.label(text="Adjusted Project Subtotal: " + sn_unit.draw_dollar_price(numpy.math.ceil(sum(map(float, R_PROJECT_TOTAL_PRICE)) + (sum(map(float, R_PROJECT_TOTAL_PRICE)) * admin_fee))),icon='BLANK1')
             
             if len(SPECIAL_ORDER_PARTS_LIST) != 0:
                 col.separator()

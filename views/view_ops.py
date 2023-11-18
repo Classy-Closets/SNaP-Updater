@@ -1734,29 +1734,38 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def plan_view_products_labels(self, context, wall_assembly):
         tags_dict = {}
-        wall = wall_assembly.obj_bp.children
-        wall_angle = round(math.degrees(
-            wall_assembly.obj_bp.rotation_euler[2]))
-        for item in wall:
-            is_lsh = 'l shelves' in item.name.lower()
-            is_csh = 'corner shelves' in item.name.lower()
+        wall_angle = round(math.degrees(wall_assembly.obj_bp.rotation_euler[2]))
+
+        for child in wall_assembly.obj_bp.children:
+            is_lsh = 'l shelves' in child.name.lower()
+            is_csh = 'corner shelves' in child.name.lower()
+
+            # Corner shelves and L shelves
             if is_lsh or is_csh:
-                self.strict_corner_pv_tag(item)
-            elif item.get("IS_TOPSHELF_SUPPORT_CORBELS"):
-                self.ts_support_corbel_pv_tag(item)
-            elif sn_utils.get_wallbed_bp(item):
-                self.wallbed_pv_tag(item)
-            elif item.get('IS_BP_ASSEMBLY') and not is_lsh and not is_csh:
-                for opening in item.children:
+                self.strict_corner_pv_tag(child)
+
+            # Top shelf support corbels
+            elif child.get("IS_TOPSHELF_SUPPORT_CORBELS"):
+                self.ts_support_corbel_pv_tag(child)
+
+            # Wallbeds
+            elif sn_utils.get_wallbed_bp(child):
+                self.wallbed_pv_tag(child)
+
+            # All other assemblies
+            elif child.get('IS_BP_ASSEMBLY') and not is_lsh and not is_csh:
+
+                for opening in child.children:
                     if hasattr(opening, 'snap') and opening.snap.type_group == 'OPENING':
                         opng_position = self.to_inch(opening.location[0])
-                        matches = self.find_matching_inserts(item,
-                                                             opng_position)
+                        matches = self.find_matching_inserts(child, opng_position)
+
                         if (len(matches) > 0):
                             tags = self.get_assembly_tag(matches, opening)
                             tags_dict[opening] = (tags, matches)
-        grouped = self.group_openings_by_euclidean_distance(
-            tags_dict, wall_angle)
+
+        grouped = self.group_openings_by_euclidean_distance(tags_dict, wall_angle)
+
         for opening, value in grouped.items():
             tags = value[0]
             parent = value[1][0]
@@ -2153,8 +2162,8 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def plan_view_cleats_accys(self, obj_bp, scene):
         all_child = utils.get_child_objects(obj_bp)
-        meshes = [c for c in all_child if c.type == 'MESH'
-                  and not c.hide_viewport]
+        meshes = [c for c in all_child if c.type == 'MESH' and not c.hide_viewport]
+
         for m in meshes:
             scene.collection.objects.link(m)
 
@@ -2216,7 +2225,7 @@ class VIEW_OT_generate_2d_views(Operator):
                             child.select_set(True)
 
                 walls.append(wall)
-                
+
                 if not has_bp_cabinet:
                     self.plan_view_products_labels(context, wall)
                     self.plan_view_add_switches(context, wall)
@@ -2249,14 +2258,14 @@ class VIEW_OT_generate_2d_views(Operator):
                     self.pv_wall_labels(wall)
                     obj_bps = wall.get_wall_groups()
                     wall_mesh = wall.get_wall_mesh()
+
                     # Create Cubes for all products
                     for obj_bp in obj_bps:
                         if obj_bp.get("IS_BP_CABINET"):
                             eval('bpy.ops.sn_cabinets.draw_plan' + '(object_name=obj_bp.name)')
                         else:
                             eval('bpy.ops.sn_closets.draw_plan' + '(object_name=obj_bp.name)')
-                        is_entry_assy = any('Door Frame' in e.name for c in
-                                            obj_bp.children for e in c.children)
+                        is_entry_assy = any('Door Frame' in e.name for c in obj_bp.children for e in c.children)
 
                         if is_entry_assy and rtn_wall_pv:
                             self.pv_return_wall_break(rtn_wall_pv, wall, obj_bp)
@@ -2266,14 +2275,12 @@ class VIEW_OT_generate_2d_views(Operator):
                             entry_class = obj_bp.snap.class_name
                             entry_sgl = 'PRODUCT_Entry_Door_Double_Panel'
                             entry_dbl = 'PRODUCT_Entry_Double_Door_Double_Panel'
-                            swing_door = ((entry_class == entry_sgl) or
-                                          (entry_class == entry_dbl))
-                            if swing_door:
-                                view_icons.pv_swing_door_icons(
-                                    context, obj_bp, wall.obj_bp)
+                            swing_door = ((entry_class == entry_sgl) or (entry_class == entry_dbl))
 
-                        if (obj_bp.sn_closets.is_accessory_bp or
-                           'wall cleat' in obj_bp.name.lower()):
+                            if swing_door:
+                                view_icons.pv_swing_door_icons(context, obj_bp, wall.obj_bp)
+
+                        if obj_bp.sn_closets.is_accessory_bp or "IS_WALL_CLEAT" in obj_bp:
                             self.plan_view_cleats_accys(obj_bp, pv_scene)
 
                         if obj_bp.get("IS_TOPSHELF_SUPPORT_CORBELS"):
@@ -2284,7 +2291,7 @@ class VIEW_OT_generate_2d_views(Operator):
                             wall_mesh.select_set(True)
 
             name = obj.name
-            if "Island" in name and not "Island Carcass" in name and not obj.get("IS_BP_CABINET"):
+            if "Island" in name and "Island Carcass" not in name and not obj.get("IS_BP_CABINET"):
                 self.add_pulls_to_plan_view(obj, pv_scene)
                 self.add_island_to_plan_view(obj)
 
@@ -2301,7 +2308,13 @@ class VIEW_OT_generate_2d_views(Operator):
         small_room = floor_length <= SMALL_ROOM_THRES or floor_height <= SMALL_ROOM_THRES
         camera = self.create_camera(pv_scene)
         bpy.ops.object.select_all(action="SELECT")
-        bpy.ops.view3d.camera_to_view_selected()
+
+        try:
+            bpy.ops.view3d.camera_to_view_selected()
+        except RuntimeError as error:
+            # Bug - Error: No active camera
+            print(error)
+
         camera.data.type = 'ORTHO'
         camera.data.ortho_scale += self.pv_pad
         custom_wide = room_type == 'CUSTOM' and wide_room
@@ -3384,7 +3397,13 @@ class VIEW_OT_generate_2d_views(Operator):
         new_scene.render.resolution_percentage = 100
         self.remove_accordion_scene_material_pointers(new_scene)
         bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.view3d.camera_to_view_selected()
+
+        try:
+            bpy.ops.view3d.camera_to_view_selected()
+        except RuntimeError as error:
+            # Bug - Error: No active camera
+            print(error)
+
         camera.data.type = 'ORTHO'
         max_height = max(walls_heights)
         proportion = round((walls_length / max_height), 2)
@@ -3494,7 +3513,7 @@ class VIEW_OT_generate_2d_views(Operator):
             left_slot = slots.get("left")
             right_slot = slots.get("right")
             curr_wall_ch = curr_wall_key.children
-            wall_mesh = [m for m in curr_wall_ch if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+            wall_mesh = [m for m in curr_wall_ch if m.type == 'MESH' and m.snap.is_wall_mesh][0]
             curr_wall_glb = self.get_object_global_location(wall_mesh)
             curr_wall_glb_x_pos = curr_wall_glb[0]
             left_parts_data = assemblies_dict[prvs_wall_key]["max_loc_data"]
@@ -3583,7 +3602,7 @@ class VIEW_OT_generate_2d_views(Operator):
                     target = (None, None, None)
 
                 wall_ch = wall.children
-                wall_mesh = [m for m in wall_ch if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+                wall_mesh = [m for m in wall_ch if m.type == 'MESH' and m.snap.is_wall_mesh][0]
                 curr_wall_glb = self.get_object_global_location(wall_mesh)
                 curr_wall_glb_x_pos = curr_wall_glb[0]
                 wall_width = sn_types.Assembly(wall).obj_x.location.x
@@ -3690,7 +3709,7 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def apply_build_height_label(self, wall_bp, position, multiplier, ovrly_x_offset):
         position_metric = position * unit.inch(1)
-        wall_mesh = [m for m in wall_bp.children if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+        wall_mesh = [m for m in wall_bp.children if m.type == 'MESH' and m.snap.is_wall_mesh][0]
         curr_wall_glb_x = self.get_object_global_location(wall_mesh)[0]
         offset = unit.inch(-7) + (unit.inch(-4) * multiplier) + ovrly_x_offset
         dim = sn_types.Dimension()
@@ -3704,8 +3723,7 @@ class VIEW_OT_generate_2d_views(Operator):
     def apply_toe_kick_label(self, wall_bp, position, multiplier, 
                                 ovrly_x_offset):
         position_metric = position * unit.inch(1)
-        wall_mesh = [m for m in wall_bp.children \
-            if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+        wall_mesh = [m for m in wall_bp.children if m.type == 'MESH' and m.snap.is_wall_mesh][0]
         curr_wall_glb_x = self.get_object_global_location(wall_mesh)[0]
         offset = unit.inch(-6) + (unit.inch(-2) * multiplier) + ovrly_x_offset
         dim = sn_types.Dimension()
@@ -3722,8 +3740,7 @@ class VIEW_OT_generate_2d_views(Operator):
         text.set_label(str(position) + "\"")
     
     def ceiling_height_dimension(self, item, bheight_offset):
-        wall_mesh = [m for m in item.children \
-            if m.type == 'MESH' and 'wall' in m.name.lower()][0]
+        wall_mesh = [m for m in item.children if m.type == 'MESH' and m.snap.is_wall_mesh][0]
         curr_wall_glb_x = self.get_object_global_location(wall_mesh)[0]
         assy = sn_types.Assembly(item)
         height = assy.obj_z.location.z
@@ -3990,43 +4007,35 @@ class VIEW_OT_generate_2d_views(Operator):
                 hidden = sn_types.Assembly(ch).get_prompt('Hide').get_value()
                 if not hidden:
                     flat_crown_layers += 1
+
         lay_crown = flat_crown_layers > 0
         tkh_str = ''
-        parent_assy = sn_types.Assembly(item.parent)
-        assy = sn_types.Assembly(item)
-        hang_h = parent_assy.obj_z.location.z
+        hang_h = sn_types.Assembly(item.parent).obj_z.location.z
         fc_h = 0
         fc_prod = sn_types.Assembly(item)
         ext_ceil = fc_prod.get_prompt('Extend To Ceiling')
         tkh = fc_prod.get_prompt('Top KD Holes Down')
-        if ext_ceil and ext_ceil.get_value() and tkh and not lay_crown:
-            if tkh.get_value() == 1:
-                tkh_str = 'Top KD|Down 1 Hole'
-            elif tkh.get_value() == 2:
-                tkh_str = 'Top KD|Down 2 Holes'
-        for a in item.children:
-            if a.get("IS_BP_ASSEMBLY") and 'Flat Crown' in a.name and not lay_crown:
-                fc_assy = sn_types.Assembly(a)
-                fc_h = fc_assy.obj_y.location.y
-                fc_str = f'Flat Crown {self.to_inch_lbl(fc_h)}'
-                labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
-            elif a.get("IS_BP_ASSEMBLY") and 'Flat Crown' in a.name and lay_crown:
-                fc_assy = sn_types.Assembly(a)
-                fc_h = fc_assy.obj_y.location.y
-                fc_str = f'Layered Crown'
-                if flat_crown_layers == 1:
-                    fc_str += ' (1 layer)'
-                elif flat_crown_layers == 2:
-                    fc_str += ' (2 layers)'
-                labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
-            else:
-                fc_assy = assy
-                fc_str = f'Flat Crown {self.to_inch_lbl(fc_h)}'
-                labels.append((fc_str, hang_h + fc_assy.obj_y.location.y))
 
-        if fc_assy:
-            labels.append((tkh_str, (hang_h + fc_assy.obj_y.location.y) + unit.inch(-6)))
-            labels = list(dict.fromkeys(labels))
+        for child in item.children:
+            if child.get("IS_BP_ASSEMBLY") and 'Flat Crown' in child.name:
+                fc_assy = sn_types.Assembly(child)
+                fc_h = fc_assy.obj_y.location.y
+                fc_str = 'Flat Crown' if not lay_crown else 'Layered Crown'
+                fc_str += f' {self.to_inch_lbl(fc_h)}'
+
+                # Add layered crown layers to label
+                if lay_crown and flat_crown_layers > 0:
+                    fc_str += f'|({flat_crown_layers} layer{"" if flat_crown_layers == 1 else "s"})'
+
+                # Add top KD holes down to label
+                if ext_ceil and ext_ceil.get_value() and tkh:
+                    tkh_value = tkh.get_value()
+
+                    if tkh_value > 0:
+                        tkh_str = f'|Top KD|Down {tkh_value} Hole{"" if tkh_value == 1 else "s"}'
+                        fc_str += tkh_str
+
+                labels.append((fc_str, hang_h + fc_h))
 
     def make_kb_crown_label(self, labels, molding_bp):
         molding_height = 0
@@ -4059,7 +4068,8 @@ class VIEW_OT_generate_2d_views(Operator):
             for child in wall.children:
                 if child.get('IS_BP_ASSEMBLY'):
                     for gchild in child.children:
-                        if gchild.get('IS_BP_CROWN_MOLDING'):
+                        kb_flat_crown = gchild.get('IS_BP_FLAT_CROWN') and gchild.get('IS_KB_MOLDING')
+                        if kb_flat_crown:
                             self.make_kb_crown_label(flat_crowns_labels, gchild)
                         elif 'flat crown' in gchild.name.lower():
                             self.make_flat_crown_label(flat_crowns_labels, gchild)
@@ -4067,7 +4077,7 @@ class VIEW_OT_generate_2d_views(Operator):
         if first_wall:
             meshes = []
             for mesh in first_wall.children:
-                if mesh.type == 'MESH' and 'wall mesh' in mesh.name.lower():
+                if mesh.type == 'MESH' and mesh.snap.is_wall_mesh:
                     meshes.append(mesh)
             wall_offset_x = self.get_object_global_location(meshes[0])[0]
             wall_offset_x += offset
@@ -4774,9 +4784,8 @@ class VIEW_OT_generate_2d_views(Operator):
         dim_x = obs_assy.obj_x.location.x
         dim_z = obs_assy.obj_z.location.z
         loc_x, _, loc_z = item.location
-        [wall_mesh] = [m for m in wall.children if m.type == "MESH" and "Wall" in m.name]
-        obs_mesh = utils.create_cube_mesh(
-                        "obstacle_mesh", (dim_x, unit.inch(2), dim_z))
+        wall_mesh = [m for m in wall.children if m.type == "MESH" and m.snap.is_wall_mesh][0]
+        obs_mesh = utils.create_cube_mesh("obstacle_mesh", (dim_x, unit.inch(2), dim_z))
         obs_mesh.parent = wall_mesh
         obs_mesh.location = (loc_x, unit.inch(-2), loc_z)
         obs_mesh["OBSTACLE_SHADING_MESH"] = True
@@ -4822,10 +4831,12 @@ class VIEW_OT_generate_2d_views(Operator):
     def place_obstacl_cs_mesh(self, parent, dim_y, dim_z, loc_z, position):
         if self.empty_wall(parent):
             return
+
         wall_length = sn_types.Assembly(parent).obj_x.location.x
-        [wall_mesh] = [m for m in parent.children if m.type == "MESH"]
+        wall_mesh = [m for m in parent.children if m.type == "MESH" and m.snap.is_wall_mesh][0]
         x, y, z = dim_y, unit.inch(2), dim_z
         x_pos, z_pos = 0, loc_z
+
         if position == "left":
             x_pos = wall_length - x
         elif position == "right":
@@ -5084,7 +5095,13 @@ class VIEW_OT_generate_2d_views(Operator):
             camera.rotation_euler.z = 0
             self.hide_cross_sections_for_camera(new_scene)
             bpy.ops.object.select_all(action='SELECT')
-            bpy.ops.view3d.camera_to_view_selected()
+
+            try:
+                bpy.ops.view3d.camera_to_view_selected()
+            except RuntimeError as error:
+                # Bug - Error: No active camera
+                print(error)
+
             camera.data.type = 'ORTHO'
             # Ratio done by ab-exponential regression 
             # Walls length X good ortho prop.
@@ -5256,7 +5273,13 @@ class VIEW_OT_generate_2d_views(Operator):
             camera.rotation_euler.x = math.radians(90.0)
             camera.rotation_euler.z = assembly.obj_bp.rotation_euler.z
             bpy.ops.object.select_all(action='SELECT')
-            bpy.ops.view3d.camera_to_view_selected()
+
+            try:
+                bpy.ops.view3d.camera_to_view_selected()
+            except RuntimeError as error:
+                # Bug - Error: No active camera
+                print(error)
+
             camera.data.type = 'ORTHO'
             camera.data.ortho_scale += self.pv_pad
             instance.hide_select = True
@@ -5337,7 +5360,13 @@ class VIEW_OT_generate_2d_views(Operator):
         new_scene.world = self.main_scene.world
          
         bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.view3d.camera_to_view_selected()
+
+        try:
+            bpy.ops.view3d.camera_to_view_selected()
+        except RuntimeError as error:
+            # Bug - Error: No active camera
+            print(error)
+
         camera.data.type = 'ORTHO'
         # camera.data.ortho_scale += self.pv_pad
         camera.data.ortho_scale = 8.0        
@@ -6505,7 +6534,13 @@ class VIEW_OT_generate_2d_views(Operator):
         camera.rotation_euler = rotation
         camera.location = location
         bpy.ops.object.select_all(action='SELECT')
-        bpy.ops.view3d.camera_to_view_selected()
+
+        try:
+            bpy.ops.view3d.camera_to_view_selected()
+        except RuntimeError as error:
+            # Bug - Error: No active camera
+            print(error)
+
         camera.data.type = 'ORTHO'
         camera.data.ortho_scale = 10
         camera.data.ortho_scale += self.isl_pad
@@ -7032,12 +7067,13 @@ class VIEW_OT_render_2d_views(Operator):
             tree.links.new(color_node.outputs[0], a_over_node.inputs[1])
             tree.links.new(a_over_node.outputs[0], comp_node.inputs[0])
 
-
         # Prevent Main Accordion from being rendered
         if "Z_Main Accordion" in bpy.data.scenes:
             bpy.data.scenes["Z_Main Accordion"].snap.elevation_selected = False
         if "z_virtual" in bpy.data.scenes:
             bpy.data.scenes["z_virtual"].snap.elevation_selected = False
+        if "Garbage Collector" in bpy.data.scenes:
+            bpy.data.scenes["Garbage Collector"].snap.elevation_selected = False
 
         # Render composite
         bpy.ops.render.render('INVOKE_DEFAULT', write_still=True)

@@ -8,6 +8,7 @@ import re
 
 from bpy.props import StringProperty
 from snap import sn_paths
+from snap import sn_utils
 from snap.sn_xml import Snap_XML
 from snap.views.pdf_builder.pdf_builder import paper_size
 from snap.views.pdf_builder.xml_etl import SnapXML_ETL
@@ -993,7 +994,7 @@ class OPERATOR_create_pdf(bpy.types.Operator):
             return xml_file
 
     def get_franchise_csv(self):
-        franchise_location = bpy.context.preferences.addons['snap'].preferences.franchise_location
+        franchise_location = sn_utils.get_franchise_location()
         return os.path.join(sn_paths.CSV_DIR_PATH, "CCItems_" + franchise_location + ".csv")
 
     def _fix_file_path(self):

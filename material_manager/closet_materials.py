@@ -1,3 +1,6 @@
+import inspect
+import time
+
 import bpy
 from bpy.types import (
     Panel,
@@ -48,6 +51,10 @@ def update_stain_color(self, context):
 
 
 def update_material_and_edgeband_colors(self, context):
+    start_time = time.perf_counter()
+
+    assign_materials = self.color_change
+    self.color_change = False
     mat_color_name = self.materials.get_mat_color().name
     mat_type = self.materials.get_mat_type()
     stain_colors = self.get_stain_colors()
@@ -63,8 +70,13 @@ def update_material_and_edgeband_colors(self, context):
     if not self.use_custom_color_scheme and self.defaults_set:
         self.set_all_material_colors()
 
+    elif self.use_custom_color_scheme:
+        self.set_default_upgrade_selection()
+
     if mat_type.name == "Garage Material":
-        if mat_color_name == "Steel Grey" and self.use_black_edge:
+        steel_grey_black_edge = mat_color_name == "Steel Grey" and self.use_black_edge
+        cosmic_dust = mat_color_name == "Cosmic Dust"
+        if steel_grey_black_edge or cosmic_dust:
             self.set_edge("Black")
         if mat_color_name == "Cafe Au Lait" and not self.use_custom_color_scheme:
             self.set_edge(mat_color_name)
@@ -73,40 +85,37 @@ def update_material_and_edgeband_colors(self, context):
         if mat_color_name == "Winter White" and not self.use_custom_color_scheme:
             self.set_edge("Winter White")
 
-    if self.use_custom_color_scheme:
-        self.set_default_upgrade_selection()
-
     # Paint/Stain
-    previous_upgrade_index = self.upgrade_type_index
-    if mat_color_name in stain_colors:
-        self.upgrade_type_index = 2
-        self.stain_color_index = self.stain_colors.find(mat_color_name)
-    else:
-        self.upgrade_type_index = 1
-        self.paint_color_index = self.paint_colors.find("Winter White")
+    elif mat_type.name == "Upgrade Options":
+        previous_upgrade_index = self.upgrade_type_index
 
-    if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak"):
-        self.upgrade_type_index = 1
-        self.paint_color_index = self.paint_colors.find("Winter White")
-    if mat_color_name in paint_colors:
-        self.upgrade_type_index = 1
-        self.paint_color_index = self.paint_colors.find(mat_color_name)
-    
-    if mat_color_name == "Onyx":
-        if previous_upgrade_index == 1:
-            self.upgrade_type_index = 1
-            self.paint_color_index = self.paint_colors.find(mat_color_name)
-        else:
+        # Available in paint or stain
+        if mat_color_name == "Onyx":
+            if previous_upgrade_index == 1:
+                self.upgrade_type_index = 1
+                self.paint_color_index = self.paint_colors.find(mat_color_name)
+            else:
+                self.upgrade_type_index = 2
+                self.stain_color_index = self.stain_colors.find(mat_color_name)
+
+        # Stain
+        elif mat_color_name in stain_colors:
             self.upgrade_type_index = 2
             self.stain_color_index = self.stain_colors.find(mat_color_name)
-    
-    if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak") and not self.use_custom_color_scheme:
-        self.upgrade_type_index = 1
-        self.paint_color_index = self.paint_colors.find("Winter White")
 
-    if (mat_color_name == "Bridal Shower (Antique White) Δ") and not self.use_custom_color_scheme:
-        self.upgrade_type_index = 1
-        self.paint_color_index = self.paint_colors.find("Warm Spring")
+        # Paint
+        else:
+            self.upgrade_type_index = 1
+            self.paint_color_index = self.paint_colors.find("Winter White")
+
+            if (mat_color_name == "Snow Drift" or mat_color_name == "Mountain Peak") and not self.use_custom_color_scheme:
+                self.paint_color_index = self.paint_colors.find("Winter White")
+
+            elif mat_color_name == "Bridal Shower (Antique White) Δ" and not self.use_custom_color_scheme:
+                self.paint_color_index = self.paint_colors.find("Warm Spring")
+
+            elif mat_color_name in paint_colors:
+                self.paint_color_index = self.paint_colors.find(mat_color_name)
 
     # Moderno
     if mat_color_name in moderno_colors:
@@ -120,12 +129,14 @@ def update_material_and_edgeband_colors(self, context):
         update_black_edge = True
         self.prv_use_black_edge = self.use_black_edge
 
-    if self.color_change or update_black_edge:
+    if assign_materials or update_black_edge:
         try:
             bpy.ops.closet_materials.poll_assign_materials()
             self.color_change = False
         except Exception:
             pass
+
+    print("update_material_and_edgeband_colors finished. Time --- {} seconds ---".format(round(time.perf_counter() - start_time, 8)))
 
 
 def update_render_materials(self, context):
@@ -155,7 +166,7 @@ def enum_kd_fitting(self, context):
             WHERE\
                 ProductType == 'HW' AND\
                 Name LIKE '{}'\
-            ;".format("%" + "KD - FF" + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + "KD - FF" + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         rows = cursor.fetchall()
@@ -216,7 +227,6 @@ def update_countertops(self, context):
 def set_color_index(self, context):
     ct_type = self.countertops.get_type()
     countertop_mfgs = ct_type.manufactuers
-    color_selection = None
 
     if len(countertop_mfgs) > 0:
         ct_mfg = ct_type.manufactuers[self.ct_mfg_index]
@@ -419,7 +429,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             FROM\
                 {CCItems}\
             WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
-            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(name) == 0:
@@ -498,7 +508,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         if any(countertop_parts):
             if obj_props.use_unique_material and 'Melamine' not in part_name:
                 mat_type = self.materials.mat_types[obj_props.unique_mat_types]
-                mat_name = obj_props.unique_mat
+                mat_name = sn_utils.get_unique_material_name(obj_props.unique_mat)
                 type_code = mat_type.type_code
                 if type_code == 5: # Change EB typecode to old 1037 to locate in CCItems
                     type_code = 1037
@@ -530,7 +540,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             FROM\
                 {CCItems}\
             WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
-            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(sku) == 0:
@@ -578,7 +588,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             FROM\
                 {CCItems}\
             WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
-            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(sku) == 0:
@@ -609,7 +619,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 {CCItems}\
             WHERE\
                 SKU == '{sku}';\
-            ".format(sku=edge_sku, col=search_col, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(sku=edge_sku, col=search_col, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(edge_name) == 0:
@@ -654,7 +664,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND ColorCode = {color_code};\
-                ".format(type_code=3047, color_code = 110100, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=3047, color_code = 110100, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
             if len(sku) == 0:
                 print(
@@ -681,7 +691,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType = 'EB' AND TypeCode = '{type_code}' AND DisplayName LIKE 'Winter White (Oxford White)';\
-                ".format(type_code=type_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=type_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
             if len(sku) == 0:
                 print(
@@ -733,7 +743,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                     FROM\
                         {CCItems}\
                     WHERE ProductType in ('{prod_type}') AND TypeCode = 0 AND ColorCode = 0 AND DisplayName LIKE '{name}';\
-                    ".format(name=color_name, prod_type=prod_type, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    ".format(name=color_name, prod_type=prod_type, CCItems="CCItems_" + sn_utils.get_franchise_location())
                 )
 
                 if len(sku) == 0:
@@ -844,7 +854,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             if any(backing_parts):
                 if obj_props.use_unique_material:
                     mat_type = self.materials.mat_types[obj_props.unique_mat_types]
-                    mat_name = obj_props.unique_mat
+                    mat_name = sn_utils.get_unique_material_name(obj_props.unique_mat)
                     color_code = mat_type.colors[mat_name].color_code
 
             if any(drawer_box_parts):
@@ -879,7 +889,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                                     ProductType IN ('BB') AND\
                                     Name LIKE '%{material_name}%' \
                                 ;\
-                                ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, material_name=material_name)
+                                ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), material_name=material_name)
                             )
 
                             if len(sku) == 0:
@@ -900,7 +910,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 FROM\
                                     {CCItems}\
                                 WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
-                                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
                             )
 
                             if len(sku) == 0:
@@ -942,7 +952,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                                         ProductType IN ('BB') AND\
                                         Name LIKE '%{material_name}%' \
                                     ;\
-                                    ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, material_name=material_name)
+                                    ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), material_name=material_name)
                                 )
                                 if len(sku) == 0:
                                     return "Unknown"
@@ -973,7 +983,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                         Thickness == '{thickness}' AND\
                         Name LIKE '%{glass_color}%'\
                     ;\
-                    ".format(glass_color=glass_color, thickness=part_thickness, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    ".format(glass_color=glass_color, thickness=part_thickness, CCItems="CCItems_" + sn_utils.get_franchise_location())
                 )
 
                 if glass_color == 'None':
@@ -1019,7 +1029,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                             ProductType IN ('QZ') AND\
                             DisplayName LIKE '%{color_name}%'\
                         ;\
-                        ".format(color_name=color, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                        ".format(color_name=color, CCItems="CCItems_" + sn_utils.get_franchise_location())
                         )
                         if len(sku) == 0:
                             print(
@@ -1033,11 +1043,12 @@ class SnapMaterialSceneProps(PropertyGroup):
                             print(sku)
                             print("Returning Special Order SKU")
                             return "SO-0000001"
-                    else: 
+                    else:
                         mat_type = self.materials.mat_types[obj_props.unique_mat_types]
-                        mat_name = obj_props.unique_mat
+                        mat_name = sn_utils.get_unique_material_name(obj_props.unique_mat)
                         type_code = mat_type.type_code
                         color_code = mat_type.colors[mat_name].color_code
+
                 if (part_name is not None and 'Quartz' in part_name) and (countertop_type):
                     if countertop_type.get_value() == 4 or countertop_type.get_value() == 5:
                         color = self.countertops.get_color().name
@@ -1050,7 +1061,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                             ProductType IN ('QZ') AND\
                             DisplayName LIKE '%{color_name}%'\
                         ;\
-                        ".format(color_name=color, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                        ".format(color_name=color, CCItems="CCItems_" + sn_utils.get_franchise_location())
                         )
                         if len(sku) == 0:
                             print(
@@ -1081,7 +1092,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                             ProductType IN ('MD') AND\
                             DisplayName LIKE '%{lip_name}%'\
                         ;\
-                        ".format(lip_name=part_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                        ".format(lip_name=part_name, CCItems="CCItems_" + sn_utils.get_franchise_location())
                     )
                     if len(sku) == 0:
                         print(
@@ -1114,7 +1125,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                     WHERE\
                         DisplayName == '{molding_name}'\
                     ;\
-                    ".format(molding_name=part_name, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                    ".format(molding_name=part_name, CCItems="CCItems_" + sn_utils.get_franchise_location())
                 )
 
                 if len(sku) == 0:
@@ -1133,23 +1144,9 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         if part_thickness == 0.25:
             if any(backing_parts) or obj_props.is_toe_kick_skin_bp:
-                # shared_sku_colors = [
-                #     'Winter White (Oxford White)',
-                #     'Cafe Au Lait (Cabinet Almond)',
-                #     'Duraply White',
-                #     'Duraply Almond',
-                #     'Winter White',
-                #     'Snow Drift',
-                #     'Mountaint Peak'
-                # ]
-
                 if assembly.obj_bp.get("IS_CEDAR_BACK"):
                     sku = 'VN-0000006'
                     return sku
-
-                # if color_name in shared_sku_colors and not assembly.obj_bp.sn_closets.use_unique_material:
-                #     sku = 'PM-0000041'
-                #     return sku
 
             sku = sn_db.query_db(
                 "SELECT\
@@ -1161,7 +1158,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                     Thickness == '{thickness}' AND\
                     ColorCode == '{color_code}'\
                 ;\
-                ".format(thickness=str(part_thickness), color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(thickness=str(part_thickness), color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(sku) == 0:
@@ -1187,7 +1184,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                     Thickness == '{thickness}' AND\
                     ColorCode == '{color_code}'\
                 ;\
-                ".format(thickness=str(part_thickness), color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(thickness=str(part_thickness), color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(sku) == 0:
@@ -1208,7 +1205,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND ColorCode = '{color_code}';\
-                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(sku) == 0:
@@ -1301,7 +1298,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND ColorCode LIKE '{color_code}';\
-                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=type_code, color_code=color_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(sku) == 0:
@@ -1324,7 +1321,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 FROM\
                     {CCItems}\
                 WHERE ProductType in ('PM', 'WD') AND TypeCode = '{type_code}' AND DisplayName LIKE '{display_name}' AND Thickness = '{part_thickness}';\
-                ".format(type_code=type_code, display_name="Winter White", part_thickness=part_thickness, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=type_code, display_name="Winter White", part_thickness=part_thickness, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(sku) == 0:
@@ -1356,7 +1353,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 {CCItems}\
             WHERE\
                 SKU == '{sku}';\
-            ".format(col=search_col,sku=mat_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(col=search_col,sku=mat_sku, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(mat_name) == 0:
@@ -1386,7 +1383,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 ProductType = 'GL' AND\
                 Thickness == '{GlassThickness}' AND\
                 DisplayName LIKE '%{DisplayName}%';\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, DisplayName=glass_color, GlassThickness=glass_thickness)
+            ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), DisplayName=glass_color, GlassThickness=glass_thickness)
         )
         if len(rows) == 0:
             sku = 'SO-0000001'
@@ -1498,11 +1495,13 @@ class SnapMaterialSceneProps(PropertyGroup):
         self.door_drawer_mat_type_index = self.door_drawer_materials.mat_types.find(material_type.name)
         door_drawer_mat_type = self.door_drawer_materials.get_mat_type()
         self.door_drawer_mat_color_index = door_drawer_mat_type.colors.find(material_color.name)
+
         if self.five_piece_melamine_door_colors.find(material_color.name) != -1:
             if "Bridal Shower (Antique White) Δ" in material_color.name:
                 self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find("Warm Spring")
             else:
                 self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find(material_color.name)
+
         if "Snow Drift" in material_color.name or "Mountain Peak" in material_color.name or "Winter White" in material_color.name:
             self.set_all_edge_colors(self.materials.mat_types[0].colors[self.materials.mat_types[0].colors.find("Winter White")])
         elif "Bridal Shower (Antique White) Δ" in material_color.name:
@@ -1634,7 +1633,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             box.prop(self, "use_custom_color_scheme")
 
             if self.materials.get_mat_type().name == "Garage Material":
-                if self.materials.get_mat_color().name == "Steel Grey (Fog Grey)":
+                if "Steel Grey" in self.materials.get_mat_color().name:
                     row = box.row()
                     row.prop(self, "use_black_edge", text="Use Black Edgebanding")
 

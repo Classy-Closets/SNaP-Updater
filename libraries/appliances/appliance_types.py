@@ -40,6 +40,7 @@ def add_product_width_dimension(product):
 def update_dimensions(assembly):
     print("update_dimensions")
     width_dimensions = []
+    end_point = None
 
     for child in assembly.obj_bp.children:
         if 'WIDTH_LABEL' in child:

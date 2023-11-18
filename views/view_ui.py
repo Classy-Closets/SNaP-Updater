@@ -207,7 +207,6 @@ class VIEW_MT_elevation_scene_options(bpy.types.Menu):
 class VIEW_UL_scenes(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-
         is_pv = item.snap.scene_type == 'PLAN_VIEW'
         is_ev = item.snap.scene_type == 'ELEVATION'
         is_ac = item.snap.scene_type == 'ACCORDION'
@@ -215,6 +214,7 @@ class VIEW_UL_scenes(bpy.types.UIList):
         not_virt = not item.snap.scene_type == 'VIRTUAL'
         not_none = not item.snap.scene_type == 'NONE'
         is_main = item.name == "_Main"
+
         if (is_pv or is_ev or is_ac or is_island) and not_virt:
             layout.label(text=item.snap.name_scene, icon='RESTRICT_RENDER_OFF')
             layout.prop(item.snap, 'elevation_selected', text="")
@@ -231,7 +231,10 @@ class VIEW_UL_scenes(bpy.types.UIList):
             flt_flags = [self.bitflag_filter_item] * len(scenes)
 
         for i, scene in enumerate(scenes):
-            if scene.sn_closets.is_drill_scene:
+            gc_scene = scene.snap.scene_type == 'GARBAGE_COLLECTION'
+            drill_scene = scene.snap.scene_type == 'DRILL'
+
+            if drill_scene or gc_scene:
                 flt_flags[i] &= ~self.bitflag_filter_item
 
         flt_neworder = helper_funcs.sort_items_by_name(scenes, "name")

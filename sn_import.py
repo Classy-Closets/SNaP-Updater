@@ -12,6 +12,7 @@ from bpy.props import (
 from snap import sn_csv
 from snap import sn_paths
 from snap import sn_db
+from snap import sn_utils
 
 
 class SN_DB_OT_Import_Csv(bpy.types.Operator):
@@ -76,7 +77,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             ORDER BY\
                 DisplayName ASC\
             ;\
-            ".format(type_code=edge_type.type_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(type_code=edge_type.type_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(rows) == 0:
@@ -175,7 +176,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             ORDER BY\
                 DisplayName ASC\
                     ;\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(rows) == 0:
@@ -219,7 +220,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 ORDER BY\
                     DisplayName ASC\
                         ;\
-                ".format(type_code=mat_type.type_code, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+                ".format(type_code=mat_type.type_code, CCItems="CCItems_" + sn_utils.get_franchise_location())
             )
 
             if len(rows) == 0:
@@ -259,8 +260,9 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             ORDER BY\
                 DisplayName ASC\
                     ;\
-            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ".format(CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
+
         rows.append(("200110", "Snow Drift", "U Nova White"))
         for row in rows:
             type_code = int(row[0])
@@ -461,7 +463,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 DisplayName ASC\
                     ;\
             ".format(
-                CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                CCItems="CCItems_" + sn_utils.get_franchise_location(),
                 prod_type=prod_type)
         )
 
@@ -505,7 +507,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 DisplayName ASC\
                     ;\
             ".format(
-                CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                CCItems="CCItems_" + sn_utils.get_franchise_location(),
                 Five_Piece_Melamine_Door_Color_List=sn_db.FIVE_PIECE_DOOR_COLORS_TABLE_NAME)
         )
 
@@ -674,7 +676,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 Thickness = 0.25\
             ORDER BY\
                 DisplayName ASC\
-            ;".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format(CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         if len(rows) == 0:

@@ -202,6 +202,16 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                                 items=get_panel_heights,
                                                 description="Default height in hole amt for upper cabinets")
     
+    hood_cabinet_depth: bpy.props.FloatProperty(name="Hood Cabinet Depth",
+                                                  description="Default depth for hood cabinets",
+                                                  default=sn_unit.inch(24.0),
+                                                  unit='LENGTH')
+    
+    hood_cabinet_height: bpy.props.FloatProperty(name="Hood Cabinet Height",
+                                                  description="Default height for hood cabinets",
+                                                  default=sn_unit.inch(36.0),
+                                                  unit='LENGTH')
+    
     upper_inside_corner_size: bpy.props.FloatProperty(name="Upper Inside Corner Size",
                                                       description="Default width and depth for the inside upper corner cabinets",
                                                       default=sn_unit.inch(24.0),
@@ -263,6 +273,11 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                            description="Default width for drawer cabinets",
                                            default=sn_unit.inch(18.0),
                                            unit='LENGTH')
+    
+    width_hood: bpy.props.FloatProperty(name="Width Hood",
+                                           description="Default width for hood cabinets",
+                                           default=sn_unit.inch(30.0),
+                                           unit='LENGTH')
 
     width_dishwasher: bpy.props.FloatProperty(name="Width Dishwasher",
                                            description="Default width for dishwasher cabinets",
@@ -301,6 +316,12 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
     height_above_floor: bpy.props.FloatProperty(name="Height Above Floor",
                                                  description="Default height above floor for upper cabinets",
                                                  default=sn_unit.inch(96.24),
+                                                 unit='LENGTH',
+                                                 precision=4)
+    
+    hood_height_above_floor: bpy.props.FloatProperty(name="Height Above Floor",
+                                                 description="Default height above floor for hood cabinets",
+                                                 default=sn_unit.inch(69.0),
                                                  unit='LENGTH',
                                                  precision=4)
 

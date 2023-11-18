@@ -936,6 +936,7 @@ EMPTY_PDF_FIELDS = {
     "trim_color": "",
     "veneer": "",
     "full_backs": "",
+    "line_hole_dia": "",
     "edge": "",
     "edge_dolce": "",
     "edge_3m_pvc": "",

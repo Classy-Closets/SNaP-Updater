@@ -4,6 +4,7 @@ import bpy
 from bpy.types import Operator
 from bpy.props import IntProperty, BoolProperty
 from snap import sn_utils, sn_unit, sn_props
+import time
 
 
 class Variable():
@@ -1520,13 +1521,15 @@ class Prompts_Interface(Operator):
     DEFAULT_WIDTH = 600
 
     window_width: IntProperty(default=DEFAULT_WIDTH)
-    mouse_snap : BoolProperty(default=False)
+    mouse_snap: BoolProperty(default=False)
     first_mouse_x: IntProperty(default=0)
     first_mouse_y: IntProperty(default=0)
     target_mouse_x: IntProperty(default=0)
     target_mouse_y: IntProperty(default=0)
 
     def invoke(self, context, event, width=None):
+        start_time = time.perf_counter()
+
         wm = context.window_manager
         self.first_mouse_x = event.mouse_x
         self.first_mouse_y = event.mouse_y
@@ -1537,6 +1540,10 @@ class Prompts_Interface(Operator):
             self.window_width = width
 
         context.window.cursor_warp(0, context.window.height)
+
+        # print("{} {}: Check Time --- {} seconds ---".format(
+        #     "Prompts_Interface", "invoke",
+        #     round(time.perf_counter() - start_time, 8)))
 
         return wm.invoke_props_dialog(self, width=self.window_width)
 

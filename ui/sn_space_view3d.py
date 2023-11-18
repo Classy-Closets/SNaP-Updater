@@ -1033,7 +1033,7 @@ class VIEW3D_PT_context_properties(Panel):
 
         if member:
             # Draw with no edit button
-            rna_prop_ui.draw(self.layout, context, member, object, False)
+            rna_prop_ui.draw(self.layout, context, member, object)
 
 
 classes = (

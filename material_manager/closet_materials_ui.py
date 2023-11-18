@@ -54,8 +54,10 @@ class SNAP_MATERIALS_OT_change_active_index(Operator):
                         G.collection.data.set_type_index(index)
 
                     elif self.i_type == 'COLOR':
-                        context.scene.closet_materials.color_change = True
-                        G.collection.data.set_color_index(index)
+                        current_index = G.collection.data.get_color_index()
+                        if index != current_index:
+                            context.scene.closet_materials.color_change = True
+                            G.collection.data.set_color_index(index)
 
                     return {'FINISHED'}
 

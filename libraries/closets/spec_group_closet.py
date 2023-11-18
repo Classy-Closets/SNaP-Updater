@@ -33,6 +33,8 @@ MOLDING_PAINT_MATERIAL = ("Closet Materials V2", "Winter White")
 EXPOSED_INTERIOR_MATERIAL = ("Closet Materials V2", "Winter White")
 EXPOSED_EXTERIOR_MATERIAL = ("Closet Materials", "Duraply Almond")
 
+HOOD_MATERIAL = ("Closet Materials", "Winter White")
+
 
 class Material_Pointers():
 
@@ -83,6 +85,9 @@ class Material_Pointers():
     Garage_Exterior_Surface = sn_types.Material_Pointer(EXPOSED_EXTERIOR_MATERIAL)
     Garage_Panel_Edges = sn_types.Material_Pointer(EXPOSED_EXTERIOR_MATERIAL)
     Garage_Interior_Edges = sn_types.Material_Pointer(EXPOSED_INTERIOR_MATERIAL)
+
+    # Hood pointers
+    Hood_Surface = sn_types.Material_Pointer(HOOD_MATERIAL)
 
 
 class Cutpart_Pointers():

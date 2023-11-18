@@ -1052,7 +1052,7 @@ class PROMPTS_Shoe_Shelf_Prompts(sn_types.Prompts_Interface):
     bl_label = "Shoe Shelf Prompt" 
     bl_description = "This shows all of the available shoe shelf options"
     bl_options = {'UNDO'}
-    
+
     object_name: StringProperty(name="Object Name")
     shelf_qty: IntProperty(name="Shelf Quantity",min=1,max=10)
     shelf_lip_type: EnumProperty(
@@ -1067,26 +1067,26 @@ class PROMPTS_Shoe_Shelf_Prompts(sn_types.Prompts_Interface):
     adj_shelf_qty_prompt = None
     assembly = None
     shelf_lip_type_prompt = None
-        
+
     def check(self, context):
-        # sn_utils.run_calculators(self.assembly.obj_bp)
-        
+        sn_utils.run_calculators(self.assembly.obj_bp)
+
         if self.adj_shelf_qty_prompt:
             self.adj_shelf_qty_prompt.set_value(self.shelf_qty)
 
         if self.shelf_lip_type_prompt:
             self.shelf_lip_type_prompt.set_value(int(self.shelf_lip_type))
-            
+
         self.assembly.obj_bp.location = self.assembly.obj_bp.location # Redraw Viewport
-        
+
         return True
-        
+
     def execute(self, context):
         return {'FINISHED'}
 
-    def invoke(self,context,event):
+    def invoke(self, context, event):
         self.assembly = self.get_insert()
-        
+
         self.adj_shelf_qty_prompt = self.assembly.get_prompt("Adj Shelf Qty")
         self.shelf_lip_type_prompt = self.assembly.get_prompt("Shelf Lip Type")
 
@@ -1095,33 +1095,33 @@ class PROMPTS_Shoe_Shelf_Prompts(sn_types.Prompts_Interface):
 
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=330)
-        
+
     def draw(self, context):
         layout = self.layout
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
-                
+
                 if self.adj_shelf_qty_prompt:
-                    shelf_lip_type = self.assembly.get_prompt("Shelf Lip Type")
                     dist_between_shelves = self.assembly.get_prompt("Distance Between Shelves")
 
                     box = layout.box()
                     row = box.row()
                     row.label(text="Adjustable Shelf Options:")
-                    
+
                     row = box.row()
                     row.prop(self, "shelf_lip_type", expand=True)
 
                     row = box.row()
                     row.label(text="Shelf Quantity")
-                    row.prop(self,'shelf_qty',text="")
-                    
-                    row = box.row()
-                    row.label(text="Shoe Shelf Location")
-                    row.prop(self.assembly.obj_bp,'location',index=2)
+                    row.prop(self, 'shelf_qty', text="")
 
                     row = box.row()
-                    dist_between_shelves.draw(row, allow_edit=False)                        
+                    row.label(text="Shoe Shelf Location")
+                    row.prop(self.assembly.obj_bp, 'location', index=2)
+
+                    row = box.row()
+                    dist_between_shelves.draw(row, allow_edit=False)
+
 
 #----------DROP OPERATORS
 class OPERATOR_Drop_Single_Part(bpy.types.Operator, PlaceClosetInsert):

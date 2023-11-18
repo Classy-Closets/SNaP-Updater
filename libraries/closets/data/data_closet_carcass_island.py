@@ -24,7 +24,6 @@ def update_closet_height(self,context):
 
 
 class Closet_Island_Carcass(sn_types.Assembly):
-
     type_assembly = "PRODUCT"
     id_prompt = "sn_closets.island_openings"
     plan_draw_id = "sn_closets.draw_plan"
@@ -77,7 +76,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             calc_prompt = self.calculator.add_calculator_prompt("Opening " + str(i) + " Width")
             calc_prompt.equal = True            
             self.add_prompt("Opening " + str(i) + " Depth", 'DISTANCE', self.depth)            
-        
+
     def add_island_prompts(self):
         props = bpy.context.scene.sn_closets.closet_defaults
         
@@ -102,7 +101,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             Panel_Thickness = self.get_prompt('Panel Thickness').get_var()
             
             self.dim_y('(Depth_1+Depth_2+Panel_Thickness)*-1',[Depth_1,Depth_2,Panel_Thickness])
-            
+
     def add_sides(self):
         props = bpy.context.scene.sn_closets   
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
@@ -205,7 +204,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             shelf.get_prompt("Drill On Top").set_value(value=True)
         else:
             shelf.get_prompt("Drill On Top").set_value(value=False)
-    
+
     def add_toe_kick(self,i,panel,is_rear=False):
         Product_Depth = self.obj_y.snap.get_var('location.y','Product_Depth')
         width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
@@ -231,7 +230,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             kick.loc_y('Product_Depth+Toe_Kick_Setback',[Product_Depth,Toe_Kick_Setback])
             kick.dim_z('Toe_Kick_Thickness',[Toe_Kick_Thickness])
         kick.rot_x(value=math.radians(-90))
-        
+
     def add_closet_opening(self,i,panel,is_rear=False):
         props = bpy.context.scene.sn_closets.closet_defaults
         
@@ -271,7 +270,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
             opening.dim_z('Product_Height-Shelf_Thickness',[Product_Height,Shelf_Thickness])
         else:
             opening.dim_z('Product_Height-(Shelf_Thickness*2)',[Product_Height,Shelf_Thickness])
-        
+
     def add_inside_dimension(self,i,panel):
         width_prompt = eval("self.calculator.get_calculator_prompt('Opening {} Width')".format(str(i)))
         Width = eval("width_prompt.get_var(self.calculator.name, 'Width')".format(str(i)))
@@ -344,7 +343,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
         backing.dim_y('IF(Width>Max_Width,Product_Height-(Panel_Thickness*2),Width)', [Product_Height, Panel_Thickness, Width, Max_Width])
 
         backing.dim_z('Panel_Thickness',[Panel_Thickness])
-        
+
     def set_child_properties(self, obj):
         obj["ID_PROMPT"] = self.obj_bp["ID_PROMPT"]
         for child in obj.children:
@@ -720,7 +719,7 @@ class Closet_Island_Carcass(sn_types.Assembly):
         self.calculator.set_total_distance(
             "Product_Width-Panel_Thickness*(" + str(self.opening_qty) +"+1)",
             [Product_Width, Panel_Thickness])
-    
+
     def calculate_opening_widths(self):
         calculator = self.get_calculator('Opening Widths Calculator')
         if calculator:
@@ -792,25 +791,25 @@ class Closet_Island_Carcass(sn_types.Assembly):
                 self.add_closet_opening(i,panel,is_rear=True)
         
         self.update()
-                
+
 
 class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     bl_idname = "sn_closets.island_openings"
     bl_label = "Island Prompts" 
     bl_options = {'UNDO'}
-    
+
     object_name: StringProperty(name="Object Name")
-    
+
     tabs: EnumProperty(name="Tabs",
                         items=[('OPENINGS','Opening Sizes','Show the Width x Height x Depth for each opening'),
                                ('CONSTRUCTION','Construction Options','Show Additional Construction Options')],
                         default = 'OPENINGS')
-    
+
     current_location: FloatProperty(name="Current Location", default=0,subtype='DISTANCE')
     left_offset: FloatProperty(name="Left Offset", default=0,subtype='DISTANCE')
     right_offset: FloatProperty(name="Right Offset", default=0,subtype='DISTANCE')
     product_width: FloatProperty(name="Product Width", default=0,subtype='DISTANCE')    
-    
+
     width: FloatProperty(name="Width", unit='LENGTH', precision=4)
     depth: FloatProperty(name="Depth", unit='LENGTH', precision=4)
     height: EnumProperty(name="Height",
@@ -831,7 +830,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             ("5", "Standard Quartz", "Standard Quartz"),
             ("6", "Wood", "Wood")],
         default='0')
-    
+
     hpl_edge_type: EnumProperty(
         name="Countertop Edge Type",
         items=[
@@ -871,7 +870,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             ('4', 'Applied Round', 'Applied Round'),
             ('5', 'Applied Ogee', 'Applied Ogee')],
         default='0')
-    
+
     stained_edge_type: EnumProperty(
         name="Countertop Edge Type",
         items=[
@@ -881,7 +880,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             ('3', 'Solid Ogee Applied', 'Solid Ogee Applied'),
             ('4', 'Alder Miter', 'Alder Miter')],
         default='0')
-    
+
     hpl_edge_type_prompt = None
     stone_edge_type_prompt = None
     painted_edge_type_prompt = None
@@ -889,7 +888,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     is_painted = False
     is_stained = False
     no_countertop = False
-    
+
     product = None
     countertop = None
     inserts = []
@@ -936,18 +935,18 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
     def update_countertop_type(self, context):
         mat_props = context.scene.closet_materials
         countertop_type = 0
-        ct_type = mat_props.countertops.get_type()
 
         # COUNTERTOP_HPL is used for "Custom"
         countertops = (
             "COUNTERTOP_MELAMINE", "COUNTERTOP_HPL", "COUNTERTOP_GRANITE",
-            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_STANDARD_QUARTZ", "COUNTERTOP_WOOD")        
+            "COUNTERTOP_HPL", "COUNTERTOP_QUARTZ", "COUNTERTOP_STANDARD_QUARTZ", "COUNTERTOP_WOOD")
 
         if self.countertop_type_ppt:
             self.prev_countertop_type = self.countertop_type_ppt.get_value()
             self.countertop_type_ppt.set_value(int(self.countertop_type))
-        
+
         no_countertop = self.product.get_prompt("No Countertop")
+
         if no_countertop:
             if self.no_countertop != no_countertop.get_value():
                 self.countertop = self.product.add_countertop()
@@ -961,7 +960,10 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
 
             # Set unique material status
             for child in self.product.obj_bp.children:
-                if countertops[countertop_type] in child or (self.countertop_type == "5" and "COUNTERTOP_QUARTZ" in child):
+                child_is_quartz = "COUNTERTOP_QUARTZ" in child
+                std_quartz_selected = self.countertop_type == "5"
+
+                if countertops[countertop_type] in child or (std_quartz_selected and child_is_quartz):
                     use_unique = mat_props.ct_type_index != countertop_type
                     child.sn_closets.use_unique_material = use_unique
                     bpy.context.view_layer.objects.active = child
@@ -977,9 +979,10 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                 for region in area.regions:
                                     if region.type == 'UI':
                                         if region.width == 1:
-                                            bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")      
-        self.set_edge_type_prompts()      
-    
+                                            bpy.ops.wm.context_toggle(context_copy, data_path="space_data.show_region_ui")
+
+        self.set_edge_type_prompts()
+
     def update_backing(self, context):
         vertical_grain = self.product.get_prompt('Vertical Grain')
         if vertical_grain:
@@ -1056,10 +1059,11 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 if calculator:
                     self.calculators.append(calculator)
 
-    def invoke(self,context,event):
+    def invoke(self, context, event):
         self.reset_variables()
         bp = sn_utils.get_closet_bp(context.object)
         self.product = Closet_Island_Carcass(obj_bp=bp)
+        self.product.assembly_name = self.product.obj_bp.name
         self.get_assemblies(context)
         self.run_calculators(self.product.obj_bp)
 
@@ -1266,7 +1270,7 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
             row.prop(Side_Deck_Overhang, "distance_value", text="Side Overhang")
 
         row = col.row()
-        row.prop(No_Countertop,"checkbox_value",text="No Countertop")
+        row.prop(No_Countertop, "checkbox_value", text="No Countertop")
 
         if self.countertop_type_ppt and No_Countertop.get_value() == False:
             if Front_Overhang and Back_Overhang:
@@ -1277,19 +1281,19 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 row = col.row(align=True)
                 row.prop(Left_Overhang, "distance_value", text="Left Overhang")
                 row.prop(Right_Overhang, "distance_value", text="Right Overhang")
-            
+
             c_box = layout.box()
             c_box.label(text='Countertop Types')
             tab_col = c_box.column(align=True)
             row = tab_col.row(align=True)
-            row.prop_enum(self,"countertop_type","0")
-            row.prop_enum(self,"countertop_type","1")
-            row.prop_enum(self,"countertop_type","2")
-            row.prop_enum(self,"countertop_type","3")
+            row.prop_enum(self, "countertop_type", "0")
+            row.prop_enum(self, "countertop_type", "1")
+            row.prop_enum(self, "countertop_type", "2")
+            row.prop_enum(self, "countertop_type", "3")
             row = tab_col.row(align=True)
-            row.prop_enum(self,"countertop_type","4")
-            row.prop_enum(self,"countertop_type","5")
-            row.prop_enum(self,"countertop_type","6")
+            row.prop_enum(self, "countertop_type", "4")
+            row.prop_enum(self, "countertop_type", "5")
+            row.prop_enum(self, "countertop_type", "6")
 
             if self.countertop_type == '1' or self.countertop_type == '3':
                 if HPL_Edge_Type:

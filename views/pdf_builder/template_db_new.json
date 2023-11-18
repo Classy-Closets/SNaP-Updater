@@ -100,6 +100,7 @@
     { "label": "Install Date", "value": "", "position": { "LEGAL": [868, 560], "ELEVENSEVENTEEN": [1088, 737] }, "line": { "length": {"LEGAL": 65, "ELEVENSEVENTEEN": 65}, "position": { "LEGAL": [915, 557], "ELEVENSEVENTEEN": [1135, 735] } }, "varname": "install_date" },
     { "label": "Lead ID#", "value": "", "position": { "LEGAL": [775, 545], "ELEVENSEVENTEEN": [995, 725] }, "line": { "length": {"LEGAL": 72, "ELEVENSEVENTEEN": 72}, "position": { "LEGAL": [812, 543], "ELEVENSEVENTEEN": [1034, 721] } }, "varname": "lead_id" },
     { "label": "Sheet", "value": "", "position": { "LEGAL": [889, 545], "ELEVENSEVENTEEN": [1109, 725] }, "line": { "length": {"LEGAL": 65, "ELEVENSEVENTEEN": 65}, "position": { "LEGAL": [915, 543], "ELEVENSEVENTEEN": [1135, 721] } }, "varname": "sheet" },
+    { "label": "LINE HOLE DIA", "value": "", "position": { "LEGAL": [775, 525], "ELEVENSEVENTEEN": [995, 705] }, "line": { "length": {"LEGAL": 50, "ELEVENSEVENTEEN": 50}, "position": { "LEGAL": [833, 525], "ELEVENSEVENTEEN": [1053, 705] } }, "varname": "line_hole_dia" },
 
     { "label": "", "value": "", "position": { "LEGAL": [45, 108], "ELEVENSEVENTEEN": [45, 108] }, "line": { "length": {"LEGAL": 313, "ELEVENSEVENTEEN": 518}, "position": { "LEGAL": [45, 108], "ELEVENSEVENTEEN": [45, 108] } }, "varname": "customer_name"},
     { "label": "", "value": "", "position": { "LEGAL": [395, 108], "ELEVENSEVENTEEN": [395, 108] }, "line": { "length": {"LEGAL": 108, "ELEVENSEVENTEEN": 118}, "position": { "LEGAL": [395, 108], "ELEVENSEVENTEEN": [605, 108] } }, "varname": "cphone" },

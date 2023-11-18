@@ -74,7 +74,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 VendorItemNum ='{}'\
-            ;".format(vendor_id, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format(vendor_id, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         rows = cursor.fetchall()
@@ -130,7 +130,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'HW' AND\
                 Name LIKE'{}'\
-            ;".format("%" + hinge_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + hinge_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -155,7 +155,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'HW' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -185,7 +185,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     Name == '{}' \
                 ;".format(
                     item_name,
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location
+                    CCItems="CCItems_" + sn_utils.get_franchise_location()
                 )
             )
             rows = cursor.fetchall()
@@ -217,7 +217,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                 ;".format(
                     "%" + slide_name + "%",
                     "%" + str(slide_len) + "%",
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location
+                    CCItems="CCItems_" + sn_utils.get_franchise_location()
                 )
             )
             rows = cursor.fetchall()
@@ -248,7 +248,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     DisplayName LIKE '{}'\
                 ;".format(
                     "%" + item_name + "%",
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location
+                    CCItems="CCItems_" + sn_utils.get_franchise_location()
                 )
             )
             rows = cursor.fetchall()
@@ -273,7 +273,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -301,7 +301,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -377,7 +377,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -405,7 +405,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -434,7 +434,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 VendorItemNum ='{}'\
-            ;".format(vendor_id, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format(vendor_id, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -493,7 +493,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType IN ('AC', 'HW') AND\
                 NAME LIKE ('%{category} {type} POLE CUP {color}%')\
-            ;".format(category=cup_category, color=cup_color, type=cup_type, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format(category=cup_category, color=cup_color, type=cup_type, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -520,7 +520,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'HW' AND\
                 SKU LIKE'%{}%'\
-            ;".format(hw_sku, CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format(hw_sku, CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -545,7 +545,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'HW' AND\
                 Name LIKE'{}'\
-            ;".format("%peg%chrome%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%peg%chrome%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -577,7 +577,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'AC' AND\
                 VendorItemNum =='{}'\
-            ;".format("245.74.200", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("245.74.200", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -634,7 +634,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     ProductType == 'AC' AND\
                     Name IN ('{category} Valet Rail {color} {length}', '{category} VALET ROD {color} {length}', '{category} VALET ROD {color} {length_number}IN')\
                 ;".format(
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                    CCItems="CCItems_" + sn_utils.get_franchise_location(),
                     category=valet_category_name,
                     color=metal_color_name,
                     length=valet_length.combobox_items[valet_length.get_value()].name,
@@ -706,7 +706,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     ProductType == 'AC' AND\
                     Name IN ('{category} Tie {color} {length}', '{category} TIE RACK {color} {length}', '{category} TIE RACK {color} {length_number}IN')\
                 ;".format(
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                    CCItems="CCItems_" + sn_utils.get_franchise_location(),
                     category=tie_rack_category_name,
                     color=metal_color_name,
                     length=tie_rack_length.combobox_items[tie_rack_length.get_value()].name,
@@ -770,7 +770,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
                     ProductType == 'AC' AND\
                     Name IN ('{category} Belt {color} {length}', '{category} BELT RACK {color} {length}', '{category} BELT RACK {color} {length_number}IN')\
                 ;".format(
-                    CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location,
+                    CCItems="CCItems_" + sn_utils.get_franchise_location(),
                     category=belt_rack_category_name,
                     color=metal_color_name,
                     length=belt_rack_length.combobox_items[belt_rack_length.get_value()].name,
@@ -843,7 +843,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             WHERE\
                 ProductType == 'WB' AND\
                 Name LIKE'{}'\
-            ;".format("%" + item_name + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + item_name + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
         rows = cursor.fetchall()
 
@@ -1080,6 +1080,16 @@ class OPS_Export_XML(Operator):
                     return True
         return False
 
+    def is_mitered_toe_kick(self, assembly):
+        p_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+
+        if p_assembly.obj_bp.sn_closets.is_toe_kick_insert_bp:
+            mitered_tk = p_assembly.get_prompt("Mitered TK")
+            if mitered_tk:
+                if mitered_tk.get_value():
+                    return True
+        return False
+
     def get_product_z_location(self,product):
         #Height Above Floor
         if product.obj_bp.location.z > 0:
@@ -1135,10 +1145,44 @@ class OPS_Export_XML(Operator):
 
         return self.distance(width)
     
-    def get_part_length(self,assembly):
+    def get_part_length(self, assembly):
         length = math.fabs(assembly.obj_x.location.x)
         props = assembly.obj_bp.sn_closets
         parent_bp = assembly.obj_bp.parent
+
+        toe_kick_parts = [
+            assembly.obj_bp.get("IS_BP_TOE_KICK_FRONT"),
+            assembly.obj_bp.get("IS_BP_TOE_KICK_BACK"),
+            assembly.obj_bp.get("IS_BP_TOE_KICK_END_CAP"),
+            assembly.obj_bp.get("IS_BP_TOE_KICK_STRINGER"),
+            assembly.obj_bp.get("IS_BP_TOE_KICK_SKIN")]
+
+        if any(toe_kick_parts):
+            is_mitered_tk = self.is_mitered_toe_kick(assembly)
+            is_var_width_tk = self.is_var_width_toe_kick(assembly)
+            tk_front = assembly.obj_bp.get("IS_BP_TOE_KICK_FRONT")
+            tk_back = assembly.obj_bp.get("IS_BP_TOE_KICK_BACK")
+            tk_stringer = assembly.obj_bp.get("IS_BP_TOE_KICK_STRINGER")
+            tk_end_cap = assembly.obj_bp.get("IS_BP_TOE_KICK_END_CAP")
+
+            if is_mitered_tk and is_var_width_tk:
+                if tk_front:
+                    length += sn_unit.inch(8.0)
+                elif tk_back or tk_stringer:
+                    length += sn_unit.inch(3.0)
+                elif tk_end_cap:
+                    length += sn_unit.inch(2.0)
+
+            elif is_mitered_tk:
+                if tk_front:
+                    length += sn_unit.inch(6.0)
+                if tk_end_cap:
+                    length += sn_unit.inch(2.0)
+
+            elif is_var_width_tk:
+                # Exclude end cap parts
+                if not tk_end_cap:
+                    length += sn_unit.inch(3.0)
 
         if self.is_variable_section(assembly):
             if props.is_hanging_rod:
@@ -1146,11 +1190,6 @@ class OPS_Export_XML(Operator):
             if props.is_cleat_bp or props.is_shelf_bp:
                 if not props.is_door_bp:
                     length = self.get_var_sec_length(length)
-
-        if self.is_var_width_toe_kick(assembly):
-            #Exclude end cap parts
-            if not assembly.obj_bp.get('IS_BP_TOE_KICK_END_CAP'):
-                length += sn_unit.inch(3.0)
 
         # TK Endcaps lengths and widths are swapped
         if self.is_var_height_toe_kick(assembly) and assembly.obj_bp.get('IS_BP_TOE_KICK_END_CAP'):
@@ -3602,15 +3641,14 @@ class OPS_Export_XML(Operator):
                 flat_crown_assembly.get_prompt("Exposed Right").set_value(False)
                 self.set_full_size_flat_molding_obj(flat_crown_assembly.obj_bp, molding_type)
                 number_of_lengths = math.ceil(float(length) / 96)
+                eb_type = "S1"
+
+                if has_exposed_top:
+                    eb_type += "_L2"
+                else:
+                    eb_type += "_L1"
 
                 if number_of_lengths == 2:
-                    eb_type = "S1"
-
-                    if has_exposed_top:
-                        eb_type += "_L2"
-                    else:
-                        eb_type += "_L1"
-
                     lengths.append([96, eb_type])  # Inches
                     lengths.append([96, eb_type])  # Inches
                     heights.append([height, eb_type])
@@ -5705,6 +5743,11 @@ class OPS_Export_XML(Operator):
                             right_lbl = "R-None"
                             mid_left = False
                             mid_right = False
+                            label_3mm = ""
+                            drill_hole_dia = bpy.context.scene.closet_machining.system_hole_dia_options
+
+                            if drill_hole_dia == '3MM':
+                                label_3mm = "3mm "
 
                             if len(tokens) > 0:
                                 for token in tokens:
@@ -5734,7 +5777,7 @@ class OPS_Export_XML(Operator):
                                             if mid_right:
                                                 right_lbl +=  " 3 Lines"
                         
-                            label = f"{left_lbl} {right_lbl}"
+                            label = f"{label_3mm}{left_lbl} {right_lbl}"
 
                         elif assembly.obj_bp.get("IS_BP_BLIND_CORNER_PANEL"):
                             tokens = child.snap.mp.machine_tokens
@@ -5751,10 +5794,45 @@ class OPS_Export_XML(Operator):
 
                         elif assembly.obj_bp.get("IS_DOOR"):
                             door_x_dim = sn_unit.meter_to_inch(assembly.obj_x.location.x)
+                            closet_bp = sn_utils.get_closet_bp(assembly.obj_bp)
+                            cabinet_bp = sn_utils.get_cabinet_bp(assembly.obj_bp)
+
+                            # Closet doors
+                            if closet_bp:
+                                # L shelves reach back/lazy susan
+                                assembly = sn_types.Assembly(closet_bp)
+                                door_type_ppt = assembly.get_prompt("Door Type")
+
+                                if door_type_ppt:
+                                    door_type = door_type_ppt.get_value()
+
+                                    if assembly.obj_bp.get("IS_BP_L_SHELVES"):
+                                        if door_type == 0:
+                                            label = "Rch Bck LShlf Door"
+
+                                        elif door_type == 1:
+                                            label = "Lzy Ssn LShlf Door"
+
+                                    # Corner shelves door
+                                    elif assembly.obj_bp.get("IS_BP_CORNER_SHELVES"):
+                                        label = "CrnrCb"
+
+                                # Standard door
+                                else:
+                                    label = "Def Door"
+
+                            # KB corner cabinet doors
+                            if cabinet_bp:
+                                if cabinet_bp.get("IS_CORNER"):
+                                    label = "CrnrCb"
+
+                                # Standard KB door
+                                else:
+                                    label = "Def Door"
+
+                            # Additional lbl text for tall doors
                             if door_x_dim > 50:
-                                label = "3 Hinges"
-                            else:
-                                label = "Def Door"
+                                label += " 3 Hinges"
 
                         elif assembly.obj_bp.get("IS_SHELF"):
                             locked_shelf_ppt = assembly.get_prompt("Is Locked Shelf")

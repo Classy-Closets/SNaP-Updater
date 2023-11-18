@@ -23,6 +23,7 @@ def get_product_components(product):
     count_door = 0
     count_drawer = 0
     count_shelf = 0
+    count_hood = 0
     count_false = 0
     components = sn_utils.get_assembly_bp_list(product.obj_bp, [])
     
@@ -43,7 +44,9 @@ def get_product_components(product):
             shelf_ppt = shelves.get_prompt("Shelf Qty")
             if shelf_ppt:
                 count_shelf += shelves.get_prompt("Shelf Qty").get_value()
-    
+        elif "IS_BP_HOOD_BODY" in component:
+            count_hood += 1
+
     if count_door > 1:
         lbl_text += str(count_door) + " Doors|"
     elif count_door == 1:
@@ -58,6 +61,9 @@ def get_product_components(product):
         lbl_text += str(count_shelf) + " Shlvs|"
     elif count_shelf == 1:
         lbl_text += "1 Shelf|"
+
+    if count_hood >= 1:
+        lbl_text += str(count_hood) + " Hood|"
 
     if lbl_text.endswith("|"):
         lbl_text = lbl_text[:-1]
@@ -1051,6 +1057,7 @@ class OPERATOR_Place_Applied_Panel(bpy.types.Operator):
                 if child.snap.type == 'CAGE':
                     cages.append(child)
                 child.draw_type = 'TEXTURED'
+                print("assign_materials_from_pointers from place_applied_panel")
                 sn_utils.assign_materials_from_pointers(child)
         sn_utils.delete_obj_list(cages)
 

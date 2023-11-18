@@ -26,7 +26,8 @@ def load_driver_functions(scene=None):
 def load_materials_from_db(scene=None):
     import time
     time_start = time.time()
-    path = os.path.join(sn_paths.CSV_DIR_PATH, "CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location + ".csv")
+    franchise_location = sn_utils.get_franchise_location()
+    path = os.path.join(sn_paths.CSV_DIR_PATH, "CCItems_" + franchise_location + ".csv")
     filename = os.path.basename(path)
     filepath = path
     bpy.ops.snap.import_csv('EXEC_DEFAULT', filename=filename, filepath=filepath)
@@ -39,6 +40,12 @@ def load_materials_from_db(scene=None):
 #     snap_pointers.update_pointer_properties()
 
 
+def is_startup_file():
+    config_path = sn_paths.CONFIG_PATH
+    current_file_path = bpy.data.filepath
+    startup_path = os.path.join(config_path, "startup.blend")
+
+    return current_file_path == startup_path
 
 
 @persistent
@@ -131,6 +138,9 @@ def assign_material_pointers(scene=None):
                         return
 
     if bpy.data.is_saved:
+        if is_startup_file():
+            return
+
         # If 2Ds generated
         if "_Main" in bpy.data.scenes:
             scene = bpy.data.scenes["_Main"]
@@ -145,6 +155,23 @@ def assign_material_pointers(scene=None):
         door_drawer_mat_type = mat_props.door_drawer_materials.get_mat_type()
         door_drawer_edge_type = mat_props.door_drawer_edges.get_edge_type()
 
+        try:
+            mat_type.get_mat_color()
+        except IndexError as err:
+            print(err)
+            if mat_type.name == 'Solid Color Smooth Finish':
+                mat_props.solid_color_index = len(mat_type.colors) - 1
+            elif mat_type.name == "Grain Pattern Smooth Finish":
+                mat_props.grain_color_index = len(mat_type.colors) - 1
+            elif mat_type.name == "Solid Color Textured Finish":
+                mat_props.solid_tex_color_index = len(mat_type.colors) - 1
+            elif mat_type.name == "Grain Pattern Textured Finish":
+                mat_props.grain_tex_color_index = len(mat_type.colors) - 1
+            elif mat_type.name == "Linen Pattern Linen Finish":
+                mat_props.linen_color_index = len(mat_type.colors) - 1
+            elif mat_type.name == "Solid Color Matte Finish":
+                mat_props.matte_color_index = len(mat_type.colors) - 1
+
         check_discontinued_colors(mat_props)
 
         if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
@@ -153,7 +180,6 @@ def assign_material_pointers(scene=None):
         # if not custom_colors:
         for obj in scene.objects:
             part_mesh = None
-            room_mat_color = None
             is_garage_material = False
             current_mat_color = mat_type.get_mat_color()
 
@@ -163,7 +189,7 @@ def assign_material_pointers(scene=None):
                     cutpart_name = obj.snap.cutpart_name
                 if cutpart_name == 'Garage_Top_KD' or cutpart_name == 'Garage_End_Panel' or cutpart_name == 'Garage_Bottom_KD':
                     part_mesh = get_part_mesh(obj, 'CUTPART')
-            elif  mat_type.type_code == 1 and mat_type.type_code == 4:
+            elif mat_type.type_code == 1 or mat_type.type_code == 4:
                 if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
                     part_mesh = get_part_mesh(obj, 'CUTPART')
             else:
@@ -326,6 +352,9 @@ def assign_material_pointers(scene=None):
 
 @persistent
 def assign_materials(scene=None):
+    if is_startup_file():
+        return
+
     bpy.ops.closet_materials.assign_materials()
 
 

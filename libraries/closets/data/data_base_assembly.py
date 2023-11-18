@@ -32,17 +32,21 @@ class Base_Assembly(sn_types.Assembly):
         self.add_prompt("Variable Height", 'CHECKBOX', False)
         self.add_prompt("Is Island TK", 'CHECKBOX', False)
         self.add_prompt("TK Skin Thickness", 'DISTANCE', sn_unit.inch(0.25))
-        self.add_prompt("Add TK Skin", 'CHECKBOX', False)
         self.add_prompt("Left Return", 'CHECKBOX', False)
         self.add_prompt("Right Return", 'CHECKBOX', False)
         self.add_prompt("Left", 'CHECKBOX', False)  # Deeper Toe Kick Left
         self.add_prompt("Right", 'CHECKBOX', False)  # Deeper Toe Kick Right
         self.add_prompt("Far Left Panel Selected", 'CHECKBOX', False)
         self.add_prompt("Far Right Panel Selected", 'CHECKBOX', False)
-        self.add_prompt("Add Capping Base", 'CHECKBOX', False)
         self.add_prompt("Toe Kick Setback", 'DISTANCE', 0)
         self.add_prompt("Left Capping Base Return", 'CHECKBOX', False)
         self.add_prompt("Right Capping Base Return", 'CHECKBOX', False)
+
+        closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+        room_default_tk_type = closet_defaults.toe_kick_type
+        self.add_prompt("Add TK Skin", 'CHECKBOX', room_default_tk_type == 'STD_SKINS')
+        self.add_prompt("Add Capping Base", 'CHECKBOX', room_default_tk_type == 'STD_CAPPING_BASE')
+        self.add_prompt("Mitered TK", 'CHECKBOX', room_default_tk_type == 'MITERED_TK')
 
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
@@ -58,6 +62,7 @@ class Base_Assembly(sn_types.Assembly):
         Right_Return = self.get_prompt("Right Return").get_var()
         DTKL = self.get_prompt("Left").get_var('DTKL')
         DTKR = self.get_prompt("Right").get_var('DTKR')
+        mitered_tk_ppt = self.get_prompt("Mitered TK")
 
         ACB = self.get_prompt("Add Capping Base").get_var('ACB')
         TKS = self.get_prompt("Toe Kick Setback").get_var('TKS')
@@ -66,6 +71,12 @@ class Base_Assembly(sn_types.Assembly):
 
         toe_kick_front = common_parts.add_toe_kick(self)
         toe_kick_front.set_name("Toe Kick Front")
+
+        if mitered_tk_ppt:
+            if mitered_tk_ppt.get_value():
+                toe_kick_front.set_name("Toe Kick Front Mtrd")
+
+        toe_kick_front.obj_bp["IS_BP_TOE_KICK_FRONT"] = True
         toe_kick_front.obj_bp.snap.comment_2 = "1034"
 
         TK_Thk = self.get_prompt('Toe Kick Thickness').get_var("TK_Thk")
@@ -98,21 +109,22 @@ class Base_Assembly(sn_types.Assembly):
         toe_kick_front.rot_x(value=math.radians(-90))
         toe_kick_front.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
-        toe_kick = common_parts.add_toe_kick(self)
-        toe_kick.set_name("Toe Kick Back")
-        toe_kick.obj_bp.snap.comment_2 = "1034"
-        toe_kick.dim_x(
+        toe_kick_back = common_parts.add_toe_kick(self)
+        toe_kick_back.obj_bp["IS_BP_TOE_KICK_BACK"] = True
+        toe_kick_back.set_name("Toe Kick Back")
+        toe_kick_back.obj_bp.snap.comment_2 = "1034"
+        toe_kick_back.dim_x(
             "IF(("+tk_dim_limit+")>INCH(97.5),INCH(96),"+tk_dim_x+")",
             [Width, TK_Thk, ER_Amt, EL_Amt, LR,
              RR, TKST, DTKL, DTKR, ACB])
-        toe_kick.dim_y('-Height', [Height])
-        toe_kick.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
-        toe_kick.loc_x(
+        toe_kick_back.dim_y('-Height', [Height])
+        toe_kick_back.dim_z('-Toe_Kick_Thickness',[Toe_Kick_Thickness])
+        toe_kick_back.loc_x(
             "(Toe_Kick_Thickness*IF(ACB,1,1.5))-Extend_Left_Amount"
             "+IF(DTKL,-TK_Skin_Thickness,IF(Left_Return,TK_Skin_Thickness,0))",
             [Extend_Left_Amount, Toe_Kick_Thickness, TK_Skin_Thickness, Left_Return, DTKL, ACB])
-        toe_kick.rot_x(value=math.radians(-90))
-        toe_kick.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
+        toe_kick_back.rot_x(value=math.radians(-90))
+        toe_kick_back.get_prompt("Hide").set_formula('IF(Hide_Insert,True,False)',[Hide_Insert])
 
         left_toe_kick = common_parts.add_toe_kick_end_cap(self)
         left_toe_kick.dim_x('-Height', [Height])
@@ -461,6 +473,18 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
         self.check_hang_height()
         self.check_parent_top_location()
         self.update_tk_ex_depth_amount()
+
+        # Update TK front name for mitered TK
+        for child in self.product.obj_bp.children:
+            if child.get("IS_BP_TOE_KICK_FRONT"):
+                mitered_tk_ppt = self.product.get_prompt("Mitered TK")
+                assembly = sn_types.Assembly(child)
+
+                if mitered_tk_ppt.get_value():
+                    assembly.set_name("Toe Kick Front Mtrd")
+                else:
+                    assembly.set_name("Toe Kick Front")
+
         return True
 
     def set_extend_amounts(self):
@@ -558,11 +582,17 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
         left_capping_base_return = self.product.get_prompt("Left Capping Base Return")
         right_capping_base_return = self.product.get_prompt("Right Capping Base Return")
 
+        has_mitered_tk = False  # Added v2.7.2
+        mitered_tk = self.product.get_prompt("Mitered TK")
+
+        if mitered_tk:
+            has_mitered_tk = mitered_tk.get_value()
+
         if add_tk_skin and add_capping_base:
             box = layout.box()
             box.label(text='Toe Kick Capping Base and Skin Options')
 
-            if not add_capping_base.get_value():
+            if not add_capping_base.get_value() and not has_mitered_tk:
                 row = box.row()
                 add_tk_skin.draw(row, alt_text='Add 1/4" Toe Kick Skin: ', allow_edit=False)
                 if add_tk_skin.get_value():
@@ -576,9 +606,11 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
                         deeper_tk_left.draw(row, allow_edit=False)
                         deeper_tk_right.draw(row, allow_edit=False)
 
-            if not add_tk_skin.get_value() and not self.product.obj_bp.parent.get("IS_BP_CORNER_SHELVES"):
+            in_corner_shelves = self.product.obj_bp.parent.get("IS_BP_CORNER_SHELVES")
+
+            if not add_tk_skin.get_value() and not has_mitered_tk and not in_corner_shelves:
                 row = box.row()
-                add_capping_base.draw(row, alt_text='Add 3/4" Toe Kick Capping Base: ', allow_edit=False)
+                add_capping_base.draw(row, alt_text='Add 3/4" Toe Kick Capping Base', allow_edit=False)
                 if add_capping_base.get_value():
                     if left_capping_base_return and right_capping_base_return:
                         row = box.row()
@@ -586,11 +618,16 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
                         left_capping_base_return.draw(row, allow_edit=False)
                         right_capping_base_return.draw(row, allow_edit=False)
 
+            if mitered_tk:
+                if not add_tk_skin.get_value() and not add_capping_base.get_value():
+                    row = box.row()
+                    mitered_tk.draw(row, alt_text='Mitered Toe Kick', allow_edit=False)
+
         elif add_tk_skin:
             box = layout.box()
             box.label(text='1/4" Toe Kick Skin Options')
             row = box.row()
-            add_tk_skin.draw(row, alt_text='Add 1/4" Toe Kick Skin: ', allow_edit=False)
+            add_tk_skin.draw(row, text='Add 1/4" Toe Kick Skin', allow_edit=False)
 
             if add_tk_skin.get_value():
                 if left_return and right_return:
@@ -602,18 +639,6 @@ class PROMPTS_Toe_Kick_Prompts(sn_types.Prompts_Interface):
                     row.label(text='Deeper Adjacent Toe Kicks: ')
                     deeper_tk_left.draw(row, allow_edit=False)
                     deeper_tk_right.draw(row, allow_edit=False)
-
-        # if add_capping_base:
-        #     box = layout.box()
-        #     box.label(text='3/4" Toe Kick Capping Base Options')
-        #     row = box.row()
-        #     add_capping_base.draw(row, alt_text='Add 3/4" Toe Kick Capping Base: ', allow_edit=False)
-        #     if add_capping_base.get_value():
-        #         if left_capping_base_return and right_capping_base_return:
-        #             row = box.row()
-        #             row.label(text='Capping Base Returns')
-        #             left_capping_base_return.draw(row, allow_edit=False)
-        #             right_capping_base_return.draw(row, allow_edit=False)
 
 
 class DROP_OPERATOR_Place_Base_Assembly(Operator, PlaceClosetInsert):
@@ -989,5 +1014,46 @@ class DROP_OPERATOR_Place_Base_Assembly(Operator, PlaceClosetInsert):
         return self.product_drop(context, event)
 
 
+class SN_PPT_OT_Update_TK_Construction_Prompts(Operator):
+    bl_idname = "sn_prompt.update_tk_construction_prompts"
+    bl_label = "Update Toe Kick Construction Prompts"
+    bl_description = "This will update all of the toe kick construction prompts"
+    bl_options = {'UNDO'}
+
+    toe_kick_type: StringProperty(name="Toe Kick Construction Type")
+
+    def execute(self, context):
+        for obj in context.scene.objects:
+            if obj.snap.prompts:
+                add_skin_ppt = obj.snap.get_prompt("Add TK Skin")
+                add_capping_base_ppt = obj.snap.get_prompt("Add Capping Base")
+                mitered_tk_ppt = obj.snap.get_prompt("Mitered TK")
+
+                if all([add_skin_ppt, add_capping_base_ppt, mitered_tk_ppt]):
+                    if self.toe_kick_type == 'STD_SKINS':
+                        add_skin_ppt.set_value(True)
+                        add_capping_base_ppt.set_value(False)
+                        mitered_tk_ppt.set_value(False)
+
+                    elif self.toe_kick_type == 'STD_NO_SKINS':
+                        add_skin_ppt.set_value(False)
+                        add_capping_base_ppt.set_value(False)
+                        mitered_tk_ppt.set_value(False)
+
+                    elif self.toe_kick_type == 'STD_CAPPING_BASE':
+                        add_skin_ppt.set_value(False)
+                        add_capping_base_ppt.set_value(True)
+                        mitered_tk_ppt.set_value(False)
+
+                    elif self.toe_kick_type == 'MITERED_TK':
+                        add_skin_ppt.set_value(False)
+                        add_capping_base_ppt.set_value(False)
+                        mitered_tk_ppt.set_value(True)
+                    obj.location = obj.location
+
+        return {'FINISHED'}
+
+
 bpy.utils.register_class(DROP_OPERATOR_Place_Base_Assembly)
 bpy.utils.register_class(PROMPTS_Toe_Kick_Prompts)
+bpy.utils.register_class(SN_PPT_OT_Update_TK_Construction_Prompts)

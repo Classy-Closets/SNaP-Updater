@@ -6,6 +6,7 @@ from snap import sn_types, sn_utils, sn_unit
 from snap.project_manager import pm_utils
 from collections import Counter
 
+
 class Query_PDF_Form_Data:
     def __init__(self, context, etl_object, page_walls_dict):
         self.spotted_garage_legs = []
@@ -24,16 +25,20 @@ class Query_PDF_Form_Data:
         self.pulls = self.__get_pulls(page_walls_dict)
         self.hampers = self.__get_hampers(page_walls_dict)
         self.room_name = self.__get_room_name(context)
+        self.line_hole_dia = self.__get_drill_diameter(context)
         self.__dict_from_pages(page_walls_dict)
         self.__fill_pulls()
         self.__fill_garage_legs()
-
 
     def __get_room_name(self, context):
         pm_props = context.window_manager.sn_project
         room_name = pm_props.current_file_room
         clean_room_name = pm_utils.clean_name(room_name)
         return clean_room_name
+
+    def __get_drill_diameter(self, context):
+        drill_hole_dia = context.scene.closet_machining.system_hole_dia_options
+        return drill_hole_dia
 
     def __get_garage_leg_qty(self, garage_leg):
         qty = 0
@@ -60,37 +65,41 @@ class Query_PDF_Form_Data:
 
         for item in self.main_sc_objs:
             is_garage_leg = "garage leg" in item.name.lower()
-            is_mesh = item.type != "MESH"
+            is_not_mesh = item.type != "MESH"
             unseen = item not in self.spotted_garage_legs
 
-            if is_garage_leg and is_mesh and unseen:
+            if is_garage_leg and is_not_mesh and unseen:
                 leg_str = ''
                 leg_assy = sn_types.Assembly(item)
-                leg_type = leg_assy.get_prompt("Material Type").get_value()
-                leg_wall = sn_utils.get_wall_bp(item)
-                leg_wall_letter = leg_wall.snap.name_object.replace("Wall ", "")
-                leg_qty = self.__get_garage_leg_qty(item)
+                material_type_ppt = leg_assy.get_prompt("Material Type")
 
-                if leg_type == 0:
-                    leg_str = f"{leg_type_dict[leg_type]}"
-                if leg_type == 1:
-                    mat_type = leg_assy.get_prompt("Metal Color").get_value()
-                    leg_str = f"{metal_leg[mat_type]}"
+                if material_type_ppt:
+                    leg_type = material_type_ppt.get_value()
+                    leg_wall = sn_utils.get_wall_bp(item)
+                    leg_wall_letter = leg_wall.snap.name_object.replace("Wall ", "")
+                    leg_qty = self.__get_garage_leg_qty(item)
 
-                leg_entry = garage_legs.get(leg_wall_letter)
+                    if leg_type == 0:
+                        leg_str = f"{leg_type_dict[leg_type]}"
+                    if leg_type == 1:
+                        mat_type = leg_assy.get_prompt("Metal Color").get_value()
+                        leg_str = f"{metal_leg[mat_type]}"
 
-                if leg_entry:
-                    entry_type = garage_legs[leg_wall_letter].get(f"{leg_str}")
-                    if entry_type:
-                        garage_legs[leg_wall_letter][leg_str] += leg_qty
-                    elif not entry_type:
+                    leg_entry = garage_legs.get(leg_wall_letter)
+
+                    if leg_entry:
+                        entry_type = garage_legs[leg_wall_letter].get(f"{leg_str}")
+                        if entry_type:
+                            garage_legs[leg_wall_letter][leg_str] += leg_qty
+                        elif not entry_type:
+                            garage_legs[leg_wall_letter] = {}
+                            garage_legs[leg_wall_letter][f"{leg_str}"] = leg_qty
+
+                    if not leg_entry:
                         garage_legs[leg_wall_letter] = {}
                         garage_legs[leg_wall_letter][f"{leg_str}"] = leg_qty
 
-                if not leg_entry:
-                    garage_legs[leg_wall_letter] = {}
-                    garage_legs[leg_wall_letter][f"{leg_str}"] = leg_qty
-                self.spotted_garage_legs.append(item)
+                    self.spotted_garage_legs.append(item)
 
         return garage_legs
 
@@ -470,7 +479,6 @@ class Query_PDF_Form_Data:
 
         return ext_colors
 
-
     def __job_info(self):
         job_dict = {}
         dirname = os.path.dirname(bpy.data.filepath).split("\\")[-1]
@@ -692,6 +700,7 @@ class Query_PDF_Form_Data:
         # Alt name/round hang rods TODO: Refactor for a better way to handle hang rods
         closet_props = bpy.context.scene.sn_closets
         rod_type = closet_props.closet_options.rods_name
+        print(rod_type, "rod type")
         rod_type_name = re.split(r'(^[^\d]+)', rod_type)[1:][-1]
         alt_rod_result = self.etl_object.part_walls_query("hang rod", walls)
         rrod_result = self.etl_object.part_walls_query("round 8", walls)
@@ -860,7 +869,6 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["misc_qty"] += qty
                     # self.data_dict[page]["misc_style"] += item
 
-
     def __write_drawer_section_info(self, page, walls, wallbed_drawers):
         dovetail = 0
         melamine = 0
@@ -973,40 +981,43 @@ class Query_PDF_Form_Data:
 
     def __get_obj_styling(self, walls, scene_objects):
         spotted = []
-        doors = {
-            'melamine': {},
-            'glass': {},
-            'wood': {}
-        }
+        doors = {'melamine': {}, 'glass': {}, 'wood': {}}
+
         for door in scene_objects:
-            is_hidden = None
             hidden_ppt = sn_types.Assembly(door).get_prompt("Hide")
+
             if hidden_ppt:
-                is_hidden = hidden_ppt.get_value()
+                if hidden_ppt.get_value():
+                    continue
+
             has_glass = False
             is_wood = False
             within_walls = False
             is_island = sn_utils.get_island_bp(door)
             obj_wall = sn_utils.get_wall_bp(door)
+
             if not obj_wall and not is_island:
                 continue
             elif obj_wall:
                 wall_str = obj_wall.snap.name_object
                 wall_letter = wall_str.replace("Wall ", "")
                 within_walls = wall_letter in walls
+
             in_spot = door.name in spotted
+
             if (within_walls and not in_spot) or (is_island and not in_spot):
                 mat_type = None
                 door_mesh = self.__get_obj_mesh(door)
+
                 if door_mesh:
                     active_mat = door_mesh.active_material_index
                     mat_name = door_mesh.material_slots[active_mat].name
                     mesh_slots = door_mesh.snap.material_slots
+
                     for slot in mesh_slots:
                         if 'Glass' == slot.pointer_name:
                             has_glass = True
-                            mat_name = [s.item_name for s in mesh_slots\
-                                if s.item_name != 'Glass'][:1][0]
+                            mat_name = [s.item_name for s in mesh_slots if s.item_name != 'Glass'][:1][0]
                         if "Wood_Door_Surface" == slot.pointer_name:
                             mat_type = "Wood"
                         elif "Five_Piece_Melamine_Door_Surface" == slot.pointer_name:
@@ -1015,33 +1026,41 @@ class Query_PDF_Form_Data:
                             mat_type = "Slab"
                         elif "Moderno_Door" == slot.pointer_name:
                             mat_type = "Moderno"
+
                     spotted.append(door.name)
                     fillname = door.name
                     is_drawer = door.sn_closets.is_drawer_front_bp
+
                     if is_drawer and mat_type != "Moderno" and 'part' not in door_mesh.name.lower():
                         fillname = door_mesh.name
+
                     to_replace = [
-                        "Door","Drawer","Face","Glass",
-                        "Left","Right","Mesh","MESH..", " "]
+                        "Door", "Drawer", "Face", "Glass",
+                        "Left", "Right", "Mesh", "MESH..", " and ", " "]
+
                     for each in to_replace:
                         fillname = fillname.replace(each, "")
+
                     number_re = re.findall(r'\.\d{3}', fillname)
                     if number_re:
                         fillname = fillname.replace(number_re[0], "")
                     if not has_glass and mat_type == "Wood":
                         is_wood = True
+
                     # Setting Style name
                     if fillname == "" or fillname == "Hamper":
                         mat_type = "Slab"
                     elif fillname != "":
                         mat_type = fillname
+
                     # Adding drawer name exceptions I couldn't deal other way
                     if mat_type == 'SanMarino':
                         mat_type = 'San Marino'
                     if mat_type == 'MolinoVecchio':
                         mat_type = 'Molino Vecchio'
+
                     # Adding to entries
-                    if not has_glass and not is_wood and not is_hidden:
+                    if not has_glass and not is_wood:
                         has_current_style = doors['melamine'].get(mat_type)
                         if has_current_style:
                             doors["melamine"][mat_type]["qty"] += 1
@@ -1049,7 +1068,8 @@ class Query_PDF_Form_Data:
                             doors["melamine"][mat_type] = {}
                             doors["melamine"][mat_type]["qty"] = 1
                             doors["melamine"][mat_type]["color"] = mat_name
-                    if has_glass and not is_wood and not is_hidden:
+
+                    if has_glass and not is_wood:
                         has_current_style = doors["glass"].get(mat_type)
                         if has_current_style:
                             doors["glass"][mat_type]["qty"] += 1
@@ -1057,7 +1077,8 @@ class Query_PDF_Form_Data:
                             doors["glass"][mat_type] = {}
                             doors["glass"][mat_type]["qty"] = 1
                             doors["glass"][mat_type]["color"] = mat_name
-                    if not has_glass and is_wood and not is_hidden:
+
+                    if not has_glass and is_wood:
                         has_current_style = doors["wood"].get(mat_type)
                         if has_current_style:
                             doors["wood"][mat_type]["qty"] += 1
@@ -1065,6 +1086,7 @@ class Query_PDF_Form_Data:
                             doors["wood"][mat_type] = {}
                             doors["wood"][mat_type]["qty"] = 1
                             doors["wood"][mat_type]["color"] = mat_name
+
         return doors
 
     def __get_wallbed_pmpts(self, wallbed):
@@ -1166,6 +1188,7 @@ class Query_PDF_Form_Data:
         melamine = door_styled_data["melamine"]
         glass = door_styled_data["glass"]
         wood = door_styled_data["wood"]
+
         for k, v in wallbed_wood_doors.items():
             if v["qty"] > 0:
                 has_entry = wood.get(k)
@@ -1173,6 +1196,7 @@ class Query_PDF_Form_Data:
                     wood[k]["qty"] += v["qty"]
                 elif not has_entry:
                     wood[k] = v
+
         for k, v in wallbed_melamine_doors.items():
             if v["qty"] > 0:
                 has_entry = melamine.get(k)
@@ -1180,6 +1204,7 @@ class Query_PDF_Form_Data:
                     melamine[k]["qty"] += v["qty"]
                 elif not has_entry:
                     melamine[k] = v
+
         for k, v in melamine.items():
             if result["door_mel_qty"] == "":
                 result["door_mel_qty"] = str(v["qty"])
@@ -1394,6 +1419,7 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["edge_3m_pvc"] = self.trim_color.get("edge_3m_pvc", False)
         self.data_dict[page]["trim_color"] = self.trim_color.get("trim_color", '')
         self.data_dict[page]["full_backs"] = self.full_backs
+        self.data_dict[page]["line_hole_dia"] = self.line_hole_dia
 
     def __write_job_info(self, page, paging, walls):
         self.data_dict[page]["signature"] = ''
@@ -1408,4 +1434,4 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["design_date"] = self.job_info.get("design_date", '')
         self.data_dict[page]["lead_id"] = self.job_info.get("lead_id", '')
         self.data_dict[page]["room_name"] = self.room_name
-            
+

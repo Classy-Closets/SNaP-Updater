@@ -399,10 +399,15 @@ class SNAP_OT_delete_closet(Delete_Closet_Assembly):
                             bpy.ops.lm_cabinets.remove_location_constraint(obj_bp_name=child.name)
 
     def execute(self, context):
+        start_time = time.perf_counter()
+        product_name = self.obj_bp.snap.name_object
+        obs = len(bpy.data.objects)
+        vis_obs = len([ob for ob in bpy.context.view_layer.objects if ob.visible_get()])
         has_bool = 'IS_BP_WINDOW' in self.obj_bp or 'IS_BP_ENTRY_DOOR' in self.obj_bp
         wall = self.obj_bp.parent
 
         is_cabinet = 'IS_BP_CABINET' in self.obj_bp
+
         if is_cabinet:
             self.delete_object_from_constraints(self.obj_bp)
 
@@ -419,6 +424,13 @@ class SNAP_OT_delete_closet(Delete_Closet_Assembly):
                 for mod in wall_mesh.modifiers:
                     if mod.type == 'BOOLEAN' and mod.object is None:
                         wall_mesh.modifiers.remove(mod)
+
+        print("{}: ({}) --- {} seconds --- Objects in scene: {} ({} visible)".format(
+            self.bl_idname,
+            product_name,
+            round(time.perf_counter() - start_time, 8),
+            obs,
+            vis_obs))
 
         return {'FINISHED'}
 
@@ -2178,22 +2190,24 @@ class SN_OT_update_backing_prompts(Operator):
                         else:
                             product = data_closet_carcass.Closet_Carcass(obj)
                             add_backing_throughout = product.get_prompt("Add Backing Throughout")
-                            back_parts_len = len(product.backing_parts["1"])
 
-                            if add_backing_throughout and back_parts_len < 1:
-                                for i in range(product.opening_qty):
-                                    opening_num = i + 1
-                                    add_backing_ppt = product.get_prompt("Add Full Back " + str(opening_num))
-                                    add_backing_ppt.set_value(self.add_backing)
+                            if product.backing_parts:
+                                back_parts_len = len(product.backing_parts["1"])
 
-                                    if opening_num == 1:
-                                        product.add_backing(opening_num, None)
-                                        product.update()
-                                    else:
-                                        panel = self.get_panel(i, product)
-                                        product.add_backing(opening_num, panel)
-                                        product.update()
-                                add_backing_throughout.set_value(self.add_backing)
+                                if add_backing_throughout and back_parts_len < 1:
+                                    for i in range(product.opening_qty):
+                                        opening_num = i + 1
+                                        add_backing_ppt = product.get_prompt("Add Full Back " + str(opening_num))
+                                        add_backing_ppt.set_value(self.add_backing)
+
+                                        if opening_num == 1:
+                                            product.add_backing(opening_num, None)
+                                            product.update()
+                                        else:
+                                            panel = self.get_panel(i, product)
+                                            product.add_backing(opening_num, panel)
+                                            product.update()
+                                    add_backing_throughout.set_value(self.add_backing)
 
                             for child in product.obj_bp.children:
                                 back_parts = (
@@ -2227,6 +2241,216 @@ class SN_OT_update_backing_prompts(Operator):
                                         use_bottom.set_value(self.add_backing)
                                         if bottom_back_thickness:
                                             bottom_back_thickness.set_value(thickness)
+                            insert_bp = []
+                            for child in product.obj_bp.children:
+                                obj_props = child.sn_closets
+                                props = [
+                                    obj_props.is_drawer_stack_bp,
+                                    obj_props.is_hamper_insert_bp,
+                                    obj_props.is_door_insert_bp,
+                                    obj_props.is_closet_bottom_bp,
+                                    obj_props.is_closet_top_bp,
+                                    obj_props.is_splitter_bp, 
+                                    "IS_BP_ROD_AND_SHELF" in child,
+                                    "IS_BP_TOE_KICK_INSERT" in child,
+                                    "IS_BP_SHOE_SHELVES" in child]
+
+                                if any(props):
+                                    insert_bp.append(child)
+                                for nchild in child.children:
+                                    obj_props = nchild.sn_closets
+                                    if any(props):
+                                        insert_bp.append(nchild)
+
+                            for obj_bp in insert_bp:
+                                insert = sn_types.Assembly(obj_bp)
+                                obj_props = obj_bp.sn_closets
+                                Cleat_Loc = insert.get_prompt("Cleat Location")
+                                Shelf_Backing_Setback = insert.get_prompt("Shelf Backing Setback")
+                                opening = insert.obj_bp.sn_closets.opening_name
+
+                                if insert and opening:             
+                                    for child in product.obj_bp.children:
+                                        if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
+                                            if child.sn_closets.opening_name == opening:
+                                                # Upadate for backing configurations
+                                                back_assembly = sn_types.Assembly(child)
+                                                B_Sec = back_assembly.get_prompt('Backing Sections')
+                                                TOP = back_assembly.get_prompt("Top Section Backing")
+                                                CTR = back_assembly.get_prompt("Center Section Backing")
+                                                BTM = back_assembly.get_prompt("Bottom Section Backing")
+                                                BIB = back_assembly.get_prompt("Bottom Insert Backing")
+                                                BIG = back_assembly.get_prompt("Bottom Insert Gap")
+                                                SB = back_assembly.get_prompt("Single Back")
+                                                TBT = product.get_prompt('Opening ' + str(opening) + ' Top Backing Thickness')
+                                                CBT = product.get_prompt('Opening ' + str(opening) + ' Center Backing Thickness')
+                                                BBT = product.get_prompt('Opening ' + str(opening) + ' Bottom Backing Thickness')
+                                                prompts = [B_Sec, TOP, CTR, BTM, SB, TBT, CBT, BBT]
+                                                # For backwards compatability/older library data
+                                                if all(prompts):
+                                                    # 1 section backing drawer on bottom
+                                                    if B_Sec.get_value() == 1:
+                                                        if CTR.get_value() and CBT.get_value() == 1:  # 1 is 3/4"
+                                                            if Cleat_Loc:
+                                                                Cleat_Loc.set_value(2)
+                                                        elif CTR.get_value() and CBT.get_value() in (0, 2):  # 0 is 1/4"
+                                                            if Cleat_Loc:
+                                                                Cleat_Loc.set_value(0)
+
+                                                        if "IS_BP_ROD_AND_SHELF" in obj_bp or obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
+                                                            if CTR.get_value():
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                    if B_Sec.get_value() == 2:
+                                                        single_back = SB.get_value() and TOP.get_value() and BTM.get_value()
+
+                                                        if obj_props.is_hamper_insert_bp:
+                                                            if single_back:
+                                                                Cleat_Loc.set_value(2)
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            elif TOP.get_value() and TBT.get_value() == 1:
+                                                                Cleat_Loc.set_value(2)
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+                                                            elif TOP.get_value() and TBT.get_value() == 0:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+                                                                Cleat_Loc.set_value(0)
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if obj_props.is_drawer_stack_bp:
+                                                            if single_back:
+                                                                if CBT.get_value() == 0:
+                                                                    Cleat_Loc.set_value(0)
+                                                                else:
+                                                                    Cleat_Loc.set_value(2)
+
+                                                            elif BTM.get_value():
+                                                                if BBT.get_value() == 1:
+                                                                    Cleat_Loc.set_value(0)
+                                                                else:
+                                                                    Cleat_Loc.set_value(2)
+
+                                                        if obj_props.is_door_insert_bp:
+                                                            door_insert = sn_types.Assembly(obj_bp)
+                                                            use_bottom_kd_setback = door_insert.get_prompt("Use Bottom KD Setback")
+                                                            if use_bottom_kd_setback:
+                                                                use_bottom_kd_setback.set_value(single_back)
+                                                            if single_back or TOP.get_value():
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if "IS_BP_ROD_AND_SHELF" in obj_bp:
+                                                            if single_back:
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            elif TOP.get_value():
+                                                                if TBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                        
+                                                        if obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
+                                                            if single_back:
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            elif TOP.get_value():
+                                                                if TBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if BIB and BIG:
+                                                            if BIB.get_value() > 0 and BIG.get_value() > 0:
+                                                                SB.set_value(False)
+                                                                if TOP.get_value() and Cleat_Loc:
+                                                                    if TBT.get_value() == 1:
+                                                                        Cleat_Loc.set_value(2)
+                                                                    if TBT.get_value() == 0:
+                                                                        Cleat_Loc.set_value(0)
+
+                                                    if B_Sec.get_value() == 3:
+                                                        full_back = SB.get_value() and TOP.get_value() and CTR.get_value() and BTM.get_value()
+                                                        top_ctr_back = SB.get_value() and TOP.get_value() and CTR.get_value()
+                                                        btm_ctr_back = SB.get_value() and BTM.get_value() and CTR.get_value()
+                                                        top_back = TOP.get_value()
+
+                                                        if BIB and BIG:
+                                                            if BIB.get_value() > 0 and BIG.get_value() > 0:
+                                                                if not top_ctr_back:
+                                                                    SB.set_value(False)
+
+                                                        if obj_props.is_hamper_insert_bp:
+                                                            if full_back or btm_ctr_back:
+                                                                Cleat_Loc.set_value(2)
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            elif top_ctr_back and CBT.get_value() == 1:
+                                                                Cleat_Loc.set_value(2)
+                                                            elif CTR.get_value() and CBT.get_value() == 1:
+                                                                Cleat_Loc.set_value(2)
+                                                            else:
+                                                                Cleat_Loc.set_value(0)
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if obj_props.is_door_insert_bp:
+                                                            door_insert = sn_types.Assembly(obj_bp)
+                                                            use_bottom_kd_setback = door_insert.get_prompt("Use Bottom KD Setback")
+                                                            if use_bottom_kd_setback:
+                                                                if full_back or top_ctr_back:
+                                                                    use_bottom_kd_setback.set_value(True)
+                                                                else:
+                                                                    use_bottom_kd_setback.set_value(False)
+
+                                                            if full_back or top_ctr_back:
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            elif top_back:
+                                                                if TBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if "IS_BP_ROD_AND_SHELF" in obj_bp:
+                                                            if full_back or top_ctr_back:
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+
+                                                        if obj_props.is_splitter_bp or obj_bp.get('IS_BP_SHOE_SHELVES'):
+                                                            if full_back or top_ctr_back:
+                                                                if CBT.get_value() == 1:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                                                else:
+                                                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                                            else:
+                                                                Shelf_Backing_Setback.set_value(sn_unit.inch(0))
 
         bpy.ops.object.select_all(action='DESELECT')
         bpy.ops.closet_materials.assign_materials()

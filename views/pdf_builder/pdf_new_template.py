@@ -2,7 +2,7 @@ from snap.views.pdf_builder.pdf_builder import Pdf_Builder
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfbase.pdfmetrics import registerFont
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.colors import white
+from reportlab.lib.colors import white, yellow
 import json
 import os
 
@@ -103,37 +103,55 @@ class New_Template_Builder(Pdf_Builder):
         """
         bigger_fonts = ['customer_name', 'cphone', 'design_date', 'designer']
         bigger_fonts += ['signature', 'install_date', 'job_number', 'sheet']
-        bigger_fonts += ['room_name', 'lead_id']
+        bigger_fonts += ['room_name', 'lead_id', 'line_hole_dia']
         self.c.setFont("Calibri", 8)
         form = self.c.acroForm
+
         for idx, field in enumerate(form_info):
             varname = field["varname"]
             is_big = varname in bigger_fonts
             lbl, val = field["label"], field["value"]
             pos = field["position"][self.print_paper_size]
+
             if lbl != "" and not is_big:
                 self.c.setFont("Calibri", 8)
                 self.c.drawString(pos[0], pos[1], f'{lbl} ')
             elif lbl != "" and is_big:
                 self.c.setFont("Calibri-Bold", 9)
                 self.c.drawString(pos[0], pos[1], f'{lbl} ')
+
             form = self.c.acroForm
+
             if "line" in field.keys():
                 line = field["line"]
                 posx, posy = line["position"][self.print_paper_size]
                 length = line["length"][self.print_paper_size]
+
             if not val or val == "None":
                 val = ""
+
             if "checkbox" in field.keys():
                 position = field["checkbox"]["position"][self.print_paper_size]
                 self._draw_check_box(position, val)
                 continue
+
+            # Highlight line hole diameter if 3mm
+            if field["varname"] == "line_hole_dia":
+                sanitized = self.sanitize(val)
+                if sanitized == '3MM':
+                    form.textfield(
+                        x=posx, y=posy, width=length, height=14,
+                        fontSize=9, fillColor=yellow, borderStyle='underlined',
+                        value=sanitized)
+                    continue
+
             if field.get("line") and not is_big:
                 sanitized = self.sanitize(val)
                 form.textfield(
                     x=posx, y=posy, width=length, height=10,
                     fontSize=6, fillColor=white, borderStyle='underlined',
                     value=sanitized)
+
             if field.get("line") and is_big:
                 sanitized = self.sanitize(val)
                 form.textfield(

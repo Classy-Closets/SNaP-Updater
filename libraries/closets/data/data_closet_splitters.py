@@ -1,6 +1,7 @@
 import math
 
 import os
+import time
 
 import bpy
 
@@ -21,7 +22,7 @@ SHELF_OPENING_MIN_HEIGHT = 124  # milllimeters 4H opening space
 opening_height_ppt = None
 drawer_front_height_ppt = None
 shelf_stack_assembly = None
-
+active_operator = None
 
 
 class Shelf_Stack(sn_types.Assembly):
@@ -407,6 +408,17 @@ class Shoe_Shelf_Stack(Shelf_Stack):
         self.shoe_shelves = []
         previous_shelf = None
 
+        if self.calculator and not self.calculator.distance_obj:
+            self.calculator = None
+            self.obj_prompts.snap.delete_prompt(self.calculator_name)
+            Height = self.obj_z.snap.get_var('location.z', 'Height')
+            Thickness = self.get_prompt('Thickness').get_var("Thickness")
+
+            calc_distance_obj = self.add_empty(self.calculator_obj_name)
+            calc_distance_obj.empty_display_size = .001
+            self.calculator = self.obj_prompts.snap.add_calculator(self.calculator_name, calc_distance_obj)
+            self.calculator.set_total_distance("Height-Thickness*{}".format(str(amt - 1)), [Height, Thickness])
+
         if not self.calculator:
             super().add_calculator(amt + 1)
 
@@ -727,6 +739,7 @@ class SNAP_OT_set_opening_height(Operator):
 
         return {'FINISHED'}
 
+
 class SNAP_OT_set_drawer_front_height(Operator):
     bl_idname = "sn_closets.set_drawer_front_height"
     bl_label = "Set Drawer Front Height"
@@ -1012,6 +1025,7 @@ class SNAP_MT_Opening_15_Heights(SNAP_MT_Opening_Heights):
         self.opening_num = "15"
         super().draw(context)
 
+
 class SNAP_MT_Drawer_Front_1_Heights(SNAP_MT_Opening_Heights):
     bl_label = "Drawer Front 1 Heights"
 
@@ -1019,6 +1033,7 @@ class SNAP_MT_Drawer_Front_1_Heights(SNAP_MT_Opening_Heights):
         self.opening_num = "1"
         self.object_type = "Drawer Front"
         super().draw(context)
+
 
 class SNAP_MT_Drawer_Front_2_Heights(SNAP_MT_Opening_Heights):
     bl_label = "Drawer Front 2 Heights"
@@ -1028,6 +1043,7 @@ class SNAP_MT_Drawer_Front_2_Heights(SNAP_MT_Opening_Heights):
         self.object_type = "Drawer Front"
         super().draw(context)
 
+
 class SNAP_MT_Drawer_Front_3_Heights(SNAP_MT_Opening_Heights):
     bl_label = "Drawer Front 3 Heights"
 
@@ -1036,6 +1052,7 @@ class SNAP_MT_Drawer_Front_3_Heights(SNAP_MT_Opening_Heights):
         self.object_type = "Drawer Front"
         super().draw(context)
 
+
 class SNAP_MT_Drawer_Front_4_Heights(SNAP_MT_Opening_Heights):
     bl_label = "Drawer Front 4 Heights"
 
@@ -1043,7 +1060,8 @@ class SNAP_MT_Drawer_Front_4_Heights(SNAP_MT_Opening_Heights):
         self.opening_num = "4"
         self.object_type = "Drawer Front"
         super().draw(context)
-        
+
+
 class SNAP_MT_Drawer_Front_5_Heights(SNAP_MT_Opening_Heights):
     bl_label = "Drawer Front 5 Heights"
 
@@ -1053,6 +1071,13 @@ class SNAP_MT_Drawer_Front_5_Heights(SNAP_MT_Opening_Heights):
         super().draw(context)
 
 
+def get_active_operator(context):
+    global active_operator
+
+    if active_operator:
+        return active_operator
+
+
 class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
     bl_idname = "sn_closets.vertical_splitters"
     bl_label = "Shelf Prompts"
@@ -1060,6 +1085,11 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
     bl_options = {'UNDO'}
 
     object_name: StringProperty(name="Object Name")
+
+    def update_shelf_quantity(self, context):
+        op = get_active_operator(context)
+        if op and op.initialized:
+            op.update_shelves()
 
     shelf_quantity: EnumProperty(
         name="Shelf Quantity",
@@ -1078,7 +1108,8 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             ('13', "13", '13'),
             ('14', "14", '14'),
             ('15', "15", '15')],
-        default='5')
+        default='5',
+        update=update_shelf_quantity)
 
     shelf_type: EnumProperty(
         name="Shelf Type",
@@ -1087,6 +1118,11 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             ('1', 'Shoe Shelf', 'Shoe Shelf')],
         default='0')
 
+    def update_shelf_lip_type(self, context):
+        op = get_active_operator(context)
+        if op and op.initialized:
+            op.update_shelf_lip_type()
+
     shelf_lip_type: EnumProperty(
         name="Shelf Lip Type",
         items=[
@@ -1094,62 +1130,115 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             ('1', 'Applied Flat Molding', 'Applied Flat Molding'),
             ('2', 'Ogee Molding', 'Ogee Molding'),
             ('3', 'Steel Fence', 'Steel Fence')],
-        default='0')
+        default='0',
+        update=update_shelf_lip_type)
 
     assembly = None
     cur_shelf_height = None
     shelf_lip_type_prompt = None
     prev_lip_type = 0
 
-    lip_type_changed = False
-    lip_type_changed: bpy.props.BoolProperty(name="lip_type_changed", default=False)
+    initialized = False
+
+    def invoke(self, context, event):
+        global active_operator
+        active_operator = self
+        self.initialized = False
+        obj_bp = self.get_insert().obj_bp
+
+        if not obj_bp.get("SNAP_VERSION"):
+            print("Found old lib data!")
+            return bpy.ops.sn_closets.vertical_splitters_214('INVOKE_DEFAULT')
+
+        if obj_bp.get("IS_BP_SPLITTER"):
+            self.shelf_type = '0'
+            self.assembly = Shelf_Stack(obj_bp)
+        if obj_bp.get("IS_BP_SHOE_SHELVES"):
+            self.shelf_type = '1'
+            self.assembly = Shoe_Shelf_Stack(obj_bp)
+            self.shelf_lip_type_prompt = self.assembly.get_prompt("Shelf Lip Type")
+            self.prev_lip_type = self.shelf_lip_type_prompt.get_value()
+
+        self.set_properties_from_prompts()
+        self.calculators = []
+        heights_calc = self.assembly.get_calculator('Opening Heights Calculator')
+        if heights_calc:
+            self.calculators.append(heights_calc)
+        self.run_calculators(self.assembly.obj_bp)
+
+        opening = self.assembly.obj_bp.sn_closets.opening_name
+        parent_obj = self.assembly.obj_bp.parent
+        parent_assembly = sn_types.Assembly(parent_obj)
+        # TODO: If parent_remove_bottom_shelf True bottom KD IS enabled. This prompt is named incorrectly
+        parent_remove_bottom_shelf = parent_assembly.get_prompt('Remove Bottom Hanging Shelf ' + str(opening))
+        door_type = parent_assembly.get_prompt("Door Type")
+        floor = parent_assembly.get_prompt("Opening " + str(opening) + " Floor Mounted")
+        remove_bottom_shelf = self.assembly.get_prompt("Remove Bottom Shelf")
+        parent_has_bottom_kd = self.assembly.get_prompt("Parent Has Bottom KD")
+        prompts = [floor, parent_remove_bottom_shelf, remove_bottom_shelf, parent_has_bottom_kd]
+
+        if all(prompts):
+            if parent_remove_bottom_shelf.get_value() or floor.get_value():
+                parent_has_bottom_kd.set_value(True)
+                remove_bottom_shelf.set_value(False)
+            else:
+                parent_remove_bottom_shelf.set_value(False)
+                parent_has_bottom_kd.set_value(False)
+                remove_bottom_shelf.set_value(True)
+        elif door_type:
+            if door_type.get_value() == 0:
+                remove_bottom_shelf.set_value(True)
+
+        self.initialized = True
+
+        return super().invoke(context, event, width=350)
+
+    def remove_shelves(self, shelves):
+        # Remove existing shelves
+        remove_obj_bps = []
+
+        for i, assembly in enumerate(shelves):
+            remove_obj_bps.append(assembly.obj_bp)
+            setback_ppt = self.assembly.get_prompt("Shelf " + str(i + 1) + " Setback")
+
+            if setback_ppt:
+                bpy.ops.sn_prompt.delete_prompt(
+                    obj_name=self.assembly.obj_prompts.name,
+                    prompt_name=setback_ppt.name)
+
+        shelves.clear()
+
+        for assembly in self.assembly.openings:
+            remove_obj_bps.append(assembly.obj_bp)
+
+        self.assembly.openings.clear()
+
+        sn_utils.delete_object_and_children(None, obj_bp_list=remove_obj_bps)
 
     def update_shelves(self):
+        start_time = time.time()
         shelves = []
         shoe_shelves = self.shelf_type == '1'
-        glass_shelves = self.shelf_type == '2'
-        lip_type_changed = False
 
+        # Shoe shelves
         if shoe_shelves:
             shelves = self.assembly.shoe_shelves
-            num_shelves = len(shelves) + 1
+
             if self.shelf_lip_type_prompt:
-                lip_type_changed = self.shelf_lip_type_prompt.get_value() != self.prev_lip_type
                 self.prev_lip_type = self.shelf_lip_type_prompt.get_value()
+
+        # All other shelves
         else:
             shelves = self.assembly.splitters
-            num_shelves = len(shelves)
 
-        shelf_amt_changed = num_shelves != int(self.shelf_quantity)
+        # Remove shelves
+        self.remove_shelves(shelves)
 
-        if shelf_amt_changed:
-            for i, assembly in enumerate(shelves):
-                sn_utils.delete_object_and_children(assembly.obj_bp)
-                setback_ppt = self.assembly.get_prompt("Shelf " + str(i + 1) + " Setback")
-
-                if setback_ppt:
-                    bpy.ops.sn_prompt.delete_prompt(
-                        obj_name=self.assembly.obj_prompts.name,
-                        prompt_name=setback_ppt.name)
-
-            shelves.clear()
-
-            for assembly in self.assembly.openings:
-                sn_utils.delete_object_and_children(assembly.obj_bp)
-            self.assembly.openings.clear()
-
-            if shoe_shelves:
-                self.assembly.add_shoe_shelves(amt=int(self.shelf_quantity) - 1)
-            else:
-                self.assembly.add_splitters(amt=int(self.shelf_quantity))
-
-        elif lip_type_changed:
-            self.lip_type_changed = False
-
-            for assembly in self.assembly.shelf_lips:
-                sn_utils.delete_object_and_children(assembly.obj_bp)
-            self.assembly.shelf_lips.clear()
-            self.assembly.add_shelf_lips()
+        # Add shelves
+        if shoe_shelves:
+            self.assembly.add_shoe_shelves(amt=int(self.shelf_quantity) - 1)
+        else:
+            self.assembly.add_splitters(amt=int(self.shelf_quantity))
 
         self.assembly.update()
         bpy.ops.object.select_all(action='DESELECT')
@@ -1160,6 +1249,25 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
                 if child.type == 'MESH':
                     bpy.context.view_layer.objects.active = child
                     break
+
+        self.run_calculators(self.assembly.obj_bp)
+        closet_props.update_render_materials(self, bpy.context)
+
+        print("Update shelf qty: %s seconds ---" % (time.time() - start_time))
+
+    def update_shelf_lip_type(self):
+        start_time = time.time()
+
+        for assembly in self.assembly.shelf_lips:
+            sn_utils.delete_object_and_children(assembly.obj_bp)
+
+        self.assembly.shelf_lips.clear()
+        self.assembly.add_shelf_lips()
+        self.assembly.update()
+        bpy.ops.object.select_all(action='DESELECT')
+        closet_props.update_render_materials(self, bpy.context)
+
+        print("Update shelf lip type: %s seconds ---" % (time.time() - start_time))
 
     def closest_hole_amt(self, opening_heights, height):
         return opening_heights[min(range(len(opening_heights)), key=lambda i: abs(opening_heights[i] - height))]
@@ -1178,7 +1286,6 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
 
     def check(self, context):
         self.set_prompts_from_properties()
-        self.update_shelves()
         self.update_openings()
         self.update_opening_heights()
         self.run_calculators(self.assembly.obj_bp)
@@ -1207,7 +1314,7 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
             #     parent_has_bottom_kd.set_value(False)
 
         self.run_calculators(self.assembly.obj_bp)
-        closet_props.update_render_materials(self, context)
+
         return True
 
     def update_openings(self):
@@ -1254,54 +1361,6 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
 
         if shelf_quantity:
             self.shelf_quantity = str(shelf_quantity.get_value())
-
-    def invoke(self, context, event):
-        obj_bp = self.get_insert().obj_bp
-
-        if not obj_bp.get("SNAP_VERSION"):
-            print("Found old lib data!")
-            return bpy.ops.sn_closets.vertical_splitters_214('INVOKE_DEFAULT')
-
-        if obj_bp.get("IS_BP_SPLITTER"):
-            self.shelf_type = '0'
-            self.assembly = Shelf_Stack(obj_bp)
-        if obj_bp.get("IS_BP_SHOE_SHELVES"):
-            self.shelf_type = '1'
-            self.assembly = Shoe_Shelf_Stack(obj_bp)
-            self.shelf_lip_type_prompt = self.assembly.get_prompt("Shelf Lip Type")
-            self.prev_lip_type = self.shelf_lip_type_prompt.get_value()
-
-        self.set_properties_from_prompts()
-        self.calculators = []
-        heights_calc = self.assembly.get_calculator('Opening Heights Calculator')
-        if heights_calc:
-            self.calculators.append(heights_calc)
-        self.run_calculators(self.assembly.obj_bp)
-
-        opening = self.assembly.obj_bp.sn_closets.opening_name
-        parent_obj = self.assembly.obj_bp.parent
-        parent_assembly = sn_types.Assembly(parent_obj)
-        # TODO: If parent_remove_bottom_shelf True bottom KD IS enabled. This prompt is named incorrectly
-        parent_remove_bottom_shelf = parent_assembly.get_prompt('Remove Bottom Hanging Shelf ' + str(opening))
-        door_type = parent_assembly.get_prompt("Door Type")
-        floor = parent_assembly.get_prompt("Opening " + str(opening) + " Floor Mounted")
-        remove_bottom_shelf = self.assembly.get_prompt("Remove Bottom Shelf")
-        parent_has_bottom_kd = self.assembly.get_prompt("Parent Has Bottom KD")
-        prompts = [floor, parent_remove_bottom_shelf, remove_bottom_shelf, parent_has_bottom_kd]
-
-        if all(prompts):
-            if parent_remove_bottom_shelf.get_value() or floor.get_value():
-                parent_has_bottom_kd.set_value(True)
-                remove_bottom_shelf.set_value(False)
-            else:
-                parent_remove_bottom_shelf.set_value(False)
-                parent_has_bottom_kd.set_value(False)
-                remove_bottom_shelf.set_value(True)
-        elif door_type:
-            if door_type.get_value() == 0:
-                remove_bottom_shelf.set_value(True)
-
-        return super().invoke(context, event, width=350)
 
     def execute(self, context):
         return {'FINISHED'}
@@ -1377,6 +1436,7 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
     def draw(self, context):
         super().draw(context)
         layout = self.layout
+
         if self.assembly.obj_bp:
             if self.assembly.obj_bp.name in context.scene.objects:
                 box = layout.box()

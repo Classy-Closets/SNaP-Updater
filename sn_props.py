@@ -70,6 +70,9 @@ def update_scene_index(self, context):
     v3d = space_data.region_3d
     scene = context.window.scene
 
+    if scene.snap.scene_type == 'GARBAGE_COLLECTION':
+        return
+
     if not scene.snap.elevation_scene:
         scene.snap.initial_view_location = v3d.view_location.copy()
         scene.snap.initial_view_rotation = v3d.view_rotation.copy()
@@ -1844,7 +1847,8 @@ class SnapSceneProps(PropertyGroup):
             ('PLAN_VIEW', 'Plan View', 'Plan View'),
             ('ACCORDION', 'Accordion View', 'Accordion View'),
             ('ISLAND', 'Island View', 'Island View'),
-            ('VIRTUAL', 'Virtual View', 'Virtual View')
+            ('VIRTUAL', 'Virtual View', 'Virtual View'),
+            ('GARBAGE_COLLECTION', 'Garbage Collection', 'Garbage Collection')
         ],
         default='NONE'
     )

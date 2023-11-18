@@ -108,6 +108,10 @@ class SN_WM_OT_load_snap_defaults(Operator):
     bl_idname = "snap.load_snap_defaults"
     bl_label = "Load SNap Defaults"
 
+    # Persistent startup data
+    cam_bore_face_depth = None
+    toe_kick_type = None
+
     @classmethod
     def poll(cls, context):
         return True
@@ -115,7 +119,7 @@ class SN_WM_OT_load_snap_defaults(Operator):
     def init_db(self):
         import time
         time_start = time.time()
-        franchise_location = bpy.context.preferences.addons['snap'].preferences.franchise_location
+        franchise_location = sn_utils.get_franchise_location()
         path = os.path.join(sn_paths.CSV_DIR_PATH, "CCItems_" + franchise_location + ".csv")
         if not os.path.exists(path):
             path = os.path.join(sn_paths.CSV_DIR_PATH, "CCItems_PHX.csv")
@@ -152,20 +156,57 @@ class SN_WM_OT_load_snap_defaults(Operator):
                     print("Removing:", os.path.join(subdir, dir))
                     shutil.rmtree(os.path.join(subdir, dir))
 
+    def get_persistient_startup_data(self):
+        closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+        closet_machining = bpy.context.scene.closet_machining
+
+        self.cam_bore_face_depth = closet_machining.cam_bore_face_depth
+        self.toe_kick_type = closet_defaults.toe_kick_type
+
+    def set_persistient_startup_data(self, config_path):
+        update_startup_file = False
+
+        # Load the startup file
+        if os.path.exists(config_path):
+            startup_path = os.path.join(config_path, "startup.blend")
+            bpy.ops.wm.open_mainfile(filepath=startup_path)
+            closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+            closet_machining = bpy.context.scene.closet_machining
+
+            # Set properties from previous startup file
+            if self.cam_bore_face_depth:
+                if closet_machining.cam_bore_face_depth != self.cam_bore_face_depth:
+                    closet_machining.cam_bore_face_depth = self.cam_bore_face_depth
+                    update_startup_file = True
+
+            if self.toe_kick_type:
+                if closet_defaults.toe_kick_type != self.toe_kick_type:
+                    closet_defaults.toe_kick_type = self.toe_kick_type
+                    update_startup_file = True
+
+            if update_startup_file:
+                # Save the current scene as the new startup file
+                bpy.ops.wm.save_as_mainfile(filepath=startup_path)
+                bpy.ops.wm.read_homefile(app_template="")
+
     def execute(self, context):
         import ctypes
         VK_R = 0x52
         config_path = sn_paths.CONFIG_PATH
         app_template_path = sn_paths.APP_TEMPLATE_PATH
         franchise_location = context.preferences.addons['snap'].preferences.franchise_location
+
         bpy.ops.script.execute_preset(
             filepath=sn_paths.SNAP_THEME_PATH,
             menu_idname='USERPREF_MT_interface_theme_presets')
+
+        self.get_persistient_startup_data()
         self.copy_config_files(config_path)
         self.copy_config_files(app_template_path)
         self.remove_old_data()
         self.use_auto_set_scripts_dir()
         context.preferences.addons['snap'].preferences.franchise_location = franchise_location
+        self.set_persistient_startup_data(config_path)
         self.init_db()
 
         bl_ver = "{}.{}".format(bpy.app.version[0], bpy.app.version[1])

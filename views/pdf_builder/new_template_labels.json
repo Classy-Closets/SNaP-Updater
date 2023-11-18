@@ -11,7 +11,7 @@
     {
         "data": [
             { "label": "COLOR", "position": { "LEGAL": [43, 97], "ELEVENSEVENTEEN": [43, 97] } },
-            { "label": "ADDITIONAL OPTIONS", "position": { "LEGAL": [43, 35], "ELEVENSEVENTEEN": [43, 35] } },
+            { "label": "ADDITIONAL OPTIONS", "position": { "LEGAL": [43, 38], "ELEVENSEVENTEEN": [43, 38] } },
             { "label": "QTY", "position": { "LEGAL": [213, 97], "ELEVENSEVENTEEN": [213, 97] } },
             { "label": "STYLE", "position": { "LEGAL": [303, 97], "ELEVENSEVENTEEN": [318, 97] } },
             { "label": "QTY", "position": { "LEGAL": [363, 97], "ELEVENSEVENTEEN": [420, 97] } },

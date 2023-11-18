@@ -1068,8 +1068,8 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                     self.remove_machining_token(assembly, 'Left Drilling')
 
                 if not remove_right_holes.get_value():
-                    if assembly.add_machine_token('Right Drilling' ,'CAMLOCK','5'):
-                        obj, token = assembly.add_machine_token('Right Drilling' ,'CAMLOCK','5')
+                    if assembly.add_machine_token('Right Drilling', 'CAMLOCK', '5'):
+                        obj, token = assembly.add_machine_token('Right Drilling', 'CAMLOCK', '5')
                         token.hole_locations[0] = macp.cam_backset
                         token.hole_locations[1] = depth - macp.cam_backset
                         token.edge_bore_depth = macp.cam_bore_edge_depth
@@ -1808,9 +1808,11 @@ class PROPS_Machining_Defaults(bpy.types.PropertyGroup):
                                             default=sn_unit.inch(.5),unit='LENGTH')    
     
     #CAM HOLE SETTINGS
-    cam_bore_face_depth: FloatProperty(name="Cam Bore Face Depth",
-                                        description="Enter the face drilling depth for cams. This is the depth to drill on the associated panel.",
-                                        default=sn_unit.millimeter(15.7),unit='LENGTH')    
+    cam_bore_face_depth: FloatProperty(
+        name="Cam Bore Face Depth",
+        description="Enter the face drilling depth for cams. This is the depth to drill on the associated panel.",
+        default=sn_unit.millimeter(15.7),
+        unit='LENGTH')
     
     cam_bore_edge_depth: FloatProperty(
         name="Cam Bore Edge Depth",

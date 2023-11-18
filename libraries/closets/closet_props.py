@@ -83,6 +83,8 @@ def update_unique_mat_pointer(self, context):
                             material_pointer = spec_group.materials[slot.pointer_name]
                             slot.category_name = material_pointer.category_name
                             slot.item_name = material_pointer.item_name
+            elif part_bp.get('IS_BP_HOOD_BODY'):
+                obj.snap.material_slots[0].pointer_name = "Hood_Surface"
 
         update_render_materials(self, context)
 
@@ -546,7 +548,7 @@ def enum_rod_cups(self, context):
             WHERE\
                 ProductType IN ('AC', 'HW') AND\
                 Name LIKE '{}'\
-            ;".format("%" + "pole cup" + "%", CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location)
+            ;".format("%" + "pole cup" + "%", CCItems="CCItems_" + sn_utils.get_franchise_location())
         )
 
         rows = cursor.fetchall()
@@ -648,8 +650,10 @@ def get_quartz_colors(self, context):
     ct_mfg = ct_type.manufactuers[self.unique_countertop_quartz_mfg]
     return ct_mfg.get_color_list()
 
+
 def get_standard_quartz_colors(self, context):
     return bpy.context.scene.closet_materials.countertops.get_standard_quartz_color_list()
+
 
 def get_mel_colors(self, context):
     return bpy.context.scene.closet_materials.materials.mel_color_list
@@ -690,8 +694,6 @@ def update_exposed_kd(self, context):
     # If prompt exists, set prompt value from obj.sn_closets.is_bottom_exposed_kd prop
     if is_lock_shelf_ppt:
         is_lock_shelf_ppt.set_value(assembly.obj_bp.sn_closets.is_bottom_exposed_kd)
-
-        print("lock shelf prompt", is_lock_shelf_ppt.get_value())
 
         if is_lock_shelf_ppt.get_value() and mat_type.name == "Garage Material":
             bpy.ops.closet_materials.assign_materials()
@@ -774,7 +776,16 @@ class Closet_Defaults(PropertyGroup):
     rear_notch_depth_2: FloatProperty(name="Rear Notch Depth 2",default=0,unit='LENGTH', precision=4)      
     
     shelf_lip_width: FloatProperty(name="Shelf Lip Width",default=sn_unit.inch(0.75),unit='LENGTH', precision=4)
-    
+
+    toe_kick_type: EnumProperty(
+        name="Toe Kick Type",
+        items=(
+            ('STD_SKINS', 'Standard With Skins', 'Standard With Skins'),
+            ('STD_NO_SKINS', 'Standard Without Skins', 'Standard Without Skins'),
+            ('STD_CAPPING_BASE', 'Standard with 3/4" capping base', 'Standard with 3/4" capping base'),
+            ('MITERED_TK', 'Mitered TK', 'Mitered TK')),
+        default='STD_NO_SKINS')
+
     toe_kick_height: FloatProperty(name="Toe Kick Height", default=sn_unit.inch(4.39), unit='LENGTH', precision=4)
     
     toe_kick_setback: FloatProperty(name="Toe Kick Setback",default=sn_unit.inch(1.5),unit='LENGTH', precision=4)
@@ -994,7 +1005,7 @@ class Closet_Defaults(PropertyGroup):
 
         row = box.row()
         row.label(text="KD Shelf Drill Depth:")
-        row.prop(closet_machining, 'cam_bore_edge_depth', text="")
+        row.prop(closet_machining, 'cam_bore_face_depth', text="")
         row.label(text="", icon='BLANK1')
 
         row = box.row()
@@ -1016,7 +1027,7 @@ class Closet_Defaults(PropertyGroup):
         row.label(text="Add Backing Throughout:")
         row.prop(self, 'add_backing', text="")
         props = row.operator('sn_closets.update_backing_prompts', text="", icon='FILE_REFRESH')
-        props.add_backing = self.add_backing        
+        props.add_backing = self.add_backing
 
         if self.add_backing:
             row = box.row()
@@ -1040,22 +1051,32 @@ class Closet_Defaults(PropertyGroup):
         row.label(text="Angle Top Front:")
         row.prop(self, 'angle_top_front_panel_height', text="Height")
         row.prop(self, 'angle_top_front_panel_depth', text="Depth")
-        
-    def draw(self,layout):
+
+        box = main_col.box()
+        box.label(text="Toe Kick Options:", icon='MODIFIER')
+        row = box.row(align=True)
+        split = row.split(factor=0.35)
+        split.label(text="Toe Kick Type:")
+        row = split.row()
+        row.prop(self, 'toe_kick_type', text="")
+        props = row.operator('sn_prompt.update_tk_construction_prompts', text="", icon='FILE_REFRESH')
+        props.toe_kick_type = self.toe_kick_type
+
+    def draw(self, layout):
         box = layout.box()
         row = box.row()
-        row.prop(self,'defaults_tabs',expand=True)
-        
+        row.prop(self, 'defaults_tabs', expand=True)
+
         if self.defaults_tabs == 'SIZE':
             self.draw_size_defaults(box)
-            
+
         if self.defaults_tabs == 'CONSTRUCTION':
             self.draw_construction_defaults(box)
-            
+
         if self.defaults_tabs == 'TOOLS':
             tool_box = box.box()
             tool_box.label(text="Closet Tools:",icon='SCULPTMODE_HLT')
-            tool_box.operator('sn_closets.combine_parts',icon='UV_ISLANDSEL')               
+            tool_box.operator('sn_closets.combine_parts',icon='UV_ISLANDSEL')
 
 
 class Closet_Options(PropertyGroup):
@@ -1639,6 +1660,9 @@ class PROPERTIES_Object_Properties(PropertyGroup):
     is_flat_crown_bp: BoolProperty(name="Is Flat Crown BP",
                               description="Used to determine if the assembly is an Flat Crown",
                               default=False)   
+    is_appliance_cabinet_bp: BoolProperty(name="Is Appliance Cabinet BP",
+                            description="Used to determine if the assembly is an Appliance Cabinet",
+                            default=False)   
 
     is_bottom_exposed_kd: BoolProperty(
         name="Is Bottom Exposed KD",
