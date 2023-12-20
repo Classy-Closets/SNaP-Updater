@@ -645,6 +645,7 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
         empty_assembly.set_name(curve.name)
         empty_assembly.obj_bp.snap.type_group = 'INSERT'
         empty_assembly.obj_bp["IS_KB_MOLDING"] = True
+        empty_assembly.obj_bp["IS_KB_PART"] = True
         empty_assembly.add_prompt("Exposed Left", 'CHECKBOX', False)
         empty_assembly.add_prompt("Exposed Right", 'CHECKBOX', False)
         empty_assembly.add_prompt("Exposed Back", 'CHECKBOX', False)
@@ -767,6 +768,11 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                         context, points, self.is_crown, self.is_light_rail, self.is_base, product)
 
                     self.set_curve_location(context, product, curve, self.is_crown)
+
+        
+            if product.obj_bp.get("IS_BP_CABINET") and product.obj_bp.get("MATERIAL_POINTER_NAME"):  
+                sn_utils.add_kb_insert_material_pointers(product.obj_bp)
+                bpy.ops.closet_materials.poll_assign_materials()
 
         return {'FINISHED'}
 

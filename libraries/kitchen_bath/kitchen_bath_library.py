@@ -1264,6 +1264,36 @@ class PRODUCT_Appliance_Base_Starter(cabinets.Standard):
         self.add_empty_opening = True
         self.exterior = None
 
+class PRODUCT_Tall_Oven_Starter(cabinets.Standard):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = TALL_CATEGORY_NAME
+        self.width = sn_unit.inch(30)
+        self.height = props.tall_cabinet_height
+        self.depth = props.tall_cabinet_depth
+        self.carcass = carcass_simple.INSERT_Tall_Carcass()
+        self.splitter = frameless_splitters.INSERT_3_Vertical_Openings()
+        self.splitter.opening_2_height = sn_unit.inch(30.75)
+        self.splitter.exterior_2 = appliance_inserts.INSERT_Wall_Oven_Generic()
+        self.splitter.opening_3_height = sn_unit.inch(32.01)
+
+class PRODUCT_Tall_Micowave_Starter(cabinets.Standard):
+    
+    def __init__(self):
+        props = cabinet_properties.get_scene_props().size_defaults
+        self.library_name = LIBRARY_NAME
+        self.category_name = TALL_CATEGORY_NAME
+        self.width = sn_unit.inch(30)
+        self.height = props.tall_cabinet_height
+        self.depth = props.tall_cabinet_depth
+        self.carcass = carcass_simple.INSERT_Tall_Carcass()
+        self.splitter = frameless_splitters.INSERT_3_Vertical_Openings()
+        self.splitter.opening_2_height = sn_unit.inch(19.41)
+        self.splitter.exterior_2 = appliance_inserts.INSERT_Microwave_Generic()
+        self.splitter.opening_3_height = sn_unit.inch(32.01)
+
 class PRODUCT_Island_1_Opening(cabinets.Island):
     
     def __init__(self):
@@ -1272,7 +1302,7 @@ class PRODUCT_Island_1_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 1
 
@@ -1284,7 +1314,7 @@ class PRODUCT_Island_1_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 2
@@ -1297,7 +1327,7 @@ class PRODUCT_Island_2_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 2
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = False
         self.carcass.opening_qty = 2
@@ -1310,7 +1340,7 @@ class PRODUCT_Island_2_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 2
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 4
@@ -1323,7 +1353,7 @@ class PRODUCT_Island_3_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 3
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 3
 
@@ -1335,7 +1365,7 @@ class PRODUCT_Island_3_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 3
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 6
@@ -1348,7 +1378,7 @@ class PRODUCT_Island_4_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 4
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 4
 
@@ -1360,7 +1390,7 @@ class PRODUCT_Island_4_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 4
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 8
@@ -1373,7 +1403,7 @@ class PRODUCT_Island_5_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 5
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 5
 
@@ -1385,7 +1415,7 @@ class PRODUCT_Island_5_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 5
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 10
@@ -1398,7 +1428,7 @@ class PRODUCT_Island_6_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 6
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 6
 
@@ -1410,7 +1440,7 @@ class PRODUCT_Island_6_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 6
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 12
@@ -1423,7 +1453,7 @@ class PRODUCT_Island_7_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 7
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 7
 
@@ -1435,7 +1465,7 @@ class PRODUCT_Island_7_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 7
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 14
@@ -1448,7 +1478,7 @@ class PRODUCT_Island_8_Opening(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 8
         self.height = props.island_cabinet_height
-        self.depth = props.island_cabinet_depth 
+        self.depth = props.island_single_chase_depth + props.island_cabinet_depth
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.opening_qty = 8
 
@@ -1460,12 +1490,12 @@ class PRODUCT_Island_8_Opening_Dbl(cabinets.Island):
         self.category_name = STARTER_CATEGORY_NAME
         self.width = props.island_cabinet_width * 8
         self.height = props.island_cabinet_height
-        self.depth = + props.island_chase_depth + props.island_cabinet_depth * 2 
+        self.depth = + props.island_double_chase_depth + props.island_cabinet_depth * 2 
         self.carcass = carcass_simple.INSERT_Island_Carcass()
         self.carcass.double_sided = True
         self.carcass.opening_qty = 16
 
-class PRODUCT_Toe_Kick(data_base_assembly.Base_Assembly):
+class PRODUCT_Toe_Kick(cabinets.Toe_Kick):
 
     def __init__(self):
         props = cabinet_properties.get_scene_props()

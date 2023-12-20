@@ -22,6 +22,7 @@ ISLAND_BACK_ROW = 1
 ISLAND_BASE_CARCASS = 0
 ISLAND_APPLIANCE_CARCASS = 1
 ISLAND_SINK_CARCASS = 2
+ISLAND_HIDDEN_CARCASS = 3
 
 
 def add_side_height_dimension(original_part):
@@ -77,6 +78,7 @@ def update_dimensions(part):
 # ---------ASSEMBLY INSTRUCTIONS
 def add_part(assembly, path):
     part_bp = assembly.add_assembly_from_file(path)
+    part_bp['IS_KB_PART'] = True
     part = sn_types.Assembly(part_bp)
     part.obj_bp.sn_closets.is_panel_bp = True
     return part  
@@ -558,31 +560,7 @@ class Standard_Carcass(sn_types.Assembly):
         if self.carcass_type in {'Base','Tall','Sink'}:
             Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
             bottom.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
-            
-    def add_toe_kick(self):
-        Width = self.obj_x.snap.get_var('location.x', 'Width')
-        Depth = self.obj_y.snap.get_var('location.y', 'Depth')
 
-        Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
-        Toe_Kick_Setback = self.get_prompt('Toe Kick Setback').get_var()
-        Left_Toe_Kick_Filler = self.get_prompt('Left Toe Kick Filler').get_var()
-        Right_Toe_Kick_Filler = self.get_prompt('Right Toe Kick Filler').get_var()
-        Left_Side_Thickness = self.get_prompt('Left Side Thickness').get_var()
-        Right_Side_Thickness = self.get_prompt('Right Side Thickness').get_var()
-        Remove_Bottom = self.get_prompt('Remove Bottom').get_var()
-        
-        kick = add_part(self, PART_WITH_FRONT_EDGEBANDING)
-        kick.set_name("Toe Kick")
-
-        kick.dim_x('Width+Left_Toe_Kick_Filler+Right_Toe_Kick_Filler',[Width,Left_Toe_Kick_Filler,Right_Toe_Kick_Filler])
-        kick.dim_y('Toe_Kick_Height',[Toe_Kick_Height])
-        kick.dim_z(value=sn_unit.inch(-0.75))
-
-        kick.loc_x('-Left_Toe_Kick_Filler',[Left_Toe_Kick_Filler])
-        kick.loc_y('Depth+Toe_Kick_Setback',[Depth,Toe_Kick_Setback])
-        kick.rot_x(value=math.radians(90))
-        kick.get_prompt('Hide').set_formula('Remove_Bottom', [Remove_Bottom])
-    
     def add_leg_levelers(self):
         Width = self.obj_x.snap.get_var('location.x', 'Width')
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
@@ -1104,6 +1082,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         left_tk.obj_bp.parent = self.obj_bp
         left_tk.obj_bp["ID_PROMPT"] = left_tk.id_prompt
         left_tk.obj_bp.snap.comment_2 = "1034"
+        left_tk.obj_bp['IS_KB_PART'] = True
         left_tk.loc_y('Depth', [Depth])
         left_tk.rot_z(value=math.radians(90))
         left_tk.dim_x('-Depth+INCH(0.75)/2', [Depth])
@@ -1115,6 +1094,7 @@ class Inside_Corner_Carcass(sn_types.Assembly):
         right_tk.draw()
         right_tk.obj_bp.parent = self.obj_bp
         right_tk.obj_bp.snap.comment_2 = "1034"
+        right_tk.obj_bp['IS_KB_PART'] = True
         right_tk.loc_x(
             'Left_Depth-Toe_Kick_Setback-INCH(0.75)/2+left_depth_amount',
             [Left_Depth, Toe_Kick_Setback, left_depth_amount])
@@ -1284,7 +1264,11 @@ class Island_Carcass(sn_types.Assembly):
         props = cabinet_properties.get_scene_props().carcass_defaults
         size_props = cabinet_properties.get_scene_props().size_defaults
         self.add_prompt("Double Sided", 'CHECKBOX', self.double_sided)
-        self.add_prompt("Chase Depth", 'DISTANCE', size_props.island_chase_depth)
+        
+        if self.double_sided:
+            self.add_prompt("Chase Depth", 'DISTANCE', size_props.island_double_chase_depth)
+        else:
+            self.add_prompt("Chase Depth", 'DISTANCE', size_props.island_single_chase_depth)
         self.add_prompt("Chase Cap Thickness", 'DISTANCE', sn_unit.inch(.75))
         for i in range(1, self.opening_qty + 1):
             self.add_prompt("Carcass Subtype " + str(i), 'COMBOBOX', 0)
@@ -1398,13 +1382,14 @@ class Island_Carcass(sn_types.Assembly):
                             left_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
                             left_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
                     else:
+                        left_side.loc_y('-Chase_Depth',[Chase_Depth])
                         left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
 
                     left_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
                     left_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
                     left_side.rot_y(value=math.radians(-90))
                     left_side.dim_z('-Left_Side_Thickness',[Left_Side_Thickness])
-                    left_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)', [Carcass_Subtype])
+                    left_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype in (' + str(ISLAND_APPLIANCE_CARCASS) + ',' + str(ISLAND_HIDDEN_CARCASS) + '),True,False)', [Carcass_Subtype])
 
                     add_side_height_dimension(left_side)
                     
@@ -1429,12 +1414,13 @@ class Island_Carcass(sn_types.Assembly):
                             right_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
                             right_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
                     else:
+                        right_side.loc_y('-Chase_Depth',[Chase_Depth])
                         right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
                     right_side.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
                     right_side.dim_x('Height-Toe_Kick_Height',[Height,Toe_Kick_Height])
                     right_side.rot_y(value=math.radians(-90))
                     right_side.dim_z('Right_Side_Thickness',[Right_Side_Thickness])
-                    right_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_APPLIANCE_CARCASS) + ',True,False)', [Carcass_Subtype])
+                    right_side.get_prompt('Hide').set_formula('IF(Carcass_Subtype in (' + str(ISLAND_APPLIANCE_CARCASS) + ',' + str(ISLAND_HIDDEN_CARCASS) + '),True,False)', [Carcass_Subtype])
 
     def add_appliance_sides(self):
         Height = self.obj_z.snap.get_var('location.z', 'Height')
@@ -1477,6 +1463,7 @@ class Island_Carcass(sn_types.Assembly):
                             left_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
                             left_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
                     else:
+                        left_side.loc_y('-Chase_Depth',[Chase_Depth])
                         left_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
 
                     left_side.dim_x('Height', [Height])
@@ -1510,6 +1497,7 @@ class Island_Carcass(sn_types.Assembly):
                             right_side.loc_y('-Back_Row_Depth',[Back_Row_Depth])
                             right_side.dim_y('-Back_Row_Depth',[Back_Row_Depth])
                     else:
+                        right_side.loc_y('-Chase_Depth',[Chase_Depth])
                         right_side.dim_y('-Front_Row_Depth',[Front_Row_Depth])
 
                     right_side.dim_x('Height', [Height])
@@ -1530,22 +1518,24 @@ class Island_Carcass(sn_types.Assembly):
         Chase_Cap_Thickness = self.get_prompt("Chase Cap Thickness").get_var()
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
 
-        left_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        left_chase_cap = common_parts.add_panel(self)
         left_chase_cap.set_name("Chase Cap Left")
         left_chase_cap.dim_x('Height',[Height])
         left_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
         left_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
-        left_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+        if self.double_sided:
+            left_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
         left_chase_cap.rot_y(value=math.radians(-90))
         left_chase_cap.get_prompt('Hide').set_formula('IF(Chase_Depth>0,False,True)', [Chase_Depth])
 
-        right_chase_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        right_chase_cap = common_parts.add_panel(self)
         right_chase_cap.set_name("Chase Cap Right")
         right_chase_cap.dim_x('Height',[Height])
         right_chase_cap.dim_y('-Chase_Depth',[Chase_Depth])
         right_chase_cap.dim_z('-Chase_Cap_Thickness', [Chase_Cap_Thickness])
         right_chase_cap.loc_x('Width-Chase_Cap_Thickness',[Width, Chase_Cap_Thickness])
-        right_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+        if self.double_sided:
+            right_chase_cap.loc_y('-Back_Row_Depth',[Back_Row_Depth])
         right_chase_cap.rot_y(value=math.radians(-90))
         right_chase_cap.get_prompt('Hide').set_formula('IF(Chase_Depth>0,False,True)', [Chase_Depth])
 
@@ -1556,7 +1546,7 @@ class Island_Carcass(sn_types.Assembly):
         Chase_Cap_Thickness = self.get_prompt("Chase Cap Thickness").get_var()
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
 
-        backing_cap = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+        backing_cap = common_parts.add_panel(self)
         backing_cap.set_name("Backing Cap")
         backing_cap.obj_bp['IS_BACK'] = True
         backing_cap.obj_bp['IS_BACKING_CAP'] = True
@@ -1610,6 +1600,9 @@ class Island_Carcass(sn_types.Assembly):
                             top.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
                         elif row == ISLAND_BACK_ROW:
                             top.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        top.loc_y('-Chase_Depth',[Chase_Depth])
+
                     top.loc_z('IF(Height>0,Height-Top_Inset+Top_Thickness,-Top_Inset+Top_Thickness)',[Height,Top_Inset,Top_Thickness])
                   
                     top.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_BASE_CARCASS) + ',False,True)', [Carcass_Subtype])
@@ -1635,7 +1628,7 @@ class Island_Carcass(sn_types.Assembly):
                     Carcass_Subtype = self.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
                     loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
                     
-                    front_s = add_part(self, PART_WITH_FRONT_EDGEBANDING)
+                    front_s = common_parts.add_panel(self)
                     front_s.set_name(self.carcass_type + " Front Stretcher " + part_nbr)
                     
                     front_s.dim_y('-Sub_Front_Height',[Sub_Front_Height])
@@ -1653,7 +1646,8 @@ class Island_Carcass(sn_types.Assembly):
                     if self.double_sided and row == ISLAND_FRONT_ROW:
                         front_s.loc_y('-Front_Row_Depth-Back_Row_Depth-Chase_Depth',[Front_Row_Depth,Back_Row_Depth,Chase_Depth])
                     elif row == ISLAND_FRONT_ROW:
-                        front_s.loc_y('-Front_Row_Depth',[Front_Row_Depth])
+                        # front_s.loc_y('-Front_Row_Depth',[Front_Row_Depth])
+                        front_s.loc_y('-Front_Row_Depth-Chase_Depth',[Front_Row_Depth,Chase_Depth])
                     
                     front_s.loc_z('IF(Height>0,Height,0)',[Height])
                     front_s.rot_x(value=math.radians(90))
@@ -1706,11 +1700,13 @@ class Island_Carcass(sn_types.Assembly):
                         elif row == ISLAND_BACK_ROW:
                             bottom.loc_y('-Back_Row_Depth',[Back_Row_Depth])
                             bottom.dim_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        bottom.loc_y('-Chase_Depth',[Chase_Depth])
   
                     Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var()
                     bottom.loc_z('Toe_Kick_Height',[Toe_Kick_Height])
                     
-                    bottom.get_prompt('Hide').set_formula('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',False,True)', [Carcass_Subtype])
+                    bottom.get_prompt('Hide').set_formula('IF(Carcass_Subtype in (' + str(ISLAND_APPLIANCE_CARCASS) + ',' + str(ISLAND_HIDDEN_CARCASS) + '),True,False)', [Carcass_Subtype])
             
     def get_row_opening_nbrs(self, row_nbr):
         if row_nbr == ISLAND_FRONT_ROW:
@@ -1760,14 +1756,16 @@ class Island_Carcass(sn_types.Assembly):
         toe_kick = wm_props.get_asset(tk_path)
         toe_kick.draw()
         toe_kick.obj_bp.parent = self.obj_bp
-        # toe_kick.obj_bp["ID_PROMPT"] = toe_kick.id_prompt
         toe_kick.obj_bp.snap.comment_2 = "1034"
+        toe_kick.obj_bp['IS_KB_PART'] = True
 
         if start_nbr != end_nbr:
             loc_x_vars.extend([opening_width_1,opening_width_2,Left_Side_Thickness,Right_Side_Thickness,Carcass_Subtype_1,Carcass_Subtype_2])
             if row_nbr == ISLAND_FRONT_ROW:
                 if self.double_sided:
                     toe_kick.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                else:
+                    toe_kick.loc_y('-Chase_Depth',[Chase_Depth])
                 toe_kick.dim_y('-Front_Row_Depth+Toe_Kick_Setback', [Front_Row_Depth,Toe_Kick_Setback])
                 toe_kick.loc_x(loc_x_exp + '-INCH(0.75)/2'
                                             '+IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)', loc_x_vars)
@@ -1794,6 +1792,8 @@ class Island_Carcass(sn_types.Assembly):
             if row_nbr == ISLAND_FRONT_ROW:
                 if self.double_sided:
                     toe_kick.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
+                else:
+                    toe_kick.loc_y('-Chase_Depth',[Chase_Depth])
                 toe_kick.dim_y('-Front_Row_Depth+Toe_Kick_Setback', [Front_Row_Depth,Toe_Kick_Setback])
                 toe_kick.loc_x(loc_x_exp + '-INCH(0.75)/2'
                                             '+IF(Carcass_Subtype_1==' + str(ISLAND_APPLIANCE_CARCASS) + ',Opening_' + str(start_nbr) +'_Width,0)', loc_x_vars)
@@ -1854,7 +1854,6 @@ class Island_Carcass(sn_types.Assembly):
                     legs = add_part(self, LEG_LEVELERS)
                     part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
                     legs.set_name("Leg Levelers " + part_nbr)
-                    # legs.loc_x('Left_Side_Thickness',[Left_Side_Thickness])
                     legs.loc_x('Left_Side_Thickness+Width*' + str(col),[Left_Side_Thickness,Width])
                     legs.dim_x('Width-(Left_Side_Thickness+Right_Side_Thickness)',[Width,Left_Side_Thickness,Right_Side_Thickness])
                     legs.dim_y('Depth+Toe_Kick_Setback',[Depth,Toe_Kick_Setback])
@@ -1890,8 +1889,6 @@ class Island_Carcass(sn_types.Assembly):
                     loc_x_exp, loc_x_vars, opening_width = self.get_calculator_widths(row, part_nbr)
 
                     back = common_parts.add_back(self)
-                    # back.set_name(self.carcass_type + " Back " + part_nbr)
-
                     back.rot_y(value=math.radians(-90))
                     
                     loc_x_vars.extend([opening_width, Left_Side_Thickness, Right_Side_Thickness, Carcass_Subtype, Remove_Left_Side, Remove_Right_Side])
@@ -1915,9 +1912,11 @@ class Island_Carcass(sn_types.Assembly):
                             back.loc_y('-Back_Row_Depth-Chase_Depth',[Back_Row_Depth,Chase_Depth])
                         elif row == ISLAND_BACK_ROW:
                             back.loc_y('-Back_Row_Depth',[Back_Row_Depth])
+                    else:
+                        back.loc_y('-Chase_Depth',[Chase_Depth])
                     back.loc_z('IF(Remove_Bottom,0,Toe_Kick_Height+Bottom_Thickness)',[Remove_Bottom,Toe_Kick_Height,Bottom_Thickness])
 
-                    back.get_prompt('Hide').set_formula('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',False,True)', [Carcass_Subtype])
+                    back.get_prompt('Hide').set_formula('IF(Carcass_Subtype in (' + str(ISLAND_APPLIANCE_CARCASS) + ',' + str(ISLAND_HIDDEN_CARCASS) + '),True,False)', [Carcass_Subtype])
         
     def draw(self):
         props = cabinet_properties.get_scene_props().carcass_defaults
@@ -1937,9 +1936,12 @@ class Island_Carcass(sn_types.Assembly):
         self.add_full_top()
         self.add_sink_top()
                 
-        if self.double_sided:
-            self.add_chase_caps()
-        else:
+        # if self.double_sided:
+        #     self.add_chase_caps()
+        # else:
+        #     self.add_backing_cap()
+        self.add_chase_caps()
+        if not self.double_sided:
             self.add_backing_cap()
 
         self.add_back()

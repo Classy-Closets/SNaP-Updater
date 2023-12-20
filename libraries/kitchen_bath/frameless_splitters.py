@@ -613,9 +613,9 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
         super().confirm_placement(context)
 
         insert = sn_types.Assembly(self.insert.obj_bp)
-        product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
+        obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
 
-        splitters = sn_utils.get_tagged_bp_list(product_bp, "IS_BP_SPLITTER", [])
+        splitters = sn_utils.get_tagged_bp_list(obj_product_bp, "IS_BP_SPLITTER", [])
         splitter_qty = len(splitters)
 
         insert.obj_bp["SPLITTER_NBR"] = splitter_qty
@@ -626,7 +626,9 @@ class OPS_KB_Splitters_Drop(Operator, PlaceClosetInsert):
             if "OPENING_NBR" in obj_bp:
                 obj_bp["SPLITTER_NBR"] = splitter_qty
 
-        cabinet_interface.update_product_dimensions(product_bp)
+        cabinet_interface.update_product_dimensions(obj_product_bp)
+
+        sn_utils.add_kb_insert_material_pointers(obj_product_bp) 
 
     def finish(self, context):
             super().finish(context)

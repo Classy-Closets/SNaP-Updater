@@ -4,7 +4,7 @@ import pathlib
 
 import bpy
 from bpy.types import Operator
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty
 
 from snap import sn_utils
 from snap import sn_paths
@@ -108,6 +108,9 @@ class SN_WM_OT_load_snap_defaults(Operator):
     bl_idname = "snap.load_snap_defaults"
     bl_label = "Load SNap Defaults"
 
+    keep_startup_file: BoolProperty(name="Keep Current Startup File", default=True)
+    keep_prefs: BoolProperty(name="Keep Current User Preferences", default=True)
+
     # Persistent startup data
     cam_bore_face_depth = None
     toe_kick_type = None
@@ -135,10 +138,13 @@ class SN_WM_OT_load_snap_defaults(Operator):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        dst_userpref_file = os.path.join(path, "userpref.blend")
-        dst_startup_file = os.path.join(path, "startup.blend")
-        shutil.copyfile(src_userpref_file, dst_userpref_file)
-        shutil.copyfile(src_startup_file, dst_startup_file)
+        if not self.keep_prefs:
+            dst_userpref_file = os.path.join(path, "userpref.blend")
+            shutil.copyfile(src_userpref_file, dst_userpref_file)
+
+        if not self.keep_startup_file:
+            dst_startup_file = os.path.join(path, "startup.blend")
+            shutil.copyfile(src_startup_file, dst_startup_file)
 
     def use_auto_set_scripts_dir(self):
         bl_ver = "{}.{}".format(bpy.app.version[0], bpy.app.version[1])
@@ -157,37 +163,41 @@ class SN_WM_OT_load_snap_defaults(Operator):
                     shutil.rmtree(os.path.join(subdir, dir))
 
     def get_persistient_startup_data(self):
-        closet_defaults = bpy.context.scene.sn_closets.closet_defaults
-        closet_machining = bpy.context.scene.closet_machining
-
-        self.cam_bore_face_depth = closet_machining.cam_bore_face_depth
-        self.toe_kick_type = closet_defaults.toe_kick_type
-
-    def set_persistient_startup_data(self, config_path):
-        update_startup_file = False
-
-        # Load the startup file
-        if os.path.exists(config_path):
-            startup_path = os.path.join(config_path, "startup.blend")
-            bpy.ops.wm.open_mainfile(filepath=startup_path)
+        if not self.keep_startup_file:
             closet_defaults = bpy.context.scene.sn_closets.closet_defaults
             closet_machining = bpy.context.scene.closet_machining
 
+            self.cam_bore_face_depth = closet_machining.cam_bore_face_depth
+            self.toe_kick_type = closet_defaults.toe_kick_type
+
+    def set_persistient_startup_data(self, config_path):
+        if not self.keep_startup_file:
             # Set properties from previous startup file
-            if self.cam_bore_face_depth:
-                if closet_machining.cam_bore_face_depth != self.cam_bore_face_depth:
-                    closet_machining.cam_bore_face_depth = self.cam_bore_face_depth
-                    update_startup_file = True
+            update_startup_file = False
 
-            if self.toe_kick_type:
-                if closet_defaults.toe_kick_type != self.toe_kick_type:
-                    closet_defaults.toe_kick_type = self.toe_kick_type
-                    update_startup_file = True
+            # Load the startup file
+            if os.path.exists(config_path):
+                startup_path = os.path.join(config_path, "startup.blend")
+                bpy.ops.wm.open_mainfile(filepath=startup_path)
+                closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+                closet_machining = bpy.context.scene.closet_machining
 
-            if update_startup_file:
+                # Cam Bore Face Depth (KD Shelf Drill Depth)
+                if self.cam_bore_face_depth:
+                    if closet_machining.cam_bore_face_depth != self.cam_bore_face_depth:
+                        closet_machining.cam_bore_face_depth = self.cam_bore_face_depth
+                        update_startup_file = True
+
+                # Toe Kick Type
+                if self.toe_kick_type:
+                    if closet_defaults.toe_kick_type != self.toe_kick_type:
+                        closet_defaults.toe_kick_type = self.toe_kick_type
+                        update_startup_file = True
+
                 # Save the current scene as the new startup file
-                bpy.ops.wm.save_as_mainfile(filepath=startup_path)
-                bpy.ops.wm.read_homefile(app_template="")
+                if update_startup_file:
+                    bpy.ops.wm.save_as_mainfile(filepath=startup_path)
+                    bpy.ops.wm.read_homefile(app_template="")
 
     def execute(self, context):
         import ctypes
@@ -237,17 +247,25 @@ class SN_WM_OT_load_snap_defaults(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(550))
+        return wm.invoke_props_dialog(self, width=550)
 
     def draw(self, context):
         layout = self.layout
-        layout.label(
-            text="Are you sure you want to restore the SNap default startup file and user preferences?",
+        box = layout.box()
+        row = box.row()
+        row.label(
+            text="Are you sure you want to restore the SNap defaults?",
             icon='QUESTION')
 
-        layout.label(
+        row = box.row()
+        row.label(
             text="You will need to restart the application for the changes to take effect.",
             icon='BLANK1')
+
+        row = box.row()
+        row.prop(self, "keep_startup_file")
+        row = box.row()
+        row.prop(self, "keep_prefs")
 
 
 classes = (

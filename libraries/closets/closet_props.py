@@ -88,6 +88,28 @@ def update_unique_mat_pointer(self, context):
 
         update_render_materials(self, context)
 
+def update_unique_glass_color(self, context):
+    obj = context.object
+    if obj:
+        part_bp = sn_utils.get_assembly_bp(obj)
+        cab_mat_props = context.scene.closet_materials
+        part_assembly = sn_types. Assembly(part_bp)
+        props = part_bp.sn_closets
+        if part_assembly and part_bp:
+            if part_bp.get("IS_DOOR"):
+                door_style = part_assembly.get_prompt("Door Style")
+                if door_style:
+                    if "Glass" in door_style.get_value():
+                        if props.use_unique_glass_color:
+                            glass_color = part_assembly.get_prompt("Glass Color")
+                            if glass_color:
+                                glass_color.set_value(props.unique_glass_color)
+                        else:
+                            glass_color = part_assembly.get_prompt("Glass Color")
+                            if glass_color:
+                                glass_color.set_value(cab_mat_props.get_glass_color().name)
+                    
+
 
 # ---------DICTIONARY DYNAMIC ENUM PROPERTIES
 """
@@ -249,7 +271,6 @@ def enum_antique_pull_styles(self, context):
     if context is None:
         return []
     icon_dir = os.path.join(closet_paths.get_root_dir(), PULL_FOLDER_NAME, self.pull_category)
-    print("icon_dir",icon_dir)
     pcoll = preview_collections["antique_pull_styles"]
     return sn_utils.get_image_enum_previews(icon_dir, pcoll)
 
@@ -458,11 +479,45 @@ def enum_pulls(self, context):
 
 
 def update_pull_category(self, context):
-    if preview_collections["pulls"]:
-        bpy.utils.previews.remove(preview_collections["pulls"])
-        preview_collections["pulls"] = sn_utils.create_image_preview_collection()     
+    closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+    cwp_pull = self.pull_category == 'Other - Customer Provided'
+    special_pull = self.pull_category == 'Other - Special Hardware'
 
-    enum_pulls(self, context)
+    if closet_defaults.no_pulls:
+        return
+
+    if cwp_pull or special_pull:
+        bpy.ops.sn_closets.update_pull_selection(
+            'INVOKE_DEFAULT', update_all=True, name=self.pull_category, show_message=True)
+
+
+def update_pull_selection(self, context):
+    closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+
+    if closet_defaults.no_pulls:
+        return
+
+    if self.pull_category == "Antique Satin Brass":
+        style = self.antique_pull_style
+    if self.pull_category == "Brushed Nickel":
+        style = self.brush_nickel_pull_style
+    if self.pull_category == "Matte Black":
+        style = self.matte_black_pull_style
+    if self.pull_category == "Matte Gold":
+        style = self.matte_gold_pull_style
+    if self.pull_category == "Oil Rubbed Bronze":
+        style = self.orb_pull_style
+    if self.pull_category == "Polished Chrome":
+        style = self.chrome_pull_style
+    if self.pull_category == "Satin Bronzed Copper":
+        style = self.satin_bronze_pull_style
+    if self.pull_category == "Satin Nickel":
+        style = self.satin_nickel_pull_style
+    if self.pull_category == "Stainless Steel Look":
+        style = self.stainless_pull_style
+
+    bpy.ops.sn_closets.update_pull_selection(
+        'INVOKE_DEFAULT', update_all=True, name=style, show_message=True)
 
 
 # ---------HINGES DYNAMIC ENUMS
@@ -672,6 +727,9 @@ def get_countertop_wood_colors(self, context):
     ct_mfg = ct_type.manufactuers[self.wood_countertop_types]
 
     return ct_mfg.get_color_list()
+
+def get_glass_colors(self, context):
+    return context.scene.closet_materials.get_glass_colors()
 
 
 # ---------bpy property update functions
@@ -1106,17 +1164,17 @@ class Closet_Options(PropertyGroup):
 
     rods_name: EnumProperty(name="Rod Name",items=enum_rods,update=update_rods)
     
-    pull_category: EnumProperty(name="Pull Category",items=enum_pull_categories)  #,update=update_pull_category)
+    pull_category: EnumProperty(name="Pull Category", items=enum_pull_categories, update=update_pull_category)
     pull_name: EnumProperty(name="Pull Name",items=enum_pulls)
-    antique_pull_style: EnumProperty(name="Antique Pull Style",items=enum_antique_pull_styles)
-    brush_nickel_pull_style: EnumProperty(name="Brush Nickel Pull Style",items=enum_brush_nickel_pull_styles)
-    matte_black_pull_style: EnumProperty(name="Matte Black Pull Style",items=enum_matte_black_pull_styles)
-    matte_gold_pull_style: EnumProperty(name="Matte Gold Pull Style",items=enum_matte_gold_pull_styles)
-    orb_pull_style: EnumProperty(name="ORB Pull Style",items=enum_orb_pull_styles)
-    chrome_pull_style: EnumProperty(name="Chrome Pull Style",items=enum_chrome_pull_styles)
-    satin_bronze_pull_style: EnumProperty(name="Satin Bronze Pull Style",items=enum_satin_bronze_pull_styles)
-    satin_nickel_pull_style: EnumProperty(name="Satin Nickel Pull Style",items=enum_satin_nickel_pull_styles)
-    stainless_pull_style: EnumProperty(name="Stainless Pull Style",items=enum_stainless_pull_styles)
+    antique_pull_style: EnumProperty(name="Antique Pull Style",items=enum_antique_pull_styles, update=update_pull_selection)
+    brush_nickel_pull_style: EnumProperty(name="Brush Nickel Pull Style",items=enum_brush_nickel_pull_styles, update=update_pull_selection)
+    matte_black_pull_style: EnumProperty(name="Matte Black Pull Style",items=enum_matte_black_pull_styles, update=update_pull_selection)
+    matte_gold_pull_style: EnumProperty(name="Matte Gold Pull Style",items=enum_matte_gold_pull_styles, update=update_pull_selection)
+    orb_pull_style: EnumProperty(name="ORB Pull Style",items=enum_orb_pull_styles, update=update_pull_selection)
+    chrome_pull_style: EnumProperty(name="Chrome Pull Style",items=enum_chrome_pull_styles, update=update_pull_selection)
+    satin_bronze_pull_style: EnumProperty(name="Satin Bronze Pull Style",items=enum_satin_bronze_pull_styles, update=update_pull_selection)
+    satin_nickel_pull_style: EnumProperty(name="Satin Nickel Pull Style",items=enum_satin_nickel_pull_styles, update=update_pull_selection)
+    stainless_pull_style: EnumProperty(name="Stainless Pull Style",items=enum_stainless_pull_styles, update=update_pull_selection)
     other_pull_style: EnumProperty(name="Stainless Pull Style", items=enum_other_pull_styles)
     customer_provided_pull_style: EnumProperty(name="Stainless Pull Style", items=customer_provided_pull_styles)
 
@@ -1195,7 +1253,7 @@ class Closet_Options(PropertyGroup):
         row.operator(LIBRARY_NAME_SPACE + '.delete_molding',text="",icon='X').molding_type = 'Base'
         col.prop(self,'base_molding_category',text="",icon='FILE_FOLDER')
         col.template_icon_view(self,"base_molding",show_labels=True)   
-    
+
     def draw_door_options(self,layout):
         door_style_box = layout.box()
         row = door_style_box.row(align=True)
@@ -1228,26 +1286,36 @@ class Closet_Options(PropertyGroup):
             
         props = bpy.context.scene.sn_closets
         props.closet_defaults.draw_door_defaults(door_style_box)
-    
+
     def draw_hardware_options(self,layout):
         hardware_box = layout.box()
         row = hardware_box.row()
         row.prop(self,'hardware_tabs',expand=True)
-        
+
         if self.hardware_tabs == 'RODS':
             col = hardware_box.column(align=True)
             row = col.row(align=True)
             row.label(text="Rods:")
-            col.template_icon_view(self,"rods_name",show_labels=True)   
-        
+            col.template_icon_view(self, "rods_name", show_labels=True)
+
         if self.hardware_tabs == 'PULLS':
             col = hardware_box.column(align=True)
             row = col.row(align=True)
             row.label(text="Pull Options:")
-            row.operator(LIBRARY_NAME_SPACE + '.update_pull_selection',text="Change Pull",icon='RESTRICT_SELECT_OFF').update_all = False
-            row.operator(LIBRARY_NAME_SPACE + '.update_pull_selection',text="Replace All",icon='FILE_REFRESH').update_all = True
+            row.operator(
+                LIBRARY_NAME_SPACE + '.update_pull_selection',
+                text="Change Pull",
+                icon='RESTRICT_SELECT_OFF').update_all = False
+
+            op = row.operator(
+                LIBRARY_NAME_SPACE + '.update_pull_selection',
+                text="Replace All",
+                icon='FILE_REFRESH')
+            op.update_all = True
+            op.show_message = False
+
             col.separator()
-            col.prop(self,'pull_category',text="",icon='FILE_FOLDER')
+            col.prop(self, 'pull_category', text="", icon='FILE_FOLDER')
 
             if self.pull_category == "Antique Satin Brass":
                 col.label(text=self.antique_pull_style)
@@ -1681,6 +1749,19 @@ class PROPERTIES_Object_Properties(PropertyGroup):
         description="Specify a unique material for this part",
         default=False,
         update=update_unique_mat_pointer
+    )
+
+    use_unique_glass_color: BoolProperty(
+        name="Use Unique Glass",
+        description="Specify a unique glass color for this part",
+        default=False,
+        update=update_unique_glass_color
+    )
+
+    unique_glass_color: EnumProperty(
+        name="Unique Glass Color",
+        items=get_glass_colors,
+        update=update_unique_glass_color
     )
 
     unique_mat_types: EnumProperty(

@@ -177,7 +177,6 @@ class Hanging_Rod(sn_types.Assembly):
         assembly.dim_y(value=sn_unit.inch(.5))
         assembly.dim_z(value=sn_unit.inch(-1))
 
-    
         Add_Middle_Rod = self.get_prompt("Add Middle Rod").get_var('Add_Middle_Rod')
         assembly.loc_z('Height-Z_Loc+IF(Add_Top_Rod,0,-Top_Rod_Location+0.032004)',
                         [Height, Top_Rod_Location, Z_Loc, Top_Rod])

@@ -304,6 +304,9 @@ class SN_MAT_OT_Assign_Materials(Operator):
             countertop_wood_pointer = spec_group.materials["Countertop_Butcher_Block_Surface"]
 
             hood_surface_pointer = spec_group.materials["Hood_Surface"]
+            cabinet_base_surface_pointer = spec_group.materials["Cabinet_Base_Surface"]
+            cabinet_upper_surface_pointer = spec_group.materials["Cabinet_Upper_Surface"]
+            cabinet_island_surface_pointer = spec_group.materials["Cabinet_Island_Surface"]
 
             # Set garage pointers
             garage_exterior_surface_pointer.category_name = "Closet Materials"
@@ -437,7 +440,15 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 has_stain = mat_color_name in mat_props.get_stain_colors()
                 if has_stain or has_paint:
                     hood_surface_pointer.item_name = mat_props.materials.get_mat_color().name
-                    
+
+            # KB Cabinets
+            cabinet_base_surface_pointer.category_name = "Closet Materials"
+            cabinet_upper_surface_pointer.category_name = "Closet Materials"
+            cabinet_island_surface_pointer.category_name = "Closet Materials"
+            cabinet_base_surface_pointer.item_name = mat_props.kb_base_mat
+            cabinet_upper_surface_pointer.item_name = mat_props.kb_upper_mat
+            cabinet_island_surface_pointer.item_name = mat_props.kb_island_mat
+
     def update_drawer_materials(self):
         props = self.closet_props
         box_type = props.closet_options.box_type
@@ -625,6 +636,20 @@ class SN_MAT_OT_Assign_Materials(Operator):
             drawer_front_part.edgebanding('Door_Edges',l1=True, w1=True, l2=True, w2=True)
             drawer_front_part.set_material_pointers("Door_Edge", "TopBottomEdge")
             drawer_front_part.set_material_pointers("Door_Edge", "LeftRightEdge")
+    
+    def set_glass_color(self, obj_bp):
+        cab_mat_props = self.props_closet_materials
+        glass_color_name = cab_mat_props.get_glass_color().name
+        use_unique_glass_color = obj_bp.sn_closets.use_unique_glass_color
+        assembly = sn_types.Assembly(obj_bp)
+
+        door_style = assembly.get_prompt("Door Style")
+        if door_style:
+            if "Glass" in door_style.get_value():
+                if not use_unique_glass_color:
+                    glass_color = assembly.get_prompt("Glass Color")
+                    if glass_color:
+                        glass_color.set_value(glass_color_name)
 
     def set_countertop_material(self, assembly):
         cab_mat_props = self.props_closet_materials
@@ -1347,14 +1372,17 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 self.set_material(assembly)
 
     def update_assemblies(self, context, use_black_edge, cab_mat_props):
+        
         for obj_bp in self.scene_assembly_bps(context):
             props = obj_bp.sn_closets
+            is_kb_part = obj_bp.get("IS_KB_PART")
 
-            if props.is_panel_bp or obj_bp.get("IS_BP_MITERED_PARD"):
-                assembly = sn_types.Assembly(obj_bp)
-                self.set_panel_material(assembly)
-                # Now also set from carcass prompt UI when height is changed
-                continue
+            if not is_kb_part:
+                if props.is_panel_bp or obj_bp.get("IS_BP_MITERED_PARD"):
+                    assembly = sn_types.Assembly(obj_bp)
+                    self.set_panel_material(assembly)
+                    # Now also set from carcass prompt UI when height is changed
+                    continue
 
             # Countertop edgebanding
             if props.is_countertop_bp or obj_bp.get("IS_BP_COUNTERTOP"):
@@ -1457,12 +1485,16 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
             pullout_hampers = [obj_bp.name == "Single Pull Out Canvas Hamper",
                                obj_bp.name == "Double Pull Out Canvas Hamper"]
+            
 
-            if props.is_door_bp:
+            if props.is_door_bp and not is_kb_part:
                 self.set_door_material(obj_bp)
+                door_assembly = sn_types.Assembly(obj_bp)
+                if door_assembly.get_prompt("Glass Color"):
+                    self.set_glass_color(obj_bp)
                 continue
 
-            elif any(shelves):
+            elif any(shelves) and not is_kb_part:
                 assembly = sn_types.Assembly(obj_bp)
                 self.set_shelf_material(assembly)
 
@@ -1489,7 +1521,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 self.set_cleat_material(obj_bp)
                 continue
 
-            elif obj_bp.get("IS_BACK"):
+            elif obj_bp.get("IS_BACK") and not is_kb_part:
                 self.set_back_material(obj_bp)
                 continue
 
@@ -1501,7 +1533,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 assembly = sn_types.Assembly(obj_bp)
                 self.set_drawer_part_material(assembly)
 
-            elif obj_bp.get("IS_BP_DRAWER_FRONT"):
+            elif obj_bp.get("IS_BP_DRAWER_FRONT") and not is_kb_part:
                 self.set_drawer_front_material(obj_bp)
                 continue
 

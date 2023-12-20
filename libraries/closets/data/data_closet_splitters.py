@@ -482,7 +482,6 @@ class Shoe_Shelf_Stack(Shelf_Stack):
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Shelf_Backing_Setback = self.get_prompt('Shelf Backing Setback').get_var("Shelf_Backing_Setback")
         Remove_Bottom_Shelf = self.get_prompt('Remove Bottom Shelf').get_var("Remove_Bottom_Shelf")
-        Shelf_Backing_Setback = self.get_prompt('Shelf Backing Setback').get_var("Shelf_Backing_Setback")
         Parent_Has_Bottom_KD = self.get_prompt('Parent Has Bottom KD').get_var("Parent_Has_Bottom_KD")
         Thickness = self.get_prompt('Thickness').get_var("Thickness")
         TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')

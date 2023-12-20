@@ -86,6 +86,11 @@ class Material_Pointers():
     Garage_Panel_Edges = sn_types.Material_Pointer(EXPOSED_EXTERIOR_MATERIAL)
     Garage_Interior_Edges = sn_types.Material_Pointer(EXPOSED_INTERIOR_MATERIAL)
 
+    # KB Cabinet pointers
+    Cabinet_Base_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
+    Cabinet_Upper_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
+    Cabinet_Island_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
+
     # Hood pointers
     Hood_Surface = sn_types.Material_Pointer(HOOD_MATERIAL)
 

@@ -31,20 +31,21 @@ def draw_unique_mats(layout, assembly):
         if props.use_unique_material:
             # Check if unique material selection is valid
             # if material is in current material type category
-            for obj in assembly.obj_bp.children:
-                if obj.type == 'MESH':
-                    if obj.snap.material_slots:
-                        material_name = obj.material_slots[0].name
-                        if material_name not in get_mat_colors(props.unique_mat_types):
-                            selection_valid = False
-                            for mat_type in get_mat_types():
-                                colors = get_mat_colors(mat_type)
-                                if material_name in colors:
-                                    layout.operator(
-                                        "closet_materials.sync_unique_material_selection",
-                                        text="Sync Unique Material Selection").object_name = obj.name
-                        else:
-                            selection_valid = True
+            if not props.is_countertop_bp:
+                for obj in assembly.obj_bp.children:
+                    if obj.type == 'MESH':
+                        if obj.snap.material_slots:
+                            material_name = obj.material_slots[0].name
+                            if material_name not in get_mat_colors(props.unique_mat_types):
+                                selection_valid = False
+                                for mat_type in get_mat_types():
+                                    colors = get_mat_colors(mat_type)
+                                    if material_name in colors:
+                                        layout.operator(
+                                            "closet_materials.sync_unique_material_selection",
+                                            text="Sync Unique Material Selection").object_name = obj.name
+                            else:
+                                selection_valid = True
 
             if selection_valid:
                 if "(Discontinued)" in props.unique_mat:
@@ -166,6 +167,20 @@ def draw_unique_mats(layout, assembly):
                         row.label(text="Backing Material Color:")
                         layout.prop(props, "unique_mat", text="")
 
+def draw_unique_glass(layout, assembly):
+    props = assembly.obj_bp.sn_closets
+
+    if assembly.obj_bp.get("IS_DOOR"):
+        door_style = assembly.get_prompt("Door Style")
+        if door_style:
+            if "Glass" in door_style.get_value():
+                layout.prop(props, "use_unique_glass_color")
+
+                if props.use_unique_glass_color:
+                    row = layout.row()
+                    row.label(text="Unique Glass Color:")
+                    layout.prop(props, "unique_glass_color", text="")
+
 
 class SNAP_PT_closet_options(Panel):
     bl_label = "Room Defaults"
@@ -260,6 +275,7 @@ class SNAP_PT_Closet_Properties(Panel):
                 icon='X')
         self.draw_shelf_interface(layout, assembly, context)
         draw_unique_mats(layout, assembly)
+        draw_unique_glass(layout, assembly)
 
     def draw(self, context):
         layout = self.layout

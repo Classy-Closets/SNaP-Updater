@@ -122,7 +122,27 @@ def assign_material_pointers(scene=None):
             'INVOKE_DEFAULT',
             message="\"{}\"\nThis {} color is no longer available to order!".format(color_name, type_name))
 
-    def check_discontinued_colors(mat_props):
+    def check_countertop_color(scene):
+        discontinued_ct_colors = ["London Sky"]
+
+        for obj in bpy.data.objects:
+            # Check for quartz countertop
+            if obj.get("IS_BP_ASSEMBLY") and obj.get("COUNTERTOP_QUARTZ"):
+                product_bp = sn_utils.get_bp(obj, 'PRODUCT')
+                product_ver = product_bp.get('SNAP_VERSION')
+
+                # Check if product is older than current version
+                if not product_ver or product_ver < sn_utils.get_version_str():
+                    for child in obj.children:
+                        if child.type == 'MESH' and child.visible_get():
+                            for mat_slot in child.material_slots:
+                                # Show message box if material is discontinued
+                                if mat_slot.material.name in discontinued_ct_colors:
+                                    message_box("Countertop", mat_slot.material.name)
+                                    break
+
+    def check_discontinued_colors(mat_props, scene):
+        check_countertop_color(scene)
         color_name = mat_props.materials.get_mat_type().get_mat_color().name
         is_frosted_forest = "Frosted Forest" in color_name
         is_bridal_shower = "Bridal Shower" in color_name
@@ -172,7 +192,7 @@ def assign_material_pointers(scene=None):
             elif mat_type.name == "Solid Color Matte Finish":
                 mat_props.matte_color_index = len(mat_type.colors) - 1
 
-        check_discontinued_colors(mat_props)
+        check_discontinued_colors(mat_props, scene)
 
         if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
             mat_props.door_drawer_mat_color_index = len(door_drawer_mat_type.colors) - 1

@@ -475,9 +475,22 @@ def assign_materials_from_pointers(obj):
     scene = bpy.context.scene
     mat_type = scene.closet_materials.materials.get_mat_type()
     is_upgrade_mat = mat_type.name == "Upgrade Options"
+    is_cabinet_part = None
+    is_cabinet_part = sn_utils.get_cabinet_bp(obj)
 
     # ASSIGN POINTERS TO MESH BASED ON MESH TYPE
-    if obj.snap.type_mesh == 'BUYOUT':
+
+    if is_cabinet_part:
+        # if spec_group and not unique_ct_color:
+        # print("1")
+        for index, slot in enumerate(obj.snap.material_slots):
+            # print("2")
+            if slot.pointer_name in spec_group.materials:
+                material_pointer = spec_group.materials[slot.pointer_name]
+                slot.category_name = material_pointer.category_name
+                slot.item_name = material_pointer.item_name
+                
+    elif obj.snap.type_mesh == 'BUYOUT':
         part_bp = sn_utils.get_assembly_bp(obj)
         bp_props = part_bp.sn_closets
         unique_ct_color = False
@@ -519,6 +532,10 @@ def assign_materials_from_pointers(obj):
                         pointer_name = "Countertop_Quartz_Surface"
                         unique_mat_name = bp_props.unique_countertop_standard_quartz
 
+                if 'COUNTERTOP_HPL' in part_bp:
+                    pointer_name = "Countertop_HPL_Surface"
+                    unique_mat_name = bp_props.unique_countertop_hpl
+
                 if 'COUNTERTOP_GRANITE' in part_bp:
                     pointer_name = "Countertop_Granite_Surface"
                     unique_mat_name = bp_props.unique_countertop_granite
@@ -549,70 +566,6 @@ def assign_materials_from_pointers(obj):
                     slot.category_name = category_name
                     slot.item_name = unique_mat_name
 
-        if spec_group and not unique_ct_color:
-            for index, slot in enumerate(obj.snap.material_slots):
-                if slot.pointer_name in spec_group.materials:
-                    material_pointer = spec_group.materials[slot.pointer_name]
-                    slot.category_name = material_pointer.category_name
-                    slot.item_name = material_pointer.item_name
-
-    elif obj.snap.type_mesh == 'CUTPART':
-        part_bp = sn_utils.get_assembly_bp(obj)
-        if part_bp:
-            bp_props = part_bp.sn_closets
-            unique_mel_ct = False
-
-            if 'IS_BP_COUNTERTOP' in part_bp and bp_props.use_unique_material:
-                unique_mel_ct = True
-
-                # W
-                unique_mat_name = bp_props.unique_mat
-
-                # if bp_props.unique_mat_types == 'MELAMINE':
-                #     unique_mat_name = bp_props.unique_mat_mel
-                # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
-                #     unique_mat_name = bp_props.unique_mat_tex_mel
-
-                # EnumProperty for unique material list does not support UTF delta symbol
-                # The "(Discontinued)" placeholder is used instead
-                if "(Discontinued)" in unique_mat_name:
-                    unique_mat_name = unique_mat_name.replace("(Discontinued)", "Δ")
-
-            if obj.snap.cutpart_name == 'Back':
-                if bp_props.use_unique_material:
-                    # if bp_props.unique_mat_types == 'MELAMINE':
-                    #     unique_mat_name = bp_props.unique_mat_mel
-                    # if bp_props.unique_mat_types == 'TEXTURED_MELAMINE':
-                    #     unique_mat_name = bp_props.unique_mat_tex_mel
-                    # if bp_props.unique_mat_types == 'VENEER':
-                    #     unique_mat_name = bp_props.unique_mat_veneer
-
-                    unique_mat_name = bp_props.unique_mat
-
-                    for slot in obj.snap.material_slots:
-                        slot.category_name = "Closet Materials"
-                        slot.item_name = unique_mat_name
-
-            if spec_group and not unique_mel_ct:
-                if obj.snap.cutpart_name in spec_group.cutparts:
-                    cutpart = spec_group.cutparts[obj.snap.cutpart_name]
-                    for index, slot in enumerate(obj.snap.material_slots):
-                        if slot.name == 'Core':
-                            slot.pointer_name = cutpart.core
-                        elif slot.name in {'Top', 'Exterior'}:
-                            slot.pointer_name = cutpart.top
-                        elif slot.name in {'Bottom', 'Interior'}:
-                            slot.pointer_name = cutpart.bottom
-                        elif not obj.snap.use_multiple_edgeband_pointers:
-                            if obj.snap.edgepart_name in spec_group.edgeparts:
-                                edgepart = spec_group.edgeparts[obj.snap.edgepart_name]
-                                slot.pointer_name = edgepart.material
-
-                        if slot.pointer_name in spec_group.materials:
-                            material_pointer = spec_group.materials[slot.pointer_name]
-                            slot.category_name = material_pointer.category_name
-                            slot.item_name = material_pointer.item_name
-
         elif "IS_BP_HOOD_BODY" in part_bp:
             for slot in obj.snap.material_slots:
                 slot.category_name = "Closet Materials"
@@ -625,16 +578,16 @@ def assign_materials_from_pointers(obj):
                     slot.category_name = material_pointer.category_name
                     slot.item_name = material_pointer.item_name
 
-                # elif is_upgrade_mat:
-                #     print("UPGRADE OPTIONS")
-                #     material_pointer = spec_group.materials[slot.pointer_name]
-                #     slot.item_name = material_pointer.item_name
-                # else:
-                #     print("NOT UPGRADE OPTIONS")
-                #     slot.item_name = "Winter White"
+        if spec_group and not unique_ct_color:
+            for index, slot in enumerate(obj.snap.material_slots):
+                if slot.pointer_name in spec_group.materials:
+                    material_pointer = spec_group.materials[slot.pointer_name]
+                    slot.category_name = material_pointer.category_name
+                    slot.item_name = material_pointer.item_name
 
     elif obj.snap.type_mesh == 'CUTPART':
         part_bp = sn_utils.get_assembly_bp(obj)
+
         if part_bp:
             bp_props = part_bp.sn_closets
             unique_mel_ct = False
@@ -723,7 +676,8 @@ def assign_materials_from_pointers(obj):
                             mode_input.default_value = 0
                         material.name += "_uv"
                         bpy.ops.closet_materials.assign_materials()
-                obj.material_slots[index].material = material
+                if index < len(obj.material_slots):
+                    obj.material_slots[index].material = material
 
     obj.display_type = 'TEXTURED'
 
@@ -1564,15 +1518,92 @@ def get_material_name_from_pointer(pointer, spec_group):
     return format_material_name(thickness, core_material, top_material, bottom_material)
 
 
-def get_unique_material_name(name):
+def get_unique_material_name(name, obj_bp):
     """EnumProperty for unique material list does not support UTF delta symbol
     The "(Discontinued)" placeholder is used instead
     """
+
+    if not name:
+        name = "Winter White"
+        print(f"Unique material seletion was empty for: {obj_bp.name}, setting unique material selection to: {name}")
 
     if "(Discontinued)" in name:
         return name.replace("(Discontinued)", "Δ")
     else:
         return name
+
+# -------KB MATERIAL FUNCTIONS
+def add_kb_product_material_pointers(product):
+    pointer_name = None
+    carcass = None
+
+    for child in product.obj_bp.children:
+        if child.get("IS_BP_CARCASS"):
+            carcass = child
+
+    if product.obj_bp.get('IS_BP_HOOD_CABINET'):
+        pointer_name = "Hood_Surface"
+    elif product.obj_bp.get('IS_BP_TOE_KICK_INSERT'):
+        pointer_name = "Cabinet_Base_Surface"
+    else:
+        if not carcass:
+            pointer_name = "Cabinet_Base_Surface"
+        elif carcass.get('CARCASS_TYPE') == "Island":
+            pointer_name = "Cabinet_Island_Surface"
+        elif carcass.get('CARCASS_TYPE') in ('Upper','Hood'):
+            pointer_name = "Cabinet_Upper_Surface"
+        else:
+            pointer_name = "Cabinet_Base_Surface"
+
+    product.obj_bp['MATERIAL_POINTER_NAME'] = pointer_name        
+
+    parts = sn_utils.get_assembly_bp_list(product.obj_bp, [])
+    for part in parts:
+        # if this is a drop-in toe kick assembly....
+        if part.get('IS_KB_PART') and part.get('IS_BP_TOE_KICK_INSERT'):
+            for child in part.children:
+                child.snap.cutpart_name = ""
+                for subchild in child.children:
+                    if subchild.type == 'MESH':
+                        for mat in subchild.snap.material_slots:
+                            # print("----assigning material pointer",pointer_name,"to",subchild.name)
+                            if mat.pointer_name != "Glass":
+                                mat.pointer_name = pointer_name
+        # elif this is a cutpart/prebuilt toe kick assembly...
+        elif part.get('IS_KB_PART'):
+            for child in part.children:
+                if child.type == 'MESH':
+                    child.snap.cutpart_name = ""
+                    for mat in child.snap.material_slots:
+                        # print("----assigning material pointer",pointer_name,"to",child.name)
+                        if mat.pointer_name != "Glass":
+                            mat.pointer_name = pointer_name
+
+def add_kb_insert_material_pointers(product_bp):
+    pointer_name = product_bp.get('MATERIAL_POINTER_NAME')
+    carcass = None
+
+    if not pointer_name:
+        for child in product_bp.children:
+            if child.get('IS_BP_CARCASS'):
+                carcass = child
+
+        if carcass.get('CARCASS_TYPE') == "Island":
+            pointer_name = "Cabinet_Island_Surface"
+        elif carcass.get('CARCASS_TYPE') in ('Upper','Hood'):
+            pointer_name = "Cabinet_Upper_Surface"
+        else:
+            pointer_name = "Cabinet_Base_Surface"
+
+    parts = sn_utils.get_assembly_bp_list(product_bp, [])
+    for part in parts:
+       if part.get('IS_KB_PART'):
+            for child in part.children:
+                if child.type == 'MESH' or child.type == 'CURVE':
+                    for mat in child.snap.material_slots:
+                        # print("----assigning insert material pointer",pointer_name,"to",child.name)
+                        if mat.pointer_name != "Glass":
+                            mat.pointer_name = pointer_name
 
 
 # -------LIBRARY FUNCTIONS

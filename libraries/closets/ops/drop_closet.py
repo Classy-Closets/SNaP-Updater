@@ -656,6 +656,7 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
            
             if cabinet_bp and island_bp and self.kb_is_targeting_back:
                 self.placement = 'BACK'
+                print("placement=back")
                 add_x_loc = 0
                 add_y_loc = 0
                 x_loc = self.selected_asset.obj_x.matrix_world.translation.x
@@ -663,12 +664,14 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
                 self.asset.obj_x.matrix_world.translation.x = self.selected_asset.obj_bp.matrix_world.translation.x
             elif dist_to_bp < dist_to_x:
                 self.placement = 'LEFT'
+                print("placement=left")
                 add_x_loc = 0
                 add_y_loc = 0
                 x_loc = sel_asset_loc_x - math.cos(rot) * self.asset.obj_x.location.x + add_x_loc
                 y_loc = sel_asset_loc_y - math.sin(rot) * self.asset.obj_x.location.x + add_y_loc 
             else:
                 self.placement = 'RIGHT'
+                print("placement=right")
                 x_loc = sel_asset_loc_x + math.cos(rot) * self.selected_asset.obj_x.location.x
                 y_loc = sel_asset_loc_y + math.sin(rot) * self.selected_asset.obj_x.location.x
             
@@ -799,7 +802,7 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             sn_utils.add_assembly_to_collection(self.asset.obj_bp, floor_coll, recursive=True)
             sn_utils.remove_assembly_from_collection(self.asset.obj_bp, context.scene.collection, recursive=True)
 
-        if not self.is_corner_product and not cabinet_bp and not island_bp:
+        if not self.is_corner_product and not island_bp:
             if self.placement == 'LEFT' and asset_will_fit:
                 self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
                 constraint_obj = self.asset.obj_x
@@ -809,7 +812,15 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
                 constraint.use_y = True
                 constraint.use_z = False
 
-            if self.placement == 'RIGHT':
+            if self.placement == 'RIGHT' and not cabinet_bp:
+                self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
+                constraint_obj = self.selected_asset.obj_x
+                constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
+                constraint.target = constraint_obj
+                constraint.use_x = True
+                constraint.use_y = True
+                constraint.use_z = False
+            elif self.placement == 'RIGHT' and cabinet_bp:
                 self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
                 constraint_obj = self.selected_asset.obj_x
                 constraint = self.asset.obj_bp.constraints.new('COPY_LOCATION')

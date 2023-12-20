@@ -20,6 +20,7 @@ def add_panel(assembly, island_panel=False):
     assembly.add_assembly(panel)
     panel.obj_bp['IS_BP_ASSEMBLY'] = True
     panel.obj_bp['IS_BP_PANEL'] = True
+    panel.obj_bp['IS_KB_PART'] = True
     props = panel.obj_bp.sn_closets
     props.is_panel_bp = True  # TODO: remove
     panel.set_name("Partition")
@@ -49,6 +50,7 @@ def add_kd_shelf(assembly):
     shelf = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
     assembly.add_assembly(shelf)
     shelf.obj_bp['IS_SHELF'] = True
+    shelf.obj_bp['IS_KB_PART'] = True
     props = shelf.obj_bp.sn_closets
     props.is_shelf_bp = True
     shelf.set_name("Shelf")
@@ -75,6 +77,7 @@ def add_back(assembly):
     backing.obj_bp.snap.comment_2 = "1037"
     backing.obj_bp['IS_BP_ASSEMBLY'] = True
     backing.obj_bp["IS_BACK"] = True
+    backing.obj_bp['IS_KB_PART'] = True
     props = backing.obj_bp.sn_closets
     props.is_back_bp = True
     backing.set_name("Backing")
@@ -93,6 +96,7 @@ def add_door(assembly):
     door.add_prompt("Door Swing", 'COMBOBOX', 0, ['Left','Right','Top','Bottom'])
     door.add_prompt("No Pulls", 'CHECKBOX', False)
     door.obj_bp['IS_DOOR'] = True
+    door.obj_bp['IS_KB_PART'] = True
     obj_props = door.obj_bp.sn_closets
     obj_props.is_door_bp = True  # TODO: remove
     obj_props.door_type = 'FLAT'
@@ -116,6 +120,7 @@ def add_drawer_front(assembly):
     obj_props.door_type = 'FLAT'
     obj_props.is_drawer_front_bp = True  # TODO: Remove
     front.obj_bp["IS_BP_DRAWER_FRONT"] = True
+    front.obj_bp['IS_KB_PART'] = True
     return front
 
 
@@ -125,11 +130,14 @@ def add_false_front(assembly):
     false_front.set_name("False Front")
     false_front.obj_bp['IS_BP_DRAWER_FRONT'] = True
     false_front.obj_bp['IS_BP_FALSE_FRONT'] = True
+    false_front.obj_bp['IS_KB_PART'] = True
     return false_front
 
 
 def add_filler(assembly):
-    return closet_parts.add_filler(assembly)
+    part = closet_parts.add_filler(assembly)
+    part.obj_bp['IS_KB_PART'] = True
+    return part
 
 
 def add_toe_kick(assembly):
@@ -137,6 +145,7 @@ def add_toe_kick(assembly):
     assembly.add_assembly(kick)
     kick.obj_bp.snap.comment_2 = "1034"
     kick.obj_bp['IS_BP_TOE_KICK'] = True
+    kick.obj_bp['IS_KB_PART'] = True
     props = kick.obj_bp.sn_closets
     props.is_toe_kick_bp = True
     kick.set_name("Toe Kick")
@@ -149,6 +158,7 @@ def add_drawer_partition(assembly):
     assembly.add_assembly(part)
     part.obj_bp['IS_BP_DRAWER_PART'] = True
     part.obj_bp['DRILL_22MM_FROM_TOP'] = True
+    part.obj_bp['IS_KB_PART'] = True
     # part.obj_bp.snap.comment_2 = "1034"
     # props = part.obj_bp.sn_closets
     # props.is_toe_kick_bp = True

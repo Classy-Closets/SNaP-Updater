@@ -1328,11 +1328,13 @@ def add_wall_bed_valance(assembly):
     valance.cutpart("Shelf")
     return valance
 
+
 def add_wall_bed_decoration(assembly):
-    decoration = sn_types.Part(assembly.add_assembly_from_file(PART_WITH_FRONT_EDGEBANDING))
+    decoration = sn_types.Part(assembly.add_assembly_from_file(FACE))
     assembly.add_assembly(decoration)
     decoration.obj_bp['IS_BP_WALL_BED_DECORATION'] = True
+    decoration.obj_bp.sn_closets.is_drawer_front_bp = True
     decoration.set_name("Wall Bed Decoration")
-    decoration.cutpart("Shelf")
-    decoration.edgebanding('Edge', l1=True, l2=True, w1=True, w2=True)
+    decoration.cutpart("Slab_Door")
+    decoration.edgebanding('Door_Edges', l1=True, l2=True, w1=True, w2=True)
     return decoration

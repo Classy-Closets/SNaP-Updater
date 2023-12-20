@@ -578,6 +578,27 @@ class DoorDrawerMaterialType(PropertyGroup):
         if mat_type.name == "Oversized Material":
             scene_props.dd_oversized_color_index = index
 
+    def get_color_index(self):
+        scene_props = bpy.context.scene.closet_materials
+        mat_type = scene_props.door_drawer_materials.get_mat_type()
+
+        if mat_type.name == "Solid Color Smooth Finish":
+            return scene_props.dd_solid_color_index
+        if mat_type.name == "Grain Pattern Smooth Finish":
+            return scene_props.dd_grain_color_index
+        if mat_type.name == "Solid Color Textured Finish":
+            return scene_props.dd_solid_tex_color_index
+        if mat_type.name == "Grain Pattern Textured Finish":
+            return scene_props.dd_grain_tex_color_index
+        if mat_type.name == "Linen Pattern Linen Finish":
+            return scene_props.dd_linen_color_index
+        if mat_type.name == "Solid Color Matte Finish":
+            return scene_props.dd_matte_color_index
+        if mat_type.name == "Garage Material":
+            return scene_props.dd_garage_color_index
+        if mat_type.name == "Oversized Material":
+            return scene_props.dd_oversized_color_index
+
     def get_mat_color(self):
         scene_props = bpy.context.scene.closet_materials
         if self.name == "Upgrade Options":

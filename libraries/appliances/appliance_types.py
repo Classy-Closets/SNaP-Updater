@@ -331,12 +331,10 @@ class Countertop_Appliance(sn_types.Assembly):
         part.assign_material("Chrome", MATERIAL_FILE, "Chrome")
         part.assign_material("Stainless Steel", MATERIAL_FILE, "Stainless Steel")
         part.assign_material("Black Anodized Metal", MATERIAL_FILE, "Black Anodized Metal")
-        print("1")
         self.add_prompt("Left Offset", 'DISTANCE', sn_unit.inch(2))
         self.add_prompt("Right Offset", 'DISTANCE', sn_unit.inch(2))
         self.add_prompt("Front Offset", 'DISTANCE', sn_unit.inch(2))
         self.add_prompt("Back Offset", 'DISTANCE', sn_unit.inch(2))
-        print("2")
         self.update()
 
 

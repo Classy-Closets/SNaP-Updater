@@ -9,6 +9,68 @@ from ..common import common_prompts
 from ..common import common_lists
 
 
+def get_glass_shelf_backing_setback(insert, product):
+    """
+    For older versions of Glass_Shelves < 2.7.3.
+    These are missing the "Shelf Backing Setback" prompt and formulas
+    needed to auto-calculate the backing setback for the shelf depth.
+    """
+    opening = insert.obj_bp.sn_closets.opening_name
+
+    if not insert.get_prompt("Shelf Backing Setback"):
+        for child in product.obj_bp.children:
+            if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
+                if child.sn_closets.opening_name == opening:
+                    back_assembly = sn_types.Assembly(child)
+                    B_Sec = back_assembly.get_prompt('Backing Sections')
+                    TOP = back_assembly.get_prompt("Top Section Backing")
+                    CTR = back_assembly.get_prompt("Center Section Backing")
+                    BTM = back_assembly.get_prompt("Bottom Section Backing")
+                    SB = back_assembly.get_prompt("Single Back")
+                    TBT = product.get_prompt('Opening ' + str(opening) + ' Top Backing Thickness')
+                    CBT = product.get_prompt('Opening ' + str(opening) + ' Center Backing Thickness')
+                    BBT = product.get_prompt('Opening ' + str(opening) + ' Bottom Backing Thickness')
+                    prompts = [B_Sec, TOP, CTR, BTM, SB, TBT, CBT, BBT]
+                    setback = 0
+
+                    if all(prompts):
+                        if B_Sec.get_value() == 1:
+                            if CTR.get_value():
+                                if CBT.get_value() == 1:
+                                    setback = sn_unit.inch(0.75)
+                                else:
+                                    setback = sn_unit.inch(0.25)
+                            return setback
+
+                        if B_Sec.get_value() == 2:
+                            single_back = SB.get_value() and TOP.get_value() and BTM.get_value()
+
+                            if single_back:
+                                if CBT.get_value() == 1:
+                                    setback = sn_unit.inch(0.75)
+                                else:
+                                    setback = sn_unit.inch(0.25)
+                            elif TOP.get_value():
+                                if TBT.get_value() == 1:
+                                    setback = sn_unit.inch(0.75)
+                                else:
+                                    setback = sn_unit.inch(0.25)
+                            else:
+                                return 0
+                            return setback
+
+                        if B_Sec.get_value() == 3:
+                            full_back = SB.get_value() and TOP.get_value() and CTR.get_value() and BTM.get_value()
+                            top_ctr_back = SB.get_value() and TOP.get_value() and CTR.get_value()
+
+                            if full_back or top_ctr_back:
+                                if CBT.get_value() == 1:
+                                    setback = sn_unit.inch(0.75)
+                                else:
+                                    setback = sn_unit.inch(0.25)
+                            return setback
+
+
 class Hanging_Rods_with_Shelves(sn_types.Assembly):
 
     type_assembly = "INSERT"
@@ -530,6 +592,8 @@ class Glass_Shelves(sn_types.Assembly):
 
     def add_adj_prompts(self):
         self.add_prompt("Shelf Qty", 'QUANTITY', 5)
+        self.add_prompt("Shelf Backing Setback", 'DISTANCE', 0)
+        self.add_prompt("Adj Shelf Setback", 'DISTANCE', sn_unit.inch(0.25))
 
     def add_glass_thickness_prompts(self):
         glass_thickness = self.add_prompt("Glass Shelf Thickness", 'COMBOBOX', 0, ['1/4"', '3/8"'])
@@ -549,13 +613,17 @@ class Glass_Shelves(sn_types.Assembly):
         Depth = self.obj_y.snap.get_var('location.y', 'Depth')
         Shelf_Qty = self.get_prompt("Shelf Qty").get_var()
         Shelf_Thickness = self.shelf_thickness_ppt_obj.snap.get_prompt("Shelf Thickness").get_var()
+        Shelf_Backing_Setback = self.get_prompt('Shelf Backing Setback').get_var("Shelf_Backing_Setback")
+        Adj_Shelf_Setback = self.get_prompt('Adj Shelf Setback').get_var('Adj_Shelf_Setback')
 
         adj_shelf = common_parts.add_glass_shelf(self)
-        adj_shelf.loc_y('Depth', [Depth])
+        # adj_shelf.loc_y('Depth', [Depth])
+        adj_shelf.loc_y('Depth-Shelf_Backing_Setback', [Depth, Shelf_Backing_Setback])
         adj_shelf.loc_z('((Height-((Shelf_Thickness)*Shelf_Qty))/(Shelf_Qty+1))',
                         [Height, Shelf_Thickness, Shelf_Qty])
         adj_shelf.dim_x('Width', [Width])
-        adj_shelf.dim_y('-Depth+0.00635', [Depth])
+        # adj_shelf.dim_y('-Depth+0.00635', [Depth])
+        adj_shelf.dim_y('-Depth+Adj_Shelf_Setback+Shelf_Backing_Setback', [Depth, Adj_Shelf_Setback, Shelf_Backing_Setback])
         adj_shelf.dim_z('-Shelf_Thickness', [Shelf_Thickness])
         adj_shelf.get_prompt('Hide').set_formula('IF(Shelf_Qty==0,True,False)', [Shelf_Qty])
         adj_shelf.get_prompt('Z Quantity').set_formula('Shelf_Qty', [Shelf_Qty])
@@ -566,6 +634,7 @@ class Glass_Shelves(sn_types.Assembly):
     def update(self):
         self.obj_bp["ID_PROMPT"] = self.id_prompt
         self.obj_y['IS_MIRROR'] = True
+        self.obj_bp["IS_BP_ROD_AND_SHELF"] = True
         self.obj_bp.snap.export_as_subassembly = True
         self.obj_bp.snap.type_group = self.type_assembly
         self.obj_bp.snap.placement_type = self.placement_type
@@ -1050,17 +1119,112 @@ class OPS_Rods_And_Shelves_Drop(Operator, PlaceClosetInsert):
     def execute(self, context):
         return super().execute(context)
 
-    def position_asset(self, context):
-        super().position_asset(context)
-        edp = self.insert.get_prompt("Extra Deep Pard")
-        abdss = self.insert.get_prompt("Add Bottom Deep Shelf Setback")
-        adrs = self.insert.get_prompt("Add Deep Rod Setback")
-        ihd = self.insert.get_prompt("Is Hang Double")
+    def set_shelf_backing_setback(self, context):
+        parent_obj = self.insert.obj_bp.parent
+        parent_assembly = sn_types.Assembly(parent_obj)
+        opening = self.insert.obj_bp.sn_closets.opening_name
+        shelf_backing_setback_ppt = self.insert.get_prompt("Shelf Backing Setback")
 
-        if self.insert.obj_y.location.y >= edp.get_value():
-            if ihd and ihd.get_value():
-                abdss.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
-            adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
+        if shelf_backing_setback_ppt:
+            for child in parent_assembly.obj_bp.children:
+                if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
+                    if child.sn_closets.opening_name == opening:
+                        # Upadate for backing configurations
+                        back_assembly = sn_types.Assembly(child)
+                        B_Sec = back_assembly.get_prompt('Backing Sections')
+                        TOP = back_assembly.get_prompt("Top Section Backing")
+                        CTR = back_assembly.get_prompt("Center Section Backing")
+                        BTM = back_assembly.get_prompt("Bottom Section Backing")
+
+                        SB = back_assembly.get_prompt("Single Back")
+                        TBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Top Backing Thickness')
+                        CBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Center Backing Thickness')
+                        BBT = parent_assembly.get_prompt('Opening ' + str(opening) + ' Bottom Backing Thickness')
+                        prompts = [B_Sec, TOP, CTR, BTM, SB, TBT, CBT, BBT]
+
+                        if all(prompts):
+                            if B_Sec.get_value() == 1:
+                                if CTR.get_value():
+                                    if CBT.get_value() == 1:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.75))
+                                    else:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.25))
+                                else:
+                                    shelf_backing_setback_ppt.set_value(sn_unit.inch(0))
+
+                            if B_Sec.get_value() == 2:
+                                single_back = SB.get_value() and TOP.get_value() and BTM.get_value()
+
+                                if single_back:
+                                    if CBT.get_value() == 1:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.75))
+                                    else:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.25))
+                                elif TOP.get_value():
+                                    if TBT.get_value() == 1:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.75))
+                                    else:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.25))
+                                else:
+                                    shelf_backing_setback_ppt.set_value(sn_unit.inch(0))
+
+                            if B_Sec.get_value() == 3:
+                                full_back = SB.get_value() and TOP.get_value() and CTR.get_value() and BTM.get_value()
+                                top_ctr_back = SB.get_value() and TOP.get_value() and CTR.get_value()
+
+                                if full_back or top_ctr_back:
+                                    if CBT.get_value() == 1:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.75))
+                                    else:
+                                        shelf_backing_setback_ppt.set_value(sn_unit.inch(0.25))
+                                else:
+                                    shelf_backing_setback_ppt.set_value(sn_unit.inch(0))
+
+    def modal(self, context, event):
+        self.run_asset_calculators()
+        bpy.ops.object.select_all(action='DESELECT')
+        context.area.tag_redraw()
+        self.reset_selection()
+
+        if len(self.openings) == 0:
+            bpy.ops.snap.message_box(
+                'INVOKE_DEFAULT', message="There are no openings in this scene.")
+            context.area.header_text_set(None)
+            return self.cancel_drop(context)
+
+        self.selected_point, self.selected_obj, ignore = sn_utils.get_selection_point(
+            context,
+            event,
+            objects=self.include_objects,
+            exclude_objects=self.exclude_objects)
+
+        super().position_asset(context)
+
+        if self.event_is_place_first_point(event) and self.selected_opening:
+            self.confirm_placement(context)
+            self.set_shelf_backing_setback(context)
+
+            edp = self.insert.get_prompt("Extra Deep Pard")
+            abdss = self.insert.get_prompt("Add Bottom Deep Shelf Setback")
+            adrs = self.insert.get_prompt("Add Deep Rod Setback")
+            ihd = self.insert.get_prompt("Is Hang Double")
+
+            if all([edp, abdss, adrs, ihd]):
+                if self.insert.obj_y.location.y >= edp.get_value():
+                    if ihd and ihd.get_value():
+                        abdss.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
+                    adrs.set_value(self.insert.obj_y.location.y - sn_unit.inch(12))
+
+            return self.finish(context)
+
+        if self.event_is_cancel_command(event):
+            return self.cancel_drop(context)
+
+        if self.event_is_pass_through(event):
+            return {'PASS_THROUGH'}
+
+        return {'RUNNING_MODAL'}
+
 
 bpy.utils.register_class(OPS_Rods_And_Shelves_Drop)
 bpy.utils.register_class(PROMPTS_Shelf_Only_Prompts)

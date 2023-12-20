@@ -15,6 +15,7 @@ from snap import sn_unit
 from snap import sn_xml
 from snap import sn_db
 from snap.libraries.closets.data import data_drawers
+from snap.libraries.closets.data import data_rods_and_shelves
 from ..libraries.closets.common import common_lists
 from snap.libraries.closets import closet_paths
 
@@ -1142,6 +1143,54 @@ class OPS_Export_XML(Operator):
         if assembly.obj_bp.get("IS_BP_FILE_RAIL"):
             if sn_unit.meter_to_inch(width) == 0.5:
                 width = sn_unit.inch(9)
+
+        # Get backing setback for Glass_Shelves < v2.7.3.
+        if sn_utils.get_version_str() > sn_utils.get_room_version():
+            if assembly.obj_bp.get("IS_GLASS_SHELF"):
+                product_bp = sn_utils.get_bp(assembly.obj_bp, 'PRODUCT')
+                insert_bp = sn_utils.get_bp(assembly.obj_bp, 'INSERT')
+
+                insert_version = insert_bp.get('SNAP_VERSION')
+                if insert_version < sn_utils.get_version_str():
+                    product = sn_types.Assembly(product_bp)
+                    insert = sn_types.Assembly(insert_bp)
+
+                    if "Shelves Glass" in insert.obj_bp.name:
+                        backing_setback = data_rods_and_shelves.get_glass_shelf_backing_setback(insert, product)
+
+                        if backing_setback > 0:
+                            width -= backing_setback
+                    
+                    if insert.obj_bp.get("IS_BP_DOOR_INSERT") or insert.obj_bp.sn_closets.is_door_insert_bp:
+                        back_assembly = None
+                        opening = insert.obj_bp.sn_closets.opening_name
+
+                        for child in product.obj_bp.children:
+                            if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
+                                if child.sn_closets.opening_name == opening:
+                                    # Upadate for backing configurations
+                                    back_assembly = sn_types.Assembly(child)
+
+                            if back_assembly:
+                                Shelf_Backing_Setback = insert.get_prompt("Shelf Backing Setback")
+                                TOP = back_assembly.get_prompt("Top Section Backing")
+                                BTM = back_assembly.get_prompt("Bottom Section Backing")
+                                SB = back_assembly.get_prompt("Single Back")
+                                CBT = product.get_prompt('Opening ' + str(opening) + ' Center Backing Thickness')
+                                single_back = SB.get_value() and TOP.get_value() and BTM.get_value()
+                                use_bottom_kd_setback = insert.get_prompt("Use Bottom KD Setback")
+                                if use_bottom_kd_setback:
+                                    use_bottom_kd_setback.set_value(single_back)
+                                if single_back or TOP.get_value():
+                                    if CBT.get_value() == 1:
+                                        Shelf_Backing_Setback.set_value(sn_unit.inch(0.75))
+                                    else:
+                                        Shelf_Backing_Setback.set_value(sn_unit.inch(0.25))
+                                else:
+                                    Shelf_Backing_Setback.set_value(sn_unit.inch(0))
+                        
+                        bpy.context.view_layer.update()
+                        width = math.fabs(assembly.obj_y.location.y)
 
         return self.distance(width)
     
@@ -3435,6 +3484,9 @@ class OPS_Export_XML(Operator):
         obj_props = assembly.obj_bp.sn_closets
         closet_materials = bpy.context.scene.closet_materials
 
+        if part_name == "Wall Bed Backing":
+            assembly.obj_bp.sn_closets.is_door_bp = True
+
         mat_sku = closet_materials.get_mat_sku(obj, assembly, part_name)
         mat_inventory_name = closet_materials.get_mat_inventory_name(sku=mat_sku, display_name=False)
         
@@ -4877,13 +4929,17 @@ class OPS_Export_XML(Operator):
                             if(abs(assembly.obj_x.location.x) > abs(assembly.obj_y.location.y)):
                                 edge_1 = "S1"
                                 edge_3 = "S2"
+                                edge_1_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
+                                edge_3_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
+                                edge_1_color_name = secondary_edge_color_name
+                                edge_3_color_name = secondary_edge_color_name
                             else:
-                                edge_1 = "L1"
-                                edge_3 = "L2"
-                            edge_1_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
-                            edge_3_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
-                            edge_1_color_name = secondary_edge_color_name
-                            edge_3_color_name = secondary_edge_color_name
+                                edge_2 = "L1"
+                                edge_4 = "L2"
+                                edge_2_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
+                                edge_4_sku = closet_materials.get_secondary_edge_sku(obj, assembly, part_name)
+                                edge_2_color_name = secondary_edge_color_name
+                                edge_4_color_name = secondary_edge_color_name
 
             if assembly.obj_bp.get('IS_BP_SLANTED_SHELF'):
                 parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
@@ -5650,6 +5706,9 @@ class OPS_Export_XML(Operator):
                     door_style_ppt = assembly.get_prompt("Door Style")
                     if door_style_ppt:
                         if "Glass" in door_style_ppt.get_value():
+                            glass_color_ppt = assembly.get_prompt("Glass Color")
+                            if glass_color_ppt:
+                                glass_color = glass_color_ppt.get_value()
                             door_glass_sku = closet_materials.get_glass_sku(glass_color)
 
                 door_lbl = [

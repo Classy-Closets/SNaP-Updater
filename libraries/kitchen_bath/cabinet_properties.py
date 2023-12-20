@@ -249,8 +249,13 @@ class PROPERTIES_Cabinet_Sizes(bpy.types.PropertyGroup):
                                                 default=sn_unit.inch(24.0),
                                                 unit='LENGTH')
 
-    island_chase_depth: bpy.props.FloatProperty(name="Island Chase Depth",
-                                                description="Default chase depth for island cabinets",
+    island_single_chase_depth: bpy.props.FloatProperty(name="Island Single Chase Depth",
+                                                description="Default chase depth for single-sided island cabinets",
+                                                default=sn_unit.inch(0.0),
+                                                unit='LENGTH')
+    
+    island_double_chase_depth: bpy.props.FloatProperty(name="Island Double Chase Depth",
+                                                description="Default chase depth for double-sided island cabinets",
                                                 default=sn_unit.inch(6.0),
                                                 unit='LENGTH')
     

@@ -229,8 +229,8 @@ def get_glass_inset_size(length, width, center_rail, style_name):
 
             # Tall doors with center rail - Minus an additional 1.25" divided by 2
             if center_rail:
-                center_rail_adjustment = 1.25 / 2
-                adjusted_length -= center_rail_adjustment
+                center_rail_adjustment = 1.25
+                adjusted_length = (adjusted_length - center_rail_adjustment) / 2
 
             print(
                 style_name,
@@ -238,7 +238,7 @@ def get_glass_inset_size(length, width, center_rail, style_name):
                 str(adjustment['width']) + '",',
                 "door length minus",
                 str(adjustment['length']) + '"',
-                "minus an additional " + str(center_rail_adjustment) + '" for center rail' if center_rail else "")
+                "minus an additional " + str(center_rail_adjustment) + '" and divided in 2 for center rail' if center_rail else "")
 
             adjusted_length =  round(adjusted_length, 2)
             adjusted_width = round(adjusted_width, 2)
@@ -249,7 +249,7 @@ def get_glass_inset_size(length, width, center_rail, style_name):
     if center_rail:
         adjusted_length = round((float(length) - 6.75) / 2, 2)
     else:
-        adjusted_length = round((float(length) - 4.75) / 2, 2)
+        adjusted_length = float(length) - 4.75
 
     adjusted_width = round(float(width) - 4.75, 2)
 
@@ -1182,10 +1182,9 @@ def generate_retail_parts_list():
                         retail_price = (float(length) / 12) * float(17.00)
                         price = retail_price
                         sheet1["P" + str((i + 1) + 1)] = price
-
                     else:
                         price = (float(retail_price) * int(quantity)) * get_square_footage(float(length), float(width))
-                        labor = float(r_labor)
+                        labor = float(r_labor) * int(quantity)
                         sheet1["P" + str((i + 1) + 1)] = price + labor
 
                     if len(EDGEBANDING) > 0:
@@ -1493,12 +1492,13 @@ def generate_retail_parts_list():
         sheet4.column_dimensions['N'].hidden = True
         set_column_width(sheet4)
 
-
     if len(GLASS_PARTS_LIST) != 0:
         sheet5 = wb.create_sheet()
         sheet5.title = "Glass"
-        sheet5.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
-                        "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
+        sheet5.append([
+            "ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID",
+            "MATERIAL", "PART_NAME", "QUANTITY", "PART_DIMENSIONS", "THICKNESS",
+            "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
         for i in range(len(GLASS_PARTS_LIST)):
             room_name = GLASS_PARTS_LIST[i][0]
@@ -1510,46 +1510,61 @@ def generate_retail_parts_list():
             part_name = GLASS_PARTS_LIST[i][6]
             quantity = GLASS_PARTS_LIST[i][7]
             length = GLASS_PARTS_LIST[i][8]
-            width = GLASS_PARTS_LIST[i][9]    
+            width = GLASS_PARTS_LIST[i][9]
             thickness = GLASS_PARTS_LIST[i][10]
             retail_price = GLASS_PARTS_LIST[i][11]
             r_labor = GLASS_PARTS_LIST[i][12]
 
-            sheet5["A" + str((i + 1) + 1)] = room_name                                          #ROOM_NAME
-            sheet5["B" + str((i + 1) + 1)] = sku_num                                          #SKU_NUMBER 
-            sheet5["C" + str((i + 1) + 1)] = vendor_name                                          #VENDOR_NAME
-            sheet5["D" + str((i + 1) + 1)] = vendor_item                                          #VENDOR_ITEM
-            sheet5["E" + str((i + 1) + 1)] = part_id                                          #PART LABELID
-            sheet5["F" + str((i + 1) + 1)] = material                                          #MATERIAL
-            sheet5["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
-            sheet5["H" + str((i + 1) + 1)] = int(quantity)                                         #QUANTITY
+            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
+            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                quantity = int(quantity) * 2
+
+            if sku_num == "GL-0000010":
+                thickness = 0.125
+                quantity = int(quantity) * 2
+
+            sheet5["A" + str((i + 1) + 1)] = room_name        # ROOM_NAME
+            sheet5["B" + str((i + 1) + 1)] = sku_num          # SKU_NUMBER
+            sheet5["C" + str((i + 1) + 1)] = vendor_name      # VENDOR_NAME
+            sheet5["D" + str((i + 1) + 1)] = vendor_item      # VENDOR_ITEM
+            sheet5["E" + str((i + 1) + 1)] = part_id          # PART LABELID
+            sheet5["F" + str((i + 1) + 1)] = material         # MATERIAL
+            sheet5["G" + str((i + 1) + 1)] = part_name        # PART_NAME
+            sheet5["H" + str((i + 1) + 1)] = int(quantity)    # QUANTITY
 
             # Normalize indices for readability
             row_idx = i + 2  # (i + 1) + 1
             col_i = "I" + str(row_idx)
             col_j = "J" + str(row_idx)
             col_k = "K" + str(row_idx)
-            
+
             # Check for glass part
-            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
-            style_name = GLASS_PARTS_LIST[i][16]
+            is_glass_shelf = 'Glass Shelf' in part_name
+            is_glass = 'Glass' in part_name
+            square_footage = None
 
-            # If door has center rail
-            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
-                adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
-                square_footage = get_square_footage(adjusted_length, adjusted_width) * int(quantity)
-            else:
-                adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
-                square_footage = None if not is_glass else get_square_footage(adjusted_length, adjusted_width) * int(quantity)
+            if is_glass_shelf:
+                sheet5[col_i] = f"{length} x {width}"  # PART_DIMENSIONS
+            elif is_glass:
+                style_name = GLASS_PARTS_LIST[i][16]
 
-            # Write to sheet
-            sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+                # If door has center rail
+                if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                    adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
+                    square_footage = get_square_footage(adjusted_length, adjusted_width)
+                else:
+                    adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
+                    square_footage = get_square_footage(adjusted_length, adjusted_width)
+
+                # Write to sheet
+                sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+
             sheet5[col_j] = thickness  # THICKNESS
             if square_footage is not None:
                 sheet5[col_k] = square_footage
-
             else:
-                sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length),float(width)) * int(quantity)
+                sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length), float(width))
+
             sheet5["L" + str((i + 1) + 1)] = get_linear_footage(float(length))
             sheet5["M" + str((i + 1) + 1)] = float(retail_price)                                  #PART_PRICE
             sheet5["M" + str((i + 1) + 1)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
@@ -1705,7 +1720,16 @@ def generate_retail_parts_list():
         engine='python'
     )
 
-    sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
+    # sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
+
+    # Calculate and add column for total square footage
+    df_materials['SQUARE_FT_TOTAL'] = df_materials['QUANTITY'] * df_materials['SQUARE_FT']
+
+    # Aggregate square footage total
+    sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT_TOTAL'], aggfunc=numpy.sum)
+
+    # Rename SQUARE_FT_TOTAL column
+    sf_materials = sf_materials.rename(columns={'SQUARE_FT_TOTAL': 'SQUARE_FT'})    
 
     df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
     sf_glass = pandas.pivot_table(df_glass, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
@@ -1735,31 +1759,45 @@ def generate_retail_parts_list():
             ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
             ws["D" + str(sf_row_start+3)].border = thin_border
             ws["E" + str(sf_row_start+3)] = project_data
+
         else:
             if not sf_materials.empty:
+                # Calculate total square footage per room
+                room_materials = df_materials.groupby('ROOM_NAME').apply(calc_room_total_sq_ft).reset_index(name='SQUARE_FT')
+
                 sf_materials.to_excel(writer, 'Retail Pricing Summary', startcol=3, startrow=2)
                 sf_row_start = (sf_materials.shape[0] + 1) + 4
-                room_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME'], values=['SQUARE_FT'], aggfunc=numpy.sum)
-                room_materials.to_excel(writer, 'Retail Pricing Summary', startcol=3, startrow=sf_row_start)
+
+                # Write without the default index column
+                room_materials.to_excel(writer, 'Retail Pricing Summary', startcol=3, startrow=sf_row_start, index=False)
+
+                # Apply borders to room names column
+                for i in range(len(room_materials) + 1):
+                    ws = writer.sheets["Retail Pricing Summary"]
+                    ws["D" + str(sf_row_start + i + 1)].border = thin_border
+
                 sf_row_start = (sf_materials.shape[0] + 1) + (room_materials.shape[0] + 1) + 4
-                project_materials = df_materials['SQUARE_FT'].sum()
+
+                # Calculate total square footage for project
+                total_sq_ft = (df_materials['QUANTITY'] * df_materials['SQUARE_FT']).sum()
                 ws = writer.sheets["Retail Pricing Summary"]
-                ws["D" + str(sf_row_start+3)] = "Project Material SF Total"
-                ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
-                ws["D" + str(sf_row_start+3)].border = thin_border
-                ws["E" + str(sf_row_start+3)] = project_materials
+                ws["D" + str(sf_row_start + 3)] = "Project Material SF Total"
+                ws["D" + str(sf_row_start + 3)].font = openpyxl.styles.Font(bold=True)
+                ws["D" + str(sf_row_start + 3)].border = thin_border
+                ws["E" + str(sf_row_start + 3)] = total_sq_ft
+
             if not sf_glass.empty:
                 sf_glass.to_excel(writer, 'Retail Pricing Summary', startcol=3, startrow=2)
                 sf_row_start = (sf_glass.shape[0] + 1) + 4
                 room_glass = pandas.pivot_table(df_glass, index=['ROOM_NAME'], values=['SQUARE_FT'], aggfunc=numpy.sum)
                 room_glass.to_excel(writer, 'Retail Pricing Summary', startcol=3, startrow=sf_row_start)
                 sf_row_start = (sf_glass.shape[0] + 1) + (room_glass.shape[0] + 1) + 4
-                project_glass = df_glass['SQUARE_FT'].sum()
+                glass_total_sq_ft = (df_glass['QUANTITY'] * df_glass['SQUARE_FT']).sum()
                 ws = writer.sheets["Retail Pricing Summary"]
                 ws["D" + str(sf_row_start+3)] = "Project Glass SF Total"
                 ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+3)].border = thin_border
-                ws["E" + str(sf_row_start+3)] = project_glass
+                ws["E" + str(sf_row_start+3)] = glass_total_sq_ft
                 
         set_column_width(writer.sheets['Retail Pricing Summary'])
 
@@ -1878,7 +1916,7 @@ def generate_franchise_parts_list():
                         sqft = get_square_footage(float(length), float(width))
                         sqft_price = float(franchise_price) * sqft
                         price = sqft_price * float(quantity)
-                        labor = float(f_labor)
+                        labor = float(f_labor) * int(quantity)
                         sheet1["P" + str((i + 1) + 1)] = price + labor
 
                     if len(EDGEBANDING) > 0:
@@ -2190,8 +2228,10 @@ def generate_franchise_parts_list():
     if len(GLASS_PARTS_LIST) != 0:
         sheet5 = wb.create_sheet()
         sheet5.title = "Glass"
-        sheet5.append(["ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID", "MATERIAL", "PART_NAME", "QUANTITY",
-                        "PART_DIMENSIONS", "THICKNESS", "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
+        sheet5.append([
+            "ROOM_NAME", "SKU_NUMBER", "VENDOR_NAME", "VENDOR_ITEM", "PART LABELID",
+            "MATERIAL", "PART_NAME", "QUANTITY", "PART_DIMENSIONS", "THICKNESS",
+            "SQUARE_FT", "LINEAR_FT", "PART_PRICE", "LABOR", "TOTAL_PRICE"])
 
         for i in range(len(GLASS_PARTS_LIST)):
             room_name = GLASS_PARTS_LIST[i][0]
@@ -2203,46 +2243,61 @@ def generate_franchise_parts_list():
             part_name = GLASS_PARTS_LIST[i][6]
             quantity = GLASS_PARTS_LIST[i][7]
             length = GLASS_PARTS_LIST[i][8]
-            width = GLASS_PARTS_LIST[i][9]    
+            width = GLASS_PARTS_LIST[i][9]
             thickness = GLASS_PARTS_LIST[i][10]
             franchise_price = GLASS_PARTS_LIST[i][14]
             f_labor = GLASS_PARTS_LIST[i][13]
 
-            sheet5["A" + str((i + 1) + 1)] = room_name                                          #ROOM_NAME
-            sheet5["B" + str((i + 1) + 1)] = sku_num                                          #SKU_NUMBER 
-            sheet5["C" + str((i + 1) + 1)] = vendor_name                                          #VENDOR_NAME
-            sheet5["D" + str((i + 1) + 1)] = vendor_item                                          #VENDOR_ITEM
-            sheet5["E" + str((i + 1) + 1)] = part_id                                          #PART LABELID
-            sheet5["F" + str((i + 1) + 1)] = material                                          #MATERIAL
-            sheet5["G" + str((i + 1) + 1)] = part_name                                          #PART_NAME    
-            sheet5["H" + str((i + 1) + 1)] = int(quantity)                                     #QUANTITY
+            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
+            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                quantity = int(quantity) * 2
+
+            if sku_num == "GL-0000010":
+                thickness = 0.125
+                quantity = int(quantity) * 2
+
+            sheet5["A" + str((i + 1) + 1)] = room_name        # ROOM_NAME
+            sheet5["B" + str((i + 1) + 1)] = sku_num          # SKU_NUMBER
+            sheet5["C" + str((i + 1) + 1)] = vendor_name      # VENDOR_NAME
+            sheet5["D" + str((i + 1) + 1)] = vendor_item      # VENDOR_ITEM
+            sheet5["E" + str((i + 1) + 1)] = part_id          # PART LABELID
+            sheet5["F" + str((i + 1) + 1)] = material         # MATERIAL
+            sheet5["G" + str((i + 1) + 1)] = part_name        # PART_NAME
+            sheet5["H" + str((i + 1) + 1)] = int(quantity)    # QUANTITY
 
             # Normalize indices for readability
             row_idx = i + 2  # (i + 1) + 1
             col_i = "I" + str(row_idx)
             col_j = "J" + str(row_idx)
             col_k = "K" + str(row_idx)
-            
+
             # Check for glass part
-            is_glass = 'Glass' in part_name and 'Glass Shelf' not in part_name
-            style_name = GLASS_PARTS_LIST[i][16]
+            is_glass_shelf = 'Glass Shelf' in part_name
+            is_glass = 'Glass' in part_name
+            square_footage = None
 
-            # If door has center rail
-            if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
-                adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
-                square_footage = get_square_footage(adjusted_length, adjusted_width) * int(quantity)
-            else:
-                adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
-                square_footage = None if not is_glass else get_square_footage(adjusted_length, adjusted_width) * int(quantity)
+            if is_glass_shelf:
+                sheet5[col_i] = f"{length} x {width}"  # PART_DIMENSIONS
+            elif is_glass:
+                style_name = GLASS_PARTS_LIST[i][16]
 
-            # Write to sheet
-            sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+                # If door has center rail
+                if is_glass and GLASS_PARTS_LIST[i][15] == 'Yes':
+                    adjusted_length, adjusted_width = get_glass_inset_size(length, width, True, style_name)
+                    square_footage = get_square_footage(adjusted_length, adjusted_width)
+                else:
+                    adjusted_length, adjusted_width = get_glass_inset_size(length, width, False, style_name)
+                    square_footage = None if not is_glass else get_square_footage(adjusted_length, adjusted_width)
+
+                # Write to sheet
+                sheet5[col_i] = f"{adjusted_length} x {adjusted_width}"  # PART_DIMENSIONS
+
             sheet5[col_j] = thickness  # THICKNESS
             if square_footage is not None:
                 sheet5[col_k] = square_footage
-                        
             else:
-                sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length),float(width)) * int(quantity)
+                sheet5["K" + str((i + 1) + 1)] = get_square_footage(float(length),float(width))
+
             sheet5["L" + str((i + 1) + 1)] = get_linear_footage(float(length))
             sheet5["M" + str((i + 1) + 1)] = float(franchise_price)                                  #PART_PRICE
             sheet5["M" + str((i + 1) + 1)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
@@ -2386,8 +2441,15 @@ def generate_franchise_parts_list():
         engine='python'
     )
 
-    sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
-    
+    # Calculate and add column for total square footage
+    df_materials['SQUARE_FT_TOTAL'] = df_materials['QUANTITY'] * df_materials['SQUARE_FT']
+
+    # Aggregate square footage total
+    sf_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT_TOTAL'], aggfunc=numpy.sum)
+
+    # Rename SQUARE_FT_TOTAL column
+    sf_materials = sf_materials.rename(columns={'SQUARE_FT_TOTAL': 'SQUARE_FT'})
+
     df_glass = pandas.read_excel(parts_file, sheet_name='Glass')
     sf_glass = pandas.pivot_table(df_glass, index=['ROOM_NAME', 'SKU_NUMBER', 'MATERIAL'], values=['SQUARE_FT'], aggfunc=numpy.sum)
 
@@ -2420,40 +2482,54 @@ def generate_franchise_parts_list():
             ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
             ws["D" + str(sf_row_start+4)].border = thin_border
             ws["E" + str(sf_row_start+4)] = project_data * 3.5
+
         else:
             if not sf_materials.empty:
+                # Calculate total square footage per room
+                room_materials = df_materials.groupby('ROOM_NAME').apply(calc_room_total_sq_ft).reset_index(name='SQUARE_FT')
+
                 sf_materials.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=2)
                 sf_row_start = (sf_materials.shape[0] + 1) + 4
-                room_materials = pandas.pivot_table(df_materials, index=['ROOM_NAME'], values=['SQUARE_FT'], aggfunc=numpy.sum)
-                room_materials.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=sf_row_start)
+
+                # Write without the default index column
+                room_materials.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=sf_row_start, index=False)
+
+                # Apply borders to room names column
+                for i in range(len(room_materials) + 1):
+                    ws = writer.sheets["Franchise Pricing Summary"]
+                    ws["D" + str(sf_row_start + i + 1)].border = thin_border
+
                 sf_row_start = (sf_materials.shape[0] + 1) + (room_materials.shape[0] + 1) + 4
-                project_materials = df_materials['SQUARE_FT'].sum()
+
+                # Calculate total square footage for project
+                total_sq_ft = (df_materials['QUANTITY'] * df_materials['SQUARE_FT']).sum()
+
                 ws = writer.sheets["Franchise Pricing Summary"]
                 ws["D" + str(sf_row_start+3)] = "Project Material SF Total"
                 ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+3)].border = thin_border
-                ws["E" + str(sf_row_start+3)] = project_materials
+                ws["E" + str(sf_row_start+3)] = total_sq_ft
                 ws["D" + str(sf_row_start+4)] = "Project Material Estimated Weight(lbs)"
                 ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+4)].border = thin_border
-                ws["E" + str(sf_row_start+4)] = project_materials * 3.5
+                ws["E" + str(sf_row_start+4)] = total_sq_ft * 3.5
+
             if not sf_glass.empty:
                 sf_glass.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=2)
                 sf_row_start = (sf_glass.shape[0] + 1) + 3
                 room_glass = pandas.pivot_table(df_glass, index=['ROOM_NAME'], values=['SQUARE_FT'], aggfunc=numpy.sum)
                 room_glass.to_excel(writer, 'Franchise Pricing Summary', startcol=3, startrow=sf_row_start)
                 sf_row_start = (sf_glass.shape[0] + 1) + (room_glass.shape[0] + 1) + 4
-                project_glass = df_glass['SQUARE_FT'].sum()
+                total_sq_ft = (df_glass['QUANTITY'] * df_glass['SQUARE_FT']).sum()
                 ws = writer.sheets["Franchise Pricing Summary"]
                 ws["D" + str(sf_row_start+3)] = "Project Glass SF Total"
                 ws["D" + str(sf_row_start+3)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+3)].border = thin_border
-                ws["E" + str(sf_row_start+3)] = project_glass
+                ws["E" + str(sf_row_start+3)] = total_sq_ft
                 ws["D" + str(sf_row_start+4)] = "Project Glass Estimated Weight(lbs)"
                 ws["D" + str(sf_row_start+4)].font = openpyxl.styles.Font(bold=True)
                 ws["D" + str(sf_row_start+4)].border = thin_border
-                ws["E" + str(sf_row_start+4)] = project_glass * 3.5
-                
+                ws["E" + str(sf_row_start+4)] = total_sq_ft * 3.5
 
         set_column_width(writer.sheets['Franchise Pricing Summary'])
 
@@ -2546,7 +2622,7 @@ def get_price_by_sku(sku_num):
 def get_glass_sku(glass_color):
     glass_thickness = 0.25
     if 'Frosted' in glass_color or 'Smoked' in glass_color:
-        glass_thickness = 0.13
+        glass_thickness = 0.125
     if glass_color == 'Clear':
         glass_color = 'Clear Annealed'
     rows = sn_db.query_db(
@@ -2567,6 +2643,29 @@ def get_glass_sku(glass_color):
     for row in rows:
         sku = row[0]
     return sku
+
+
+def get_glass_thickness_by_sku(glass_sku):
+    glass_thickness = 0
+
+    rows = sn_db.query_db(
+        "SELECT\
+            SKU,\
+            THICKNESS\
+        FROM\
+            {CCItems}\
+        WHERE\
+            SKU == '{Glass_SKU}';\
+        ".format(CCItems="CCItems_" + sn_utils.get_franchise_location(), Glass_SKU=glass_sku)
+    )
+
+    if len(rows) == 0:
+        print("Could not get glass thickness for SKU: " + glass_sku)
+
+    for row in rows:
+        glass_thickness = row[1]
+
+    return glass_thickness
 
 
 def get_mat_sku(mat_name):
@@ -3146,11 +3245,13 @@ def calculate_project_price(xml_file, cos_flag=False):
                                         if 'Glass Shelf' in PART_NAME:
                                             PART_NAME = dcname + " (" + glass_color + ")"
                                         else:
+                                            print("    Glass SKU: " + sku_value, "Glass Color: " + glass_color, "Style Name: " + style_name, dcname)
                                             PART_NAME = "Inset Glass" + " (" + glass_color + ")"
+                                            GLASS_THICKNESS = get_glass_thickness_by_sku(sku_value)
                                         pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail, upgrade_color)
                                         GLASS_PARTS_LIST.append(
                                             [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
-                                             QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                             QUANTITY, LENGTH, WIDTH, GLASS_THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
                                              center_rail, style_name])
                                     else:
                                         if upgrade_color is not None:
@@ -3394,14 +3495,19 @@ def calculate_project_price(xml_file, cos_flag=False):
                                         if 'Glass' in PART_NAME or 'Glass' in style_name:
                                             if 'Glass Shelf' in PART_NAME:
                                                 PART_NAME = dcname + " (" + glass_color + ")"
+                                                pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name=None, is_glaze=False, glaze_style=None, glaze_color=None, part_name=PART_NAME)
+                                                GLASS_PARTS_LIST.append(
+                                                    [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
+                                                    QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1]])
                                             else:
+                                                print("    Glass SKU: " + sku_value, "Glass Color: " + glass_color, "Style Name: " + style_name, dcname)
                                                 PART_NAME = "Inset Glass" + " (" + glass_color + ")"
-                                            pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
-                                            # pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
-                                            GLASS_PARTS_LIST.append(
-                                                [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
-                                                 QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
-                                                 center_rail, style_name])
+                                                GLASS_THICKNESS = get_glass_thickness_by_sku(sku_value)
+                                                pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
+                                                GLASS_PARTS_LIST.append(
+                                                    [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
+                                                    QUANTITY, LENGTH, WIDTH, GLASS_THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                                    center_rail, style_name])
                                         else:
                                             if upgrade_color is not None:
                                                 PART_NAME = dcname + " (" + upgrade_color + ")"
@@ -3645,12 +3751,14 @@ def calculate_project_price(xml_file, cos_flag=False):
                                                 if 'Glass Shelf' in PART_NAME:
                                                     PART_NAME = dcname + " (" + glass_color + ")"
                                                 else:
+                                                    print("    Glass SKU: " + sku_value, "Glass Color: " + glass_color, "Style Name: " + style_name, dcname)
                                                     PART_NAME = "Inset Glass" + " (" + glass_color + ")"
+                                                    GLASS_THICKNESS = get_glass_thickness_by_sku(sku_value)
                                                 pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, style_name, is_glaze, glaze_style, glaze_color, PART_NAME, None, center_rail,upgrade_color)
                                                 # pricing_info = get_pricing_info(SKU_NUMBER, QUANTITY, LENGTH, WIDTH, None, False, None, None, PART_NAME, eb_orientation, center_rail, upgrade_color)
                                                 GLASS_PARTS_LIST.append(
                                                     [DESCRIPTION, SKU_NUMBER, pricing_info[3], pricing_info[4], PART_LABEL_ID, pricing_info[2], PART_NAME,
-                                                     QUANTITY, LENGTH, WIDTH, THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
+                                                     QUANTITY, LENGTH, WIDTH, GLASS_THICKNESS, pricing_info[0], pricing_info[6], pricing_info[7], pricing_info[1],
                                                      center_rail, style_name])
                                             else:
                                                 if upgrade_color is not None:
@@ -3749,6 +3857,10 @@ def calculate_project_price(xml_file, cos_flag=False):
         generate_franchise_parts_list()
 
     return xml_file_exists
+
+
+def calc_room_total_sq_ft(series):
+    return numpy.sum(series['SQUARE_FT'] * series['QUANTITY'])
 
 
 class SNAP_OT_Calculate_Price(Operator):
@@ -4128,8 +4240,6 @@ class SNAP_PROPS_Pricing(bpy.types.PropertyGroup):
                 col.label(text="This project contains special order items,")
                 col.label(text="which are not being calculated in this pricing summary")
 
-
-            
         if bpy.context.preferences.addons['snap'].preferences.enable_franchise_pricing:
             row.prop_enum(self, "pricing_tabs", 'FRANCHISE', icon='PREFERENCES', text="Franchise Pricing")
 

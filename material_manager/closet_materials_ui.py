@@ -315,7 +315,7 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Colors(bpy.types.Menu):
 
             if index % MAX_COL_LEN == 0:
                 col = row.column()
-            
+
             if item.two_sided_display_name:
                 label = item.two_sided_display_name
             else:
@@ -324,11 +324,11 @@ class SNAP_MATERIAL_MT_Door_Drawer_Mat_Colors(bpy.types.Menu):
             op = col.operator(
                 'closet_materials.change_active_index',
                 text=label,
-                icon='RADIOBUT_ON' if index == cab_mat_props.door_drawer_mat_color_index else item.get_icon()
-            )                
+                icon='RADIOBUT_ON' if index == cab_mat_props.get_dd_mat_color_index(mat_type.name) else item.get_icon()
+            )
 
             op.name = item.name
-            op.i_type = 'COLOR'   
+            op.i_type = 'COLOR'
 
 
 class SNAP_MATERIAL_MT_Door_Drawer_Mat_Types(bpy.types.Menu):
@@ -844,6 +844,7 @@ class OPS_Change_Active_Glass_Color(Operator):
         for index, glass_color in enumerate(glass_colors):
             if glass_color.name == self.glass_color_name:
                 context.scene.closet_materials.glass_color_index = index
+                bpy.ops.closet_materials.poll_assign_materials()
 
         return {'FINISHED'}
 

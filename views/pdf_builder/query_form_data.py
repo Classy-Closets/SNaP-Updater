@@ -342,30 +342,28 @@ class Query_PDF_Form_Data:
                 wall = sn_types.Wall(obj_bp=obj)
                 walls.append(wall)
         return walls
-    
+
     def __get_obj_mesh(self, obj):
         children = obj.children
         for child in children:
-            if "mesh" in child.name.lower():
+            mesh_w_material_slots = child.type == "MESH" and len(child.material_slots) > 0
+            if "mesh" in child.name.lower() or mesh_w_material_slots:
                 return child
-    
+
     def __get_door_obj(self, obj):
         children = obj.children
         for child in children:
-            name = child.name
-            is_door = "door" in name.lower()
-            is_hamper = "hamper" in name.lower()
-            is_drawer = "drawer" in name.lower()
+            is_door = child.get("IS_BP_DOOR_INSERT") or child.get("IS_DOOR")
+            is_hamper = child.get("IS_BP_HAMPER")
+            is_drawer = child.get("IS_BP_DRAWER_STACK")
             if is_door or is_hamper or is_drawer:
                 return child
-            elements = child.children
-            for element in elements:
-                name = element.name
-                is_door = "door" in name.lower()
-                is_hamper = "hamper" in name.lower()
-                is_drawer = "drawer" in name.lower()
+            for nchild in child.children:
+                is_door = nchild.get("IS_BP_DOOR_INSERT") or nchild.get("IS_DOOR")
+                is_hamper = nchild.get("IS_BP_HAMPER")
+                is_drawer = nchild.get("IS_BP_DRAWER_STACK")
                 if is_door or is_hamper or is_drawer:
-                    return element
+                    return nchild
 
     def __get_full_backs(self, walls):
         fullback_str = ""
@@ -412,18 +410,29 @@ class Query_PDF_Form_Data:
 
     def __get_door_type(self, obj):
         door = None
-        children = obj.children
-        for child in children:
-            obj_props = child.sn_closets
-            is_door = obj_props.is_door_bp
-            is_hamper = obj_props.is_hamper_front_bp
-            is_drawer = obj_props.is_drawer_front_bp
-            if is_door or is_hamper or is_drawer:
-                door = child
-                break
-        if not door:
-            return
-        door_mesh = self.__get_obj_mesh(door)
+        door_mesh = None
+
+        # Wall bed door
+        if obj.get("IS_BP_WALLBED_DECO"):
+            for child in obj.children:
+                if child.type == "MESH":
+                    door_mesh = child
+                    break
+        else:
+            for child in obj.children:
+                obj_props = child.sn_closets
+                is_door = obj_props.is_door_bp
+                is_hamper = obj_props.is_hamper_front_bp
+                is_drawer = obj_props.is_drawer_front_bp
+                if is_door or is_hamper or is_drawer:
+                    door = child
+                    break
+
+            if not door:
+                return
+
+            door_mesh = self.__get_obj_mesh(door)
+
         if door_mesh:
             for slot in door_mesh.snap.material_slots:
                 if "Wood_Door_Surface" == slot.pointer_name:
@@ -447,35 +456,41 @@ class Query_PDF_Form_Data:
         scene_props = context.scene.closet_materials
         color = None
 
-        if style == "slab":
-            mat_types = scene_props.materials.mat_types
-            type_index = scene_props.door_drawer_mat_type_index
-            material_type = mat_types[type_index]
-
-            if material_type.name == "Upgrade Options":
-                if scene_props.upgrade_options.get_type().name == "Paint":
-                    color = scene_props.paint_colors[scene_props.paint_color_index]
-                else:
-                    color = scene_props.stain_colors[scene_props.stain_color_index]
-            else:
-                colors = material_type.colors
-                color_index = scene_props.door_drawer_mat_color_index
-                color = colors[color_index]
-
-            if material_type.name.lower() == "veneer":
-                colors.append(color.name)
-
-            ext_colors.append(color.name)
-
-        elif style == "wood" and scene_props.use_custom_color_scheme:
-            colors = scene_props.stain_colors
-            color_index = scene_props.stain_color_index
-            color = colors[color_index]
-            ext_colors.append(color.name)
-
+        if scene_props.use_kb_color_scheme:
+            ext_colors = scene_props.get_kb_material_list()
         else:
-            ext_colors.append(scene_props.materials.get_mat_color().name)
-        ext_colors = list(set(ext_colors))
+            if style == "slab":
+                mat_types = scene_props.materials.mat_types
+                type_index = scene_props.door_drawer_mat_type_index
+                material_type = mat_types[type_index]
+
+                if material_type.name == "Upgrade Options":
+                    if scene_props.upgrade_options.get_type().name == "Paint":
+                        color = scene_props.paint_colors[scene_props.paint_color_index]
+                    else:
+                        color = scene_props.stain_colors[scene_props.stain_color_index]
+                else:
+                    colors = material_type.colors
+                    if scene_props.use_custom_color_scheme:
+                        color_index = scene_props.get_dd_mat_color_index(material_type.name)
+                    else:
+                        color_index = scene_props.get_mat_color_index(material_type.name)
+                    color = colors[color_index]
+
+                if material_type.name.lower() == "veneer":
+                    colors.append(color.name)
+
+                ext_colors.append(color.name)
+
+            elif style == "wood" and scene_props.use_custom_color_scheme:
+                colors = scene_props.stain_colors
+                color_index = scene_props.stain_color_index
+                color = colors[color_index]
+                ext_colors.append(color.name)
+
+            else:
+                ext_colors.append(scene_props.materials.get_mat_color().name)
+            ext_colors = list(set(ext_colors))
 
         return ext_colors
 
@@ -550,29 +565,34 @@ class Query_PDF_Form_Data:
     def __write_trim_color(self):
         data_dict = {}
         scene_props = self.context.scene.closet_materials
-        mat_types = scene_props.materials.mat_types
-        mat_type_index = scene_props.mat_type_index
-        material_type = mat_types[mat_type_index]
-        edge_types = scene_props.edges.edge_types
-        type_index = scene_props.edge_type_index
-        edge_type = edge_types[type_index]
-        colors = edge_type.colors
-        color_index = scene_props.edge_color_index
-        color = colors[color_index]
-        data_dict["trim_color"] = color.name
+        if scene_props.use_kb_color_scheme:
+            color_list = scene_props.get_kb_material_list()
+            data_dict["trim_color"] = color_list[1] + " / " + color_list[0] + " / " + color_list[2]
+        else:
+            mat_types = scene_props.materials.mat_types
+            mat_type_index = scene_props.mat_type_index
+            material_type = mat_types[mat_type_index]
+            edge_types = scene_props.edges.edge_types
+            type_index = scene_props.edge_type_index
+            edge_type = edge_types[type_index]
+            colors = edge_type.colors
+            color_index = scene_props.edge_color_index
+            color = colors[color_index]
+            data_dict["trim_color"] = color.name
 
-        # Stain/Paint EB
-        if material_type.name == "Upgrade Options":
-            data_dict["trim_color"] = ""
+            # Stain/Paint EB
+            if material_type.name == "Upgrade Options":
+                data_dict["trim_color"] = ""
 
-        if "white" in color.name.lower():
-            data_dict["trim_white"] = True
-        elif "almond" in color.name.lower():
-            data_dict["trim_almond"] = True
-        if "dolce" in edge_type.name.lower():
-            data_dict["edge_dolce"] = True
-        elif "pvc" in edge_type.name.lower():
-            data_dict["edge_3m_pvc"] = True
+            if "white" in color.name.lower():
+                data_dict["trim_white"] = True
+            elif "almond" in color.name.lower():
+                data_dict["trim_almond"] = True
+            if "dolce" in edge_type.name.lower():
+                data_dict["edge_dolce"] = True
+            elif "pvc" in edge_type.name.lower():
+                data_dict["edge_3m_pvc"] = True
+        
         return data_dict
 
     def process(self):
@@ -1017,7 +1037,12 @@ class Query_PDF_Form_Data:
                     for slot in mesh_slots:
                         if 'Glass' == slot.pointer_name:
                             has_glass = True
-                            mat_name = [s.item_name for s in mesh_slots if s.item_name != 'Glass'][:1][0]
+                            door_assembly = sn_types.Assembly(door)
+                            glass_color_ppt = door_assembly.get_prompt("Glass Color")
+                            if glass_color_ppt:
+                                mat_name = glass_color_ppt.get_value()
+                            else:
+                                mat_name = [s.item_name for s in mesh_slots if s.item_name != 'Glass'][:1][0]
                         if "Wood_Door_Surface" == slot.pointer_name:
                             mat_type = "Wood"
                         elif "Five_Piece_Melamine_Door_Surface" == slot.pointer_name:
@@ -1216,9 +1241,17 @@ class Query_PDF_Form_Data:
             if result["glass_inset_qty"] == "":
                 result["glass_inset_qty"] = str(v["qty"])
                 result["glass_inset"] = k
+                if glass[k]['color'] == "Double Sided Mirror":
+                    result["glass_inset"] += " (DS Mirror)"
+                else:
+                    result["glass_inset"] += (' (' + glass[k]['color'] + ')')
             elif result["glass_inset_qty"] != "":
                 result["glass_inset_qty"] += "/" + str(v["qty"])
                 result["glass_inset"] += " / " + k
+                if glass[k]['color'] == "Double Sided Mirror":
+                    result["glass_inset"] += " (DS Mirror)"
+                else:
+                    result["glass_inset"] += (' (' + glass[k]['color'] + ')')
         for k, v in wood.items():
             if result["wood_door_qty"] == "":
                 result["wood_door_qty"] = str(v["qty"])

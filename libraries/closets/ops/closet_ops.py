@@ -630,9 +630,9 @@ class SNAP_OT_copy_product(Operator):
 
     def mute_hide_viewport_driver(self, obj, mute=True):
         if obj.animation_data:
-            for driver in obj.animation_data.drivers:
-                if driver.data_path == "hide_viewport":
-                    driver.mute = mute
+            driver = obj.animation_data.drivers.find("hide_viewport")
+            if driver:
+                driver.mute = mute
 
     def select_object(self, obj):
         # Skip cages
@@ -655,9 +655,10 @@ class SNAP_OT_copy_product(Operator):
             self.select_obj_and_children(child)
 
     def hide_empties_and_boolean_meshes(self, obj):
-        if obj.type == 'EMPTY' or obj.hide_render:
-            obj.hide_viewport = True
+        if obj.type == 'MESH':
             self.mute_hide_viewport_driver(obj, mute=False)
+        if obj.type == 'EMPTY':
+            obj.hide_viewport = True
         for child in obj.children:
             self.hide_empties_and_boolean_meshes(child)
 
@@ -722,12 +723,9 @@ class SNAP_OT_copy_insert(Operator):
         opening = obj_bp.sn_closets.opening_name
         closet_origin = obj_bp.parent
         closet_origin_assembly = sn_types.Assembly(obj_bp=closet_origin)
-        bottom_shelf =\
-            closet_origin_assembly.get_prompt(
-                'Remove Bottom Hanging Shelf ' + str(opening))
-        top_shelf =\
-            closet_origin_assembly.get_prompt(
-                'Remove Top Shelf ' + str(opening))
+        bottom_shelf = closet_origin_assembly.get_prompt('Remove Bottom Hanging Shelf ' + str(opening))
+        top_shelf = closet_origin_assembly.get_prompt('Remove Top Shelf ' + str(opening))
+
         if bottom_shelf and top_shelf:
             bottom_shelf_value = bottom_shelf.get_value()
             top_shelf_value = top_shelf.get_value()
@@ -961,7 +959,22 @@ class SNAP_OT_update_pull_selection(Operator):
     bl_description = "This will update all of the door pulls that are currently selected"
     bl_options = {'UNDO'}
 
-    update_all: bpy.props.BoolProperty(name="Update All", default=False)
+    update_all: bpy.props.BoolProperty(name="Replace All Pull Hardware", default=True)
+    name: bpy.props.StringProperty(name="Pull Name")
+    show_message: bpy.props.BoolProperty(name="Show Message", default=False)
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        if self.show_message:
+            return wm.invoke_props_dialog(self, width=sn_utils.get_prop_dialog_width(200))
+        else:
+            return self.execute(context)
+
+    def draw(self, context):
+        layout = self.layout
+        box = layout.box()
+        msg = f"Replace all hardware with: '{self.name}'"
+        box.prop(self, 'update_all', text=msg)
 
     def execute(self, context):
         props = bpy.context.scene.sn_closets.closet_options
@@ -1273,6 +1286,12 @@ class SNAP_OT_place_applied_panel(Operator):
             context.view_layer.objects.active = self.assembly.obj_bp
             self.assembly.obj_bp.select_set(True)
             self.update_door_children_properties(self.assembly.obj_bp, sel_assembly_bp["ID_PROMPT"], props.get_door_style())
+
+            if self.sel_product_bp.get("IS_BP_CABINET") and self.sel_product_bp.get("MATERIAL_POINTER_NAME"):  
+                self.assembly.obj_bp["IS_KB_PART"] = True  
+                sn_utils.add_kb_insert_material_pointers(self.sel_product_bp)
+                bpy.ops.closet_materials.poll_assign_materials()
+
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
@@ -1403,6 +1422,7 @@ class SNAP_OT_update_door_selection(Operator):
     def execute(self, context):
         door_bps = []
         props = bpy.context.scene.sn_closets.closet_options
+        closet_materials = bpy.context.scene.closet_materials
 
         for obj in context.selected_objects:
             closet_bp = sn_utils.get_closet_bp(obj)
@@ -1559,6 +1579,7 @@ class SNAP_OT_update_door_selection(Operator):
                     frameless_exteriors.add_door_height_dimension(new_door)
                     product = cabinets.Standard(cabinet_product)
                     product.update_dimensions()
+                    new_door.obj_bp['IS_KB_PART'] = True
             if door_assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
                 new_door.obj_bp['DRAWER_NUM'] = door_assembly.obj_bp.get("DRAWER_NUM")
                 new_door.obj_bp['IS_BP_DRAWER_FRONT'] = True
@@ -1566,7 +1587,7 @@ class SNAP_OT_update_door_selection(Operator):
                     frameless_exteriors.add_drawer_height_dimension(new_door)
                     product = cabinets.Standard(cabinet_product)
                     product.update_dimensions()
-
+                    new_door.obj_bp['IS_KB_PART'] = True
             if obj_props.is_hamper_front_bp:
                 new_door.obj_bp['IS_BP_HAMPER_FRONT'] = True
 
@@ -1576,9 +1597,14 @@ class SNAP_OT_update_door_selection(Operator):
             parent_door_style = parent_assembly.get_prompt("Door Style")
             height_exceeded_ppt = new_door.get_prompt("Door Height Exceeded")
             door_style = new_door.get_prompt("Door Style")
+            parent_glass_color = parent_assembly.get_prompt("Glass Color")
+            glass_color = new_door.get_prompt("Glass Color")
 
             if not door_style:
                 door_style = new_door.add_prompt("Door Style", 'TEXT', "Slab Door")
+
+            if not glass_color:
+                glass_color = new_door.add_prompt("Glass Color", 'TEXT', closet_materials.get_glass_color().name)
 
             if door_style:
                 door_style.set_value(props.get_door_style())
@@ -1620,9 +1646,16 @@ class SNAP_OT_update_door_selection(Operator):
 
             if parent_door_style:
                 parent_door_style.set_value(props.get_door_style())
+            
+            if parent_glass_color:
+                parent_glass_color.set_value(closet_materials.get_glass_color().name)
 
             self.update_door_children_properties(new_door.obj_bp, id_prompt, props.get_door_style())
-
+            obj_product_bp = sn_utils.get_bp(new_door.obj_bp, 'PRODUCT')
+            if obj_product_bp.get("IS_BP_CABINET") and obj_product_bp.get("MATERIAL_POINTER_NAME"):    
+                sn_utils.add_kb_insert_material_pointers(obj_product_bp)
+                bpy.ops.closet_materials.poll_assign_materials()
+            
         bpy.context.view_layer.update()
 
         return {'FINISHED'}
@@ -2208,6 +2241,7 @@ class SN_OT_update_backing_prompts(Operator):
                                             product.add_backing(opening_num, panel)
                                             product.update()
                                     add_backing_throughout.set_value(self.add_backing)
+                                    context.view_layer.update()
 
                             for child in product.obj_bp.children:
                                 back_parts = (
@@ -2250,7 +2284,7 @@ class SN_OT_update_backing_prompts(Operator):
                                     obj_props.is_door_insert_bp,
                                     obj_props.is_closet_bottom_bp,
                                     obj_props.is_closet_top_bp,
-                                    obj_props.is_splitter_bp, 
+                                    obj_props.is_splitter_bp,
                                     "IS_BP_ROD_AND_SHELF" in child,
                                     "IS_BP_TOE_KICK_INSERT" in child,
                                     "IS_BP_SHOE_SHELVES" in child]
@@ -2269,7 +2303,7 @@ class SN_OT_update_backing_prompts(Operator):
                                 Shelf_Backing_Setback = insert.get_prompt("Shelf Backing Setback")
                                 opening = insert.obj_bp.sn_closets.opening_name
 
-                                if insert and opening:             
+                                if insert and opening:
                                     for child in product.obj_bp.children:
                                         if child.sn_closets.is_back_bp and not child.sn_closets.is_hutch_back_bp:
                                             if child.sn_closets.opening_name == opening:

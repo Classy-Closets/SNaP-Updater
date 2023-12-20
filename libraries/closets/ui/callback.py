@@ -143,7 +143,7 @@ def update_end_conditions(self, context):
 
     if operator:
         if operator.initialized:
-            if hasattr(operator, "left_end_condition") and hasattr(operator, "Right_End_Condition"):
+            if hasattr(operator, "left_end_condition") and hasattr(operator, "right_end_condition"):
                 operator.update_end_conditions(context)
 
 

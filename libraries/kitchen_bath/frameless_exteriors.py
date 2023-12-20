@@ -268,7 +268,6 @@ def add_part(self, path):
     part.obj_bp.sn_closets.is_panel_bp = True
     return part
 
-
 class Doors(sn_types.Assembly):
 
     library_name = LIBRARY_NAME
@@ -306,7 +305,6 @@ class Doors(sn_types.Assembly):
             self.add_prompt("Show False Front", 'CHECKBOX', show_false_front)
             self.add_prompt("Show False Pulls", 'CHECKBOX', False)
             
-
     def set_standard_drivers(self,assembly):
         Height = self.obj_z.snap.get_var('location.z','Height')
 
@@ -1003,7 +1001,6 @@ class Horizontal_Drawers(sn_types.Assembly):
 
         self.update()
 
-
 # Drop operators
 class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
     bl_idname = "lm_cabinets.insert_doors_drop"
@@ -1122,6 +1119,7 @@ class OPS_KB_Doors_Drop(Operator, PlaceClosetInsert):
                     adj_shelf.get_prompt('Z Offset').set_formula('((Height-(Shelf_Thickness*Shelf_Qty))/(Shelf_Qty+1))',[Height,Shelf_Thickness,Shelf_Qty])
 
                 opening.run_all_calculators()
+        sn_utils.add_kb_insert_material_pointers(obj_product_bp) 
 
 bpy.utils.register_class(OPS_KB_Doors_Drop)
 
@@ -1137,6 +1135,8 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
 
         insert = sn_types.Assembly(self.insert.obj_bp)
         parent = sn_types.Assembly(self.insert.obj_bp.parent)
+        obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
+        product = sn_types.Assembly(obj_product_bp)
         opening = self.selected_opening
 
         has_splitter = parent.obj_bp.get("IS_BP_SPLITTER")
@@ -1161,8 +1161,6 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
 
         # if insert is single drawer and there is no splitter, create splitter and set size to default for top drawer...
         if not has_splitter and drawer_qty and drawer_qty == 1:
-            obj_product_bp = sn_utils.get_bp(self.insert.obj_bp, 'PRODUCT')
-            product = sn_types.Assembly(obj_product_bp)
             for obj_bp in product.obj_bp.children:
                 if "IS_BP_CARCASS" in obj_bp:
                     carcass = sn_types.Assembly(obj_bp)
@@ -1240,6 +1238,7 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
                     splitter.dim_z('fabs(Height)-Bottom_Inset-Top_Inset',[Height,Bottom_Inset,Top_Inset])
                 
                 splitter.run_all_calculators()
+        sn_utils.add_kb_insert_material_pointers(obj_product_bp)  
 
     def finish(self, context):
             super().finish(context)
@@ -1249,6 +1248,7 @@ class OPS_KB_Drawers_Drop(Operator, PlaceClosetInsert):
                 sn_utils.delete_object_and_children(self.insert.obj_bp)
 
             cabinet_interface.update_product_dimensions(obj_product_bp)
+      
 
             return {'FINISHED'}
           

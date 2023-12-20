@@ -2221,20 +2221,14 @@ class SNAP_OT_Auto_Dimension(Operator):
             label_exp_r.set_label('Exp.')
 
     def add_glass_cutpart_dim(self, assembly, part, thickness):
-        setback = 0.25
         z_qty = part.modifiers["ZQuantity"]
-        section_depth = self.to_inch(assembly.location[1])
-        shelf_depth = self.to_inch(part.dimensions[1])
-        depth_part_diff = abs(section_depth - shelf_depth)
         shelves_qtt = z_qty.count
         shelves_offset = z_qty.constant_offset_displace[2]
         width = part.dimensions[0]
-        # For cutparts that differs from the section depth minus setback (0.25)
-        if depth_part_diff != setback and depth_part_diff != 0.0:
-            label = self.to_inch_lbl(part.dimensions[1])
-        else:
-            label = self.to_inch_lbl(assembly.location[1])
+
+        label = self.to_inch_lbl(part.dimensions[1])
         label += f' Glass {thickness}'
+
         for i in range(shelves_qtt):
             z_offset = shelves_offset + (shelves_offset * (i - 1))
             hshmk_size = sn_unit.inch(5)
@@ -2248,21 +2242,17 @@ class SNAP_OT_Auto_Dimension(Operator):
             dim.set_label(label)
 
     def glass_shelves(self, item):
-        shelves = item.parent
-        thickness_dict = {
-            0: '1/4"',
-            1: '3/8"',
-            2: '1/2"'
-        }
-        assy = sn_types.Assembly(shelves)
-        glass_prompt_th = assy.get_prompt("Glass Shelf Thickness")
+        shelves_insert_bp = sn_utils.get_bp(item, 'INSERT')
+        thickness_dict = {0: '1/4"', 1: '3/8"', 2: '1/2"'}
+        shelves_insert = sn_types.Assembly(shelves_insert_bp)
+        glass_prompt_th = shelves_insert.get_prompt("Glass Shelf Thickness")
         thickness = thickness_dict[glass_prompt_th.get_value()]
-        for child in shelves.children:
-            glass = 'glass' in child.name.lower()
-            shf = 'shelf' in child.name.lower()
-            for shelf in child.children:
-                if shelf.type == "MESH" and glass and shf:
-                    self.add_glass_cutpart_dim(child, shelf, thickness)
+
+        for child in shelves_insert_bp.children:
+            if child.get("IS_GLASS_SHELF"):
+                for nchild in child.children:
+                    if nchild.type == "MESH":
+                        self.add_glass_cutpart_dim(child, nchild, thickness)
 
     def has_variable_descendants(self, item, variable_sections_list):
         opn = item.sn_closets.opening_name
@@ -2590,8 +2580,13 @@ class SNAP_OT_Auto_Dimension(Operator):
             if material_str == "Standard Quartz":
                 material += spec_group.materials["Countertop_Quartz_Surface"].item_name
             if material_str == "Wood":
-                mfg = ct_mat_props.get_type().get_mfg()
-                material = mfg.name
+                for child in item.children:
+                    if child.get("COUNTERTOP_WOOD"):
+                        if child.sn_closets.use_unique_material:
+                            material = child.sn_closets.wood_countertop_types
+                        else:
+                            mfg = ct_mat_props.get_type().get_mfg()
+                            material = mfg.name
 
         x_offset = width / 2
         z_offset = counter_top_height

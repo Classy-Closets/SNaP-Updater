@@ -392,6 +392,9 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                 self.add_backing_throughout = add_backing_throughout_ppt.get_value()
                 self.prev_all_backing = add_backing_throughout_ppt.get_value()
 
+                for i in range(self.closet.opening_qty):
+                    exec(f"self.op_{str(i + 1)}_full_back = self.closet.get_prompt('Add Full Back {str(i + 1)}').get_value()")
+
             if left_end_condition:
                 combobox_index = left_end_condition.get_value()
                 self.left_end_condition = left_end_condition.combobox_items[combobox_index].name
@@ -1376,10 +1379,11 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                         obj_props.is_door_insert_bp,
                         obj_props.is_closet_bottom_bp,
                         obj_props.is_closet_top_bp,
-                        obj_props.is_splitter_bp, 
+                        obj_props.is_splitter_bp,
                         "IS_BP_ROD_AND_SHELF" in child,
                         "IS_BP_TOE_KICK_INSERT" in child,
                         "IS_BP_SHOE_SHELVES" in child]
+
                     if any(props):
                         child_assembly = sn_types.Assembly(child)
                         setback_ppt = child_assembly.get_prompt("Shelf Backing Setback")

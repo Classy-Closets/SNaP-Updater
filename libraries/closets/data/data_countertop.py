@@ -361,24 +361,25 @@ class PROMPTS_Counter_Top(sn_types.Prompts_Interface):
             self.check_width()
             self.check_depth()
 
-            # Set unique material status
-            for child in self.assembly.obj_bp.children:
-                if countertops[countertop_type] in child or (self.countertop_type == "5" and "COUNTERTOP_QUARTZ" in child):
-                    use_unique = mat_props.ct_type_index != countertop_type
-                    child.sn_closets.use_unique_material = use_unique
-                    bpy.context.view_layer.objects.active = child
+        # Set unique material status
+        for child in self.assembly.obj_bp.children:
+            print(child, countertops[countertop_type], self.countertop_type, "COUNTERTOP_QUARTZ" in child)
+            if countertops[countertop_type] in child or (self.countertop_type == "5" and "COUNTERTOP_QUARTZ" in child):
+                use_unique = mat_props.ct_type_index != countertop_type
+                child.sn_closets.use_unique_material = use_unique
+                bpy.context.view_layer.objects.active = child
 
-                    # Toggle properties panel
-                    if use_unique:
-                        context_copy = context.copy()
-                        for area in context.screen.areas:
-                            if area.type == 'VIEW_3D':
-                                context_copy['area'] = area
-                                # Only toggle if not already open
-                                for region in area.regions:
-                                    if region.type == 'UI':
-                                        if region.width == 1:
-                                            bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")
+                # Toggle properties panel
+                if use_unique:
+                    context_copy = context.copy()
+                    for area in context.screen.areas:
+                        if area.type == 'VIEW_3D':
+                            context_copy['area'] = area
+                            # Only toggle if not already open
+                            for region in area.regions:
+                                if region.type == 'UI':
+                                    if region.width == 1:
+                                        bpy.ops.wm.context_toggle(context_copy,data_path="space_data.show_region_ui")
 
         self.set_edge_type_prompts()
         

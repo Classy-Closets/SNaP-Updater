@@ -54,21 +54,15 @@ class Parametric_Built_In_Appliance(sn_types.Assembly):
         appliance = sn_types.Assembly(appliance_bp)
         print("appliance_name=",self.appliance_name)
         if self.appliance_name in {'Microwave Generic','Wall Oven Generic'}:
-            print("1")
             appliance.dim_x('Width',[Width])
             appliance.dim_z('Height',[Height])
             appliance.loc_y(value=sn_unit.inch(-1))
         elif not self.autofill_enabled:
-            print("2")
             appliance.dim_x('Width',[Width])
-            # appliance.loc_x('Width/2',[Width])
-            # appliance.loc_y('Depth',[Depth])               
         else:
-            print("3")
             appliance.dim_x('Width',[Width])
             appliance.dim_y('-Depth-INCH(1)',[Depth])
             appliance.dim_z('Height',[Height])
-
             appliance.loc_y('Depth',[Depth])
         
         self.update()

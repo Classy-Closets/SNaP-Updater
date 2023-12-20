@@ -22,6 +22,7 @@ ISLAND_BACK_ROW = 1
 ISLAND_BASE_CARCASS = 0
 ISLAND_APPLIANCE_CARCASS = 1
 ISLAND_SINK_CARCASS = 2
+ISLAND_HIDDEN_CARCASS = 3
 SINKFRONT_STYLE_NO_FRONT = 0
 SINKFRONT_STYLE_EXTEND_TOP = 1
 SINKFRONT_STYLE_FALSE_FRONT = 2
@@ -213,15 +214,15 @@ def draw_island_options(self, island_row, carcass, layout):
             else:
                 row.prop(self, 'carcass_subtype_' + str(opening_nbr), text="")
         
-    if island_row == ISLAND_BACK_ROW:
-        chase_dpeth_ppt = carcass.get_prompt("Chase Depth")
-        if chase_dpeth_ppt:
+    if (island_row == ISLAND_FRONT_ROW and not is_Double_Sided) or island_row == ISLAND_BACK_ROW:
+        chase_depth_ppt = carcass.get_prompt("Chase Depth")
+        if chase_depth_ppt:
             row = layout.row(align=True)
             col = row.column()
             
             col.label(text=" ")
             col = row.column()
-            col.prop(chase_dpeth_ppt, 'distance_value',text="Chase Depth")
+            col.prop(chase_depth_ppt, 'distance_value',text="Chase Depth")
 
 def get_back_opening_from_section(self, section_index):
     section_nbr = section_index + 1
@@ -1258,7 +1259,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                                                                    ('SECTION16',"Section 16","Section 16 Options")])
 
     door_rotation: FloatProperty(name="Door Rotation",subtype='ANGLE',min=0,max=math.radians(120))
-        
+  
     door_swing_1: EnumProperty(name="Door Swing 1",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_2: EnumProperty(name="Door Swing 2",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
     door_swing_3: EnumProperty(name="Door Swing 3",items=[('0',"Left Swing","Left Swing"),('1',"Right Swing","Right Swing")])
@@ -1293,22 +1294,22 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     sink_front_15: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
     sink_front_16: EnumProperty(name="Sink Front Style",items=[('0',"No Front","No Front"),('1',"Extend Top","Extend Top"),('2',"False Front","False Front")])
     
-    carcass_subtype_1: EnumProperty(name='Carcass Subtype 1',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_2: EnumProperty(name='Carcass Subtype 2',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_3: EnumProperty(name='Carcass Subtype 3',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_4: EnumProperty(name='Carcass Subtype 4',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_5: EnumProperty(name='Carcass Subtype 5',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_6: EnumProperty(name='Carcass Subtype 6',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_7: EnumProperty(name='Carcass Subtype 7',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_8: EnumProperty(name='Carcass Subtype 8',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_9: EnumProperty(name='Carcass Subtype 9',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_10: EnumProperty(name='Carcass Subtype 10',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_11: EnumProperty(name='Carcass Subtype 11',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_12: EnumProperty(name='Carcass Subtype 12',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_13: EnumProperty(name='Carcass Subtype 13',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_14: EnumProperty(name='Carcass Subtype 14',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_15: EnumProperty(name='Carcass Subtype 15',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
-    carcass_subtype_16: EnumProperty(name='Carcass Subtype 16',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink")])
+    carcass_subtype_1: EnumProperty(name='Carcass Subtype 1',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_2: EnumProperty(name='Carcass Subtype 2',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_3: EnumProperty(name='Carcass Subtype 3',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_4: EnumProperty(name='Carcass Subtype 4',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_5: EnumProperty(name='Carcass Subtype 5',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_6: EnumProperty(name='Carcass Subtype 6',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_7: EnumProperty(name='Carcass Subtype 7',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_8: EnumProperty(name='Carcass Subtype 8',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_9: EnumProperty(name='Carcass Subtype 9',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_10: EnumProperty(name='Carcass Subtype 10',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_11: EnumProperty(name='Carcass Subtype 11',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_12: EnumProperty(name='Carcass Subtype 12',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_13: EnumProperty(name='Carcass Subtype 13',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_14: EnumProperty(name='Carcass Subtype 14',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_15: EnumProperty(name='Carcass Subtype 15',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
+    carcass_subtype_16: EnumProperty(name='Carcass Subtype 16',items=[('0',"Base","Base"),('1',"Appliance","Appliance"),('2',"Sink","Sink"),('3',"Removed","Removed")])
 
     placement_on_wall: EnumProperty(
         name="Placement on Wall",items=[('SELECTED_POINT', "Selected Point", ""),
@@ -1327,6 +1328,11 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
 
     left_offset: FloatProperty(name="Left Offset", default=0, subtype='DISTANCE', precision=4)
     right_offset: FloatProperty(name="Right Offset", default=0, subtype='DISTANCE', precision=4)
+
+    material_pointer_name: EnumProperty(
+        name="Material Group",items=[('0',"Base Cabinet","Base Cabinet"),
+                                      ('1',"Island Cabinet","Island Cabinet"),
+                                      ('2',"Upper Cabinet","Upper Cabinet")])
 
     constraint_button: EnumProperty(
         name="Constraint Button Options",items=[('0', 'Default', "Default"),
@@ -1372,6 +1378,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     def reset_variables(self):
         self.product_tabs = 'CARCASS'
         self.section_tabs = 'SECTION1'
+        self.material_pointer_name = '0'
         self.active_obj = None
         self.width = 0
         self.height_raw = 0
@@ -1707,6 +1714,29 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             else:
                 Remove_Right_Side.set_value(True)
 
+            # if carcass subtype for island opening force size to 0
+            carcass_subtype_ppt = self.carcass.get_prompt("Carcass Subtype " + str(opening_nbr))
+
+            if carcass_subtype_ppt:
+                calculator = None
+                calculator_ppt = None
+                
+                calculator = self.carcass.get_calculator("Front Row Widths Calculator")
+                calculator_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                if not calculator_ppt:
+                    calculator = self.carcass.get_calculator("Back Row Widths Calculator")
+                    calculator_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                if calculator_ppt:
+                    if carcass_subtype_ppt.get_value() == ISLAND_HIDDEN_CARCASS:
+                        calculator_ppt.equal = False
+                        calculator_ppt.set_value(0)
+                        opening.snap.exterior_open = False
+                        opening.snap.interior_open = False
+                    elif carcass_subtype_ppt.get_value() != ISLAND_HIDDEN_CARCASS and calculator_ppt.get_value() == 0:
+                        calculator_ppt.equal = True
+                        opening.snap.exterior_open = True
+                        opening.snap.interior_open = True
+           
     def get_island_carcass_subtypes(self):
         for opening in self.island_openings:
             opening_nbr = opening.get("OPENING_NBR")
@@ -1714,6 +1744,36 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             carcass_subtype_ppt = self.carcass.get_prompt("Carcass Subtype " + str(opening_nbr))
             if carcass_subtype_ppt:
                 exec('self.carcass_subtype_' + str(opening_nbr) + ' = str(carcass_subtype_ppt.get_value())')
+
+    def update_material_pointer_name(self):
+        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface']
+        material_pointer_name = material_pointer_names[int(self.material_pointer_name)]
+
+        if self.product.obj_bp.get("MATERIAL_POINTER_NAME") != material_pointer_name:
+            self.product.obj_bp["MATERIAL_POINTER_NAME"] = material_pointer_name
+
+            parts = sn_utils.get_assembly_bp_list(self.product.obj_bp, [])
+            for part in parts:
+                # if this is a drop-in toe kick assembly....
+                if part.get('IS_KB_PART') and part.get('IS_BP_TOE_KICK_INSERT'):
+                    for child in part.children:
+                        child.snap.cutpart_name = ""
+                        for subchild in child.children:
+                            if subchild.type == 'MESH':
+                                for mat in subchild.snap.material_slots:
+                                    # print("----reassigning material pointer",material_pointer_name,"to",subchild.name)
+                                    mat.pointer_name = material_pointer_name
+                # elif this is a cutpart/prebuilt toe kick assembly...
+                elif part.get('IS_KB_PART'):
+                    for child in part.children:
+                        if child.type == 'MESH' or child.type == 'CURVE':
+                            child.snap.cutpart_name = ""
+                            for mat in child.snap.material_slots:
+                                # print("----reassigning material pointer",material_pointer_name,"to",child.name)
+                                mat.pointer_name = material_pointer_name
+        
+            bpy.ops.closet_materials.poll_assign_materials()
+
 
     def check(self, context):
         self.update_prompts()
@@ -1728,6 +1788,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         self.update_holesize_split(self.drawers)
         self.update_drawer_boxes()
         self.update_island_carcass_subtypes()
+        self.update_material_pointer_name()
         self.run_calculators(self.product.obj_bp)
         context.view_layer.update()
         self.update_product_dimensions()
@@ -1785,6 +1846,14 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 if section_nbr:
                     self.section_tabs = 'SECTION' + str(section_nbr)
     
+    def set_material_pointer_name(self):
+        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface']
+        material_pointer = self.product.obj_bp.get("MATERIAL_POINTER_NAME")
+        
+        if material_pointer and material_pointer in material_pointer_names:
+            material_index = material_pointer_names.index(material_pointer)
+            self.material_pointer_name = str(material_index)
+
     def check_insert_tags(self, insert, tag_list):
         for tag in tag_list:
             if tag in insert and insert[tag]:
@@ -1978,6 +2047,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         self.set_island_tab_defaults()
         self.update_holesize_split(self.splitters)
         self.update_holesize_split(self.drawers)
+        self.set_material_pointer_name()
         ################
         self.run_calculators(self.product.obj_bp)
 
@@ -2106,6 +2176,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             row.prop(self, 'left_end_condition', text="")
             row.label(text="Right End Condition:")
             row.prop(self, 'right_end_condition', text="")
+            
 
     def object_has_driver(self,obj):
         if obj.animation_data:
@@ -2118,11 +2189,20 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 draw_island_options(self, ISLAND_FRONT_ROW, self.carcass, layout)
                 if self.show_double_sided:
                     draw_island_options(self, ISLAND_BACK_ROW, self.carcass, layout)
+
             draw_carcass_options(self, self.carcass, layout)
             
         if self.counter_top:
             draw_countertop_options(self.counter_top, self.product, layout)
 
+    def draw_material_pointer(self,layout):
+        material_pointer = self.product.obj_bp.get("MATERIAL_POINTER_NAME")
+        if material_pointer:
+            box = layout.box()
+            row = box.row()
+            row.label(text="Material Group:")
+            row.prop(self, 'material_pointer_name', text="")
+     
     def draw_door_prompts(self,layout):
         for door_bp in self.doors:
             door = sn_types.Assembly(door_bp)
@@ -2166,38 +2246,46 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
         if opening_bp:
             box = layout.box()
             opening_nbr = opening_bp.get("OPENING_NBR")
-             
-            label = "Empty"
-            for child in opening_bp.parent.children:
-                if child.get('OPENING_NBR'):
-                    if child.get('OPENING_NBR') == opening_nbr:
-                        if child.get('PLACEMENT_TYPE') == "Exterior":
-                            label = child.name
-                        elif child.get('PLACEMENT_TYPE') == "Interior" and label == "Empty":
-                            label = child.name
-            splitter = None
-            for splitter_bp in self.island_splitters:
-                if splitter_bp.get("OPENING_NBR") == opening_bp.get("OPENING_NBR"):
-                    splitter = sn_types.Assembly(splitter_bp)
-                    label = splitter_bp.name
-                    break
-            if label.find(".") > 0:
-                label = label[:-4]    
 
-            calculator = self.carcass.get_calculator("Front Row Widths Calculator")
-            if calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width"):
-                opening_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
-                draw_hole_size_width(opening_nbr, box, opening_ppt, calculator, "Section", label)
-            else:
-                calculator = self.carcass.get_calculator("Back Row Widths Calculator")
-                opening_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
-                draw_hole_size_width(opening_nbr, box, opening_ppt, calculator, "Section", label)
 
-            if splitter:
-                draw_insert_options(self, splitter, box)
+            subtype_val = eval('self.carcass_subtype_' + str(opening_nbr))
+            if subtype_val == "3":
+                wm = bpy.context.window_manager.snap
+                kb_icon = wm.libraries["Kitchen Bath Library"].icon
+                label = "Removed"
+                box.label(text=label, icon_value=snap.snap_icons[kb_icon].icon_id)
             else:
-                opening = sn_types.Assembly(opening_bp)
-                draw_insert_options(self, opening, box)
+                label = "Empty"
+                for child in opening_bp.parent.children:
+                    if child.get('OPENING_NBR'):
+                        if child.get('OPENING_NBR') == opening_nbr:
+                            if child.get('PLACEMENT_TYPE') == "Exterior":
+                                label = child.name
+                            elif child.get('PLACEMENT_TYPE') == "Interior" and label == "Empty":
+                                label = child.name
+                splitter = None
+                for splitter_bp in self.island_splitters:
+                    if splitter_bp.get("OPENING_NBR") == opening_bp.get("OPENING_NBR"):
+                        splitter = sn_types.Assembly(splitter_bp)
+                        label = splitter_bp.name
+                        break
+                if label.find(".") > 0:
+                    label = label[:-4]    
+
+                calculator = self.carcass.get_calculator("Front Row Widths Calculator")
+                if calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width"):
+                    opening_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                    draw_hole_size_width(opening_nbr, box, opening_ppt, calculator, "Section", label)
+                else:
+                    calculator = self.carcass.get_calculator("Back Row Widths Calculator")
+                    opening_ppt = calculator.get_calculator_prompt("Opening " + str(opening_nbr) + " Width")
+                    draw_hole_size_width(opening_nbr, box, opening_ppt, calculator, "Section", label)
+
+                if splitter:
+                    draw_insert_options(self, splitter, box)
+                else:
+                    opening = sn_types.Assembly(opening_bp)
+                    draw_insert_options(self, opening, box)
 
     def draw_section_tabs(self, layout):
         is_preset = False
@@ -2230,12 +2318,15 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
             if self.product.obj_bp.name in context.scene.objects:
                 box = layout.box()
                 
-                split = box.split(factor=.8)
+                split = box.split(factor=.5)
                 split.label(text=self.product.obj_bp.snap.name_object, icon='LATTICE_DATA')
                 if self.is_constrained_x:
                     self.draw_product_constraints(box)
                 self.draw_product_size(box)
-                
+
+                if self.product.obj_bp.get("MATERIAL_POINTER_NAME"):
+                    self.draw_material_pointer(split) 
+                               
                 prompt_box = box.box()
                 row = prompt_box.row(align=True)
                 row.prop_enum(self, "product_tabs", 'CARCASS') 

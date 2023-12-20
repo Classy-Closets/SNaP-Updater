@@ -6,7 +6,7 @@ from . import pm_utils
 from snap import sn_utils
 from snap import sn_types
 from snap.libraries.closets.data import data_closet_carcass
-
+from snap.libraries.kitchen_bath import cabinets
 
 @persistent
 def create_project_path(scene):
@@ -35,7 +35,14 @@ def check_section_prompt_id(scene=None):
         if any(exclude):
             continue
 
-        if section_bp.get("ID_PROMPT") != "sn_closets.openings":
+        # //// Trap and correct Classy Hood Cabinets from old files that have the wrong prompt id
+        if section_bp.get("IS_BP_HOOD_CABINET"):
+            section_bp["ID_PROMPT"] = "sn_appliances.parametric_wall_appliance"
+            section = cabinets.Hood(section_bp)
+            section.id_prompt = "sn_appliances.parametric_wall_appliance"
+            section.type_assembly = "PRODUCT"
+            section.update()
+        elif section_bp.get("ID_PROMPT") != "sn_closets.openings":
             section_bp["ID_PROMPT"] = "sn_closets.openings"
             section = data_closet_carcass.Closet_Carcass(section_bp)
             section.id_prompt = "sn_closets.openings"

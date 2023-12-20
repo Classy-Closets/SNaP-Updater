@@ -605,7 +605,7 @@ class PRODUCT_Shelves_Glass(data_rods_and_shelves.Glass_Shelves):
         self.width = sn_unit.inch(18)
         self.height = sn_unit.inch(50)
         self.depth = sn_unit.inch(14)
-        self.drop_id = "sn_closets.drop_insert"
+        self.drop_id = "sn_closets.insert_rods_and_shelves_drop"
 
 
 class PRODUCT_Shelf_Stack(data_closet_splitters.Shelf_Stack):

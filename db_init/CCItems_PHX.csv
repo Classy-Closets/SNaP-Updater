@@ -917,16 +917,16 @@ EB-0000463,EB U Chicory 1MM,EB U Chicory 1MM,Root Tea,0,EB,0.17,0.3193,1.1,0,LF,
 EB-0000465,EB U Otter Grey 1MM,EB U Otter Grey 1MM,Gray Shoreline,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200240,1020,Y
 EB-0000466,EB U Crema Cherry 1MM,EB U Crema Cherry 1MM,Otter Gray,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200280,1020,Y
 EB-0000467,EB U Sheer Linen 1MM,EB U Sheer Linen 1MM,Chesapeake Bay,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,164009,1020,Y
-GL-0000001,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,0,Glass - Sheet,8.91,13.1325,22.05,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
-GL-0000002,Glass 1/8 Frosted,Glass 1/8 Frosted,Glass 1/8 Frosted,0,Glass - Sheet,14.95,20.2807,32.68,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
-GL-0000003,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,0,Glass - Sheet Std,4.46,7.8589,11.77,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
+GL-0000001,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,0,Glass - Sheet,8.91,13.1325,22.05,0,SF,GL,PRL GLASS,0,9,0.125,0,0,0,Y
+GL-0000002,Glass 1/8 Frosted,Glass 1/8 Frosted,Glass 1/8 Frosted,0,Glass - Sheet,14.95,20.2807,32.68,0,SF,GL,PRL GLASS,0,9,0.125,0,0,0,Y
+GL-0000003,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,0,Glass - Sheet Std,4.46,7.8589,11.77,0,SF,GL,PRL GLASS,0,9,0.125,0,0,0,Y
 GL-0000004,Glass 1/4 Clear Annealed,Glass 1/4 Clear Annealed,Glass 1/4 Clear Annealed,0,Glass - Precut,4.93,8.6726,15.42,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000005,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,0,Glass - Precut,4.93,8.6726,15.42,0,SF,GL, ,0,9,0.25,0,0,0,Y
 GL-0000006,Glass 3/8 Clear Annealed,Glass 3/8 Clear Annealed,Glass 3/8 Clear Annealed,0,Glass - Precut,5.28,9.1052,16.07,0,SF,GL,PRL GLASS,0,9,0.38,0,0,0,Y
 GL-0000007,Glass 3/8 Clear Tempered,Glass 3/8 Clear Tempered,Glass 3/8 Clear Tempered,0,Glass - Precut,6.53,10.6502,18.36,0,SF,GL,PRL GLASS,0,9,0.38,0,0,0,Y
 GL-0000008,Glass 1/2 Clear Annealed,Glass 1/2 Clear Annealed,Glass 1/2 Clear Annealed,0,Glass - Precut,6.6,10.7326,18.49,0,SF,GL,PRL GLASS,0,9,0.5,0,0,0,Y
 GL-0000009,Glass 1/2 Clear Tempered,Glass 1/2 Clear Tempered,Glass 1/2 Clear Tempered,0,Glass - Precut,7.86,12.2879,20.81,0,SF,GL,PRL GLASS,0,9,0.5,0,0,0,Y
-GL-0000010,Mirror 1/8 Clear,Mirror 1/8 Clear,Mirror 1/8 Clear,0,Glass - Precut,4.5,8.137,14.64,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
+GL-0000010,Mirror 1/8 Clear,Mirror 1/8 Clear,Mirror 1/8 Clear,0,Glass - Precut,4.5,8.137,14.64,0,SF,GL,PRL GLASS,0,9,0.125,0,0,0,Y
 GL-0000011,Mirror 1/4 Clear,Mirror 1/4 Clear,Mirror 1/4 Clear,0,Glass - Precut,5.2,9.0022,15.92,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000012,Rain Glass 1/4 ,Rain Glass 1/4 ,Rain Glass 1/4 ,0,Glass - Specialty Precut,8.93,14.1316,24.55,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000013,P516 Obscure 1/4,P516 Obscure 1/4,P516 Obscure 1/4,0,Glass - Specialty Precut,8.93,14.1316,24.55,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y

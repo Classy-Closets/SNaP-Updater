@@ -8,6 +8,7 @@ from . import common_parts
 from .frameless_exteriors import Doors, Horizontal_Drawers, Vertical_Drawers
 from .frameless_splitters import Horizontal_Splitters
 from snap.libraries.closets import closet_paths
+from snap.libraries.closets.data import data_base_assembly
 import os
 import math
 
@@ -28,6 +29,7 @@ ISLAND_BACK_ROW = 1
 ISLAND_BASE_CARCASS = 0
 ISLAND_APPLIANCE_CARCASS = 1
 ISLAND_SINK_CARCASS = 2
+ISLAND_HIDDEN_CARCASS = 3
 
 def add_product_width_dimension(product):
     carcass = product.carcass
@@ -631,6 +633,7 @@ class Standard(sn_types.Assembly):
         add_product_depth_dimension(self)
         add_product_filler_dimension(self, 'Left')
         add_product_filler_dimension(self, 'Right')
+        sn_utils.add_kb_product_material_pointers(self)
 
         self.update()
 
@@ -727,6 +730,7 @@ class Refrigerator(sn_types.Assembly):
         add_product_depth_dimension(self)
         add_product_filler_dimension(self, 'Left')
         add_product_filler_dimension(self, 'Right')
+        sn_utils.add_kb_product_material_pointers(self)
 
         self.update()
 
@@ -918,6 +922,7 @@ class Blind_Corner(sn_types.Assembly):
         add_product_blind_width_dimension(self)
         add_product_filler_dimension(self, 'Left')
         add_product_filler_dimension(self, 'Right')
+        sn_utils.add_kb_product_material_pointers(self)
 
         self.update()
 
@@ -1089,6 +1094,7 @@ class Inside_Corner(sn_types.Assembly):
         add_product_depth_dimension(self)
         add_product_filler_dimension(self, 'Left')
         add_product_filler_dimension(self, 'Right')
+        sn_utils.add_kb_product_material_pointers(self)
 
         self.update()
 
@@ -1193,6 +1199,10 @@ class Island(sn_types.Assembly):
         ctop.loc_z('Height',[Height])
         ctop.dim_x('Width+IF(Add_Left_Waterfall,0,Countertop_Overhang_Left)+IF(Add_Right_Waterfall,0,Countertop_Overhang_Right)',
                 [Width,Add_Left_Waterfall,Countertop_Overhang_Left,Add_Right_Waterfall,Countertop_Overhang_Right])
+        if self.carcass.double_sided:
+            ctop.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Chase_Depth',[Front_Row_Depth,Countertop_Overhang_Front,Chase_Depth])
+        else:
+            ctop.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back-Chase_Depth',[Front_Row_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back,Chase_Depth])
         ctop.dim_z(value = sn_unit.inch(5.5))
 
         # Add waterfall heights based on proeduct height...
@@ -1204,7 +1214,8 @@ class Island(sn_types.Assembly):
                 if ctop.double_sided:
                     waterfall.dim_x('Back_Row_Depth+Front_Row_Depth+Chase_Depth+Countertop_Overhang_Front+Countertop_Overhang_Back',[Back_Row_Depth,Front_Row_Depth,Chase_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
                 else:
-                    waterfall.dim_x('Front_Row_Depth+Countertop_Overhang_Front+Countertop_Overhang_Back',[Front_Row_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
+                    # waterfall.dim_x('Front_Row_Depth+Countertop_Overhang_Front+Countertop_Overhang_Back',[Front_Row_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
+                    waterfall.dim_x('Front_Row_Depth+Chase_Depth+Countertop_Overhang_Front+Countertop_Overhang_Back',[Front_Row_Depth,Chase_Depth,Countertop_Overhang_Front,Countertop_Overhang_Back])
             elif child.get('IS_BP_LEFT_BACKSPLASH') or child.get('IS_BP_RIGHT_BACKSPLASH'):
                 backsplash = sn_types.Assembly(child)
                 if ctop.double_sided:
@@ -1224,6 +1235,7 @@ class Island(sn_types.Assembly):
             for row in range (0,2):
                 if row == ISLAND_FRONT_ROW or (self.carcass.double_sided and row == ISLAND_BACK_ROW):
                     part_nbr = str(col+1) if row == ISLAND_FRONT_ROW else str(cols+col+1)
+                    Carcass_Subtype = self.carcass.get_prompt("Carcass Subtype " + part_nbr).get_var("Carcass_Subtype")
                     loc_x_exp, loc_x_vars, opening_width = self.carcass.get_calculator_widths(row, part_nbr)
                     loc_x_vars.extend([opening_width,Chase_Depth,Front_Row_Depth,Back_Row_Depth])
                     loc_x_vars.extend([Add_Left_Waterfall,Add_Right_Waterfall,Waterfall_Thickness])
@@ -1236,10 +1248,13 @@ class Island(sn_types.Assembly):
 
                     if row == ISLAND_FRONT_ROW:
                         if self.carcass.double_sided:
-                            deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
-                            deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front',loc_x_vars)
+                            # deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
+                            # deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front',loc_x_vars)
+                            deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth',loc_x_vars)
+                            deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Chase_Depth',loc_x_vars)
                         else:
-                            deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',loc_x_vars)
+                            # deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back',loc_x_vars)
+                            deck.dim_y('-Front_Row_Depth-Countertop_Overhang_Front-Countertop_Overhang_Back-Chase_Depth',loc_x_vars)
 
                         if part_nbr == LEFT_CORNER_FRONT and part_nbr == RIGHT_CORNER_FRONT:
                             deck.loc_x(loc_x_exp, loc_x_vars)
@@ -1253,11 +1268,14 @@ class Island(sn_types.Assembly):
                         else:
                             deck.loc_x(loc_x_exp + '+IF(Add_Left_Waterfall,0,Countertop_Overhang_Left)', loc_x_vars)
                             deck.dim_x('Opening_' + part_nbr + '_Width',loc_x_vars)
+                        # deck.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_HIDDEN_CARCASS) + ',True,False)', [Carcass_Subtype])
 
                     elif row == ISLAND_BACK_ROW:
                         deck.rot_z(value=math.radians(180))
-                        deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
-                        deck.dim_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
+                        # deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
+                        # deck.dim_y('-Countertop_Overhang_Back-Back_Row_Depth-Chase_Depth',loc_x_vars)
+                        deck.loc_y('-Countertop_Overhang_Back-Back_Row_Depth',loc_x_vars)
+                        deck.dim_y('-Countertop_Overhang_Back-Back_Row_Depth',loc_x_vars)
 
                         if part_nbr == LEFT_CORNER_BACK and part_nbr == RIGHT_CORNER_BACK:
                             deck.loc_x(loc_x_exp + '+Opening_' + part_nbr + '_Width+IF(Add_Left_Waterfall,0,Countertop_Overhang_Left)+IF(Add_Right_Waterfall,Waterfall_Thickness,Countertop_Overhang_Right)', loc_x_vars)
@@ -1271,6 +1289,7 @@ class Island(sn_types.Assembly):
                         else:
                             deck.loc_x(loc_x_exp + '+Opening_' + part_nbr + '_Width+IF(Add_Left_Waterfall,0,Countertop_Overhang_Left)', loc_x_vars)
                             deck.dim_x('Opening_' + part_nbr + '_Width',loc_x_vars)
+                        # deck.get_prompt('Hide').set_formula('IF(Carcass_Subtype==' + str(ISLAND_HIDDEN_CARCASS) + ',True,False)', [Carcass_Subtype])
       
         return ctop
 
@@ -1337,8 +1356,8 @@ class Island(sn_types.Assembly):
                         elif row == ISLAND_BACK_ROW:
                             pass
                     else:
-                        opening.loc_y('-Front_Row_Depth',[Front_Row_Depth])
-                        
+                        opening.loc_y('-Front_Row_Depth-Chase_Depth',[Front_Row_Depth,Chase_Depth])
+
                     opening.loc_z('Bottom_Inset',[Bottom_Inset])
                     opening.loc_z('IF(Carcass_Subtype!=' + str(ISLAND_APPLIANCE_CARCASS) + ',Bottom_Inset,0)', [Carcass_Subtype, Bottom_Inset])
 
@@ -1377,6 +1396,7 @@ class Island(sn_types.Assembly):
         add_product_depth_dimension(self)
         add_product_filler_dimension(self, 'Left')
         add_product_filler_dimension(self, 'Right')
+        sn_utils.add_kb_product_material_pointers(self)
 
         self.update()
 
@@ -1429,6 +1449,7 @@ class Hood(sn_types.Assembly):
         self.obj_bp["RESIZE_ENABLED"] = self.resize_enabled 
         self.obj_bp["IS_BP_CLOSET"] = True
         self.obj_bp["IS_BP_CABINET"] = True
+        self.obj_bp["IS_BP_HOOD_CABINET"] = True
 
         dim_x = self.obj_x.snap.get_var('location.x', 'dim_x')
         dim_y = self.obj_y.snap.get_var('location.y', 'dim_y')
@@ -1451,12 +1472,29 @@ class Hood(sn_types.Assembly):
         # part.assign_material("Chrome", MATERIAL_FILE, "Chrome")
         # part.assign_material("Stainless Steel", MATERIAL_FILE, "Stainless Steel")
         # part.assign_material("Black Anodized Metal", MATERIAL_FILE, "Black Anodized Metal")
-
+        
         self.add_hood_width_dimension()
-
+        sn_utils.add_kb_product_material_pointers(self)
+        
         self.update()
 
         # if hasattr(self, "height_above_floor"):
         #     self.loc_z(value=self.height_above_floor)
 
         # add_product_width_dimension(self)
+
+class Toe_Kick(data_base_assembly.Base_Assembly):
+    """ KB Drop in Toe Kick Insert (based on closet toe kick)
+    """
+
+    def draw(self):
+        super().draw()
+        self.obj_bp["IS_KB_PART"] = True
+        self.obj_bp["IS_BP_TOE_KICK_INSERT"] = True
+
+        parts = sn_utils.get_assembly_bp_list(self.obj_bp, [])
+        for part in parts:
+            part["IS_KB_PART"] = True
+            # part["IS_BP_TOE_KICK_INSERT"] = True
+
+        sn_utils.add_kb_product_material_pointers(self)
