@@ -499,7 +499,7 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
                 {CCItems}\
             WHERE\
                 ProductType = 'PM' AND\
-                TypeCode IN (2, 3, 4, 5, 6, 7, 9) AND\
+                TypeCode IN (2, 3, 4, 15175, 6, 7, 9) AND\
                 Thickness = 0.75 AND\
                 DisplayName IN {Five_Piece_Melamine_Door_Color_List}\
                 \

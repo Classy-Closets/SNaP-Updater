@@ -1460,6 +1460,7 @@ class Hood(sn_types.Assembly):
 
         part = sn_types.Part(obj_bp=obj)
         part.obj_bp["IS_BP_HOOD_BODY"] = True
+        part.obj_bp["IS_KB_PART"] = True
         part.dim_x("dim_x", [dim_x])
         part.dim_y("dim_y", [dim_y])
         part.dim_z("dim_z", [dim_z])

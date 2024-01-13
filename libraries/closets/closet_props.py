@@ -41,6 +41,8 @@ LIBRARY_NAME_SPACE = "sn_closets"
 
 
 def update_render_materials(self, context):
+    if self.skip_assign_materials:
+        return
     try:
         bpy.ops.closet_materials.poll_assign_materials()
     except Exception as e:
@@ -886,6 +888,11 @@ class Closet_Defaults(PropertyGroup):
         name="Drill Drawer Boxes",
         description="Drill drawer box subfronts",
         default=True)
+    
+    drawer_boxes_assembled: BoolProperty(
+        name="Drawer Boxes Assembled",
+        description="Marks if Drawer Box Parts are Assembled in XML",
+        default=True)
 
     show_panel_drilling: BoolProperty(
         name="Show Panel Drilling",
@@ -1056,10 +1063,6 @@ class Closet_Defaults(PropertyGroup):
             row.label(text="Drill Diameter:")
             row.prop(closet_machining, 'system_hole_dia_options', text="")
 
-        row = box.row()
-        row.label(text="Drill Drawer Boxes:")
-        row.prop(self, 'drill_drawer_boxes', text="")
-        row.label(text="", icon='BLANK1')
 
         row = box.row()
         row.label(text="KD Shelf Drill Depth:")
@@ -1119,6 +1122,18 @@ class Closet_Defaults(PropertyGroup):
         row.prop(self, 'toe_kick_type', text="")
         props = row.operator('sn_prompt.update_tk_construction_prompts', text="", icon='FILE_REFRESH')
         props.toe_kick_type = self.toe_kick_type
+
+        box = main_col.box()
+        box.label(text="Drawer Box Options:", icon='MODIFIER')
+        row = box.row()
+        row.label(text="Drill Drawer Boxes:")
+        row.prop(self, 'drill_drawer_boxes', text="")
+        row.label(text="", icon='BLANK1')
+
+        row = box.row()
+        row.label(text="Drawer Boxes Assembled:")
+        row.prop(self, 'drawer_boxes_assembled', text="")
+        row.label(text="", icon='BLANK1')
 
     def draw(self, layout):
         box = layout.box()
@@ -1876,6 +1891,8 @@ class PROPERTIES_Object_Properties(PropertyGroup):
         items=get_veneer_colors,
         update=update_render_materials
     )
+
+    skip_assign_materials: BoolProperty(name="Skip Assign Materials", default=False)
 
     opening_name: StringProperty(name="Opening Name",description="Name of the opening")   
 

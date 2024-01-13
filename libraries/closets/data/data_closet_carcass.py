@@ -1549,11 +1549,14 @@ class Closet_Carcass(sn_types.Assembly):
         Panel_Thickness = self.get_prompt("Panel Thickness").get_var('Panel_Thickness')
         Toe_Kick_Height = self.get_prompt('Toe Kick Height').get_var('Toe_Kick_Height')
         BCHD = self.get_prompt("Blind Corner Height Difference").get_var("BCHD")
+        Left_Side_Wall_Filler = self.get_prompt('Left Side Wall Filler').get_var('Left_Side_Wall_Filler')
+        Right_Side_Wall_Filler = self.get_prompt('Right Side Wall Filler').get_var('Right_Side_Wall_Filler')
 
         #Left Blind Corner Panel
         left_blind_panel = common_parts.add_panel(self)
         Vertical_Offset_1 = self.get_prompt("Top KD 1 Vertical Offset").get_var('Vertical_Offset')
 
+        left_blind_panel.loc_x("Left_Side_Wall_Filler", [Left_Side_Wall_Filler])
         left_blind_panel.loc_y("-First_Opening_Depth-Panel_Thickness",[First_Opening_Depth,Panel_Thickness])
         left_blind_panel.loc_z('IF(First_Floor_Mounted,Toe_Kick_Height+(BCHD/2),Hanging_Height-First_Opening_Height+(BCHD/2))',
                                 [First_Floor_Mounted,Toe_Kick_Height,BCHD,Hanging_Height,First_Opening_Height])
@@ -1580,7 +1583,7 @@ class Closet_Carcass(sn_types.Assembly):
         #Right Blind Corner Panel
         right_blind_panel = common_parts.add_panel(self)
         Vertical_Offset_Last = self.get_prompt("Top KD " + str(self.opening_qty) + " Vertical Offset").get_var('Vertical_Offset')
-        right_blind_panel.loc_x("Width",[Width])
+        right_blind_panel.loc_x("Width-Right_Side_Wall_Filler", [Width, Right_Side_Wall_Filler])
         right_blind_panel.loc_y("-Last_Opening_Depth",[Last_Opening_Depth])
         right_blind_panel.loc_z('IF(Last_Floor_Mounted,Toe_Kick_Height+(BCHD/2),Hanging_Height-Last_Opening_Height+(BCHD/2))',
                                 [Last_Floor_Mounted,Toe_Kick_Height,BCHD,Hanging_Height,Last_Opening_Height])

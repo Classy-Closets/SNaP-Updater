@@ -337,8 +337,8 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
         dim_to_front = macp.dim_to_front_system_hole
         dim_to_rear = macp.dim_to_rear_system_hole
 
-        if left.get_value():
-            obj, token = assembly.add_machine_token('System Holes Right Bottom Front','BORE','5')
+        if right.get_value():
+            obj, token = assembly.add_machine_token('System Holes Right Bottom Front', 'BORE', '6')
             token.dim_in_x = part_length + sn_unit.inch(0.455) - macp.dim_to_system_top_hole - macp.dim_between_holes
             token.dim_in_y = dim_to_front
             token.dim_in_z = macp.system_hole_bore_depth
@@ -349,8 +349,8 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
             token.associative_dia = 0
             token.associative_depth = 0
 
-        elif right.get_value():
-            obj, token = assembly.add_machine_token('System Holes Left Bottom Front','BORE','6')
+        elif left.get_value():
+            obj, token = assembly.add_machine_token('System Holes Left Bottom Front', 'BORE', '5')
             token.dim_in_x = part_length + sn_unit.inch(0.455) - macp.dim_to_system_top_hole - macp.dim_between_holes
             token.dim_in_y = part_width - dim_to_rear
             token.dim_in_z = macp.system_hole_bore_depth

@@ -113,3 +113,4 @@ snap_db_updater/
 !python_lib/**/*.pyd
 python_lib/pandas/**/*.pyd
 *.blend1
+config/one_time_set_defaults.txt

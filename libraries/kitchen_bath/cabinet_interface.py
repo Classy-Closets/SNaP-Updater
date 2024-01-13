@@ -1332,7 +1332,8 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     material_pointer_name: EnumProperty(
         name="Material Group",items=[('0',"Base Cabinet","Base Cabinet"),
                                       ('1',"Island Cabinet","Island Cabinet"),
-                                      ('2',"Upper Cabinet","Upper Cabinet")])
+                                      ('2',"Upper Cabinet","Upper Cabinet"),
+                                      ('3',"Hood Cabinet","Hood Cabinet")])
 
     constraint_button: EnumProperty(
         name="Constraint Button Options",items=[('0', 'Default', "Default"),
@@ -1746,7 +1747,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 exec('self.carcass_subtype_' + str(opening_nbr) + ' = str(carcass_subtype_ppt.get_value())')
 
     def update_material_pointer_name(self):
-        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface']
+        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface','Hood_Surface']
         material_pointer_name = material_pointer_names[int(self.material_pointer_name)]
 
         if self.product.obj_bp.get("MATERIAL_POINTER_NAME") != material_pointer_name:
@@ -1847,7 +1848,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                     self.section_tabs = 'SECTION' + str(section_nbr)
     
     def set_material_pointer_name(self):
-        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface']
+        material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface','Hood_Surface']
         material_pointer = self.product.obj_bp.get("MATERIAL_POINTER_NAME")
         
         if material_pointer and material_pointer in material_pointer_names:

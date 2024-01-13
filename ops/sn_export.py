@@ -1417,15 +1417,16 @@ class OPS_Export_XML(Operator):
             # Slab Drawer Front with Insert = material_number + 55
 
         # Drawer Box
-        use_dovetail_construction = False
-        if assembly.get_prompt("Use Dovetail Construction"):
-            use_dovetail_construction = assembly.get_prompt("Use Dovetail Construction").get_value()
         if assembly.get_prompt("Box Type"):
-            if assembly.get_prompt("Box Type").get_value() == 2:
-                use_dovetail_construction = True
-        drawer_material_number = "20"
-        if use_dovetail_construction:
-            drawer_material_number = "22"
+            box_type = assembly.get_prompt("Box Type").get_value()
+
+            if box_type == 0:
+                drawer_material_number = "20"
+            if box_type == 1:
+                drawer_material_number = "21"
+            if box_type == 2:
+                drawer_material_number = "22"
+
         # Many more drawer material/contruction numbers. These two are all we have in SNaP now
         if obj.get("IS_BP_DRAWER_SUB_FRONT"):
             category_number = drawer_material_number + "01"
@@ -2292,7 +2293,7 @@ class OPS_Export_XML(Operator):
 
             # Back Left Hole
             cir = {}
-            cir['cen_x'] = -float(dim_in_x_2)
+            cir['cen_x'] = -float(self.get_part_length(assembly)) + float(dim_in_x_1)
             cir['cen_y'] = float(dim_in_y)
             cir['cen_z'] = float(bore_depth)
             cir['diameter'] = sn_unit.meter_to_inch(sn_unit.millimeter(float(cam_hole_dia)))
@@ -2330,7 +2331,7 @@ class OPS_Export_XML(Operator):
 
             # Back Right Hole
             cir = {}
-            cir['cen_x'] = -float(dim_in_x_2)
+            cir['cen_x'] = -float(self.get_part_length(assembly)) + float(dim_in_x_1)
             cir['cen_y'] = float(dim_in_y)
             cir['cen_z'] = float(bore_depth)
             cir['diameter'] = sn_unit.meter_to_inch(sn_unit.millimeter(float(cam_hole_dia)))
@@ -4023,7 +4024,18 @@ class OPS_Export_XML(Operator):
                 if hide:
                     if hide.get_value():
                         continue
-                sub_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.name
+
+                box_type = assembly.get_prompt("Box Type").get_value()
+                box_type_str = ""
+
+                if box_type == 0:
+                    box_type_str = "- Mel"
+                if box_type == 1:
+                    box_type_str = "Inset Bttm - Mel"
+                if box_type == 2:
+                    box_type_str = "DT - BB"
+
+                sub_name = "DrwrBox Assmbly {}".format(box_type_str)
                 elm_item = self.xml.add_element(elm_subassembly, 'Assembly', {'ID': "IDA-{}".format(self.assembly_count)})
                 self.xml.add_element_with_text(elm_item, 'Name', sub_name)
                 self.xml.add_element_with_text(elm_item, 'Quantity', "1")
@@ -4764,6 +4776,49 @@ class OPS_Export_XML(Operator):
             if ppt_dogear:
                 if ppt_dogear.get_value():
                    part_name = "Dogeared Partition"
+
+            # Drawer box part names
+            is_box_bottom = assembly.obj_bp.get("IS_BP_DRAWER_BOTTOM")
+            is_box_front = assembly.obj_bp.get("IS_BP_DRAWER_SUB_FRONT")
+            is_box_side = assembly.obj_bp.get("IS_BP_DRAWER_SIDE")
+            is_box_back = assembly.obj_bp.get("IS_BP_DRAWER_BACK")
+
+            drawer_box_parts = [
+                is_box_bottom,
+                is_box_front,
+                is_box_side,
+                is_box_back,
+            ]
+
+            if any(drawer_box_parts):
+                drawer_stack_insert = sn_types.Assembly(obj_bp=sn_utils.get_bp(assembly.obj_bp, 'INSERT'))
+                box_type_ppt = drawer_stack_insert.get_prompt("Box Type")
+
+                if box_type_ppt:
+                    box_type = box_type_ppt.get_value()
+
+                    if is_box_front:
+                        box_part = "Front"
+                    if is_box_side:
+                        box_part = "Side"
+                    if is_box_back:
+                        box_part = "Back"
+
+                    if box_type == 0:
+                        if is_box_bottom:
+                            box_part = "Bottom"
+                        part_name = "DrwrBox {} - Mel".format(box_part)
+
+                    if box_type == 1:
+                        if is_box_bottom:
+                            part_name = "DrwrBox Inset Bttm - Mel"
+                        else:
+                            part_name = "DrwrBox {} Inset Bttm - Mel".format(box_part)
+
+                    if box_type == 2:
+                        if is_box_bottom:
+                            box_part = "Bttm"
+                        part_name = "DrwrBox {} DT - BB".format(box_part)
 
             if isinstance(mat_inventory_name, str):
                 mat_inventory_name = mat_inventory_name.replace("Δ ", "")
@@ -5910,6 +5965,24 @@ class OPS_Export_XML(Operator):
                 ("cutl", "text", self.get_part_length(assembly)),#Part.AdjustedCutPartLength 
                 ("cutt", "text", self.distance(sn_utils.get_part_thickness(obj))),
                 ("cutw", "text", self.get_part_width(assembly)),#Part.AdjustedCutPartWidth
+            ]
+            lbl.extend(second_lbl)
+
+            drawer_box_parts = [
+                assembly.obj_bp.get("IS_BP_DRAWER_BOX"),
+                assembly.obj_bp.get("IS_BP_DRAWER_SIDE"),
+                assembly.obj_bp.get("IS_BP_DRAWER_SUB_FRONT"),
+                assembly.obj_bp.get("IS_BP_DRAWER_BACK"),
+                assembly.obj_bp.get("IS_BP_DRAWER_BOTTOM"),
+            ]
+            if any(drawer_box_parts):
+                closet_defaults = bpy.context.scene.sn_closets.closet_defaults
+                drawer_box_lbl = [
+                    ("BoxAssembled", "text", str(closet_defaults.drawer_boxes_assembled))
+                ]
+                lbl.extend(drawer_box_lbl)
+            
+            third_lbl = [
                 ("primaryedgecolorname", "text", primary_edge_color_name if edge_1 != '' or edge_2 != '' or edge_3 != '' or edge_4 != '' else ''),
                 ("edgeband1", "text", edge_1),
                 ("edgeband1sku", "text", edge_1_sku),
@@ -5924,11 +5997,10 @@ class OPS_Export_XML(Operator):
                 ("edgeband4sku", "text", edge_4_sku),
                 ("edgeband4name", "text", edge_4_color_name if edge_4 != '' else '')
             ]  
-            lbl.extend(second_lbl)
-
+            lbl.extend(third_lbl)
             self.labels.append(lbl)
-            self.label_count += 1
 
+            self.label_count += 1
             #Create and operation group for every part
             self.op_groups.append(op_grp)
             self.op_count += 1

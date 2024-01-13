@@ -1,6 +1,7 @@
 import os
 import shutil
 import pathlib
+from pathlib import Path
 
 import bpy
 from bpy.types import Operator
@@ -198,12 +199,50 @@ class SN_WM_OT_load_snap_defaults(Operator):
                 if update_startup_file:
                     bpy.ops.wm.save_as_mainfile(filepath=startup_path)
                     bpy.ops.wm.read_homefile(app_template="")
+    
+    # This function will change the given settings once in the startup file as long as one_time_set_defaults.txt has "True" as the first line, then it will change it to "False" and not change it again
+    def one_time_set_defaults(self, config_path, sn_config_dir):
+        one_time_set_defaults_path = os.path.join(sn_config_dir, "one_time_set_defaults.txt")
+        one_time_set_defaults_file = Path(one_time_set_defaults_path)
+
+        # Try to find and open one_time_set_defaults.txt
+        try:
+            with one_time_set_defaults_file.open("r") as f:
+                lines = f.readlines()
+                # Check to see if first line is "True"
+                if lines[0].startswith("True"):
+                    
+                    # Load the startup file
+                    if os.path.exists(config_path):
+                        startup_path = os.path.join(config_path, "startup.blend")
+                        bpy.ops.wm.open_mainfile(filepath=startup_path)
+
+                        # Set default wall and floor material
+                        print("Setting default wall and floor material")
+                        props = bpy.context.scene.sn_roombuilder
+                        props.floor_type = "WOOD"
+                        props.wood_floor_material = "Biltmore Cherry Hardwood"
+                        props.wall_material = "Neutral Ground"
+
+                        # Save the current scene as the new startup file
+                        bpy.ops.wm.save_as_mainfile(filepath=startup_path)
+                        bpy.ops.wm.read_homefile(app_template="")
+
+                    # Change the first line to "False"
+                    lines[0] = "False\n"
+
+            with one_time_set_defaults_file.open("w") as f:
+                f.writelines(lines)
+
+        except:
+            print("one_time_set_defaults.txt not found")
 
     def execute(self, context):
         import ctypes
         VK_R = 0x52
         config_path = sn_paths.CONFIG_PATH
         app_template_path = sn_paths.APP_TEMPLATE_PATH
+        sn_config_dir = sn_paths.SNAP_CONFIG_DIR
         franchise_location = context.preferences.addons['snap'].preferences.franchise_location
 
         bpy.ops.script.execute_preset(
@@ -217,6 +256,7 @@ class SN_WM_OT_load_snap_defaults(Operator):
         self.use_auto_set_scripts_dir()
         context.preferences.addons['snap'].preferences.franchise_location = franchise_location
         self.set_persistient_startup_data(config_path)
+        self.one_time_set_defaults(config_path, sn_config_dir)
         self.init_db()
 
         bl_ver = "{}.{}".format(bpy.app.version[0], bpy.app.version[1])

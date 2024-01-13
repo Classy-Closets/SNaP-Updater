@@ -93,7 +93,7 @@ def assign_material_pointers(scene=None):
             else:
                 for mat_idx, mat_type in enumerate(mat_types):
                     for color_idx, color in enumerate(mat_type.colors):
-                        if room_mat_color in color.name:
+                        if color.name.startswith(room_mat_color):
                             return mat_idx, color_idx
 
         return None, None
@@ -101,7 +101,8 @@ def assign_material_pointers(scene=None):
     def get_part_mesh(obj_bp, mesh_type):
         for obj in obj_bp.children:
             if obj.type == 'MESH' and obj.snap.type_mesh == mesh_type:
-                return obj
+                if obj.visible_get():
+                    return obj
 
     def get_mat_slot_item_name(obj, slot_name, type):
         part_mesh = get_part_mesh(obj, type)
@@ -147,15 +148,82 @@ def assign_material_pointers(scene=None):
         is_frosted_forest = "Frosted Forest" in color_name
         is_bridal_shower = "Bridal Shower" in color_name
         garage_materials = mat_props.materials.get_mat_type().name == "Garage Material"
+        curr_ver = sn_utils.get_version_str()
+        update_needed = [is_bridal_shower, is_frosted_forest, garage_materials]
 
-        if is_bridal_shower or is_frosted_forest or garage_materials:
+        if any(update_needed):
             for obj in bpy.data.objects:
                 if obj.get("IS_BP_CLOSET"):
-                    if obj['SNAP_VERSION'] < sn_utils.get_version_str():
+                    if obj['SNAP_VERSION'] < curr_ver:
                         from snap.material_manager import closet_materials
                         closet_materials.update_material_and_edgeband_colors(mat_props, bpy.context)
                         bpy.ops.closet_materials.poll_assign_materials()
                         return
+
+    def update_kb_colors(mat_props):
+        curr_ver = sn_utils.get_version_str()
+        room_ver = sn_utils.get_room_version()
+
+        if room_ver < curr_ver:
+            init_base = False
+            init_upper = False
+            init_island = False
+            mat_props.kb_colors_initialized = False
+            discontinued_colors = ["Forest Oak", "Rustic Oak", "Root Tea", "Cloud", "Asphalt"]
+
+            for obj in scene.objects:
+                part_mesh = None
+
+                if "IS_BP_PANEL" in obj and "IS_KB_PART" in obj:
+                    cabinet_bp = sn_utils.get_cabinet_bp(obj)
+
+                    if cabinet_bp:
+                        mat_pointer_name = cabinet_bp.get("MATERIAL_POINTER_NAME")
+
+                        if mat_pointer_name == "Cabinet_Base_Surface" and not init_base:
+                            part_mesh = get_part_mesh(obj, 'CUTPART')
+                            if part_mesh:
+                                mat_slot = part_mesh.material_slots[0]
+                                if mat_slot:
+                                    base_color = mat_slot.material.name
+                                    if base_color in discontinued_colors:
+                                        base_color = f"{base_color} (Discontinued)"
+                                    mat_props.kb_base_mat = base_color
+                                    init_base = True
+
+                        if mat_pointer_name == "Cabinet_Upper_Surface" and not init_upper:
+                            part_mesh = get_part_mesh(obj, 'CUTPART')
+                            if part_mesh:
+                                mat_slot = part_mesh.material_slots[0]
+                                if mat_slot:
+                                    upper_color = mat_slot.material.name
+                                    if upper_color in discontinued_colors:
+                                        upper_color = f"{upper_color} (Discontinued)"
+                                    mat_props.kb_upper_mat = upper_color
+                                    init_upper = True
+
+                        if mat_pointer_name == "Cabinet_Island_Surface" and not init_island:
+                            part_mesh = get_part_mesh(obj, 'CUTPART')
+                            if part_mesh:
+                                mat_slot = part_mesh.material_slots[0]
+                                if mat_slot:
+                                    island_color = mat_slot.material.name
+                                    if island_color in discontinued_colors:
+                                        island_color = f"{island_color} (Discontinued)"
+                                    mat_props.kb_island_mat = island_color
+                                    init_island = True
+
+                    if all([init_base, init_upper, init_island]):
+                        break
+
+            if not init_base:
+                mat_props.kb_base_mat = "Winter White"
+            if not init_upper:
+                mat_props.kb_upper_mat = "Winter White"
+            if not init_island:
+                mat_props.kb_island_mat = "Winter White"
+
+            mat_props.kb_colors_initialized = True
 
     if bpy.data.is_saved:
         if is_startup_file():
@@ -174,6 +242,8 @@ def assign_material_pointers(scene=None):
         cleat_edge_type = mat_props.secondary_edges.get_edge_type()
         door_drawer_mat_type = mat_props.door_drawer_materials.get_mat_type()
         door_drawer_edge_type = mat_props.door_drawer_edges.get_edge_type()
+        room_mat_color = None
+        current_mat_color = None
 
         try:
             mat_type.get_mat_color()
@@ -192,10 +262,19 @@ def assign_material_pointers(scene=None):
             elif mat_type.name == "Solid Color Matte Finish":
                 mat_props.matte_color_index = len(mat_type.colors) - 1
 
+        if mat_props.grain_color_index >= len(mat_props.materials.mat_types["Grain Pattern Smooth Finish"].colors):
+            mat_props.grain_color_index = len(mat_props.materials.mat_types["Grain Pattern Smooth Finish"].colors) - 1
+
+        if mat_props.five_piece_melamine_door_mat_color_index >= len(mat_props.five_piece_melamine_door_colors):
+            mat_props.five_piece_melamine_door_mat_color_index = len(mat_props.five_piece_melamine_door_colors) - 1
+
         check_discontinued_colors(mat_props, scene)
 
         if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
             mat_props.door_drawer_mat_color_index = len(door_drawer_mat_type.colors) - 1
+
+        if mat_props.use_kb_color_scheme:
+            update_kb_colors(mat_props)
 
         # if not custom_colors:
         for obj in scene.objects:
@@ -209,7 +288,7 @@ def assign_material_pointers(scene=None):
                     cutpart_name = obj.snap.cutpart_name
                 if cutpart_name == 'Garage_Top_KD' or cutpart_name == 'Garage_End_Panel' or cutpart_name == 'Garage_Bottom_KD':
                     part_mesh = get_part_mesh(obj, 'CUTPART')
-            elif mat_type.type_code == 1 or mat_type.type_code == 4:
+            elif mat_type.type_code == 1 or mat_type.type_code == 10:
                 if "IS_BP_DRAWER_FRONT" in obj or "IS_DOOR" in obj:
                     part_mesh = get_part_mesh(obj, 'CUTPART')
             else:
@@ -240,6 +319,29 @@ def assign_material_pointers(scene=None):
                 else:
                     mat_props.discontinued_color = room_mat_color
                     message_box("Material", room_mat_color)
+
+            edge_color = room_mat_color
+
+            if "Snow Drift" in room_mat_color:
+                edge_color = "Winter White"
+
+            if edge_type.get_edge_color().name != edge_color:
+                new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.edges.edge_types, edge_color, is_garage_material)
+                if new_type_idx is not None and new_color_idx is not None:
+                    mat_props.edge_type_index = new_type_idx
+                    edge_type.set_color_index(new_color_idx)
+
+            if cleat_edge_type.get_edge_color().name != edge_color:
+                new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.secondary_edges.edge_types, edge_color, is_garage_material)
+                if new_type_idx is not None and new_color_idx is not None:
+                    mat_props.secondary_edge_type_index = new_type_idx
+                    cleat_edge_type.set_color_index(new_color_idx)
+
+            if door_drawer_edge_type.get_edge_color().name != edge_color:
+                new_type_idx, new_color_idx = get_material_indexes(mat_props, mat_props.door_drawer_edges.edge_types, edge_color, is_garage_material)
+                if new_type_idx is not None and new_color_idx is not None:
+                    mat_props.door_drawer_edge_type_index = new_type_idx
+                    door_drawer_edge_type.set_color_index(new_color_idx)
 
         if custom_colors:
             edge = None
@@ -368,6 +470,35 @@ def assign_material_pointers(scene=None):
                     message_box("Stain/Paint", room_stain_color)
 
     bpy.ops.closet_materials.assign_materials(only_update_pointers=True)
+
+@persistent
+def check_unique_colors(scene=None):
+    discontinued_colors = ["Forest Oak", "Rustic Oak", "Root Tea", "Cloud", "Asphalt"]
+    curr_ver = sn_utils.get_version_str()
+    room_ver = sn_utils.get_room_version()
+
+    if room_ver < curr_ver:
+        print("Updating room to 2.8.0 - Checking for unique colors...")
+        if "_Main" in bpy.data.scenes:
+            scene = bpy.data.scenes["_Main"]
+        else:
+            scene = bpy.data.scenes["Scene"]
+
+        unique_mat_obj_bps = [obj for obj in scene.objects if obj.sn_closets.use_unique_material]
+
+        for obj_bp in unique_mat_obj_bps:
+            if obj_bp.children:
+                for child in obj_bp.children:
+                    if child.type == 'MESH' and child.visible_get():
+                        mesh_mat = child.material_slots[0].material.name
+                        if mesh_mat in discontinued_colors:
+                            mesh_mat = f"{mesh_mat} (Discontinued)"
+
+                        if mesh_mat != obj_bp.sn_closets.unique_mat:
+                            obj_bp.sn_closets.skip_assign_materials = True
+                            obj_bp.sn_closets.unique_mat = mesh_mat
+                            obj_bp.sn_closets.skip_assign_materials = False
+                            break
 
 
 @persistent
@@ -571,6 +702,7 @@ def register():
     bpy.app.handlers.load_post.append(load_library_modules)
     bpy.app.handlers.load_post.append(init_machining_collection)
     bpy.app.handlers.load_post.append(create_wall_collections)
+    bpy.app.handlers.load_post.append(check_unique_colors)
 
 
 def unregister():
@@ -585,3 +717,4 @@ def unregister():
     bpy.app.handlers.load_post.remove(load_library_modules)
     bpy.app.handlers.load_post.remove(init_machining_collection)
     bpy.app.handlers.load_post.remove(create_wall_collections)
+    bpy.app.handlers.load_post.remove(check_unique_colors)

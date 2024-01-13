@@ -141,7 +141,7 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
             ('RIGHT', "Right", ""),
             ('FILL_RIGHT', "Fill Right", "")],
         default='SELECTED_POINT')
-
+    
     current_location: FloatProperty(name="Current Location", default=0, subtype='DISTANCE', precision=4)
     left_offset: FloatProperty(name="Left Offset", default=0, subtype='DISTANCE')
     right_offset: FloatProperty(name="Right Offset", default=0, subtype='DISTANCE')
@@ -167,7 +167,6 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
         self.placement_on_wall = 'SELECTED_POINT'
         self.left_offset = 0
         self.right_offset = 0
-
         return super().invoke(context, event, width=400) 
 
     def check(self, context):
@@ -251,9 +250,8 @@ class PROMPTS_Parametric_Wall_Appliance(sn_types.Prompts_Interface):
         layout = self.layout
         box = layout.box()
         
-        if self.product.obj_bp:
-            row = box.row()
-            row.label(text=self.product.obj_bp.snap.name_object, icon='LATTICE_DATA')
+        split = box.split(factor=.5)
+        split.label(text=self.product.obj_bp.snap.name_object, icon='LATTICE_DATA')
 
         row = box.row()
         col = row.column(align=True)

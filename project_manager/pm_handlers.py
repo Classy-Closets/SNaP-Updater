@@ -73,6 +73,28 @@ def check_countertop_selection(scene=None):
                     closet_materials.ct_color_index = countertop_index
                     closet_materials.ct_updated_to_261 = True
 
+        elif current_room_ver < "2.8.0":
+            print("Updating room to 2.8.0")
+            closet_materials.color_change = False
+            if not closet_materials.ct_updated_to_280:
+                if countertop_type.name == "Standard Quartz":
+                    idx = int(countertop_index)
+                    # Added "Apollo"
+                    if countertop_index == 0:
+                        idx += 1
+                    # Added "Bianco Tiza"
+                    elif countertop_index < 2:
+                        idx += 2
+                    # Added "Gemstone Beige"
+                    elif countertop_index < 11:
+                        idx += 3
+                    # Added "Steel"
+                    else:
+                        idx += 4
+
+                    closet_materials.ct_color_index = idx
+                    closet_materials.ct_updated_to_280 = True
+
 
 @persistent
 def check_pull_selection(scene=None):

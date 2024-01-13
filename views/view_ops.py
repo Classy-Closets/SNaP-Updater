@@ -660,7 +660,6 @@ class VIEW_OT_generate_2d_views(Operator):
         cover_mesh_name = f"skipped_{obj.name}_cover"
         cover_mesh = None
         obj_assy = sn_types.Assembly(obj)
-        obj_loc = obj.location
         dim_x = obj_assy.obj_x.location.x # actually Z
         dim_y = obj_assy.obj_y.location.y # actually X
         dim_z = obj_assy.obj_z.location.z # actually Y
@@ -668,19 +667,22 @@ class VIEW_OT_generate_2d_views(Operator):
         cover_dim_y = abs(obj_assy.obj_y.location.y) - (unit.inch(thick) * 2)
         cover_dim_z = obj_assy.obj_z.location.z
         y_loc_offset = unit.inch(thick)
+
         if dim_y < 0:
             cover_dim_y = cover_dim_y * -1
             y_loc_offset = y_loc_offset * -1
-        skipped_mesh = utils.create_cube_mesh(skipped_name, 
-                                    (dim_x, dim_y, dim_z))
+
+        skipped_mesh = utils.create_cube_mesh(skipped_name, (dim_x, dim_y, dim_z))
         utils.copy_world_loc(obj, skipped_mesh)
         utils.copy_world_rot(obj, skipped_mesh)
+
         if is_styled:
             cover_dims = (cover_dim_x, cover_dim_y, cover_dim_z)
             cover_location = (unit.inch(thick), y_loc_offset, abs(dim_z))
             cover_mesh = utils.create_cube_mesh(cover_mesh_name, cover_dims)
             utils.copy_world_loc(obj, cover_mesh, cover_location)
             utils.copy_world_rot(obj, cover_mesh)
+
         if is_styled and "glass" in materials and cover_mesh:
             glass_x, glass_y, glass_z = cover_mesh.dimensions
             if dim_y < 0:
@@ -724,13 +726,13 @@ class VIEW_OT_generate_2d_views(Operator):
                             grp.objects.link(cc)
                 elif skippable and not wallbed_bp:
                     style_materials = self.door_style_materials(child)
-                    assembly = sn_types.Assembly(obj)
+                    assembly = sn_types.Assembly(child)
                     glass_color = None
                     if assembly:
                         glass_color_ppt = assembly.get_prompt("Glass Color")
                         if glass_color_ppt:
                             glass_color = glass_color_ppt.get_value()
-                    self.create_replaced_mesh(obj, style_materials, glass_color)
+                    self.create_replaced_mesh(child, style_materials, glass_color)
                     continue
                 else:
                     self.group_children(grp, child)
@@ -3002,23 +3004,33 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def fetch_valid_flagged_indexes(self, tmp_dict, tmp_keys):
         result = []
+
         for i, key in enumerate(tmp_keys):
             idx = i + 1
             is_first = idx == 1
             is_last = idx == len(tmp_keys)
+
             previous_true = tmp_dict.get(idx - 1)
             next_true = tmp_dict.get(idx + 1)
             current_true = tmp_dict.get(idx)
+
             first_rule = is_first and next_true
-            last_rule = is_last and previous_true
+
+            if len(tmp_dict) == 2:
+                last_rule = is_last
+            else:
+                last_rule = is_last and previous_true
+
             true_neighbor = previous_true or next_true
             middle_rule = not is_first and not is_last and true_neighbor
+
             if current_true and first_rule:
                 result.append(key)
             elif current_true and last_rule:
                 result.append(key)
             elif current_true and middle_rule:
                 result.append(key)
+
         return result
 
     def break_flagged_walls(self, data_dict):
