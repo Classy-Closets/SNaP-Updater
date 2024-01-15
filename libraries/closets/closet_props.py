@@ -41,8 +41,9 @@ LIBRARY_NAME_SPACE = "sn_closets"
 
 
 def update_render_materials(self, context):
-    if self.skip_assign_materials:
-        return
+    if hasattr(self, 'skip_assign_materials'):
+        if self.skip_assign_materials:
+            return
     try:
         bpy.ops.closet_materials.poll_assign_materials()
     except Exception as e:
