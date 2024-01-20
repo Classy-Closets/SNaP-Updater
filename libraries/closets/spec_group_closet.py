@@ -90,6 +90,7 @@ class Material_Pointers():
     Cabinet_Base_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
     Cabinet_Upper_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
     Cabinet_Island_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
+    Cabinet_Molding_Surface = sn_types.Material_Pointer(EXPOSED_MATERIAL)
 
     # Hood pointers
     Hood_Surface = sn_types.Material_Pointer(HOOD_MATERIAL)

@@ -103,6 +103,12 @@ def update_light_rail_molding_category(self,context):
         
     enum_light_rail_molding(self,context)
 
+def update_light_rail_molding(self,context):
+    bpy.ops.lm_cabinets.auto_add_molding(molding_type='Light')
+
+def update_light_rail_molding_height(self,context):
+    bpy.ops.lm_cabinets.auto_add_molding(molding_type='Light')
+
 #---------DOORS
 preview_collections["door_style_categories"] = sn_utils.create_image_preview_collection()  
 
@@ -643,7 +649,8 @@ class PROPERTIES_Scene_Properties(bpy.types.PropertyGroup):
     
     expand_light_rail_molding: bpy.props.BoolProperty(name="Expand Light Rail Molding")
     light_rail_molding_category: bpy.props.EnumProperty(name="Light Rail Molding Category",items=enum_light_rail_molding_categories,update=update_light_rail_molding_category)
-    light_rail_molding: bpy.props.EnumProperty(name="Light Rail Molding",items=enum_light_rail_molding)    
+    light_rail_molding: bpy.props.EnumProperty(name="Light Rail Molding",items=enum_light_rail_molding,update=update_light_rail_molding)    
+    light_rail_molding_height: bpy.props.FloatProperty(name="Light Rail Molding Height",default=sn_unit.inch(2.25),min=sn_unit.inch(2.25),unit='LENGTH',precision=3,update=update_light_rail_molding_height)
     
     expand_door: bpy.props.BoolProperty(name="Expand Door")
     door_category: bpy.props.EnumProperty(name="Door Category",items=enum_door_categories,update=update_door_category)

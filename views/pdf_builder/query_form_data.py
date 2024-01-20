@@ -209,9 +209,13 @@ class Query_PDF_Form_Data:
         for item in pulls:
             pull_obj, pull_name, parent = item
             pullch = pull_obj.children
-            realname = [o.snap.name_object for o in pullch\
-                 if o.type == 'MESH'][0]
+            realname = [o.snap.name_object for o in pullch if o.type == 'MESH'][0]
             pull_assy = sn_types.Assembly(pull_obj)
+
+            if pull_assy:
+                hidden_pull = pull_assy.get_prompt("Hide").get_value()
+            else:
+                continue
 
             hidden_pull = pull_assy.get_prompt("Hide").get_value()
             wall = sn_utils.get_wall_bp(pull_obj)
@@ -720,7 +724,6 @@ class Query_PDF_Form_Data:
         # Alt name/round hang rods TODO: Refactor for a better way to handle hang rods
         closet_props = bpy.context.scene.sn_closets
         rod_type = closet_props.closet_options.rods_name
-        print(rod_type, "rod type")
         rod_type_name = re.split(r'(^[^\d]+)', rod_type)[1:][-1]
         alt_rod_result = self.etl_object.part_walls_query("hang rod", walls)
         rrod_result = self.etl_object.part_walls_query("round 8", walls)
@@ -890,13 +893,13 @@ class Query_PDF_Form_Data:
                     # self.data_dict[page]["misc_style"] += item
 
     def __write_drawer_section_info(self, page, walls, wallbed_drawers):
-        dovetail = 0
-        melamine = 0
-        thick_melamine = 0
+        dovetail_qty = 0
+        melamine_qty = 0
+        thick_melamine_qty = 0
         drawers_doors = self.__get_drawer_face_types(walls, wallbed_drawers)
-        drw_btm_result = self.etl_object.part_walls_query("Drawer Bottom", walls)
-        drw_subfront_result = self.etl_object.part_walls_query("Drawer Sub Front", walls)
-        drw_back_result = self.etl_object.part_walls_query("Drawer Back", walls)
+        dt_drw_btm_result = self.etl_object.part_walls_query("DrwrBox Bttm DT - BB", walls)
+        mel_drw_btm_result = self.etl_object.part_walls_query("DrwrBox Bottom - Mel", walls)
+        thick_mel_drw_btm_result = self.etl_object.part_walls_query("DrwrBox Inset Bttm - Mel", walls)
         file_result = self.etl_object.part_walls_query("file rail", walls)
         # Sliders queries
         sliders_results = {}
@@ -949,38 +952,42 @@ class Query_PDF_Form_Data:
         quantities = ''
         description = ''
 
-        for key, value in drw_btm_result.items():
+        for key, value in dt_drw_btm_result.items():
             if key:
                 qty = str(value.get("qty", 0))
-                if 'birch' in key.lower():
-                    dovetail += int(qty)
+                if qty:
+                    dovetail_qty += int(qty)
 
-        for key, value in drw_subfront_result.items():
+        for key, value in mel_drw_btm_result.items():
             if key:
                 qty = str(value.get("qty", 0))
-                if 'paper' in key.lower():
-                    melamine += int(qty)
-                elif "White 954 750" in key:
-                    thick_melamine += int(qty)
+                if qty:
+                    melamine_qty += int(qty)
 
-        if dovetail > 0:
-            quantities += str(dovetail)
+        for key, value in thick_mel_drw_btm_result.items():
+            if key:
+                qty = str(value.get("qty", 0))
+                if qty:
+                    thick_melamine_qty += int(qty)
+
+        if dt_drw_btm_result:
+            quantities += str(dovetail_qty)
             description += "Dovetail"
 
-        if melamine > 0:
+        if mel_drw_btm_result:
             if quantities:
                 quantities += "/"
             if description:
                 description += " / "
-            quantities += str(melamine)
+            quantities += str(melamine_qty)
             description += "White Melamine"
 
-        if thick_melamine > 0:
+        if thick_mel_drw_btm_result:
             if quantities:
                 quantities += "/"
             if description:
                 description += " / "
-            quantities += str(thick_melamine)
+            quantities += str(thick_melamine_qty)
             description += '3/4" Melamine'
 
         self.data_dict[page]["drawer_boxes_qty"] = quantities

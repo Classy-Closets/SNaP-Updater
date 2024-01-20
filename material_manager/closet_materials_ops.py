@@ -307,7 +307,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
             cabinet_base_surface_pointer = spec_group.materials["Cabinet_Base_Surface"]
             cabinet_upper_surface_pointer = spec_group.materials["Cabinet_Upper_Surface"]
             cabinet_island_surface_pointer = spec_group.materials["Cabinet_Island_Surface"]
-            cabinet_hood_surface_pointer = spec_group.materials["Hood_Surface"]
+            cabinet_molding_surface_pointer = spec_group.materials["Cabinet_Molding_Surface"]
 
             # Set garage pointers
             garage_exterior_surface_pointer.category_name = "Closet Materials"
@@ -446,11 +446,15 @@ class SN_MAT_OT_Assign_Materials(Operator):
             cabinet_base_surface_pointer.category_name = "Closet Materials"
             cabinet_upper_surface_pointer.category_name = "Closet Materials"
             cabinet_island_surface_pointer.category_name = "Closet Materials"
+            cabinet_molding_surface_pointer.category_name = "Closet Materials"
             hood_surface_pointer.category_name = "Closet Materials"
+
             cabinet_base_surface_pointer.item_name = mat_props.kb_base_mat
             cabinet_upper_surface_pointer.item_name = mat_props.kb_upper_mat
             cabinet_island_surface_pointer.item_name = mat_props.kb_island_mat
+            cabinet_molding_surface_pointer.item_name = "Winter White"
             hood_surface_pointer.item_name = mat_props.kb_hood_mat
+            
 
     def update_drawer_materials(self):
         props = self.closet_props

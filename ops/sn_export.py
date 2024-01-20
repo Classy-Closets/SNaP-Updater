@@ -4812,6 +4812,8 @@ class OPS_Export_XML(Operator):
                     if box_type == 1:
                         if is_box_bottom:
                             part_name = "DrwrBox Inset Bttm - Mel"
+                        elif is_box_side or is_box_back:
+                            part_name = "DrwrBox {} Inset Bttm- Mel".format(box_part)
                         else:
                             part_name = "DrwrBox {} Inset Bttm - Mel".format(box_part)
 

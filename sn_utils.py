@@ -277,8 +277,7 @@ def get_cabinet_bp(obj):
         return obj
     elif obj.parent:
         return get_cabinet_bp(obj.parent)
-
-
+    
 def get_closet_bp(obj):
     if not obj:
         return None
@@ -481,109 +480,139 @@ def assign_materials_from_pointers(obj):
     # ASSIGN POINTERS TO MESH BASED ON MESH TYPE
 
     if is_cabinet_part:
-        # if spec_group and not unique_ct_color:
-        # print("1")
-        for index, slot in enumerate(obj.snap.material_slots):
-            # print("2")
-            if slot.pointer_name in spec_group.materials:
-                material_pointer = spec_group.materials[slot.pointer_name]
-                slot.category_name = material_pointer.category_name
-                slot.item_name = material_pointer.item_name
-                
-    elif obj.snap.type_mesh == 'BUYOUT':
-        part_bp = sn_utils.get_assembly_bp(obj)
-        bp_props = part_bp.sn_closets
-        unique_ct_color = False
-        if 'IS_BP_COUNTERTOP' in part_bp:
-            if part_bp.sn_closets.use_unique_material:
-                unique_ct_color = True
-                category_name = "Countertop Materials"
-                pointer_name = ""
-                unique_mat_name = ""
-
-                island_bp = sn_utils.get_island_bp(obj)
-                island_assy = sn_types.Assembly(island_bp)
-                island_countertop_type = island_assy.get_prompt("Countertop Type")
-
-                parent_assembly = sn_types.Assembly(part_bp.parent)
-                parent_countertop_type = parent_assembly.get_prompt("Countertop Type")
-
-                if island_countertop_type:
-                    ct_types = {
-                        '0': 'Melamine',
-                        '1': 'Custom',
-                        '2': 'Granite',
-                        '3': 'HPL',
-                        "4": "Quartz",
-                        "5": "Standard Quartz",
-                        "6": "Wood"}
-
-                    ct_type = ct_types[str(island_countertop_type.get_value())]
-
-                    if ct_type == "Custom":
-                        pointer_name = "Countertop_HPL_Surface"
-                        unique_mat_name = bp_props.custom_countertop_color
-
-                    elif 'COUNTERTOP_HPL' in part_bp:
-                        pointer_name = "Countertop_HPL_Surface"
-                        unique_mat_name = bp_props.unique_countertop_hpl
-
-                    elif ct_type == "Standard Quartz":
-                        pointer_name = "Countertop_Quartz_Surface"
-                        unique_mat_name = bp_props.unique_countertop_standard_quartz
-
-                if 'COUNTERTOP_HPL' in part_bp:
-                    pointer_name = "Countertop_HPL_Surface"
-                    unique_mat_name = bp_props.unique_countertop_hpl
-
-                if 'COUNTERTOP_GRANITE' in part_bp:
-                    pointer_name = "Countertop_Granite_Surface"
-                    unique_mat_name = bp_props.unique_countertop_granite
-
-                if 'COUNTERTOP_QUARTZ' in part_bp:
-                    if parent_countertop_type:
-                        if parent_countertop_type.get_value() == 5:
-                            pointer_name = "Countertop_Quartz_Surface"
-                            unique_mat_name = bp_props.unique_countertop_standard_quartz
-                        else:
-                            pointer_name = "Countertop_Quartz_Surface"
-                            unique_mat_name = bp_props.unique_countertop_quartz
-                    else:
-                        pointer_name = "Countertop_Quartz_Surface"
-                        unique_mat_name = bp_props.unique_countertop_quartz
-
-                if 'COUNTERTOP_WOOD' in part_bp:
-                    category_name = "Closet Materials"
-                    if bp_props.wood_countertop_types == 'Butcher Block':
-                        pointer_name = "Countertop_Butcher_Block_Surface"
-                        unique_mat_name = "Craft Oak"
-                    else:
-                        pointer_name = "Countertop_Wood_Stained_Surface"
-                        unique_mat_name = bp_props.unique_countertop_wood
-
-                for slot in obj.snap.material_slots:
-                    slot.pointer_name = pointer_name
-                    slot.category_name = category_name
-                    slot.item_name = unique_mat_name
-
-        elif "IS_BP_HOOD_BODY" in part_bp:
-            for slot in obj.snap.material_slots:
-                slot.category_name = "Closet Materials"
-
-                if part_bp.sn_closets.use_unique_material:
-                    unique_mat_name = bp_props.unique_upgrade_color
-                    slot.item_name = unique_mat_name
-                else:
-                    material_pointer = spec_group.materials[slot.pointer_name]
-                    slot.category_name = material_pointer.category_name
-                    slot.item_name = material_pointer.item_name
-
-        if spec_group and not unique_ct_color:
+        if obj.parent and  not obj.parent.get("IS_BP_LIGHT_RAIL"):
             for index, slot in enumerate(obj.snap.material_slots):
                 if slot.pointer_name in spec_group.materials:
                     material_pointer = spec_group.materials[slot.pointer_name]
                     slot.category_name = material_pointer.category_name
                     slot.item_name = material_pointer.item_name
+
+        elif obj.parent and obj.parent.get("IS_BP_LIGHT_RAIL"):
+            molding_height = bpy.context.scene.lm_cabinets.light_rail_molding_height
+            molding_profile = bpy.context.scene.lm_cabinets.light_rail_molding
+            spec_group = bpy.context.scene.snap.spec_groups[0]
+            mat_props = bpy.context.scene.closet_materials
+
+            for index, slot in enumerate(obj.snap.material_slots):
+                # material_pointer = spec_group.materials[slot.pointer_name]
+                if is_cabinet_part.get("MATERIAL_POINTER_NAME"):
+                    material_pointer = spec_group.materials[is_cabinet_part.get("MATERIAL_POINTER_NAME")]
+                else:
+                    material_pointer = spec_group.materials["Cabinet_Upper_Surface"]
+                # print("material_pointer: {} slot name: {}".format(material_pointer, slot.pointer_name))
+                mat_color_name = material_pointer.item_name
+                def_pointer = spec_group.materials["Cabinet_Molding_Surface"]
+                has_paint = mat_color_name in mat_props.get_paint_colors()
+                has_stain = mat_color_name in mat_props.get_stain_colors()
+
+                slot.category_name = material_pointer.category_name
+   
+                if molding_profile != "L01" and (has_paint or has_stain):
+                    slot.item_name = material_pointer.item_name
+                elif molding_profile != "L01":
+                    slot.item_name = def_pointer.item_name
+                elif molding_profile == "L01" and (has_paint or has_stain):   
+                    slot.item_name = material_pointer.item_name
+                elif molding_profile == "L01" and molding_height >= sn_unit.inch(3.0):
+                    slot.item_name = material_pointer.item_name
+                else:
+                    slot.item_name = def_pointer.item_name
+
+    elif obj.snap.type_mesh == 'BUYOUT':
+        part_bp = sn_utils.get_assembly_bp(obj)
+        if part_bp:
+            bp_props = part_bp.sn_closets
+            unique_ct_color = False
+            if 'IS_BP_COUNTERTOP' in part_bp:
+                if part_bp.sn_closets.use_unique_material:
+                    unique_ct_color = True
+                    category_name = "Countertop Materials"
+                    pointer_name = ""
+                    unique_mat_name = ""
+
+                    island_bp = sn_utils.get_island_bp(obj)
+                    island_assy = sn_types.Assembly(island_bp)
+                    island_countertop_type = island_assy.get_prompt("Countertop Type")
+
+                    parent_assembly = sn_types.Assembly(part_bp.parent)
+                    parent_countertop_type = parent_assembly.get_prompt("Countertop Type")
+
+                    if island_countertop_type:
+                        ct_types = {
+                            '0': 'Melamine',
+                            '1': 'Custom',
+                            '2': 'Granite',
+                            '3': 'HPL',
+                            "4": "Quartz",
+                            "5": "Standard Quartz",
+                            "6": "Wood"}
+
+                        ct_type = ct_types[str(island_countertop_type.get_value())]
+
+                        if ct_type == "Custom":
+                            pointer_name = "Countertop_HPL_Surface"
+                            unique_mat_name = bp_props.custom_countertop_color
+
+                        elif 'COUNTERTOP_HPL' in part_bp:
+                            pointer_name = "Countertop_HPL_Surface"
+                            unique_mat_name = bp_props.unique_countertop_hpl
+
+                        elif ct_type == "Standard Quartz":
+                            pointer_name = "Countertop_Quartz_Surface"
+                            unique_mat_name = bp_props.unique_countertop_standard_quartz
+
+                    if 'COUNTERTOP_HPL' in part_bp:
+                        pointer_name = "Countertop_HPL_Surface"
+                        unique_mat_name = bp_props.unique_countertop_hpl
+
+                    if 'COUNTERTOP_GRANITE' in part_bp:
+                        pointer_name = "Countertop_Granite_Surface"
+                        unique_mat_name = bp_props.unique_countertop_granite
+
+                    if 'COUNTERTOP_QUARTZ' in part_bp:
+                        if parent_countertop_type:
+                            if parent_countertop_type.get_value() == 5:
+                                pointer_name = "Countertop_Quartz_Surface"
+                                unique_mat_name = bp_props.unique_countertop_standard_quartz
+                            else:
+                                pointer_name = "Countertop_Quartz_Surface"
+                                unique_mat_name = bp_props.unique_countertop_quartz
+                        else:
+                            pointer_name = "Countertop_Quartz_Surface"
+                            unique_mat_name = bp_props.unique_countertop_quartz
+
+                    if 'COUNTERTOP_WOOD' in part_bp:
+                        category_name = "Closet Materials"
+                        if bp_props.wood_countertop_types == 'Butcher Block':
+                            pointer_name = "Countertop_Butcher_Block_Surface"
+                            unique_mat_name = "Craft Oak"
+                        else:
+                            pointer_name = "Countertop_Wood_Stained_Surface"
+                            unique_mat_name = bp_props.unique_countertop_wood
+
+                    for slot in obj.snap.material_slots:
+                        slot.pointer_name = pointer_name
+                        slot.category_name = category_name
+                        slot.item_name = unique_mat_name
+
+            elif "IS_BP_HOOD_BODY" in part_bp:
+                for slot in obj.snap.material_slots:
+                    slot.category_name = "Closet Materials"
+
+                    if part_bp.sn_closets.use_unique_material:
+                        unique_mat_name = bp_props.unique_upgrade_color
+                        slot.item_name = unique_mat_name
+                    else:
+                        material_pointer = spec_group.materials[slot.pointer_name]
+                        slot.category_name = material_pointer.category_name
+                        slot.item_name = material_pointer.item_name
+
+            if spec_group and not unique_ct_color:
+                for index, slot in enumerate(obj.snap.material_slots):
+                    if slot.pointer_name in spec_group.materials:
+                        material_pointer = spec_group.materials[slot.pointer_name]
+                        slot.category_name = material_pointer.category_name
+                        slot.item_name = material_pointer.item_name
 
     elif obj.snap.type_mesh == 'CUTPART':
         part_bp = sn_utils.get_assembly_bp(obj)
@@ -663,6 +692,8 @@ def assign_materials_from_pointers(obj):
     for index, slot in enumerate(obj.snap.material_slots):
         if slot.item_name and slot.item_name != "None":
             material = get_material(slot.category_name, slot.item_name)
+            if obj.get("IS_BP_LIGHT_RAIL"):
+                print("Assigning Material: {} to {}".format(material.name, obj.name))
 
             if material:
                 if obj.snap.material_mapping == 'UV':
@@ -1575,7 +1606,7 @@ def add_kb_product_material_pointers(product):
                 if child.type == 'MESH':
                     child.snap.cutpart_name = ""
                     for mat in child.snap.material_slots:
-                        # print("----assigning material pointer",pointer_name,"to",child.name)
+                        print("----assigning material pointer",pointer_name,"to",child.name)
                         if mat.pointer_name != "Glass":
                             mat.pointer_name = pointer_name
 
@@ -1595,19 +1626,62 @@ def add_kb_insert_material_pointers(product_bp):
         else:
             pointer_name = "Cabinet_Base_Surface"
 
+    spec_group = bpy.context.scene.snap.spec_groups[0]
+    material_pointer = spec_group.materials[pointer_name]
+    mat_color_name = material_pointer.item_name
+
     parts = sn_utils.get_assembly_bp_list(product_bp, [])
     for part in parts:
        if part.get('IS_KB_PART'):
             for child in part.children:
-                if child.type == 'MESH' or child.type == 'CURVE':
+                if child.type == 'MESH' or (child.type == 'CURVE' and not part.get('IS_BP_LIGHT_RAIL')):
                     for mat in child.snap.material_slots:
-                        # print("----assigning insert material pointer",pointer_name,"to",child.name)
+                        # print("----MESH assigning insert material pointer",pointer_name,"to",child.name)
                         if mat.pointer_name != "Glass":
                             mat.pointer_name = pointer_name
+                elif child.type == 'CURVE' and part.get('IS_BP_LIGHT_RAIL'):
+                    molding_height = bpy.context.scene.lm_cabinets.light_rail_molding_height
+                    molding_profile = bpy.context.scene.lm_cabinets.light_rail_molding
 
+                    mat_props = bpy.context.scene.closet_materials
+                    has_paint = mat_color_name in mat_props.get_paint_colors()
+                    has_stain = mat_color_name in mat_props.get_stain_colors()
+                    def_pointer_name = "Cabinet_Molding_Surface"
+ 
+                    for mat in child.snap.material_slots:
+                        if molding_profile != "L01" and (has_paint or has_stain):
+                            mat.pointer_name = pointer_name
+                        elif molding_profile != "L01":
+                            mat.pointer_name = def_pointer_name
+                        elif molding_profile == "L01" and (has_paint or has_stain):   
+                            mat.pointer_name = pointer_name
+                        elif molding_profile == "L01" and molding_height >= sn_unit.inch(3.0):
+                            mat.pointer_name = pointer_name
+                        else:
+                            mat.pointer_name = def_pointer_name
+
+def check_kb_molding_materials():
+    molding_height = bpy.context.scene.lm_cabinets.light_rail_molding_height
+    molding_profile = bpy.context.scene.lm_cabinets.light_rail_molding
+    error_message = None
+
+    for obj in bpy.data.objects:
+        if obj.get('IS_BP_LIGHT_RAIL') and error_message is None:
+            add_kb_insert_material_pointers(sn_utils.get_cabinet_bp(obj))
+            for child in obj.children:
+                if child.type == 'CURVE' and error_message is None:
+                    for mat in child.snap.material_slots:
+                        if mat.pointer_name == "Cabinet_Molding_Surface":
+                            if molding_profile != "L01":
+                                error_message = "Warning: Upper Cabinet color invalid for L02/L03 Light Rails."
+                            elif molding_profile == "L01" and molding_height <= sn_unit.inch(3.0):
+                                error_message = "Warning: Upper Cabinet color invalid for L01 Light Rails under 3\" height."
+                            break
+
+    if error_message:
+        bpy.ops.snap.message_box('INVOKE_DEFAULT', message=error_message, icon='ERROR', width=450)
 
 # -------LIBRARY FUNCTIONS
-
 
 def get_library_dir(lib_type=""):
     if lib_type == 'assemblies':

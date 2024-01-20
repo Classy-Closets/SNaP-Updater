@@ -69,6 +69,10 @@ def get_glass_shelf_backing_setback(insert, product):
                                 else:
                                     setback = sn_unit.inch(0.25)
                             return setback
+    else:
+        return insert.get_prompt("Shelf Backing Setback").get_value()
+
+
 
 
 class Hanging_Rods_with_Shelves(sn_types.Assembly):

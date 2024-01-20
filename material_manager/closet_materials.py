@@ -151,10 +151,23 @@ def update_render_materials(self, context):
         except Exception:
             pass
 
-
 def update_kb_render_materials(self, context):
     if self.kb_colors_initialized:
         bpy.ops.closet_materials.poll_assign_materials()
+        sn_utils.check_kb_molding_materials()
+
+def update_kb_base_render_materials(self, context):
+    bpy.ops.closet_materials.poll_assign_materials()
+
+def update_kb_upper_render_materials(self, context):
+    bpy.ops.closet_materials.poll_assign_materials()
+    sn_utils.check_kb_molding_materials()
+
+def update_kb_island_render_materials(self, context):
+    bpy.ops.closet_materials.poll_assign_materials()
+
+def update_kb_hood_render_materials(self, context):
+    bpy.ops.closet_materials.poll_assign_materials()
 
 
 def enum_kd_fitting(self, context):
@@ -257,16 +270,33 @@ def get_kb_hood_mat_types(self, context):
         return items
 
 
-def get_kb_base_mat_colors(self, context):
-    return context.scene.closet_materials.materials.get_mat_color_list(self.kb_base_mat_types)
 
+def get_kb_base_mat_colors(self, context):
+    if self.kb_base_mat_types != "Upgrade Options":
+        return context.scene.closet_materials.materials.get_mat_color_list(self.kb_base_mat_types)
+    else:
+        if self.kb_base_upgrade == "Paint":
+            return context.scene.closet_materials.get_paint_color_list()
+        elif self.kb_base_upgrade == "Stain":
+            return context.scene.closet_materials.get_stain_color_list()
 
 def get_kb_upper_mat_colors(self, context):
-    return context.scene.closet_materials.materials.get_mat_color_list(self.kb_upper_mat_types)
-
-
+    if self.kb_upper_mat_types != "Upgrade Options":
+        return context.scene.closet_materials.materials.get_mat_color_list(self.kb_upper_mat_types)
+    else:
+        if self.kb_upper_upgrade == "Paint":
+            return context.scene.closet_materials.get_paint_color_list()
+        elif self.kb_upper_upgrade == "Stain":
+            return context.scene.closet_materials.get_stain_color_list()
+        
 def get_kb_island_mat_colors(self, context):
-    return context.scene.closet_materials.materials.get_mat_color_list(self.kb_island_mat_types)
+    if self.kb_island_mat_types != "Upgrade Options":
+        return context.scene.closet_materials.materials.get_mat_color_list(self.kb_island_mat_types)
+    else:
+        if self.kb_island_upgrade == "Paint":
+            return context.scene.closet_materials.get_paint_color_list()
+        elif self.kb_island_upgrade == "Stain":
+            return context.scene.closet_materials.get_stain_color_list()
 
 def get_kb_hood_mat_colors(self, context):
     # return context.scene.closet_materials.materials.get_mat_color_list(self.kb_hood_mat_types)
@@ -352,15 +382,27 @@ class SnapMaterialSceneProps(PropertyGroup):
 
     use_kb_color_scheme: BoolProperty(name="Use Kitchen & Bath Color Scheme", default=False)
     kb_colors_initialized: BoolProperty(name="Kitchen & Bath Colors Initialized", default=True)
-    kb_base_mat_types: EnumProperty(name="Base Cabinet Material Type", items=get_mat_types, update=update_kb_render_materials)
-    kb_upper_mat_types: EnumProperty(name="Upper Cabinet Material Type", items=get_mat_types, update=update_kb_render_materials)
-    kb_island_mat_types: EnumProperty(name="Island Cabinet Material Type", items=get_mat_types, update=update_kb_render_materials)
-    kb_hood_mat_types: EnumProperty(name="Hood Cabinet Material Type", items=get_kb_hood_mat_types, update=update_kb_render_materials)
+    kb_base_mat_types: EnumProperty(name="Base Cabinet Material Type", items=get_mat_types, update=update_kb_base_render_materials)
+    kb_upper_mat_types: EnumProperty(name="Upper Cabinet Material Type", items=get_mat_types, update=update_kb_upper_render_materials)
+    kb_island_mat_types: EnumProperty(name="Island Cabinet Material Type", items=get_mat_types, update=update_kb_island_render_materials)
+    kb_hood_mat_types: EnumProperty(name="Hood Cabinet Material Type", items=get_kb_hood_mat_types, update=update_kb_hood_render_materials)
 
-    kb_base_mat: EnumProperty(name="Base Cabinet Material Type", items=get_kb_base_mat_colors, update=update_kb_render_materials)
-    kb_upper_mat: EnumProperty(name="Unique Material Type", items=get_kb_upper_mat_colors, update=update_kb_render_materials)
-    kb_island_mat: EnumProperty(name="Unique Material Type", items=get_kb_island_mat_colors, update=update_kb_render_materials)
-    kb_hood_mat: EnumProperty(name="Unique Material Type", items=get_kb_hood_mat_colors, update=update_kb_render_materials)
+    kb_base_upgrade: EnumProperty(name="Base Cabinet Upgrade Type", 
+                                  items=(('Paint', 'Paint', "Paint"),('Stain', 'Stain', "Stain")),
+                                  default='Paint',update=update_kb_base_render_materials)
+    kb_upper_upgrade: EnumProperty(name="Upper Cabinet Upgrade Type", 
+                                   items=(('Paint', 'Paint', "Paint"),('Stain', 'Stain', "Stain")),
+                                   default='Paint',
+                                   update=update_kb_upper_render_materials)
+    kb_island_upgrade: EnumProperty(name="Island Cabinet Upgrade Type", 
+                                    items=(('Paint', 'Paint', "Paint"),('Stain', 'Stain', "Stain")),
+                                    default='Paint',
+                                    update=update_kb_island_render_materials)
+
+    kb_base_mat: EnumProperty(name="Base Cabinet Material Type", items=get_kb_base_mat_colors, update=update_kb_base_render_materials)
+    kb_upper_mat: EnumProperty(name="Unique Material Type", items=get_kb_upper_mat_colors, update=update_kb_upper_render_materials)
+    kb_island_mat: EnumProperty(name="Unique Material Type", items=get_kb_island_mat_colors, update=update_kb_island_render_materials)
+    kb_hood_mat: EnumProperty(name="Unique Material Type", items=get_kb_hood_mat_colors, update=update_kb_hood_render_materials)
 
     edges: PointerProperty(type=property_groups.Edges)
     edge_type_index: IntProperty(name="Edge Type Index", default=0)
@@ -758,6 +800,24 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return "Unknown"
         else:
             return "Unknown"
+
+    def get_unique_mat_type_code(self, unique_mat_type):
+        sku = sn_db.query_db(
+            f"SELECT\
+                TypeCode\
+            FROM\
+                MaterialTypes\
+            WHERE\
+                Name = '{unique_mat_type}'\
+            ;"
+        )
+
+        if len(sku) == 0:
+            print(f"No TypeCode found for - {unique_mat_type}")
+            return "Unknown"
+        elif len(sku) == 1:
+            print(f"TypeCode: {sku[0][0]} found for - {unique_mat_type}")
+            return sku[0][0]
 
     def get_mat_sku(self, obj=None, assembly=None, part_name=None):
         # print(obj, assembly, part_name)
@@ -1254,6 +1314,12 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return "Unknown"
 
         if part_thickness == 0.75 or part_thickness == 0:
+            # Check for 3/4" backing using unique material, we need to get the unique material type code in this case
+            if assembly and backing_parts:
+                if any(backing_parts):
+                    if obj_props.use_unique_material:
+                        type_code = self.get_unique_mat_type_code(obj_props.unique_mat_types)
+
             sku = sn_db.query_db(
                 "SELECT\
                     SKU\
@@ -1264,7 +1330,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             )
 
             if len(sku) == 0:
-                print("No SKU found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
+                print(f"No SKU found for - Material Type Code: {type_code} Color Code: {color_code} Part: {part_name}")
                 return "Unknown"
             elif len(sku) == 1:
                 # print(sku[0][0])
@@ -1273,7 +1339,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                 print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
                 print(sku)
                 return "Unknown"
-    
+
     def get_garage_material_sku(self, obj=None, assembly=None, part_name=None):
         part_thickness = 0
         cutpart_name = ""
@@ -1605,6 +1671,7 @@ class SnapMaterialSceneProps(PropertyGroup):
         self.set_default_secondary_edge_color()
         self.set_default_door_drawer_edge_color()
         self.set_default_countertop_mat()
+        self.set_default_kb_materials()
         self.defaults_set = True
 
     def set_default_countertop_mat(self):
@@ -1632,6 +1699,12 @@ class SnapMaterialSceneProps(PropertyGroup):
             if type.name == self.default_mat_type:
                 self.door_drawer_mat_type_index = i
                 break
+
+    def set_default_kb_materials(self):
+        self.kb_base_mat = "Winter White"
+        self.kb_upper_mat = "Winter White"
+        self.kb_island_mat = "Winter White"
+        self.kb_hood_mat = "Winter White"
 
     def set_default_edge_type(self):
         self.edge_type_index = self.edges.edge_types.find(self.default_edge_type)
@@ -1773,6 +1846,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     row.label(text="Base Cabinets:")
                     row = box.row()
                     row.prop(self, "kb_base_mat_types", text="Type")
+                    if self.kb_base_mat_types == "Upgrade Options":
+                        row = box.row()
+                        row.prop(self, "kb_base_upgrade", text="Option")
                     row = box.row()
                     row.prop(self, "kb_base_mat", text="Color")
 
@@ -1781,6 +1857,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     row.label(text="Upper Cabinets:")
                     row = box.row()
                     row.prop(self, "kb_upper_mat_types", text="Type")
+                    if self.kb_upper_mat_types == "Upgrade Options":
+                        row = box.row()
+                        row.prop(self, "kb_upper_upgrade", text="Option")
                     row = box.row()
                     row.prop(self, "kb_upper_mat", text="Color")
 
@@ -1789,6 +1868,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     row.label(text="Island Cabinets:")
                     row = box.row()
                     row.prop(self, "kb_island_mat_types", text="Type")
+                    if self.kb_island_mat_types == "Upgrade Options":
+                        row = box.row()
+                        row.prop(self, "kb_island_upgrade", text="Option")
                     row = box.row()
                     row.prop(self, "kb_island_mat", text="Color")
 

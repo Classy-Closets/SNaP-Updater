@@ -5056,6 +5056,8 @@ class VIEW_OT_generate_2d_views(Operator):
                 obj.snap.type_mesh = 'NONE'
                 if obj.type == 'MESH' and not_hidden:
                     obj.data.materials.clear()
+                elif obj.type == 'CURVE' and obj.parent and obj.parent.get('IS_KB_MOLDING') and not_hidden:
+                    obj.data.materials.clear()
 
     def add_accordion_views(self, context):        
         main_sc_objs = bpy.data.scenes["_Main"].objects

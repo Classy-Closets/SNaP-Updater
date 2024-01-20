@@ -2817,13 +2817,13 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
             part_name = part_name.strip()
 
             if part_name in drawer_bottom_part_names:
-                # Standard drawer bottoms
+                # For XMLs generated pre-280. Drawer box bottom part names updated to match COS with v280 (#1893)
                 if "Drawer Bottom" in part_name:
                     if 'BB' in sku_num[:2]:
                         labor = get_labor_costs('BB DRAWER INSET BOTTOM')
                     else:
                         labor = get_labor_costs('MEL DRAWER CAP BOTTOM')
-                # COS drawer bottoms
+                # 280+ and COS drawer bottoms
                 elif part_name == "DrwrBox Bottom - Mel":
                     labor = get_labor_costs('MEL DRAWER CAP BOTTOM')
                 elif part_name == "DrwrBox Bttm DT - BB":

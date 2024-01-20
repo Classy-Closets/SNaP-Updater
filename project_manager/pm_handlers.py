@@ -53,13 +53,13 @@ def check_section_prompt_id(scene=None):
 @persistent
 def check_countertop_selection(scene=None):
     """Standard Quartz countertop colors: "Marbella" and "Nimbus" were removed 2.6.0 -> 2.6.1"""
-    current_room_ver = sn_utils.get_room_version()
+    room_ver = sn_utils.get_room_version()
     closet_materials = bpy.context.scene.closet_materials
     countertop_type = closet_materials.countertops.get_type()
     countertop_index = closet_materials.ct_color_index
 
-    if bpy.data.is_saved:
-        if current_room_ver < "2.6.1":
+    if bpy.data.is_saved and room_ver:
+        if room_ver < "2.6.1":
             if not closet_materials.ct_updated_to_261:
                 if countertop_type.name == "Standard Quartz":
                     # "Marbella" and "Nimbus"
@@ -73,20 +73,21 @@ def check_countertop_selection(scene=None):
                     closet_materials.ct_color_index = countertop_index
                     closet_materials.ct_updated_to_261 = True
 
-        elif current_room_ver < "2.8.0":
-            print("Updating room to 2.8.0")
+        if room_ver < "2.8.0":
             closet_materials.color_change = False
             if not closet_materials.ct_updated_to_280:
                 if countertop_type.name == "Standard Quartz":
                     idx = int(countertop_index)
+                    print(f"Updating room Countertop 'Standard Quartz' color selection to 2.8.0 (Room version: {room_ver} idx: {idx})")
+
                     # Added "Apollo"
                     if countertop_index == 0:
                         idx += 1
                     # Added "Bianco Tiza"
-                    elif countertop_index < 2:
+                    elif countertop_index <= 2:
                         idx += 2
                     # Added "Gemstone Beige"
-                    elif countertop_index < 11:
+                    elif countertop_index <= 11:
                         idx += 3
                     # Added "Steel"
                     else:
@@ -98,19 +99,18 @@ def check_countertop_selection(scene=None):
 
 @persistent
 def check_pull_selection(scene=None):
-    current_room_ver = sn_utils.get_room_version()
-    app_ver = sn_utils.get_version_str()
+    room_ver = sn_utils.get_room_version()
     closet_options = bpy.context.scene.sn_closets.closet_options
     closet_materials = bpy.context.scene.closet_materials
 
-    if bpy.data.is_saved:
+    if bpy.data.is_saved and room_ver:
         default_pull = "155.00.932"
         pulls = [
             obj.snap.name_object
             for obj in bpy.data.objects
             if obj.type == 'MESH' and obj.parent and (obj.parent.sn_closets.is_handle or obj.snap.is_cabinet_pull) and obj.visible_get()]
 
-        if current_room_ver < app_ver:
+        if room_ver < "2.6.1":
             if not closet_materials.pull_sel_updated_to_261:
                 if closet_options.pull_category == "Other - Customer Provided":
                     closet_options.pull_category = "Polished Chrome"
@@ -128,25 +128,27 @@ def check_pull_selection(scene=None):
 
                 closet_materials.pull_sel_updated_to_261 = True
 
+
 @persistent
 def check_oversize_color_selection(scene=None):
     """
     Version 2.6.3 removes all oversize color options except 'Snow Drift XL'.
     Update files created < 2.6.3 to this color.
     """
-    current_room_ver = sn_utils.get_room_version()
+    room_ver = sn_utils.get_room_version()
     closet_materials = bpy.context.scene.closet_materials
     mat_type = closet_materials.materials.get_mat_type()
 
-    if current_room_ver < "2.6.3":
-        print("Room file created pre 2.6.3. Version 2.6.3 removes all oversize color options except 'Snow Drift XL', setting index to 0")
-        if mat_type.name == "Oversized Material":
-            closet_materials.color_change = True
-        else:
-            closet_materials.color_change = False
+    if bpy.data.is_saved and room_ver:
+        if room_ver < "2.6.3":
+            print("Room file created pre 2.6.3. Version 2.6.3 removes all oversize color options except 'Snow Drift XL', setting index to 0")
+            if mat_type.name == "Oversized Material":
+                closet_materials.color_change = True
+            else:
+                closet_materials.color_change = False
 
-        closet_materials.oversized_color_index = 0
-        closet_materials.dd_oversized_color_index = 0
+            closet_materials.oversized_color_index = 0
+            closet_materials.dd_oversized_color_index = 0
 
 
 @persistent

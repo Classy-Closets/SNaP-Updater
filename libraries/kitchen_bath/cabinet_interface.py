@@ -810,22 +810,23 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
     def poll(cls, context):
         prefs = context.preferences.addons["snap"].preferences
         return prefs.enable_kitchen_bath_lib
-
+ 
     def draw_header(self, context):
         layout = self.layout
         wm = context.window_manager.snap
         kb_icon = wm.libraries["Kitchen Bath Library"].icon
         layout.label(text='', icon_value=snap.snap_icons[kb_icon].icon_id)        
 
-    def draw_molding_options(self,layout):
+    def draw_molding_options(self,context,layout):
         molding_box = layout.box()
         row = molding_box.row(align=True)
         row.label(text="Moldings Options:")
         row = molding_box.row(align=True)
         row.prop(self.props,'expand_crown_molding',text="",icon='TRIA_DOWN' if self.props.expand_crown_molding else 'TRIA_RIGHT',emboss=False)
         row.label(text="Crown:")
-        row.prop(self.props,'crown_molding_category',text="",icon='FILE_FOLDER')
+        # row.prop(self.props,'crown_molding_category',text="",icon='FILE_FOLDER')
         row.prop(self.props,'crown_molding',text="")
+        row.label(text='')
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + ".auto_add_molding",text="",icon='PLUS').molding_type = 'Crown'
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + '.delete_molding',text="",icon='X').molding_type = 'Crown'
         if self.props.expand_crown_molding:
@@ -836,8 +837,10 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
         row = molding_box.row(align=True)
         row.prop(self.props,'expand_base_molding',text="",icon='TRIA_DOWN' if self.props.expand_base_molding else 'TRIA_RIGHT',emboss=False)
         row.label(text="Base:")
-        row.prop(self.props,'base_molding_category',text="",icon='FILE_FOLDER')
+        # row.prop(self.props,'base_molding_category',text="",icon='FILE_FOLDER')
         row.prop(self.props,'base_molding',text="")
+        row.label(text='')
+
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + ".auto_add_molding",text="",icon='PLUS').molding_type = 'Base'
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + '.delete_molding',text="",icon='X').molding_type = 'Base'
         if self.props.expand_base_molding:
@@ -848,8 +851,14 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
         row = molding_box.row(align=True)
         row.prop(self.props,'expand_light_rail_molding',text="",icon='TRIA_DOWN' if self.props.expand_light_rail_molding else 'TRIA_RIGHT',emboss=False)
         row.label(text="Light Rail:")
-        row.prop(self.props,'light_rail_molding_category',text="",icon='FILE_FOLDER')
+        # row.prop(self.props,'light_rail_molding_category',text="",icon='FILE_FOLDER')
         row.prop(self.props,'light_rail_molding',text="")
+
+        if "L01" in context.scene.lm_cabinets.light_rail_molding:
+            row.prop(self.props,'light_rail_molding_height',text="")
+        else:
+            row.label(text='  2.25"')
+
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + ".auto_add_molding",text="",icon='PLUS').molding_type = 'Light'
         row.operator(cabinet_properties.LIBRARY_NAME_SPACE + '.delete_molding',text="",icon='X').molding_type = 'Light'
         if self.props.expand_light_rail_molding:
@@ -1168,7 +1177,7 @@ class SNAP_PT_Cabinet_Options(bpy.types.Panel):
             
         if self.props.main_tabs == 'OPTIONS':
             col = box.column(align=True)
-            self.draw_molding_options(col)
+            self.draw_molding_options(context, col)
             # self.draw_hardware_options(col)
             # self.draw_door_style_options(col)
 
@@ -1749,6 +1758,7 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
     def update_material_pointer_name(self):
         material_pointer_names = ['Cabinet_Base_Surface','Cabinet_Island_Surface','Cabinet_Upper_Surface','Hood_Surface']
         material_pointer_name = material_pointer_names[int(self.material_pointer_name)]
+        error_message = None
 
         if self.product.obj_bp.get("MATERIAL_POINTER_NAME") != material_pointer_name:
             self.product.obj_bp["MATERIAL_POINTER_NAME"] = material_pointer_name
@@ -1767,12 +1777,39 @@ class PROMPTS_Frameless_Cabinet_Prompts(sn_types.Prompts_Interface):
                 # elif this is a cutpart/prebuilt toe kick assembly...
                 elif part.get('IS_KB_PART'):
                     for child in part.children:
-                        if child.type == 'MESH' or child.type == 'CURVE':
+                        if child.type == 'MESH' or (child.type == 'CURVE' and not part.get('IS_BP_LIGHT_RAIL')):
                             child.snap.cutpart_name = ""
                             for mat in child.snap.material_slots:
                                 # print("----reassigning material pointer",material_pointer_name,"to",child.name)
                                 mat.pointer_name = material_pointer_name
-        
+                        elif child.type == 'CURVE' and part.get('IS_BP_LIGHT_RAIL'):
+                            molding_height = bpy.context.scene.lm_cabinets.light_rail_molding_height
+                            molding_profile = bpy.context.scene.lm_cabinets.light_rail_molding
+                            spec_group = bpy.context.scene.snap.spec_groups[0]
+                            material_pointer = spec_group.materials[material_pointer_name]
+                            mat_color_name = material_pointer.item_name
+
+                            mat_props = bpy.context.scene.closet_materials
+                            has_paint = mat_color_name in mat_props.get_paint_colors()
+                            has_stain = mat_color_name in mat_props.get_stain_colors()
+                            def_pointer_name = "Cabinet_Molding_Surface"
+                            for mat in child.snap.material_slots:
+                                if molding_profile != "L01" and (has_paint or has_stain):
+                                    mat.pointer_name = material_pointer_name
+                                elif molding_profile != "L01":
+                                    mat.pointer_name = def_pointer_name
+                                    error_message = "Warning: " + mat_color_name + " color invalid for L02/L03 Light Rails."
+                                elif molding_profile == "L01" and (has_paint or has_stain):   
+                                    mat.pointer_name = material_pointer_name
+                                elif molding_profile == "L01" and molding_height >= sn_unit.inch(3.0):
+                                    mat.pointer_name = material_pointer_name
+                                else:
+                                    mat.pointer_name = def_pointer_name
+                                    error_message = "Warning: " + mat_color_name + " color invalid for L01 Light Rails under 3\" height."
+
+            if error_message:
+                bpy.ops.snap.message_box('INVOKE_DEFAULT', message=error_message, width=400)
+
             bpy.ops.closet_materials.poll_assign_materials()
 
 

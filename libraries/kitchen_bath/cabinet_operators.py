@@ -517,7 +517,10 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
                     props.light_rail_molding_category,
                     props.light_rail_molding + ".blend"))
                 molding_coll.objects.link(self.profile)
-
+            if "L01" in props.light_rail_molding:
+                self.profile.dimensions.y = props.light_rail_molding_height
+            else:
+                self.profile.dimensions.y = sn_unit.inch(2.25)
         else:
             profile_name = props.crown_molding + " Molding Profile"
             self.profile = molding_coll.objects.get(profile_name)
@@ -579,11 +582,12 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
         if is_crown and "Flat Crown" in context.scene.lm_cabinets.crown_molding:
             obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
         elif is_light_rail and "L01" in context.scene.lm_cabinets.light_rail_molding:
-            obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
+            obj_curve.snap.material_slots[0].pointer_name = "Cabinet_Molding_Surface"
+            # obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
         elif is_base and "BA23" in context.scene.lm_cabinets.base_molding:
             obj_curve.snap.material_slots[0].pointer_name = "Closet_Part_Surfaces"
         else:
-            obj_curve.snap.material_slots[0].pointer_name = "Molding"
+            obj_curve.snap.material_slots[0].pointer_name = "Cabinet_Molding_Surface"
         
         obj_curve.location = (0,0,0)
         
@@ -773,6 +777,8 @@ class OPERATOR_Auto_Add_Molding(bpy.types.Operator):
             if product.obj_bp.get("IS_BP_CABINET") and product.obj_bp.get("MATERIAL_POINTER_NAME"):  
                 sn_utils.add_kb_insert_material_pointers(product.obj_bp)
                 bpy.ops.closet_materials.poll_assign_materials()
+                
+        sn_utils.check_kb_molding_materials()
 
         return {'FINISHED'}
 
