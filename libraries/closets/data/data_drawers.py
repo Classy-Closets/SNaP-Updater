@@ -2049,7 +2049,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                 jwlry_ins = depth_in >= velvet_depth
                                 
                                 has_ji_ins = has_jewelry_insert.get_value()
-                                db_jwl_conditions = (drw_H == f7H or drw_H == f6H) and depth_in <= 24 and width_in <= 33
+                                db_jwl_conditions = (drw_H == f7H or drw_H == f6H) and depth_in <= 24 and width_in <= 36
                                 if not has_ji_ins and not has_jwl_ins and db_jwl_conditions:
                                     col_3 = row.column(align=True)
                                     col_3.label(text="Double Jewelry Drawer")

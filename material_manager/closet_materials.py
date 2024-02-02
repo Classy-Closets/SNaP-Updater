@@ -269,8 +269,6 @@ def get_kb_hood_mat_types(self, context):
         ]
         return items
 
-
-
 def get_kb_base_mat_colors(self, context):
     if self.kb_base_mat_types != "Upgrade Options":
         return context.scene.closet_materials.materials.get_mat_color_list(self.kb_base_mat_types)
@@ -881,6 +879,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 print(sku)
                                 return "Unknown"
                     elif box_type == 1:
+                        if type_code == 1:
+                            type_code = 2
+                            color_code = 110100
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
                         else:
@@ -1052,10 +1053,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                         if obj.snap.material_slots:
                             door_color = obj.snap.material_slots[0].item_name
                             if door_color:
-                                if self.upgrade_options.get_type().name == "Stain":
-                                    has_stain = door_color in self.get_stain_colors()
-                                    if has_stain:
-                                        return self.stain_colors[door_color].sku
+                                has_stain = door_color in self.get_stain_colors()
+                                if has_stain:
+                                    return self.stain_colors[door_color].sku
                                 else:
                                     has_paint = door_color in self.get_paint_colors()
                                     if has_paint:
@@ -1258,7 +1258,32 @@ class SnapMaterialSceneProps(PropertyGroup):
             type_code = 15200
 
         if part_thickness == 0.25:
-            if any(backing_parts) or obj_props.is_toe_kick_skin_bp:
+            # Garage material toe kick skin
+            if type_code == 8 and obj_props.is_toe_kick_skin_bp:
+                if color_name == "Cosmic Dust":
+                    color_name = "Night Skies"
+                elif color_name == "Danish Maple":
+                    color_name = "Hardrock Maple"
+                elif color_name == "Cosmic Dust":
+                    color_name = "Night Skies"
+
+                sku = sn_db.query_db(
+                    "SELECT\
+                        SKU\
+                    FROM\
+                        {CCItems}\
+                    WHERE\
+                        ProductType IN ('PM', 'WD') AND\
+                        Thickness == '{thickness}' AND\
+                        DisplayName LIKE '{display_name}'\
+                    ;\
+                    ".format(thickness=str(part_thickness), display_name=color_name, CCItems="CCItems_" + sn_utils.get_franchise_location())
+                )
+
+                if len(sku) == 1:
+                    return sku[0][0]
+
+            if any(backing_parts):
                 if assembly.obj_bp.get("IS_CEDAR_BACK"):
                     sku = 'VN-0000006'
                     return sku
@@ -1435,7 +1460,11 @@ class SnapMaterialSceneProps(PropertyGroup):
                 return "Unknown"
 
         elif cutpart_name in interior_parts:
-            type_code = 2
+            if cutpart_name == "Garage_Back" and part_thickness == 0.25:
+                type_code = 10200
+            else:
+                type_code = 2
+
             sku = sn_db.query_db(
                 "SELECT\
                     SKU\

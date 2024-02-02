@@ -307,6 +307,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
             cabinet_base_surface_pointer = spec_group.materials["Cabinet_Base_Surface"]
             cabinet_upper_surface_pointer = spec_group.materials["Cabinet_Upper_Surface"]
             cabinet_island_surface_pointer = spec_group.materials["Cabinet_Island_Surface"]
+            cabinet_hood_surface_pointer = spec_group.materials["Hood_Surface"]
             cabinet_molding_surface_pointer = spec_group.materials["Cabinet_Molding_Surface"]
 
             # Set garage pointers

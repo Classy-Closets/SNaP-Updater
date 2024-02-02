@@ -2843,6 +2843,7 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
             F_LABOR_PRICES.append(labor[1] * int(qty))
             r_labor_price = labor[0]
             f_labor_price = labor[1]
+
     if 'SF' in uom and not sku_num[:2] in hardware_types and not sku_num[:2] in accessory_types and 'PL' not in sku_num[:2] and 'SN' not in sku_num[:2]:
         # Check if Melamine material contains a style_name that makes it a 5PC Melamine Door
         if style_name is not None and 'VN' not in sku_num[:2] and 'WD' not in sku_num[:2] and 'GL' not in sku_num[:2] and 'Slab Door' not in style_name:
@@ -2927,6 +2928,12 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                     R_MATERIAL_PRICES.append(price)
                     retail_price = 17.0
                 else:
+                    # Melamine Door Labor Charges
+                    if "Door" in part_name:
+                        add_mel_door_labor = not style_name or "Slab Door" in style_name
+                        if add_mel_door_labor:
+                            r_labor_price, f_labor_price = get_price_by_sku('LB-0000012')
+
                     R_MATERIAL_PRICES.append((((get_square_footage(length_inches, width_inches)) * retail_price) + r_labor_price) * int(qty))
                     R_MATERIAL_SQUARE_FOOTAGE.append(get_square_footage(length_inches, width_inches))
 
@@ -2991,6 +2998,9 @@ def get_pricing_info(sku_num, qty, length_inches=0.0, width_inches=0.0, style_na
                         sf_door = get_square_footage(length_inches, width_inches) - sf_door_glass
                     else:
                         sf_door = get_square_footage(length_inches, width_inches)
+                    
+                    r_labor_price = upgraded_panel_labor_price[0]
+                    f_labor_price = upgraded_panel_labor_price[1]
                     
                     if 'SN' in sku_num[:2]:
                         if is_glaze:

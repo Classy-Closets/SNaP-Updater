@@ -219,7 +219,17 @@ def assign_material_pointers(scene=None):
         if not init_island:
             mat_props.kb_island_mat = "Winter White"
 
-        mat_props.kb_colors_initialized = True
+            if not init_base:
+                mat_props.kb_base_mat_types = "Solid Color Smooth Finish"
+                mat_props.kb_base_mat = "Winter White"
+            if not init_upper:
+                mat_props.kb_upper_mat_types = "Solid Color Smooth Finish"
+                mat_props.kb_upper_mat = "Winter White"
+            if not init_island:
+                mat_props.kb_base_mat_types = "Solid Color Smooth Finish"
+                mat_props.kb_island_mat = "Winter White"
+
+            mat_props.kb_colors_initialized = True
 
     if bpy.data.is_saved:
         if is_startup_file():

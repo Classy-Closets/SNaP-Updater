@@ -480,12 +480,58 @@ def assign_materials_from_pointers(obj):
     # ASSIGN POINTERS TO MESH BASED ON MESH TYPE
 
     if is_cabinet_part:
-        if obj.parent and  not obj.parent.get("IS_BP_LIGHT_RAIL"):
+        if obj.parent and not obj.parent.get("IS_DOOR") and not obj.parent.get("IS_BP_DRAWER_FRONT"):
             for index, slot in enumerate(obj.snap.material_slots):
                 if slot.pointer_name in spec_group.materials:
                     material_pointer = spec_group.materials[slot.pointer_name]
                     slot.category_name = material_pointer.category_name
                     slot.item_name = material_pointer.item_name
+
+        elif obj.parent and (obj.parent.get("IS_DOOR") or obj.parent.get("IS_BP_DRAWER_FRONT")):
+            spec_group = bpy.context.scene.snap.spec_groups[0]
+            mat_props = bpy.context.scene.closet_materials
+            
+            for index, slot in enumerate(obj.snap.material_slots):
+                if not slot.pointer_name == "Glass":
+                    if is_cabinet_part.get("MATERIAL_POINTER_NAME"):
+                        material_pointer = spec_group.materials[is_cabinet_part.get("MATERIAL_POINTER_NAME")]
+                    else:
+                        material_pointer = spec_group.materials["Cabinet_Base_Surface"]
+                    mat_color_name = material_pointer.item_name
+                    def_pointer = spec_group.materials["Cabinet_Molding_Surface"]
+                    mod_pointer = spec_group.materials["Moderno_Door"]
+                    has_paint = mat_color_name in mat_props.get_paint_colors()
+                    has_stain = mat_color_name in mat_props.get_stain_colors()
+                    has_traviso = mat_color_name in mat_props.get_five_piece_melamine_door_colors()
+
+                    if is_cabinet_part.get("MATERIAL_POINTER_NAME") == "Cabinet_Base_Surface":
+                        is_upgrade_mat = mat_props.kb_base_mat_types == 'Upgrade Options'
+                    elif is_cabinet_part.get("MATERIAL_POINTER_NAME") == "Cabinet_Upper_Surface":
+                        is_upgrade_mat = mat_props.kb_upper_mat_types == 'Upgrade Options'
+                    elif is_cabinet_part.get("MATERIAL_POINTER_NAME") == "Cabinet_Island_Surface":
+                        is_upgrade_mat = mat_props.kb_island_mat_types == 'Upgrade Options'
+                    else:
+                        is_upgrade_mat = mat_type.name == "Upgrade Options"
+
+                    door_style_ppt = sn_types.Assembly(obj.parent).get_prompt("Door Style")
+                    door_style = ""
+                    if door_style_ppt:
+                        door_style = door_style_ppt.get_value()
+                    
+                    slot.category_name = material_pointer.category_name
+
+                    if door_style == "Traviso Door and Drawer" and has_traviso and not is_upgrade_mat:
+                        slot.item_name = material_pointer.item_name
+                    elif door_style == "Traviso Door and Drawer":
+                        slot.item_name = def_pointer.item_name
+                    elif door_style != "" and door_style != "Moderno Door" and (has_paint or has_stain): 
+                        slot.item_name = material_pointer.item_name
+                    elif door_style != "" and door_style != "Moderno Door" and not has_paint and not has_stain:
+                        slot.item_name = def_pointer.item_name
+                    elif door_style == "Moderno Door":
+                        slot.item_name = mod_pointer.item_name
+                    else:
+                        slot.item_name = material_pointer.item_name
 
         elif obj.parent and obj.parent.get("IS_BP_LIGHT_RAIL"):
             molding_height = bpy.context.scene.lm_cabinets.light_rail_molding_height

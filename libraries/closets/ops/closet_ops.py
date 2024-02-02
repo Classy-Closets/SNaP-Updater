@@ -1579,7 +1579,8 @@ class SNAP_OT_update_door_selection(Operator):
                     frameless_exteriors.add_door_height_dimension(new_door)
                     product = cabinets.Standard(cabinet_product)
                     product.update_dimensions()
-                    new_door.obj_bp['IS_KB_PART'] = True
+                    if props.door_category != "Moderno Door":
+                        new_door.obj_bp['IS_KB_PART'] = True
             if door_assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
                 new_door.obj_bp['DRAWER_NUM'] = door_assembly.obj_bp.get("DRAWER_NUM")
                 new_door.obj_bp['IS_BP_DRAWER_FRONT'] = True
@@ -1587,7 +1588,8 @@ class SNAP_OT_update_door_selection(Operator):
                     frameless_exteriors.add_drawer_height_dimension(new_door)
                     product = cabinets.Standard(cabinet_product)
                     product.update_dimensions()
-                    new_door.obj_bp['IS_KB_PART'] = True
+                    if props.door_category != "Moderno Door":
+                        new_door.obj_bp['IS_KB_PART'] = True
             if obj_props.is_hamper_front_bp:
                 new_door.obj_bp['IS_BP_HAMPER_FRONT'] = True
 
