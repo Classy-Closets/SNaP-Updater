@@ -178,8 +178,12 @@ def draw_unique_glass(layout, assembly):
 
                 if props.use_unique_glass_color:
                     row = layout.row()
-                    row.label(text="Unique Glass Color:")
-                    layout.prop(props, "unique_glass_color", text="")
+                    if "Melamine" in door_style.get_value():
+                        row.label(text="Unique Melamine Glass Color:")
+                        layout.prop(props, "unique_melamine_glass_color", text="")
+                    else:
+                        row.label(text="Unique Glass Color:")
+                        layout.prop(props, "unique_glass_color", text="")
 
 
 class SNAP_PT_closet_options(Panel):

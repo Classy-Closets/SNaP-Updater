@@ -657,7 +657,10 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 if not use_unique_glass_color:
                     glass_color = assembly.get_prompt("Glass Color")
                     if glass_color:
-                        glass_color.set_value(glass_color_name)
+                        if "Melamine" in door_style.get_value():
+                            glass_color.set_value(cab_mat_props.get_melamine_glass_color().name)
+                        else:
+                            glass_color.set_value(glass_color_name)
 
     def set_countertop_material(self, assembly):
         cab_mat_props = self.props_closet_materials

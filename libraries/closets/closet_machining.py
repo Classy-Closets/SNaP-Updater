@@ -1052,6 +1052,17 @@ class OPERATOR_Prepare_Closet_For_Export(bpy.types.Operator):
                 remove_left_holes = assembly.get_prompt("Remove Left Holes")
                 remove_right_holes = assembly.get_prompt("Remove Right Holes")
 
+                parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                if parent_assembly:
+                    if parent_assembly.obj_bp.get("IS_BP_DOOR_INSERT"):
+                        door_style = parent_assembly.get_prompt("Door Style")
+                        parent_width = math.fabs(parent_assembly.obj_y.location.y)
+                        shelf_backing_setback = parent_assembly.get_prompt("Shelf Backing Setback")
+                        if door_style and shelf_backing_setback:
+                            if door_style.get_value() == 'Melamine Door Glass':
+                                if width != (parent_width - shelf_backing_setback.get_value()):
+                                    width += sn_unit.inch(0.25)
+
                 if not remove_left_holes.get_value():
                     if assembly.add_machine_token('Left Drilling', 'CAMLOCK', '5'):
                         obj, token = assembly.add_machine_token('Left Drilling', 'CAMLOCK', '5')

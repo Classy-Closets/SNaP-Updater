@@ -2036,7 +2036,7 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
                                           ('DAL',"Dallas",'Dallas'),
                                           ('SD',"San Diego",'San Diego'),
                                           ('DEN',"Denver",'Denver'),
-                                          ('5',"Location 5",'5'),
+                                          ('SLC',"Salt Lake City",'Salt Lake City'),
                                           ('6',"Location 6",'6'),
                                           ('7',"Location 7",'7'),
                                           ('8',"Location 8",'8'),

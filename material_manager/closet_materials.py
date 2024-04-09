@@ -464,6 +464,12 @@ class SnapMaterialSceneProps(PropertyGroup):
     glass_colors: CollectionProperty(type=property_groups.GlassColor)
     glass_color_index: IntProperty(name="Glass Color List Index", default=0, update=update_render_materials)
 
+    melamine_glass_colors: CollectionProperty(type=property_groups.GlassColor)
+    melamine_glass_color_index: IntProperty(name="Melamine Glass Color List Index", default=0, update=update_render_materials)
+
+    glass_shelf_colors: CollectionProperty(type=property_groups.GlassColor)
+    glass_shelf_color_index: IntProperty(name="Glass Shelf Color List Index", default=0, update=update_render_materials)
+
     backing_veneer_color: CollectionProperty(type=property_groups.BackingVeneerColor)
     color_conversions: CollectionProperty(type=property_groups.ColorConversions)
     discontinued_color: StringProperty(name="Main Material Discontinued Color", default="")
@@ -852,7 +858,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                     box_type = parent_box_type_ppt.get_value()
 
                 if use_dovetail_construction:
-                    color_code = self.materials.get_mat_color().color_code
+                    # Dovetail
                     if use_dovetail_construction.get_value() or box_type == 2:
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'BB-0000004'  # WHITE PAPER 3/8 G1
@@ -878,10 +884,23 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 print("Multiple SKUs found for: ", material_name)
                                 print(sku)
                                 return "Unknown"
+                    # 3/4 Melamine
                     elif box_type == 1:
+                        color_code = 0
+
+                        # Garage Materials
                         if type_code == 1:
-                            type_code = 2
-                            color_code = 110100
+                            type_code = 2  # Solid Color Smooth Finish
+                            color_code = 110100  # Winter White
+                        # Upgrade Options (Paint/Stain)
+                        elif type_code == 10:
+                            for mat_type in self.materials.mat_types:
+                                if color_name in mat_type.colors:
+                                    type_code = mat_type.type_code
+                                    color_code = mat_type.colors[color_name].color_code
+                                    break
+                        else:
+                            color_code = self.materials.get_mat_color().color_code
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
                         else:
@@ -904,6 +923,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 print("Multiple SKUs found for - Material Type Code: {} Color Code: {}".format(type_code, color_code))
                                 print(sku)
                                 return "Unknown"
+                    # White Melamine
                     else:
                         if obj_props.is_drawer_bottom_bp:
                             sku = 'PM-0000002'  # WHITE PAPER 3/8 G1
@@ -1008,6 +1028,11 @@ class SnapMaterialSceneProps(PropertyGroup):
                         return "VN-0000004"
                     else:
                         return "WD-0000007"
+            if is_wood_door:
+                if self.upgrade_options.get_type().name == "Stain":
+                    return "SN-0000030"
+                else:
+                    return "PL-0000007"
 
         else:
             color_code = self.materials.get_mat_color().color_code
@@ -1086,7 +1111,9 @@ class SnapMaterialSceneProps(PropertyGroup):
                     color_code = mat_type.colors[mat_name].color_code
 
             if any(glass_shelf_parts):
-                glass_color = 'Clear'
+                glass_color = self.get_glass_shelf_color().name
+                if glass_color == 'Clear':
+                    return 'GL-0000004'
                 part_thickness = round(part_thickness, 2)
                 sku = sn_db.query_db(
                     "SELECT\
@@ -1521,7 +1548,7 @@ class SnapMaterialSceneProps(PropertyGroup):
     def get_glass_sku(self, glass_color):
         glass_thickness = 0.25
         if 'Frosted' in glass_color or 'Smoked' in glass_color:
-            glass_thickness = 0.125
+            glass_thickness = 0.13
         if glass_color == 'Clear':
             glass_color = 'Clear Annealed'
         if glass_color == 'Double Sided Mirror':
@@ -1598,6 +1625,24 @@ class SnapMaterialSceneProps(PropertyGroup):
     def get_glass_colors(self):
         colors = []
         for color in self.glass_colors:
+            colors.append((color.name, color.name, color.name))
+        return colors
+    
+    def get_melamine_glass_color(self):
+        return self.melamine_glass_colors[self.melamine_glass_color_index]
+    
+    def get_melamine_glass_colors(self):
+        colors = []
+        for color in self.melamine_glass_colors:
+            colors.append((color.name, color.name, color.name))
+        return colors
+    
+    def get_glass_shelf_color(self):
+        return self.glass_shelf_colors[self.glass_shelf_color_index]
+    
+    def get_glass_shelf_colors(self):
+        colors = []
+        for color in self.glass_shelf_colors:
             colors.append((color.name, color.name, color.name))
         return colors
 
@@ -1782,6 +1827,14 @@ class SnapMaterialSceneProps(PropertyGroup):
             self.glass_color_index = color_idx
         else:
             self.glass_color_index = 2
+        self.melamine_glass_color_index = 0 
+
+        shelf_color_idx = self.glass_shelf_colors.find(self.default_glass_color)
+
+        if shelf_color_idx:
+            self.glass_shelf_color_index = shelf_color_idx
+        else:
+            self.glass_shelf_color_index = 2   
 
     def set_default_secondary_edge_color(self):
         secondary_edge_type = self.secondary_edges.get_edge_type()
@@ -1924,11 +1977,39 @@ class SnapMaterialSceneProps(PropertyGroup):
             if len(self.glass_colors):
                 active_glass_color = self.glass_colors[self.glass_color_index]
                 row = box.row(align=True)
-                split = row.split(factor=0.25)
-                split.label(text="Color:")
-                split.menu(
+                row.label(text="Traviso/Upgraded Glass Color:")
+                row = box.row()
+                row.menu(
                     'SNAP_MATERIAL_MT_Glass_Colors',
                     text=active_glass_color.name, icon='RADIOBUT_ON')
+            else:
+                row = box.row()
+                row.label(text="None", icon='ERROR')
+            
+            row = box.row()
+            
+            if len(self.melamine_glass_colors):
+                active_melamine_glass_color = self.melamine_glass_colors[self.melamine_glass_color_index]
+                row = box.row(align=True)
+                row.label(text="Melamine Glass Color:")
+                row = box.row(align=True)
+                row.menu(
+                    'SNAP_MATERIAL_MT_Melamine_Glass_Colors',
+                    text=active_melamine_glass_color.name, icon='RADIOBUT_ON')
+            else:
+                row = box.row()
+                row.label(text="None", icon='ERROR')
+            
+            row = box.row()
+            
+            if len(self.glass_shelf_colors):
+                active_glass_shelf_color = self.glass_shelf_colors[self.glass_shelf_color_index]
+                row = box.row(align=True)
+                row.label(text="Glass Shelf Color:")
+                row = box.row(align=True)
+                row.menu(
+                    'SNAP_MATERIAL_MT_Glass_Shelf_Colors',
+                    text=active_glass_shelf_color.name, icon='RADIOBUT_ON')
             else:
                 row = box.row()
                 row.label(text="None", icon='ERROR')

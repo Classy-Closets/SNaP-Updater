@@ -630,6 +630,54 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
             color.name = display_name
             color.sku = type_code
             color.description = description
+    
+    def create_melamine_glass_color_collection(self):
+        props = bpy.context.scene.closet_materials
+        props.melamine_glass_colors.clear()
+        items = []
+
+        with open(sn_paths.MELAMINE_GLASS_COLORS_CSV_PATH) as melamine_glass_colors_file:
+            reader = csv.reader(melamine_glass_colors_file, delimiter=',')
+            next(reader)
+
+            for row in reader:
+                items.append((row[0], row[1], row[2]))
+
+        items.sort(key=operator.itemgetter(1))
+
+        for i in items:
+            type_code = i[0]
+            display_name = i[1]
+            description = i[2]
+
+            color = props.melamine_glass_colors.add()
+            color.name = display_name
+            color.sku = type_code
+            color.description = description
+    
+    def create_glass_shelf_color_collection(self):
+        props = bpy.context.scene.closet_materials
+        props.glass_shelf_colors.clear()
+        items = []
+
+        with open(sn_paths.GLASS_SHELF_COLORS_CSV_PATH) as glass_shelf_colors_file:
+            reader = csv.reader(glass_shelf_colors_file, delimiter=',')
+            next(reader)
+
+            for row in reader:
+                items.append((row[0], row[1], row[2]))
+
+        items.sort(key=operator.itemgetter(1))
+
+        for i in items:
+            type_code = i[0]
+            display_name = i[1]
+            description = i[2]
+
+            color = props.glass_shelf_colors.add()
+            color.name = display_name
+            color.sku = type_code
+            color.description = description
 
     def create_drawer_slide_collection(self):
         props = bpy.context.scene.closet_materials
@@ -723,6 +771,8 @@ class SN_DB_OT_Import_Csv(bpy.types.Operator):
         self.create_glaze_style_collection()
         self.create_door_color_collection()
         self.create_glass_color_collection()
+        self.create_melamine_glass_color_collection()
+        self.create_glass_shelf_color_collection()
         self.create_drawer_slide_collection()
         self.create_backing_veneer_color_collection()
         self.create_mat_conversion_collection()

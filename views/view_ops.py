@@ -506,6 +506,10 @@ class VIEW_OT_generate_2d_views(Operator):
             self.ICONS_COLL = bpy.data.collections[icons_coll]
 
     def create_linesets(self, scene):
+        # Set cycles samples and tile size to lower value for faster rendering
+        scene.cycles.samples = 16
+        scene.cycles.tile_size = 64
+
         f_settings = scene.view_layers[0].freestyle_settings
         linestyles = bpy.data.linestyles
 
@@ -3703,12 +3707,16 @@ class VIEW_OT_generate_2d_views(Operator):
         return (targets, walls_rem_spaces)
 
     def replace_append_corner_instances(self, targets, wall, corner_instances):
-        if targets[wall][0] == [None, None, None]:
+        if not targets.get(wall) and corner_instances:
             targets[wall] = corner_instances
+
         else:
-            for corner_instance in corner_instances:
-                if corner_instance not in targets[wall]:
-                    targets[wall].append(corner_instance)
+            if targets[wall][0] == [None, None, None]:
+                targets[wall] = corner_instances
+            else:
+                for corner_instance in corner_instances:
+                    if corner_instance not in targets[wall]:
+                        targets[wall].append(corner_instance)
 
     def add_ch_accordion_parts(self, extra_dims, curr_wall_key,
                                parts_data, grp):
@@ -5246,7 +5254,8 @@ class VIEW_OT_generate_2d_views(Operator):
 
     def create_elevation_floor(self, scene, wall):
         wall_parts = wall.obj_bp.children
-        [wall_mesh] = [obj for obj in wall_parts if obj.snap.is_wall_mesh]
+        wall_meshes = [obj for obj in wall_parts if obj.snap.is_wall_mesh]
+        wall_mesh = wall_meshes[0]
 
         panels = [sn_types.Assembly(part) for obj in wall_parts
                   if obj.get('IS_BP_CLOSET') for part in obj.children

@@ -932,6 +932,8 @@ class Corner_Shelves(sn_types.Assembly):
 
         self.add_prompt("Add Capping Base", 'CHECKBOX', False)
 
+        self.add_prompt("Soft Close Hinge", 'CHECKBOX', False)
+
         common_prompts.add_toe_kick_prompts(self)
         common_prompts.add_thickness_prompts(self)
         common_prompts.add_door_prompts(self)
@@ -1591,8 +1593,15 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
                     closest_hole_amt = self.closest_hole_amt(op_heights, sn_unit.meter_to_millimeter(height))
                     opening_height.set_value(sn_unit.millimeter(closest_hole_amt))
 
+    def check_side_widths(self):
+        if self.width > sn_unit.inch(48.75):
+            self.width = sn_unit.inch(48.75)
+        if self.depth > sn_unit.inch(48.75):
+            self.depth = sn_unit.inch(48.75)
+
     def check(self, context):
         """ This is called everytime a change is made in the UI """
+        self.check_side_widths()
         self.set_prompts_from_properties()
         self.update_shelves()
         self.update_opening_heights()
@@ -1616,6 +1625,7 @@ class PROMPTS_L_Shelves(sn_types.Prompts_Interface):
             return bpy.ops.sn_closets.l_shelves_214('INVOKE_DEFAULT')
 
         self.product = L_Shelves(obj_bp)
+        self.check_side_widths()
         self.set_properties_from_prompts()
         self.set_filler_values()
 
@@ -2111,9 +2121,16 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
                     height = opening_height.get_value()
                     closest_hole_amt = self.closest_hole_amt(op_heights, sn_unit.meter_to_millimeter(height))
                     opening_height.set_value(sn_unit.millimeter(closest_hole_amt))
+    
+    def check_side_widths(self):
+        if self.width > sn_unit.inch(48.75):
+            self.width = sn_unit.inch(48.75)
+        if self.depth > sn_unit.inch(48.75):
+            self.depth = sn_unit.inch(48.75)
 
     def check(self, context):
         """ This is called everytime a change is made in the UI """
+        self.check_side_widths()
         self.set_prompts_from_properties()
         self.update_shelves()
         self.update_opening_heights()
@@ -2139,6 +2156,7 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
             return bpy.ops.sn_closets.corner_shelves_214('INVOKE_DEFAULT')
 
         self.product = Corner_Shelves(obj_bp)
+        self.check_side_widths()
         self.set_properties_from_prompts()
         self.set_filler_values()
 
@@ -2470,6 +2488,7 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
         Tall_Pull_Location = self.product.get_prompt("Tall Pull Location")
         Upper_Pull_Location = self.product.get_prompt("Upper Pull Location")
         No_Pulls = self.product.get_prompt("No Pulls")
+        Soft_Close_Hinge = self.product.get_prompt("Soft Close Hinge")
         show_pull_info = True  # 2.6.1 hides pull info if "No Pulls" is used, previous versions are missing this ppt
 
         row = box.row()
@@ -2503,6 +2522,10 @@ class PROMPTS_Corner_Shelves(sn_types.Prompts_Interface):
             row = box.row()
             row.prop(Use_Left_Swing, "checkbox_value", text=Use_Left_Swing.name)
             row.prop(Force_Double_Doors, "checkbox_value", text=Force_Double_Doors.name)
+
+            if Soft_Close_Hinge:
+                row = box.row()
+                row.prop(Soft_Close_Hinge, "checkbox_value", text="Soft Close Hinges")
 
     def draw(self, context):
         """ This is where you draw the interface """

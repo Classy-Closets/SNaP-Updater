@@ -1112,6 +1112,16 @@ class GlassColor(PropertyGroup):
     sku: StringProperty()
 
 
+class MelamineGlassColor(PropertyGroup):
+    description: StringProperty()
+    sku: StringProperty()
+
+
+class GlassShelfColor(PropertyGroup):
+    description: StringProperty()
+    sku: StringProperty()
+
+
 class BackingVeneerColor(PropertyGroup):
     description: StringProperty()
     sku: StringProperty()
@@ -1160,6 +1170,8 @@ classes = (
     GlazeStyle,
     DoorColor,
     GlassColor,
+    MelamineGlassColor,
+    GlassShelfColor,
     BackingVeneerColor,
     DrawerSlideSize,
     DrawerSlide,

@@ -103,14 +103,24 @@ def update_unique_glass_color(self, context):
                 door_style = part_assembly.get_prompt("Door Style")
                 if door_style:
                     if "Glass" in door_style.get_value():
-                        if props.use_unique_glass_color:
-                            glass_color = part_assembly.get_prompt("Glass Color")
-                            if glass_color:
-                                glass_color.set_value(props.unique_glass_color)
+                        if "Melamine" in door_style.get_value():
+                            if props.use_unique_glass_color:
+                                glass_color = part_assembly.get_prompt("Glass Color")
+                                if glass_color:
+                                    glass_color.set_value(props.unique_melamine_glass_color)
+                            else:
+                                glass_color = part_assembly.get_prompt("Glass Color")
+                                if glass_color:
+                                    glass_color.set_value(cab_mat_props.get_melamine_glass_color().name)
                         else:
-                            glass_color = part_assembly.get_prompt("Glass Color")
-                            if glass_color:
-                                glass_color.set_value(cab_mat_props.get_glass_color().name)
+                            if props.use_unique_glass_color:
+                                glass_color = part_assembly.get_prompt("Glass Color")
+                                if glass_color:
+                                    glass_color.set_value(props.unique_glass_color)
+                            else:
+                                glass_color = part_assembly.get_prompt("Glass Color")
+                                if glass_color:
+                                    glass_color.set_value(cab_mat_props.get_glass_color().name)
                     
 
 
@@ -381,7 +391,8 @@ def scene_parts(context):
         if obj.get('IS_BP_ASSEMBLY'):
             part = sn_types.Part(obj)
             if part_is_not_hidden(part):
-                yield part
+                if obj.name in [obj.name for obj in context.view_layer.objects]:
+                    yield part
 
 
 def enum_rods(self, context):
@@ -538,6 +549,33 @@ def update_hinge(self, context):
         if props.is_hinge:
             obj.snap.name_object = self.hinge_name
             sn_utils.set_object_name(obj)
+        if "Soft Close Hinge" in self.hinge_name:
+            if obj.get('IS_BP_CORNER_SHELVES'):
+                corner_cab_assembly = sn_types.Assembly(obj)
+                soft_close_hinge = corner_cab_assembly.get_prompt("Soft Close Hinge")
+                if soft_close_hinge:
+                    soft_close_hinge.set_value(True)
+            if obj.get('IS_BP_DOOR_INSERT'):
+                door_insert = sn_types.Assembly(obj)
+                soft_close_hinge = door_insert.get_prompt("Soft Close Hinge")
+                has_blind_left_corner = door_insert.get_prompt("Has Blind Left Corner")
+                has_blind_right_corner = door_insert.get_prompt("Has Blind Right Corner")
+                prompts = [soft_close_hinge, has_blind_left_corner, has_blind_right_corner]
+                if all(prompts):
+                    if has_blind_left_corner.get_value() or has_blind_right_corner.get_value():
+                        soft_close_hinge.set_value(True)
+        else:
+            if obj.get('IS_BP_CORNER_SHELVES'):
+                corner_cab_assembly = sn_types.Assembly(obj)
+                soft_close_hinge = corner_cab_assembly.get_prompt("Soft Close Hinge")
+                if soft_close_hinge:
+                    soft_close_hinge.set_value(False)
+            if obj.get('IS_BP_DOOR_INSERT'):
+                door_insert = sn_types.Assembly(obj)
+                soft_close_hinge = door_insert.get_prompt("Soft Close Hinge")
+                if soft_close_hinge:
+                    soft_close_hinge.set_value(False)
+
 
 
 # ---------DRAWER DYNAMIC ENUMS
@@ -733,6 +771,12 @@ def get_countertop_wood_colors(self, context):
 
 def get_glass_colors(self, context):
     return context.scene.closet_materials.get_glass_colors()
+
+def get_glass_shelf_colors(self, context):
+    return context.scene.closet_materials.get_glass_shelf_colors()
+
+def get_melamine_glass_colors(self, context):
+    return context.scene.closet_materials.get_melamine_glass_colors()
 
 
 # ---------bpy property update functions
@@ -1777,6 +1821,12 @@ class PROPERTIES_Object_Properties(PropertyGroup):
     unique_glass_color: EnumProperty(
         name="Unique Glass Color",
         items=get_glass_colors,
+        update=update_unique_glass_color
+    )
+
+    unique_melamine_glass_color: EnumProperty(
+        name="Unique Melamine Glass Color",
+        items=get_melamine_glass_colors,
         update=update_unique_glass_color
     )
 

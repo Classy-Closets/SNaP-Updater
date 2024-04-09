@@ -2652,7 +2652,7 @@ def get_price_by_sku(sku_num):
 def get_glass_sku(glass_color):
     glass_thickness = 0.25
     if 'Frosted' in glass_color or 'Smoked' in glass_color:
-        glass_thickness = 0.125
+        glass_thickness = 0.13
     if glass_color == 'Clear':
         glass_color = 'Clear Annealed'
     rows = sn_db.query_db(
@@ -2716,8 +2716,13 @@ def get_mat_sku(mat_name):
         sku = row[0]
     return sku
 
+
 def get_paint_stain_mat_sku(mat_name):
     name, product_type = mat_name.split('-')
+
+    if "Other/Custom" in name:
+        name = "Custom Match"
+
     rows = sn_db.query_db(
         "SELECT\
             SKU\
@@ -2733,6 +2738,7 @@ def get_paint_stain_mat_sku(mat_name):
         print("Special Order SKU given to:  " + mat_name)
     for row in rows:
         sku = row[0]
+
     return sku
 
 def get_mat_display_name(mat_sku):

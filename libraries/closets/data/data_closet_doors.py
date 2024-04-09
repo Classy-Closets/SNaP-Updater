@@ -109,6 +109,7 @@ class Doors(sn_types.Assembly):
 
         self.add_prompt("Full Overlay", 'CHECKBOX', False)
         self.add_prompt("Door Height Exceeded", 'CHECKBOX', False)
+        self.add_prompt("Door Style", 'TEXT', 'Slab Door')
 
         # Shelves
         self.add_prompt("Shelf Thickness", 'DISTANCE', sn_unit.inch(0.75))
@@ -124,6 +125,7 @@ class Doors(sn_types.Assembly):
 
         self.add_prompt("Left Large Hinge", 'CHECKBOX', False)
         self.add_prompt("Right Large Hinge", 'CHECKBOX', False)
+        self.add_prompt("Soft Close Hinge", 'CHECKBOX', False)
 
         ST = self.get_prompt("Glass Shelf Thickness").get_var("ST")
         glass_thickness.set_formula('IF(ST==0,INCH(0.25),IF(ST==1,INCH(0.375),INCH(0.5)))', [ST])
@@ -219,6 +221,11 @@ class Doors(sn_types.Assembly):
         Door_Type = self.get_prompt("Door Type").get_var()
         Insert_Height = self.get_prompt("Insert Height").get_var()
         Glass_Thickness = self.get_prompt("Glass Thickness").get_var('Glass_Thickness')
+        if self.get_prompt("Door Style"):
+            Door_Style = self.get_prompt("Door Style").get_var()
+        else:
+            self.add_prompt("Door Style", 'TEXT', 'Slab Door')
+            Door_Style = self.get_prompt("Door Style").get_var()
 
         TAS = self.get_prompt("Thick Adjustable Shelves").get_var('TAS')
 
@@ -274,8 +281,8 @@ class Doors(sn_types.Assembly):
                 'Width-IF(Is_Locked_Shelf,0,Adj_Shelf_Clip_Gap*2)',
                 [Width, Is_Locked_Shelf, Adj_Shelf_Clip_Gap])
             shelf.dim_y(
-                '-Depth+IF(Is_Locked_Shelf,Locked_Shelf_Setback,Adj_Shelf_Setback)+Shelf_Backing_Setback',
-                [Depth, Locked_Shelf_Setback, Is_Locked_Shelf, Adj_Shelf_Setback, Shelf_Backing_Setback])
+                '-Depth+IF(Is_Locked_Shelf,Locked_Shelf_Setback,Adj_Shelf_Setback)+Shelf_Backing_Setback+IF(Door_Style == "Melamine Door Glass", IF(Is_Locked_Shelf,INCH(0.25),0),0)',
+                [Depth, Locked_Shelf_Setback, Is_Locked_Shelf, Adj_Shelf_Setback, Shelf_Backing_Setback, Door_Style, Is_Locked_Shelf])
             if not glass:
                 shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),Thickness) *-1', [Thickness, TAS, IBEKD])
             shelf.get_prompt("Adj Shelf Setback").set_formula(
@@ -918,6 +925,14 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         else:
                             is_melamine_door.set_value(False)
 
+        has_blind_left_corner = self.assembly.get_prompt("Has Blind Left Corner")
+        has_blind_right_corner = self.assembly.get_prompt("Has Blind Right Corner")
+        soft_close_hinge = self.assembly.get_prompt("Soft Close Hinge")
+        prompts = [has_blind_left_corner, has_blind_right_corner, soft_close_hinge]
+        if all(prompts):
+            if not has_blind_left_corner.get_value() and not has_blind_right_corner.get_value():
+                soft_close_hinge.set_value(False)
+
     def set_properties_from_prompts(self):
         insert_height = self.assembly.get_prompt("Insert Height")
         door_type = self.assembly.get_prompt("Door Type")
@@ -1342,6 +1357,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                 has_blind_right_corner = self.assembly.get_prompt("Has Blind Right Corner")
                 left_large_hinge = self.assembly.get_prompt("Left Large Hinge")
                 right_large_hinge = self.assembly.get_prompt("Right Large Hinge")
+                soft_close_hinge = self.assembly.get_prompt("Soft Close Hinge")
 
                 door_type_name = door_type.combobox_items[door_type.get_value()].name
 
@@ -1468,7 +1484,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         #     row = box.row()
                         #     use_mirror.draw_prompt(row)
 
-                    prompts = [force_double_door, has_blind_left_corner, has_blind_right_corner, left_large_hinge, right_large_hinge, use_left_swing]
+                    prompts = [force_double_door, has_blind_left_corner, has_blind_right_corner, left_large_hinge, right_large_hinge, use_left_swing, soft_close_hinge]
                     if all(prompts):
                         if force_double_door.get_value():
                             hinge_box = box.box()
@@ -1481,6 +1497,10 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                                 row = hinge_box.row()
                                 row.label(text="165 Hinge Right")
                                 row.prop(right_large_hinge, 'checkbox_value', text="")
+                            if has_blind_right_corner.get_value() or has_blind_left_corner.get_value():
+                                row = hinge_box.row()
+                                row.label(text="Soft Close Hinges")
+                                row.prop(soft_close_hinge, 'checkbox_value', text="")
                         else:
                             if not has_blind_left_corner.get_value() and use_left_swing.get_value():
                                 hinge_box = box.box()
@@ -1488,12 +1508,28 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                                 row = hinge_box.row()
                                 row.label(text="165 Hinge Left")
                                 row.prop(left_large_hinge, 'checkbox_value', text="")
-                            if not has_blind_right_corner.get_value() and not use_left_swing.get_value():
+                                if has_blind_right_corner.get_value() or has_blind_left_corner.get_value():
+                                    row = hinge_box.row()
+                                    row.label(text="Soft Close Hinge")
+                                    row.prop(soft_close_hinge, 'checkbox_value', text="")
+                            elif not has_blind_right_corner.get_value() and not use_left_swing.get_value():
                                 hinge_box = box.box()
                                 hinge_box.label(text="Hinge Options:")
                                 row = hinge_box.row()
                                 row.label(text="165 Hinge Right")
                                 row.prop(right_large_hinge, 'checkbox_value', text="")
+                                if has_blind_right_corner.get_value() or has_blind_left_corner.get_value():
+                                    row = hinge_box.row()
+                                    row.label(text="Soft Close Hinge")
+                                    row.prop(soft_close_hinge, 'checkbox_value', text="")
+                            else:
+                                if has_blind_right_corner.get_value() or has_blind_left_corner.get_value():
+                                    hinge_box = box.box()
+                                    hinge_box.label(text="Hinge Options:")
+                                    row = hinge_box.row()
+                                    row.label(text="Soft Close Hinge")
+                                    row.prop(soft_close_hinge, 'checkbox_value', text="")
+                    
 
                 elif self.tabs == 'SHELVES':
                     adj_shelf_setback = self.assembly.get_prompt("Adj Shelf Setback")

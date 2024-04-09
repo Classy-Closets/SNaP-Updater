@@ -100,6 +100,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         has_blind_right_corner_ppt = parent_assembly.get_prompt("Has Blind Right Corner")
         has_door_swing_ppt = assembly.get_prompt("Door Swing")
         large_hinge = assembly.get_prompt("Large Hinge")
+        soft_close_hinge = parent_assembly.get_prompt("Soft Close Hinge")
 
         if full_overlay_ppt:
             if full_overlay_ppt.get_value():
@@ -116,12 +117,25 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         if large_hinge:
             if large_hinge.get_value():
                 return 'HW-0000047'
+
+        if parent_assembly.obj_bp.get('IS_BP_CORNER_SHELVES'):
+            if soft_close_hinge:
+                if soft_close_hinge.get_value():
+                    return 'HW-0000237'
+        if parent_assembly.obj_bp.get('IS_BP_DOOR_INSERT'):
+            prompts = [has_blind_left_corner_ppt, has_blind_right_corner_ppt, soft_close_hinge]
+            if all(prompts):
+                if has_blind_left_corner_ppt.get_value() or has_blind_right_corner_ppt.get_value():
+                    if soft_close_hinge.get_value():
+                        return 'HW-0000238'
         
         if item_name == 'Hinge- Corner cabinet':
             return 'HW-0000045'
         
         if item_name == 'Hinge - Lazy Susan':
             return 'HW-0000229'
+        
+        
             
         cursor.execute(
             "SELECT\
@@ -4502,6 +4516,23 @@ class OPS_Export_XML(Operator):
         is_hanging_rod = assembly.obj_bp.sn_closets.is_hanging_rod
         rods_name = bpy.context.scene.sn_closets.closet_options.rods_name
 
+        if 'hinge' in hardware_name.lower():
+            parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+            soft_close_hinge = parent_assembly.get_prompt("Soft Close Hinge")
+            if parent_assembly.obj_bp.get('IS_BP_CORNER_SHELVES'):
+                if soft_close_hinge:
+                    if soft_close_hinge.get_value():
+                        hardware_name = "Soft Close Hinge Corner Cab. +45"
+            if parent_assembly.obj_bp.get('IS_BP_DOOR_INSERT'):
+                has_blind_left_corner_ppt = parent_assembly.get_prompt("Has Blind Left Corner")
+                has_blind_right_corner_ppt = parent_assembly.get_prompt("Has Blind Right Corner")
+                prompts = [has_blind_left_corner_ppt, has_blind_right_corner_ppt, soft_close_hinge]
+                if all(prompts):
+                    if has_blind_left_corner_ppt.get_value() or has_blind_right_corner_ppt.get_value():
+                        if soft_close_hinge.get_value():
+                            hardware_name = "Soft Close Hinge Blind Corner 110"
+
+
         if is_hanging_rod:
             if "Oval" in rods_name or "Round" in rods_name:
                 part_length = self.get_part_length(assembly)
@@ -5197,14 +5228,13 @@ class OPS_Export_XML(Operator):
             #L Shelf
             if obj_props.is_l_shelf_bp:
                 if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
-                    edge_1 = "L1"
+                    edge_1 = "S1"
                     edge_2 = "L1"
                 else:
-                    edge_2 = "S1"
+                    edge_1 = "L1"
                     edge_2 = "S1"
                 edge_1_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                
-                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)                
-
+                edge_2_sku = closet_materials.get_edge_sku(obj, assembly, part_name)
             #Shelf lip
             if obj_props.is_shelf_lip_bp:
                 if(abs(assembly.obj_x.location.x)>abs(assembly.obj_y.location.y)):
@@ -5733,7 +5763,7 @@ class OPS_Export_XML(Operator):
             center_rail_distance_from_center = 0
 
             if obj_props.is_glass_shelf_bp:
-                glass_color = "Clear"
+                glass_color = closet_materials.get_glass_shelf_color().name
 
             door_drawer_bps = (
                 obj_props.is_door_bp,
@@ -5801,10 +5831,27 @@ class OPS_Export_XML(Operator):
             if assembly.obj_bp.get("IS_BP_L_SHELF") or assembly.obj_bp.get("IS_BP_ANGLE_SHELF"):
                 left_depth = assembly.get_prompt("Left Depth")
                 right_depth = assembly.get_prompt("Right Depth")
-                if left_depth and right_depth:
+                is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
+                add_backing = False
+                if left_depth and right_depth and is_locked_shelf:
+                    parent_assembly = sn_types.Assembly(assembly.obj_bp.parent)
+                    left_shelf_depth = left_depth.get_value()
+                    right_shelf_depth = right_depth.get_value()
+                    if not is_locked_shelf.get_value():
+                        left_shelf_depth -= sn_unit.inch(0.25)
+                        right_shelf_depth -= sn_unit.inch(0.25)
+
+                    if parent_assembly.get_prompt("Add Backing"):
+                        add_backing = parent_assembly.get_prompt("Add Backing").get_value()
+
+                    drill_pattern = "LD-" + str(sn_unit.meter_to_inch(left_shelf_depth)) + " RD-" + str(sn_unit.meter_to_inch(right_shelf_depth)) + ""
+                    if not add_backing:
+                        drill_pattern += " Notched"
                     corner_shelf_lbl = [
-                        ("leftdepth", "text", str(sn_unit.meter_to_inch(left_depth.get_value()))),
-                        ("rightdepth", "text", str(sn_unit.meter_to_inch(right_depth.get_value())))
+                        ("leftdepth", "text", str(sn_unit.meter_to_inch(left_shelf_depth))),
+                        ("rightdepth", "text", str(sn_unit.meter_to_inch(right_shelf_depth))),
+                        ("drill_pattern", "text", drill_pattern),
+                        ("notched", "text",  "True" if not add_backing else "False")
                     ]
                     lbl.extend(corner_shelf_lbl)
 

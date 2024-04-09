@@ -849,6 +849,91 @@ class OPS_Change_Active_Glass_Color(Operator):
         return {'FINISHED'}
 
 
+class SNAP_MATERIAL_MT_Melamine_Glass_Colors(bpy.types.Menu):
+    bl_label = "Melamine Glass Colors"
+
+    def draw(self, context):
+        cab_mat_props = context.scene.closet_materials
+        colors = cab_mat_props.melamine_glass_colors
+        layout = self.layout
+        row = layout.row()
+
+        for index, melamine_glass_color in enumerate(colors):
+
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            if index == cab_mat_props.melamine_glass_color_index:
+                props = col.operator('closet_materials.change_active_melamine_glass_color', text=melamine_glass_color.name, icon='RADIOBUT_ON')
+                props.melamine_glass_color_name = melamine_glass_color.name
+
+            else:
+                props = col.operator('closet_materials.change_active_melamine_glass_color', text=melamine_glass_color.name, icon='RADIOBUT_OFF')
+                props.melamine_glass_color_name = melamine_glass_color.name
+
+
+class OPS_Change_Active_Melamine_Glass_Color(Operator):
+    bl_idname = "closet_materials.change_active_melamine_glass_color"
+    bl_label = "Change Melamine Glass Color"
+    bl_description = "This changes the active melamine glass color"
+    bl_options = {'UNDO'}
+
+    melamine_glass_color_name: StringProperty(name="Melamine Glass Color Name")
+
+    def execute(self, context):
+        props = context.scene.closet_materials
+        glass_colors = props.melamine_glass_colors        
+
+        for index, melamine_glass_color in enumerate(glass_colors):
+            if melamine_glass_color.name == self.melamine_glass_color_name:
+                context.scene.closet_materials.melamine_glass_color_index = index
+                bpy.ops.closet_materials.poll_assign_materials()
+
+        return {'FINISHED'}
+
+class SNAP_MATERIAL_MT_Glass_Shelf_Colors(bpy.types.Menu):
+    bl_label = "Glass Shelf Colors"
+
+    def draw(self, context):
+        cab_mat_props = context.scene.closet_materials
+        colors = cab_mat_props.glass_shelf_colors
+        layout = self.layout
+        row = layout.row()
+
+        for index, glass_shelf_color in enumerate(colors):
+
+            if index % MAX_COL_LEN == 0:
+                col = row.column()
+
+            if index == cab_mat_props.glass_shelf_color_index:
+                props = col.operator('closet_materials.change_active_glass_shelf_color', text=glass_shelf_color.name, icon='RADIOBUT_ON')
+                props.glass_shelf_color_name = glass_shelf_color.name
+
+            else:
+                props = col.operator('closet_materials.change_active_glass_shelf_color', text=glass_shelf_color.name, icon='RADIOBUT_OFF')
+                props.glass_shelf_color_name = glass_shelf_color.name
+
+
+class OPS_Change_Active_Glass_Shelf_Color(Operator):
+    bl_idname = "closet_materials.change_active_glass_shelf_color"
+    bl_label = "Change Glass Shelf Color"
+    bl_description = "This changes the active glass shelf color"
+    bl_options = {'UNDO'}
+
+    glass_shelf_color_name: StringProperty(name="Glass Shelf Color Name")
+
+    def execute(self, context):
+        props = context.scene.closet_materials
+        glass_shelf_colors = props.glass_shelf_colors        
+
+        for index, glass_shelf_color in enumerate(glass_shelf_colors):
+            if glass_shelf_color.name == self.glass_shelf_color_name:
+                context.scene.closet_materials.glass_shelf_color_index = index
+                bpy.ops.closet_materials.poll_assign_materials()
+
+        return {'FINISHED'}
+
+
 class SNAP_MATERIAL_MT_Drawer_Slides(bpy.types.Menu):
     bl_label = "Drawer Slides"
 
@@ -915,6 +1000,8 @@ classes = (
     SNAP_MATERIAL_MT_Glaze_Styles,
     SNAP_MATERIAL_MT_Door_Colors,
     SNAP_MATERIAL_MT_Glass_Colors,
+    SNAP_MATERIAL_MT_Melamine_Glass_Colors,
+    SNAP_MATERIAL_MT_Glass_Shelf_Colors,
     SNAP_MATERIAL_MT_Drawer_Slides,
     OPS_Change_Active_Stain_Color,
     OPS_Change_Active_Paint_Color,
@@ -925,6 +1012,8 @@ classes = (
     OPS_Change_Active_Glaze_Style,
     OPS_Change_Active_Door_Color,
     OPS_Change_Active_Glass_Color,
+    OPS_Change_Active_Melamine_Glass_Color,
+    OPS_Change_Active_Glass_Shelf_Color,
     OPS_Change_Active_Slide_Type,
     SNAP_MATERIALS_OT_change_active_index
 )

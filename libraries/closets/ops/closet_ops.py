@@ -30,6 +30,12 @@ def get_carcass_insert(product):
             return carcass
 
 
+def assign_to_collection(context, obj_bp, collection):
+    scene_coll = context.scene.collection
+    sn_utils.add_assembly_to_collection(obj_bp, collection)
+    sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
+
+
 class SNAP_OT_move_closet(Operator):
     bl_idname = "sn_closets.move_closet"
     bl_label = "Move Closet"
@@ -50,6 +56,7 @@ class SNAP_OT_move_closet(Operator):
 
     starting_point = ()
     placement = ''
+    corner_placement = ''
 
     assembly = None
     obj = None
@@ -162,6 +169,36 @@ class SNAP_OT_move_closet(Operator):
             self.closet.obj_bp.location.y = self.selected_point[1]
             wall_mesh = self.current_wall.get_wall_mesh()
             wall_mesh.select_set(True)
+            if self.closet.obj_bp.get("IS_BP_L_SHELVES") or self.closet.obj_bp.get("IS_BP_CORNER_SHELVES"):
+                self.current_wall = sn_types.Wall(wall_bp)
+                wall_loc_x = wall_bp.matrix_world[0][3]
+                wall_loc_y = wall_bp.matrix_world[1][3]
+                wall_loc_z = wall_bp.matrix_world[2][3]
+
+                wall_world_loc = (wall_loc_x, wall_loc_y, wall_loc_z)
+
+                wall_x_world_loc = (
+                    self.current_wall.obj_x.matrix_world[0][3],
+                    self.current_wall.obj_x.matrix_world[1][3],
+                    self.current_wall.obj_x.matrix_world[2][3])
+
+                dist_to_bp = sn_utils.calc_distance(self.selected_point, wall_world_loc)
+                dist_to_x = sn_utils.calc_distance(self.selected_point, wall_x_world_loc)
+
+                self.closet.obj_bp.rotation_euler = self.current_wall.obj_bp.rotation_euler
+
+                if dist_to_bp < dist_to_x:
+                    self.corner_placement = 'LEFT'
+                    self.closet.obj_bp.location = self.current_wall.obj_bp.matrix_world.translation
+                else:
+                    self.corner_placement = 'RIGHT'
+                    self.closet.obj_bp.location = self.current_wall.obj_x.matrix_world.translation
+                    self.closet.obj_bp.rotation_euler.z += math.radians(-90)
+
+            else:
+                self.closet.obj_bp.rotation_euler = self.current_wall.obj_bp.rotation_euler
+                self.closet.obj_bp.location.x = self.selected_point[0]
+                self.closet.obj_bp.location.y = self.selected_point[1]
 
         else:
             self.closet.obj_bp.location.x = self.selected_point[0]
@@ -209,7 +246,10 @@ class SNAP_OT_move_closet(Operator):
                                            (self.current_wall.obj_bp.matrix_local[0][3],self.current_wall.obj_bp.matrix_local[1][3],0))
 
             self.closet.obj_bp.location = (0,0,self.closet.obj_bp.location.z)
-            self.closet.obj_bp.rotation_euler = (0,0,0)
+            if (self.closet.obj_bp.get("IS_BP_L_SHELVES") or self.closet.obj_bp.get("IS_BP_CORNER_SHELVES")) and self.corner_placement == 'RIGHT':
+                self.closet.obj_bp.rotation_euler = (0, 0, math.radians(-90))
+            else:
+                self.closet.obj_bp.rotation_euler = (0,0,0)
             self.closet.obj_bp.parent = self.current_wall.obj_bp
             self.closet.obj_bp.location.x = x_loc
 
@@ -375,6 +415,7 @@ class Delete_Closet_Assembly(Operator):
         col = box.column()
         col.label(text="'{}'".format(self.obj_bp.snap.name_object))
         col.label(text="Are you sure you want to delete this?")
+
 
 class SNAP_OT_delete_closet(Delete_Closet_Assembly):
     bl_idname = "sn_closets.delete_closet"
@@ -1274,11 +1315,11 @@ class SNAP_OT_place_applied_panel(Operator):
 
             if wall_bp:
                 wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-                self.asssign_to_collection(context, self.assembly.obj_bp, wall_coll)
+                assign_to_collection(context, self.assembly.obj_bp, wall_coll)
 
             if floor:
                 floor_coll = bpy.data.collections[floor.snap.name_object]
-                self.asssign_to_collection(context, self.assembly.obj_bp, floor_coll)
+                assign_to_collection(context, self.assembly.obj_bp, floor_coll)
 
             self.set_wire_and_xray(self.assembly.obj_bp, False)
             bpy.context.window.cursor_set('DEFAULT')
@@ -1295,11 +1336,6 @@ class SNAP_OT_place_applied_panel(Operator):
             return {'FINISHED'}
 
         return {'RUNNING_MODAL'}
-
-    def asssign_to_collection(self, context, obj_bp, collection):
-        scene_coll = context.scene.collection
-        sn_utils.add_assembly_to_collection(obj_bp, collection)
-        sn_utils.remove_assembly_from_collection(obj_bp, scene_coll)
 
     def modal(self, context, event):
         context.area.tag_redraw()
@@ -1380,6 +1416,20 @@ class SNAP_OT_update_door_selection(Operator):
             if child.get("IS_DOOR") and child != obj_bp:
                 return child
 
+    def update_lock(self, lock_bp, new_door):
+        driver = lock_bp.animation_data.drivers[2]
+        driver_var = driver.driver.variables[0]
+
+        for driver in lock_bp.animation_data.drivers:
+            if driver.data_path == 'location':
+                if driver.array_index == 2:  # Z location
+                    for driver_var in driver.driver.variables:
+                        if driver_var.name == "df_z_loc":
+                            driver_var.targets[0].id = new_door.obj_bp
+                            print("FOUND DRIVER:", driver_var.name, driver_var.targets[0].id.name)
+                        if driver_var.name == "DF_Height":
+                            driver_var.targets[0].id = new_door.obj_x
+                            print("FOUND DRIVER:", driver_var.name, driver_var.targets[0].id.name)
     # def invoke(self, context, event):
     #     wm = context.window_manager
     #     return wm.invoke_props_dialog(self, width=400)
@@ -1554,6 +1604,7 @@ class SNAP_OT_update_door_selection(Operator):
             sn_utils.copy_drivers(door_assembly.obj_y, new_door.obj_y)
             sn_utils.copy_drivers(door_assembly.obj_z, new_door.obj_z)
 
+
             obj_props = new_door.obj_bp.sn_closets
             obj_props.is_door_bp = door_assembly.obj_bp.sn_closets.is_door_bp
             obj_props.is_drawer_front_bp = door_assembly.obj_bp.sn_closets.is_drawer_front_bp
@@ -1565,13 +1616,16 @@ class SNAP_OT_update_door_selection(Operator):
             new_door.obj_bp["ID_PROMPT"] = id_prompt
 
             wall_bp = sn_utils.get_wall_bp(door_assembly.obj_bp)
+            floor = sn_utils.get_floor_parent(door_assembly.obj_bp)
             cabinet_product = sn_utils.get_cabinet_bp(door_assembly.obj_bp)
 
             if wall_bp:
                 wall_coll = bpy.data.collections[wall_bp.snap.name_object]
-                scene_coll = context.scene.collection
-                sn_utils.add_assembly_to_collection(new_door.obj_bp, wall_coll)
-                sn_utils.remove_assembly_from_collection(new_door.obj_bp, scene_coll)
+                assign_to_collection(context, new_door.obj_bp, wall_coll)
+
+            if floor:
+                floor_coll = bpy.data.collections[floor.snap.name_object]
+                assign_to_collection(context, new_door.obj_bp, floor_coll)
 
             if door_assembly.obj_bp.get("IS_DOOR"):
                 new_door.obj_bp['IS_DOOR'] = True
@@ -1581,15 +1635,26 @@ class SNAP_OT_update_door_selection(Operator):
                     product.update_dimensions()
                     if props.door_category != "Moderno Door":
                         new_door.obj_bp['IS_KB_PART'] = True
+
             if door_assembly.obj_bp.get("IS_BP_DRAWER_FRONT"):
-                new_door.obj_bp['DRAWER_NUM'] = door_assembly.obj_bp.get("DRAWER_NUM")
-                new_door.obj_bp['IS_BP_DRAWER_FRONT'] = True
-                if cabinet_product:
-                    frameless_exteriors.add_drawer_height_dimension(new_door)
-                    product = cabinets.Standard(cabinet_product)
-                    product.update_dimensions()
-                    if props.door_category != "Moderno Door":
-                        new_door.obj_bp['IS_KB_PART'] = True
+                if 'DRAWER_NUM' in door_assembly.obj_bp:
+                    drawer_num = door_assembly.obj_bp.get("DRAWER_NUM")
+
+                    for child in door_assembly.obj_bp.parent.children:
+                        if child.get("IS_BP_LOCK") and drawer_num == child.get("DRAWER_NUM"):
+                            lock_bp = child
+                            self.update_lock(lock_bp, new_door)
+                            print(child.name, door_assembly.obj_bp.get("DRAWER_NUM"), child.get("DRAWER_NUM"))
+
+                    new_door.obj_bp['DRAWER_NUM'] = drawer_num
+                    new_door.obj_bp['IS_BP_DRAWER_FRONT'] = True
+                    if cabinet_product:
+                        frameless_exteriors.add_drawer_height_dimension(new_door)
+                        product = cabinets.Standard(cabinet_product)
+                        product.update_dimensions()
+                        if props.door_category != "Moderno Door":
+                            new_door.obj_bp['IS_KB_PART'] = True
+
             if obj_props.is_hamper_front_bp:
                 new_door.obj_bp['IS_BP_HAMPER_FRONT'] = True
 
@@ -1648,16 +1713,17 @@ class SNAP_OT_update_door_selection(Operator):
 
             if parent_door_style:
                 parent_door_style.set_value(props.get_door_style())
-            
+
             if parent_glass_color:
                 parent_glass_color.set_value(closet_materials.get_glass_color().name)
 
             self.update_door_children_properties(new_door.obj_bp, id_prompt, props.get_door_style())
             obj_product_bp = sn_utils.get_bp(new_door.obj_bp, 'PRODUCT')
-            if obj_product_bp.get("IS_BP_CABINET") and obj_product_bp.get("MATERIAL_POINTER_NAME"):    
+
+            if obj_product_bp.get("IS_BP_CABINET") and obj_product_bp.get("MATERIAL_POINTER_NAME"):
                 sn_utils.add_kb_insert_material_pointers(obj_product_bp)
                 bpy.ops.closet_materials.poll_assign_materials()
-            
+
         bpy.context.view_layer.update()
 
         return {'FINISHED'}

@@ -1,4 +1,4 @@
-﻿SKU,Description,Name,DisplayName,Available in SNaP,Pricing Formula,Cost,FranchisePrice,RetailPrice,Series,UOM,ProductType,VendorName,VendorItemNum,Type,Thickness,TypeCode,ColorCode,ProfileCode,IsActive
+SKU,Description,Name,DisplayName,Available in SNaP,Pricing Formula,Cost,FranchisePrice,RetailPrice,Series,UOM,ProductType,VendorName,VendorItemNum,Type,Thickness,TypeCode,ColorCode,ProfileCode,IsActive
 AC-0000001,Hamper Basket Chrome 18x14x19,Hamper Basket Chrome 18x14x19,Hamper Basket Chrome 18x14x19,0,AC Hamper,28.69,32.99,61.95,0,EA,AC,HAFELE,547.42.231,4,1,0,0,0,Y
 AC-0000002,Hamper Basket Chrome 18x16x19,Hamper Basket Chrome 18x16x19,Hamper Basket Chrome 18x16x19,0,AC Hamper,29.53,33.96,63.68,0,EA,AC,HAFELE,547.42.241,4,1,0,0,0,Y
 AC-0000003,Hamper Basket Chrome 24x14x19,Hamper Basket Chrome 24x14x19,Hamper Basket Chrome 24x14x19,0,AC Hamper,34.22,39.35,73.31,0,EA,AC,HAFELE,547.42.232,4,1,0,0,0,Y
@@ -722,7 +722,8 @@ AC-0000815,"Hafele 3/4 UM SC 12""","Hafele 3/4 UM SC 12""","Hafele 3/4 UM SC 12"
 AC-0000816,"Hafele 3/4 UM SC 15""","Hafele 3/4 UM SC 15""","Hafele 3/4 UM SC 15""",0,AC Slide,9.33,10.73,18.96,0,PR,AC,HAFELE,433.32.853,4,1,0,0,0,Y
 AC-0000817,"Hafele 3/4 UM SC 18""","Hafele 3/4 UM SC 18""","Hafele 3/4 UM SC 18""",0,AC Slide,10.24,11.78,20.56,0,PR,AC,HAFELE,433.32.855,4,1,0,0,0,Y
 AC-0000818,"Hafele 3/4 UM SC 21""","Hafele 3/4 UM SC 21""","Hafele 3/4 UM SC 21""",0,AC Slide,11.1,12.77,22.08,0,PR,AC,HAFELE,433.32.857,4,1,0,0,0,Y
-AH-0000001,Jowat 280-90CLR-44,Jowat 280-90CLR-44,Jowat 280-90CLR-44,0,Adhesive ,210,0,0,0,EA,AH,EDGEBANDING SERVICES,JW-280-90CLR-44,0,0,0,0,0,Y
+AC-0000819,Oval Rod support 3MM Chrome ,Oval Rod support 3MM Chrome ,Oval Rod support 3MM Chrome ,0,Hardware ,0.4122,0.461,1.07,0,EA,HW,HAFELE,803.33.757,6,1,0,0,0,N
+AH-0000001,Jowat 280-90CLR-44,Jowat 280-90CLR-44,Jowat 280-90CLR-44,0,Adhesive ,210,, -   ,0,EA,AH,EDGEBANDING SERVICES,JW-280-90CLR-44,0,0,0,0,0,Y
 BB-0000001,1/2 BIRCH VENEER PRE FINISHED,1/2 BIRCH VENEER PRE FINISHED,1/2 BIRCH VENEER PRE FINISHED,0,Ply Baltic Birch Panels,1.182,1.9158,2.88,0,SF,BB,RUGBY,0,0,0,0,0,0,Y
 BB-0000004,1/4 BIRCH VENEER PRE FINISHED,1/4 BIRCH VENEER PRE FINISHED,1/4 BIRCH VENEER PRE FINISHED,0,Ply Baltic Birch Panels,1.1875,1.9261,2.89,0,SF,BB,RUGBY,0,0,0,0,0,0,Y
 BB-0000006,BBBB PREFINISH RIP 2.75,BBBB PREFINISH RIP 2.75 (4H),BBBB PREFINISH RIP 2.75,0,Ply Baltic Birch,1.271,2.0188,4.54,0,LF,BB,RUGBY,DS124HOLE,0,0,0,0,0,Y
@@ -818,7 +819,7 @@ EB-0000350,EB SALT LAKESHORE OAK 1mm,EB SALT Lakeshore Oak 1mm,S Lakeshore Oak,0
 EB-0000351,EB SALT Antracite Linen 1mm,EB SALT Antracite Linen 1mm,Midnight Shadows,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GSX7R,5,0.039,1037,164001,1020,Y
 EB-0000352,EB SALT Bianco 1mm,EB SALT Bianco 1mm,EB SALT Bianco 1mm,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GS68R,5,0.039,1037,164005,1020,N
 EB-0000353,EB SALT Bruciato 1mm,EB SALT Bruciato 1mm,EB SALT Bruciato 1mm,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,SME005,5,0.039,1037,164007,1020,N
-EB-0000354,EB SALT Buff Linen 1mm,EB SALT Buff Linen 1mm,Chesapeake Bay,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GS20M,5,0.039,1037,164009,1020,Y
+EB-0000354,EB SALT Buff Linen 1mm,EB SALT Buff Linen 1mm,Chesapeake Bay,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GS20M,5,0.039,1037,200690,1020,Y
 EB-0000355,EB SALT Canyon Bleach 1mm,EB SALT Canyon Bleach 1mm,S Canyon Bleach,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GSD23,5,0.039,1037,164010,1020,N
 EB-0000356,EB SALT Canyon Charcoal 1mm,EB SALT Canyon Charcoal 1mm,EB SALT Canyon Charcoal 1mm,no,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GSTM2,5,0.039,1037,164012,1020,N
 EB-0000357,EB SALT Canyon Oak 1mm,EB SALT Canyon Oak 1mm,EB SALT Canyon Oak 1mm,no,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,GSD17,5,0.039,1037,164014,1020,N
@@ -890,15 +891,15 @@ EB-0000426,EB MLX DEEP BLUE SM 1MM,EB MLX Deep Blue SM 1mm,Coastal Living,0,EB,0
 EB-0000427,EB OX WHIT FE .018 15/16 2001,EB OX WHIT FE .018 15/16 2001,EB OX WHIT FE .018 15/16 2001,0,EB,0.026,0.1442,0.89,0,LF,EB,EDGEBANDING SERVICES,0,5,0.018,1030,110100,1020,Y
 EB-0000428,EB OX WHITE 3M 15/16 2001,EB OX WHITE 3M 15/16 2001,Oxford White,0,EB,0.198,0.3502,1.14,0,LF,EB,EDGEBANDING SERVICES,0,5,0.118,3030,110100,1020,N
 EB-0000429,EB U DRIFTWOOD 15/16 1MM,EB U DRIFTWOOD 15/16 1MM,Silver Elm,0,EB,0.16,0.2987,1.09,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,167000,1020,Y
-EB-0000430,EB MLX Graphite SM 1MM,EB MLX Graphite SM 1MM,Asphalt Δ,0,EB,0.23,0.3811,1.19,MIRLUX,LF,EB,SPELLMAN,0,5,0.039,1037,109250,1020,Y
-EB-0000431,EB MLX White SM 1MM,EB MLX White SM 1MM,Cloud Δ,0,EB,0.23,0.3811,1.19,MIRLUX,LF,EB,SPELLMAN,0,5,0.039,1037,109500,1020,Y
+EB-0000430,EB MLX Graphite SM 1MM,EB MLX Graphite SM 1MM,Asphalt,0,EB,0.23,0.3811,1.19,MIRLUX,LF,EB,SPELLMAN,0,5,0.039,1037,109250,1020,Y
+EB-0000431,EB MLX White SM 1MM,EB MLX White SM 1MM,Cloud,0,EB,0.23,0.3811,1.19,MIRLUX,LF,EB,SPELLMAN,0,5,0.039,1037,109500,1020,Y
 EB-0000432,EB SALT Bianco White SM 1MM,EB SALT Bianco White SM 1MM,S Bianco White,0,EB,0.3,0.4738,1.3,SALT,LF,EB,PETERMANLUMBER,0,5,0.039,1037,164006,1020,N
 EB-0000433,EB Alder Veneer 1MM,EB Alder Veneer 1MM,Alder,0,EB,0.23,0.3811,1.19,Veneer,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1039,808110,1020,Y
 EB-0000435,EB SUNSET CRUISE 1MM,EB SUNSET CRUISE 1MM,Sunset Cruise,0,EB,0.23,0.3811,1.19,0,LF,EB,HARDWOODS,0,5,0.039,1037,107650,1020,N
 EB-0000436,EB U RIVA 1MM,EB U RIVA 1MM,Irish Cream,0,EB,0.246,0.4017,1.21,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,167019,1020,Y
 EB-0000437,EB CRACKLE CRUNCH 1MM,EB CRACKLE CRUNCH 1MM,Tigerlilly (Crackle Crunch) Δ,0,EB,0.268,0.4326,1.24,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,117700,1020,Y
 EB-0000438,EB CALYPSO 1MM,EB CALYPSO 1MM,Birchwood Breeze (Calypso) Δ,0,EB,0.201,0.3502,1.15,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,117021,1020,Y
-EB-0000439,EB OPULLENT OLMO 1MM,EB OPULENT OLMO 1MM,Riverwood (Opulent Olmo) Δ,0,EB,0.164,0.309,1.09,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,20,1020,Y
+EB-0000439,EB OPULLENT OLMO 1MM,EB OPULENT OLMO 1MM,Riverwood (Opulent Olmo) Δ,0,EB,0.164,0.309,1.09,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,152000,1020,Y
 EB-0000441,EB WEDDING CAKE 1MM,EB WEDDING CAKE 1MM,Chocolate Swirl (Wedding Cake) Δ,0,EB,0.164,0.309,1.09,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,174090,1020,Y
 EB-0000442,EB OATMEAL COOKIE 1MM,EB OATMEAL COOKIE 1MM,EB OATMEAL COOKIE 1MM (Malibu Sands),0,EB,0.164,0.309,1.09,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,151100,1020,N
 EB-0000443,EB U CANVAS 15/16 1MM,EB U Canvas 1mm,Teacloth,0,EB,0.271,0.4326,1.25,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,166660,1020,Y
@@ -911,42 +912,45 @@ EB-0000453,EB Smoke Green 1MM,EB Smoke Green 1MM,Tea Leaf,0,EB,0.17,0.3193,1.1,0
 EB-0000454,EB Alby Blue 1MM,EB Alby Blue 1MM,Urban Blue,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200170,1020,Y
 EB-0000456,EB T Ganache 1MM,EB T Ganache 1MM,Bayou Cypress,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200180,1020,Y
 EB-0000458,EB White Nordic Wood 1MM,EB White Nordic Wood 1MM,Norwegian Wood,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200190,1020,Y
-EB-0000461,EB Vintage Harbor Oak 1MM,EB Vintage Harbor Oak 1MM,Rustic Oak Δ,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200210,1020,Y
-EB-0000462,EB U Maria 1MM,EB U Maria 1MM,Forest Oak Δ,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200220,1020,Y
-EB-0000463,EB U Chicory 1MM,EB U Chicory 1MM,Root Tea Δ,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200230,1020,Y
+EB-0000461,EB Vintage Harbor Oak 1MM,EB Vintage Harbor Oak 1MM,Rustic Oak,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200210,1020,Y
+EB-0000462,EB U Maria 1MM,EB U Maria 1MM,Forest Oak,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200220,1020,Y
+EB-0000463,EB U Chicory 1MM,EB U Chicory 1MM,Root Tea,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200230,1020,Y
 EB-0000465,EB U Otter Grey 1MM,EB U Otter Grey 1MM,Gray Shoreline,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200240,1020,Y
 EB-0000466,EB U Crema Cherry 1MM,EB U Crema Cherry 1MM,Otter Gray,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200280,1020,Y
 EB-0000467,EB U Sheer Linen 1MM,EB U Sheer Linen 1MM,Chesapeake Bay,0,EB,0.17,0.3193,1.1,0,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,164009,1020,Y
-EB-0000468,EB T Free Spirit 1MM,EB T Free Spirit 1MM,White Oak,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200490,1020,Y
-EB-0000469,EB T Sheer Beauty 1MM,EB T Sheer Beauty 1MM,Spring Branch,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200500,1020,Y
-EB-0000470,EB T Fashionista 1MM,EB T Fashionista 1MM,Aged Timber,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200510,1020,Y
-EB-0000471,EB T Chameleon 1MM,EB T Chameleon 1MM,Shaded Oak,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200520,1020,Y
-EB-0000472,EB T Rhapsody 1MM,EB T Rhapsody 1MM,Blonde Sprig,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200530,1020,Y
-EB-0000473,EB T Force of Nature 1MM,EB T Force of Nature 1MM,Silt,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200540,1020,Y
-EB-0000474,EB T Rock Solid 1MM,EB T Rock Solid 1MM,Valley Shale,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200550,1020,Y
-EB-0000475,EB T Urban Vibe 1MM,EB T Urban Vibe 1MM,City Grit,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200560,1020,Y
-EB-0000476,EB T Natural Affinity 1MM,EB T Natural Affinity 1MM,Warm Grain,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200570,1020,Y
-EB-0000477,EB T Sugar Rush 1MM,EB T Sugar Rush 1MM,Canela,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200580,1020,Y
-EB-0000478,EB T Sweet & Savory 1MM,EB T Sweet & Savory 1MM,Sycamore,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200590,1020,Y
-EB-0000479,EB T Love At First Sight 1MM,EB T Love At First Sight 1MM,Summer Love,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200600,1020,Y
-EB-0000480,EB T Acacia Honey 1MM,EB T Acacia Honey 1MM,Mielito,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200610,1020,Y
-EB-0000481,EB T Kiss Curl 1MM,EB T Kiss Curl 1MM,Cortado,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200620,1020,Y
-EB-0000482,EB T Mastermind 1MM,EB T Mastermind 1MM,Cerebral,,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200630,1020,Y
-EB-0000483,EB LUM Midnight Sun 1MM,EB LUM Midnight Sun 1MM,Eclipse,,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200640,1020,Y
-EB-0000484,EB LUM Black 1MM,EB LUM Black 1MM,Pitch,,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200650,1020,Y
-EB-0000485,EB LUM Morning Dew 1MM,EB LUM Morning Dew 1MM,Clay,,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200660,1020,Y
-EB-0000486,EB LUM Calm Sea 1MM,EB LUM Calm Sea 1MM,Cote Azur,,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200670,1020,Y
-EB-0000487,EB LUM Eucalyptus 1MM,EB LUM Eucalyptus 1MM,Deep Forest,,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200680,1020,Y
+EB-0000468,EB T Free Spirit 1MM,EB T Free Spirit 1MM,White Oak,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200490,1020,Y
+EB-0000469,EB T Sheer Beauty 1MM,EB T Sheer Beauty 1MM,Spring Branch,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200500,1020,Y
+EB-0000470,EB T Fashionista 1MM,EB T Fashionista 1MM,Aged Timber,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200510,1020,Y
+EB-0000471,EB T Chameleon 1MM,EB T Chameleon 1MM,Shaded Oak,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200520,1020,Y
+EB-0000472,EB T Rhapsody 1MM,EB T Rhapsody 1MM,Blonde Sprig,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200530,1020,Y
+EB-0000473,EB T Force of Nature 1MM,EB T Force of Nature 1MM,Silt,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200540,1020,Y
+EB-0000474,EB T Rock Solid 1MM,EB T Rock Solid 1MM,Valley Shale,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200550,1020,Y
+EB-0000475,EB T Urban Vibe 1MM,EB T Urban Vibe 1MM,City Grit,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200560,1020,Y
+EB-0000476,EB T Natural Affinity 1MM,EB T Natural Affinity 1MM,Warm Grain,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200570,1020,Y
+EB-0000477,EB T Sugar Rush 1MM,EB T Sugar Rush 1MM,Canela,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200580,1020,Y
+EB-0000478,EB T Sweet & Savory 1MM,EB T Sweet & Savory 1MM,Sycamore,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200590,1020,Y
+EB-0000479,EB T Love At First Sight 1MM,EB T Love At First Sight 1MM,Summer Love,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200600,1020,Y
+EB-0000480,EB T Acacia Honey 1MM,EB T Acacia Honey 1MM,Mielito,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200610,1020,Y
+EB-0000481,EB T Kiss Curl 1MM,EB T Kiss Curl 1MM,Cortado,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200620,1020,Y
+EB-0000482,EB T Mastermind 1MM,EB T Mastermind 1MM,Cerebral,0,EB,0.17,0.3193,1.1,TAFISA,LF,EB,EDGEBANDING SERVICES,0,5,0.039,1037,200630,1020,Y
+EB-0000483,EB LUM Midnight Sun 1MM,EB LUM Midnight Sun 1MM,Eclipse,0,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200640,1020,Y
+EB-0000484,EB LUM Black 1MM,EB LUM Black 1MM,Pitch,0,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200650,1020,Y
+EB-0000485,EB LUM Morning Dew 1MM,EB LUM Morning Dew 1MM,Clay,0,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200660,1020,Y
+EB-0000486,EB LUM Calm Sea 1MM,EB LUM Calm Sea 1MM,Cote Azur,0,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200670,1020,Y
+EB-0000487,EB LUM Eucalyptus 1MM,EB LUM Eucalyptus 1MM,Deep Forest,0,EB,0.23,0.3811,1.19,TAFISA,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,200680,1020,Y
+EB-0000488,EB Britney Blue 1MM,EB Britney Blue 1MM,Sky Blue (Kitchen Only),0,EB,0.23,0.3811,1.19,CUSTOM,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,106870,1020,Y
+EB-0000489,EB Clarity Sage 1MM,EB Clarity Sage 1MM,Clarity Sage (Kitchen Only),0,EB,0.23,0.3811,1.19,CUSTOM,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,106910,1020,Y
+EB-0000490,EB Forest Green 1MM,EB Forest Green 1MM,Forest (Kitchen Only),0,EB,0.23,0.3811,1.19,CUSTOM,LF,EB,EDGEBANDING SERVICES ,0,5,0.039,1037,106970,1020,Y
 GL-0000001,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,Glass 1/8 Smoked Grylite II,0,Glass - Sheet,8.91,13.1325,22.05,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
 GL-0000002,Glass 1/8 Frosted,Glass 1/8 Frosted,Glass 1/8 Frosted,0,Glass - Sheet,14.95,20.2807,32.68,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
 GL-0000003,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,Glass 1/8 Clear Annealed,0,Glass - Sheet Std,4.46,7.8589,11.77,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
 GL-0000004,Glass 1/4 Clear Annealed,Glass 1/4 Clear Annealed,Glass 1/4 Clear Annealed,0,Glass - Precut,4.93,8.6726,15.42,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
-GL-0000005,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,0,Glass - Precut,4.93,8.6726,15.42,0,SF,GL, ,0,9,0.25,0,0,0,Y
+GL-0000005,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,Glass 1/4 Clear Tempered,0,Glass - Precut,4.93,8.6726,15.42,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000006,Glass 3/8 Clear Annealed,Glass 3/8 Clear Annealed,Glass 3/8 Clear Annealed,0,Glass - Precut,5.28,9.1052,16.07,0,SF,GL,PRL GLASS,0,9,0.38,0,0,0,Y
 GL-0000007,Glass 3/8 Clear Tempered,Glass 3/8 Clear Tempered,Glass 3/8 Clear Tempered,0,Glass - Precut,6.53,10.6502,18.36,0,SF,GL,PRL GLASS,0,9,0.38,0,0,0,Y
 GL-0000008,Glass 1/2 Clear Annealed,Glass 1/2 Clear Annealed,Glass 1/2 Clear Annealed,0,Glass - Precut,6.6,10.7326,18.49,0,SF,GL,PRL GLASS,0,9,0.5,0,0,0,Y
 GL-0000009,Glass 1/2 Clear Tempered,Glass 1/2 Clear Tempered,Glass 1/2 Clear Tempered,0,Glass - Precut,7.86,12.2879,20.81,0,SF,GL,PRL GLASS,0,9,0.5,0,0,0,Y
-GL-0000010,Mirror 1/8 Clear,Mirror 1/8 Clear,Mirror 1/8 Clear,0,Glass - Precut,4.5,8.137,14.64,0,SF,GL,PRL GLASS,0,9,0.125,0,0,0,Y
+GL-0000010,Mirror 1/8 Clear,Mirror 1/8 Clear,Mirror 1/8 Clear,0,Glass - Precut,4.5,8.137,14.64,0,SF,GL,PRL GLASS,0,9,0.13,0,0,0,Y
 GL-0000011,Mirror 1/4 Clear,Mirror 1/4 Clear,Mirror 1/4 Clear,0,Glass - Precut,5.2,9.0022,15.92,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000012,Rain Glass 1/4 ,Rain Glass 1/4 ,Rain Glass 1/4 ,0,Glass - Specialty Precut,8.93,14.1316,24.55,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000013,P516 Obscure 1/4,P516 Obscure 1/4,P516 Obscure 1/4,0,Glass - Specialty Precut,8.93,14.1316,24.55,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
@@ -954,9 +958,9 @@ GL-0000014,Bubble 1/4 ,Bubble 1/4 ,Bubble 1/4 ,0,Glass - Specialty Precut,19.51,
 GL-0000015,Acid Etched 1/4 ,Acid Etched 1/4 ,Acid Etched 1/4 ,0,Glass - Specialty Precut,18.06,25.4101,41.32,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000016,Water ( Flemish ) 1/4 ,Water ( Flemish ) 1/4 ,Water ( Flemish ) 1/4 ,0,Glass - Specialty Precut,30.77,41.1176,64.66,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
 GL-0000017,Reeded Glass 1/4,Reeded Glass 1/4,Reeded Glass 1/4,0,Glass - Specialty Precut,31.39,41.8901,65.79,0,SF,GL,PRL GLASS,0,9,0.25,0,0,0,Y
-GZ-0000001,Gentry Gray,Gentry Gray,Gentry Gray,0,Stain,25.8,0,0,STAIN,QT,S,LOUIS,L-CAZ03486-QT,0,0,0,0,0,Y
-GZ-0000002,Raw Umber,Raw Umber,Raw Umber,0,Stain,25.3,0,0,STAIN,QT,S,LOUIS,L-CAZ22030-RU-QT,0,0,0,0,0,Y
-GZ-0000003,Van Dyke Brown,Van Dyke Brown,Van Dyke Brown,0,Stain,25.11,0,0,STAIN,QT,S,LOUIS,L-CAZ22030-VDB-QT,0,0,0,0,0,Y
+GZ-0000001,Gentry Gray,Gentry Gray,Gentry Gray,0,Stain,25.8,0, -   ,STAIN,QT,S,LOUIS,L-CAZ03486-QT,0,0,0,0,0,Y
+GZ-0000002,Raw Umber,Raw Umber,Raw Umber,0,Stain,25.3,0, -   ,STAIN,QT,S,LOUIS,L-CAZ22030-RU-QT,0,0,0,0,0,Y
+GZ-0000003,Van Dyke Brown,Van Dyke Brown,Van Dyke Brown,0,Stain,25.11,0, -   ,STAIN,QT,S,LOUIS,L-CAZ22030-VDB-QT,0,0,0,0,0,Y
 HW-0000002,CABLE TRUNK SINGLE J PVC BLACK,CABLE TRUNK SINGLE J PVC BLACK,CABLE TRUNK SINGLE J PVC BLACK,0,Hardware,14.95,12.88,26.43,0,EA,HW,HAFELE,829.15.302,6,1,0,0,0,Y
 HW-0000003,BOLT STAR 1/4X2 EXPANSION ANC,BOLT STAR 1/4X2 EXPANSION ANC,BOLT STAR 1/4X2 EXPANSION ANC,0,Hardware,1.2,1.34,2.9,0,EA,HW,UKNOWN,0,6,1,0,0,0,Y
 HW-0000004,Brace - Plastic Corner,Brace - Plastic Corner,Brace - Plastic Corner,0,Hardware,0.7,0.78,1.75,0,EA,HW,USINDUSTRIAL,71191693,6,1,0,0,0,Y
@@ -1010,7 +1014,7 @@ HW-0000079,Lucite Hinge Trim Rnd Black,Lucite Hinge Trim Rnd Black,Lucite Hinge 
 HW-0000105,SCREW 8-32 5/8,SCREW 8-32 5/8,SCREW 8-32 5/8,0,HW Screw,0.029,0.02,0.06,0,EA,HW,HAFELE,022.25.150,6,1,0,0,0,N
 HW-0000106,SCREW 1 1/4 #8 COARSE,SCREW 8-32 1 1/4,SCREW 1 1/4 #8 COARSE,0,HW Screw,0.016,0.01,0.05,0,EA,HW,HAFELE,010.23.160,6,1,0,0,0,N
 HW-0000108,SCREW 1 1/2 IN #8-32,SCREW 8-32 1 1/2,SCREW 1 1/2 IN #8-32,0,HW Screw,0.051,0.03,0.07,0,EA,HW,HAFELE,022.25.381,6,1,0,0,0,N
-HW-0000110,SCREW 1 9/16 M4,SCREW M4 1 9/16,SCREW 1 9/16 M4,0,HW Screw,0.051,0.02,0.06,0,EA,HW,HAFELE,022.45.403,6,1,0,0,0,N
+HW-0000110,SCREW 1 9/16 M4 ,SCREW M4 1 9/16,SCREW 1 9/16 M4,0,HW Screw,0.051,0.02,0.06,0,EA,HW,HAFELE,022.45.403,6,1,0,0,0,N
 HW-0000111,SCREW 8-32 7/8,SCREW 8-32 7/8,SCREW 8-32 7/8,0,HW Screw,0.053,0.03,0.07,0,EA,HW,HAFELE,022.25.229,6,1,0,0,0,N
 HW-0000112,"SCREW 8-32 1""","SCREW 8-32 1""",SCREW 8-32 1in,0,HW Screw,0.038,0.03,0.07,0,EA,HW,HAFELE,022.25.256,6,1,0,0,0,N
 HW-0000113,SCREW 8-32 1 1/4,SCREW 8-32 1 1/4,SCREW 8-32 1 1/4,0,HW Screw,0.053,0.04,0.08,0,EA,HW,HAFELE,022.25.327,6,1,0,0,0,N
@@ -1044,7 +1048,9 @@ HW-0000232,Glass Shelf Peg 3MM,Glass Shelf Peg 3MM,Glass Shelf Peg 3MM,0,Hardwar
 HW-0000233,Peg 3MM,Peg 3MM,Peg 3MM,0,Hardware ,0.0136,0.0152,0.18,0,EA,HW,HAFELE,282.04.720,6,1,0,0,0,N
 HW-0000234,Mounting Plate 3MM,Mounting Plate 3MM,Mounting Plate 3MM,0,HW Hinge,0.2379,0.2616,4.32,0,EA,HW,HAFELE,329.80.555,6,1,0,0,0,N
 HW-0000235,Euro Screw 3MM,Euro Screw 3MM,Euro Screw 3MM,0,HW Screw,0.0223,0.0278,0.07,0,EA,HW,HAFELE,013.15.617,6,1,0,0,0,N
-HW-0000236,Oval Rod support 3MM Chrome ,Oval Rod support 3MM Chrome ,Oval Rod support 3MM Chrome ,0,Hardware ,0.4122,0.461,1.07,0,EA,HW,HAFELE,803.33.757,6,1,0,0,0,N
+HW-0000236,Glass Shelf Peg 5MM,Glass Shelf Peg 5MM,Glass Shelf Peg 5MM,0,Hardware ,0.0308,0.0345,0.09,0,EA,HW,HAFELE,281.41.907,6,1,0,0,0,N
+HW-0000237,Soft Close Hinge Corner Cab. +45,Soft Close Hinge Corner Cab. +45,Soft Close Hinge Corner Cab. +45,YES,Hardware,5.15,5.665,11.08,0,EA,HW,HAFELE,329.25.117,6,1,0,0,0,N
+HW-0000238,Soft Close Hinge Blind Corner 110,Soft Close Hinge Blind Corner 110,Soft Close Hinge Blind Corner 110,YES,Hardware,4.7,5.17,10.46,0,EA,HW,HAFELE,329.11.100,6,1,0,0,0,N
 LB-0000001,LABOR - KD SHELF,Labor - KD Shelf,LABOR - KD SHELF,0,LABOR,0,0.5,1.02,0,EA,LBR,0,0,N/A,N/A,0,0,0,Y
 LB-0000002,LABOR - ADJ LSHELF,Labor - LShelf,LABOR - L SHELF,0,LABOR,7.5,8.4,10.71,0,EA,LBR,0,0,N/A,N/A,0,0,0,Y
 LB-0000003,LABOR - KD LSHELF,Labor - KD LShelf,LABOR - L KD SHELF,0,LABOR,7.5,8.4,10.71,0,EA,LBR,0,0,N/A,N/A,0,0,0,Y
@@ -1066,10 +1072,9 @@ LB-0000018,LABOR - FELT BOTTOM,Labor - Felt Bottom,LABOR - FELT BOTTOM,0,LABOR,0
 LB-0000019,LABOR - SCUFFING,Labor - Scuffing,LABOR - SCUFFING,0,LABOR,0,2,3.06,0,SF,LBR,0,0,0,0,0,0,0,Y
 LB-0000020,LABOR - 5PC MEL DOOR GLASS CTR PANEL,Labor - 5Pc Mel Door Glass Center Panel,LABOR - 5PC MEL DOOR GLASS CENTER PANEL,1,LABOR,0,12,30.6,,EA,LBR,0,0,0,0,0,0,0,Y
 LB-0000021,LABOR - MEL SLAB DOOR GLASS INSERT,Labor - Mel Slab Door Glass Insert,LABOR - MEL SLAB DOOR GLASS INSERT,2,LABOR,0,12,16,,EA,LBR,0,0,0,0,0,0,0,Y
-LB-0000022,ASSEMBLED DRAWER BOX,Labor - ASSEMBLED DRAWER BOX,Labor - ASSEMBLED DRAWER BOX,2,LABOR,0,15,0,0,EA,LBR,0,0,0,0,0,0,0,Y
-LT-0000001,"LOOX Bus Bar Router Bit, with 8mm shank","LOOX Bus Bar Router Bit, with 8mm shank","LOOX Bus Bar Router Bit, with 8mm shank",yes,,83.46,95.979,168.96,LOOX5,EA,LT,HAFELE,001.25.920,12,1,0,0,0,Y
-LT-0000002,"LOOX Bus Bar Router Bit, with shank","LOOX Bus Bar Router Bit, with shank","LOOX Bus Bar Router Bit, with shank",yes,,114.37,131.5255,231.17,LOOX5,EA,LT,HAFELE,001.25.921,12,1,0,0,0,Y
-LT-0000003,"Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""","Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""","Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""",yes,,25.38,29.187,52.08,LOOX5,EA,LT,HAFELE,833.74.996,12,1,0,0,0,Y
+LT-0000001,"LOOX Bus Bar Router Bit, with 8mm shank","LOOX Bus Bar Router Bit, with 8mm shank","LOOX Bus Bar Router Bit, with 8mm shank",yes,,83.46,95.979,168.96325,LOOX5,EA,LT,HAFELE,001.25.920,12,1,0,0,0,Y
+LT-0000002,"LOOX Bus Bar Router Bit, with �"" shank","LOOX Bus Bar Router Bit, with �"" shank","LOOX Bus Bar Router Bit, with �"" shank",yes,,114.37,131.5255,231.169625,LOOX5,EA,LT,HAFELE,001.25.921,12,1,0,0,0,Y
+LT-0000003,"Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""","Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""","Buss Bar For Ajustable Shelf, aluminum, medium brush finish, .26"" x .18"" x 92""",yes,,25.38,29.187,52.07725,LOOX5,EA,LT,HAFELE,833.74.996,12,1,0,0,0,Y
 LT-0000004,"LED2065, adjustable shelf light, 12v, 3000K, silver, 18"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 18"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 18"" length",yes,,30.4,34.96,62.18,LOOX5,EA,LT,HAFELE,833.88.978,12,1,0,0,0,Y
 LT-0000005,"LED2065, adjustable shelf light, 12v, 3000K, silver, 24"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 24"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 24"" length",yes,,34.4,39.56,70.23,LOOX5,EA,LT,HAFELE,833.88.979,12,1,0,0,0,Y
 LT-0000006,"LED2065, adjustable shelf light, 12v, 3000K, silver, 30"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 30"" length","LED2065, adjustable shelf light, 12v, 3000K, silver, 30"" length",yes,,38.4,44.16,78.28,LOOX5,EA,LT,HAFELE,833.88.980,12,1,0,0,0,Y
@@ -1078,52 +1083,100 @@ LT-0000008,"LED2065, adjustable shelf light, 12v, 4000K, silver, 18"" length","L
 LT-0000009,"LED2065, adjustable shelf light, 12v, 4000K, silver, 24"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 24"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 24"" length",yes,,34.4,39.56,70.23,LOOX5,EA,LT,HAFELE,833.88.983,12,1,0,0,0,Y
 LT-0000010,"LED2065, adjustable shelf light, 12v, 4000K, silver, 30"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 30"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 30"" length",yes,,38.4,44.16,78.28,LOOX5,EA,LT,HAFELE,833.88.984,12,1,0,0,0,Y
 LT-0000011,"LED2065, adjustable shelf light, 12v, 4000K, silver, 36"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 36"" length","LED2065, adjustable shelf light, 12v, 4000K, silver, 36"" length",yes,,42.4,48.76,86.33,LOOX5,EA,LT,HAFELE,833.88.985,12,1,0,0,0,Y
-LT-0000012,Adjustable Shelf Light power supply kit,Adjustable Shelf Light power supply kit,Adjustable Shelf Light power supply kit,yes,,34.6,39.79,70.63,LOOX5,EA,LT,HAFELE,833.88.986,12,1,0,0,0,Y
-LT-0000013,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,yes,,107.34,123.441,217.02,LOOX5,EA,LT,HAFELE,833.74.355,12,1,0,0,0,Y
-LT-0000014,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,yes,,107.34,123.441,217.02,LOOX5,EA,LT,HAFELE,833.74.356,12,1,0,0,0,Y
-LT-0000015,"LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter","LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter","LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter",yes,,2.92,3.358,6.88,LOOX5,EA,LT,HAFELE,833.89.191,12,1,0,0,0,Y
-LT-0000016,"LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter","LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter","LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter",yes,,3.93,4.5195,8.91,LOOX5,EA,LT,HAFELE,833.89.192,12,1,0,0,0,Y
-LT-0000017,"LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters","LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters","LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters",yes,,4.93,5.6695,10.92,LOOX5,EA,LT,HAFELE,833.89.193,12,1,0,0,0,Y
-LT-0000018,"LOOX5 Clip connector for ribbon, 8mm/12-24v","LOOX5 Clip connector for ribbon, 8mm/12-24v","LOOX5 Clip connector for ribbon, 8mm/12-24v",yes,,2.01,2.3115,5.05,LOOX5,EA,LT,HAFELE,833.89.206,12,1,0,0,0,Y
-LT-0000019,LOOX5 Lead ribbon 8mm/12v/0.1 meter,LOOX5 Lead ribbon 8mm/12v/0.1 meter,LOOX5 Lead ribbon 8mm/12v/0.1 meter,yes,,2.92,3.358,6.88,LOOX5,EA,LT,HAFELE,833.93.736,12,1,0,0,0,Y
-LT-0000020,LOOX5 Lead ribbon 8mm/12v/2.0 meters,LOOX5 Lead ribbon 8mm/12v/2.0 meters,LOOX5 Lead ribbon 8mm/12v/2.0 meters,yes,,5.02,5.773,11.1,LOOX5,EA,LT,HAFELE,833.95.700,12,1,0,0,0,Y
-LT-0000021,LOOX5 Lead ribbon 8mm/12v/0.5 meter,LOOX5 Lead ribbon 8mm/12v/0.5 meter,LOOX5 Lead ribbon 8mm/12v/0.5 meter,yes,,3.93,4.5195,8.91,LOOX5,EA,LT,HAFELE,833.95.701,12,1,0,0,0,Y
-LT-0000022,Profile 1101 polycarbonate white opal/2.5 meters,Profile 1101 polycarbonate white opal/2.5 meters,Profile 1101 polycarbonate white opal/2.5 meters,yes,,8.42,9.683,17.95,LOOX5,EA,LT,HAFELE,833.95.800,12,1,0,0,0,Y
-LT-0000023,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.126,12,1,0,0,0,Y
-LT-0000024,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.127,12,1,0,0,0,Y
-LT-0000025,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.168,12,1,0,0,0,Y
-LT-0000026,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.170,12,1,0,0,0,Y
-LT-0000027,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.171,12,1,0,0,0,Y
-LT-0000028,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.172,12,1,0,0,0,Y
-LT-0000029,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.174,12,1,0,0,0,Y
-LT-0000030,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.175,12,1,0,0,0,Y
-LT-0000031,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.380,12,1,0,0,0,Y
-LT-0000032,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.381,12,1,0,0,0,Y
-LT-0000033,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.382,12,1,0,0,0,Y
-LT-0000034,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.383,12,1,0,0,0,Y
-LT-0000035,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm",yes,,2.28,2.622,5.59,LOOX5,EA,LT,HAFELE,833.72.384,12,1,0,0,0,Y
-LT-0000036,"LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum","LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum","LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum",yes,,20.12,23.138,41.49,LOOX5,EA,LT,HAFELE,833.72.475,12,1,0,0,0,Y
-LT-0000037,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,yes,,20.12,23.138,41.49,LOOX5,EA,LT,HAFELE,833.72.476,12,1,0,0,0,Y
-LT-0000038,LOOX5 Lead for modular light 12v/2.0 meters,LOOX5 Lead for modular light 12v/2.0 meters,LOOX5 Lead for modular light 12v/2.0 meters,yes,,3.93,4.5195,8.91,LOOX5,EA,LT,HAFELE,833.95.788,12,1,0,0,0,Y
-LT-0000039,LOOX5 Lead for modular light 12V/1.0 meter,LOOX5 Lead for modular light 12V/1.0 meter,LOOX5 Lead for modular light 12V/1.0 meter,yes,,2.92,3.358,6.88,LOOX5,EA,LT,HAFELE,833.95.789,12,1,0,0,0,Y
-LT-0000040,Single Rocker Switch,Single Rocker Switch,Single Rocker Switch,yes,,60.3,69.345,122.35,LOOX5,EA,LT,HAFELE,850.00.940,12,1,0,0,0,Y
-LT-0000041,"4 Port, Press to Pair Distributor","4 Port, Press to Pair Distributor","4 Port, Press to Pair Distributor",yes,,56.21,64.6415,114.12,LOOX5,EA,LT,HAFELE,850.00.810,12,1,0,0,0,Y
-LT-0000042,"LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm","LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm","LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm",yes,,37.99,43.6885,77.45,LOOX5,EA,LT,HAFELE,833.74.913,12,1,0,0,0,Y
-LT-0000043,LOOX5 Extension lead 12v/0.5 meter,LOOX5 Extension lead 12v/0.5 meter,LOOX5 Extension lead 12v/0.5 meter,yes,,2.92,3.358,6.88,LOOX5,EA,LT,HAFELE,833.95.712,12,1,0,0,0,Y
-LT-0000044,LOOX5 Extension lead 12v/1.0 meter,LOOX5 Extension lead 12v/1.0 meter,LOOX5 Extension lead 12v/1.0 meter,yes,,3.93,4.5195,8.91,LOOX5,EA,LT,HAFELE,833.95.713,12,1,0,0,0,Y
-LT-0000045,LOOX5 Extension lead 12v/2.0 meters,LOOX5 Extension lead 12v/2.0 meters,LOOX5 Extension lead 12v/2.0 meters,yes,,5.02,5.773,11.1,LOOX5,EA,LT,HAFELE,833.95.714,12,1,0,0,0,Y
-MD-0000001,CROWN MLD ALDER 3 1/2 439 PG,CROWN MLD ALDER 3 1/2 439 PG,CROWN MLD ALDER 3 1/2 439 PG,0,MD Crown,1.7,4.4805,16.86,0,LF,MD,SPELLMAN,CC08A,8,1,60500,809160,0,Y
-MD-0000004,CROWN MLD ALDER 3 5/8 419 TRA,CROWN MLD ALDER 3 5/8 419 TRA,CROWN MLD ALDER 3 5/8 419 TRA,0,MD Crown,1.7,4.4805,16.86,0,LF,MD,SPELLMAN,CC04A,8,1,60600,809160,0,Y
-MD-0000007,CROWN MLD ALDER 2 1/4 417 TRAD,CROWN MLD ALDER 2 1/4 417 TRAD,CROWN MLD ALDER 2 1/4 417 TRAD,0,MD Crown,1.18,3.9449,16.07,0,LF,MD,SPELLMAN,CC09A,8,1,60700,809160,0,Y
+LT-0000012,Adjustable Shelf Light power supply kit,Adjustable Shelf Light power supply kit,Adjustable Shelf Light power supply kit,yes,,34.6,39.79,70.6325,LOOX5,EA,LT,HAFELE,833.88.986,12,1,0,0,0,Y
+LT-0000013,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 3000K CRI90 5 meters,yes,,107.34,123.441,217.02175,LOOX5,EA,LT,HAFELE,833.74.355,12,1,0,0,0,Y
+LT-0000014,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,LED2065 12 volts direct current 4.8 watts per meter 4000K CRI90 5 meters,yes,,107.34,123.441,217.02175,LOOX5,EA,LT,HAFELE,833.74.356,12,1,0,0,0,Y
+LT-0000015,"LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter","LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter","LOOX5 Interconnecting lead, 8mm/12-24V/50 millimeter",yes,,2.92,3.358,6.8765,LOOX5,EA,LT,HAFELE,833.89.191,12,1,0,0,0,Y
+LT-0000016,"LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter","LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter","LOOX5  Interconnecting lead, 8mm/12-24V/0.5 meter",yes,,3.93,4.5195,8.909125,LOOX5,EA,LT,HAFELE,833.89.192,12,1,0,0,0,Y
+LT-0000017,"LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters","LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters","LOOX5 Interconnecting lead, 8mm/12-24V/2.0 meters",yes,,4.93,5.6695,10.921625,LOOX5,EA,LT,HAFELE,833.89.193,12,1,0,0,0,Y
+LT-0000018,"LOOX5 Clip connector for ribbon, 8mm/12-24v","LOOX5 Clip connector for ribbon, 8mm/12-24v","LOOX5 Clip connector for ribbon, 8mm/12-24v",yes,,2.01,2.3115,5.045125,LOOX5,EA,LT,HAFELE,833.89.206,12,1,0,0,0,Y
+LT-0000019,LOOX5 Lead ribbon 8mm/12v/0.1 meter,LOOX5 Lead ribbon 8mm/12v/0.1 meter,LOOX5 Lead ribbon 8mm/12v/0.1 meter,yes,,2.92,3.358,6.8765,LOOX5,EA,LT,HAFELE,833.93.736,12,1,0,0,0,Y
+LT-0000020,LOOX5 Lead ribbon 8mm/12v/2.0 meters,LOOX5 Lead ribbon 8mm/12v/2.0 meters,LOOX5 Lead ribbon 8mm/12v/2.0 meters,yes,,5.02,5.773,11.10275,LOOX5,EA,LT,HAFELE,833.95.700,12,1,0,0,0,Y
+LT-0000021,LOOX5 Lead ribbon 8mm/12v/0.5 meter,LOOX5 Lead ribbon 8mm/12v/0.5 meter,LOOX5 Lead ribbon 8mm/12v/0.5 meter,yes,,3.93,4.5195,8.909125,LOOX5,EA,LT,HAFELE,833.95.701,12,1,0,0,0,Y
+LT-0000022,Profile 1101 polycarbonate white opal/2.5 meters,Profile 1101 polycarbonate white opal/2.5 meters,Profile 1101 polycarbonate white opal/2.5 meters,yes,,8.42,9.683,17.94525,LOOX5,EA,LT,HAFELE,833.95.800,12,1,0,0,0,Y
+LT-0000023,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, silver color, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.126,12,1,0,0,0,Y
+LT-0000024,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, silver color, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.127,12,1,0,0,0,Y
+LT-0000025,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, black, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.168,12,1,0,0,0,Y
+LT-0000026,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, nickel matt, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.170,12,1,0,0,0,Y
+LT-0000027,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, white, 65mm",yes,,2.28,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ,5.5885,LOOX5,EA,LT,HAFELE,833.72.171,12,1,0,0,0,Y
+LT-0000028,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, black, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.172,12,1,0,0,0,Y
+LT-0000029,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, nickel matt, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.174,12,1,0,0,0,Y
+LT-0000030,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, white, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.175,12,1,0,0,0,Y
+LT-0000031,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, anthricite, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.380,12,1,0,0,0,Y
+LT-0000032,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, bronze brown, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.381,12,1,0,0,0,Y
+LT-0000033,"LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, round, plastic, stainless steel color, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.382,12,1,0,0,0,Y
+LT-0000034,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, antricite, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.383,12,1,0,0,0,Y
+LT-0000035,"LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm","LOOX LED, 12V, 2025/2026, recessed mount ring, square, plastic, bronze brown, 65mm",yes,,2.28,2.622,5.5885,LOOX5,EA,LT,HAFELE,833.72.384,12,1,0,0,0,Y
+LT-0000036,"LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum","LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum","LED2092 12 volt, 3.4 watts 3000K, CRI90, aluminum",yes,,20.12,23.138,41.4915,LOOX5,EA,LT,HAFELE,833.72.475,12,1,0,0,0,Y
+LT-0000037,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,LED2092 12 volts 3.4 watts 4000K CRI90 aluminium,yes,,20.12,23.138,41.4915,LOOX5,EA,LT,HAFELE,833.72.476,12,1,0,0,0,Y
+LT-0000038,LOOX5 Lead for modular light 12v/2.0 meters,LOOX5 Lead for modular light 12v/2.0 meters,LOOX5 Lead for modular light 12v/2.0 meters,yes,,3.93,4.5195,8.909125,LOOX5,EA,LT,HAFELE,833.95.788,12,1,0,0,0,Y
+LT-0000039,LOOX5 Lead for modular light 12V/1.0 meter,LOOX5 Lead for modular light 12V/1.0 meter,LOOX5 Lead for modular light 12V/1.0 meter,yes,,2.92,3.358,6.8765,LOOX5,EA,LT,HAFELE,833.95.789,12,1,0,0,0,Y
+LT-0000040,Single Rocker Switch,Single Rocker Switch,Single Rocker Switch,yes,,60.3,69.345,122.35375,LOOX5,EA,LT,HAFELE,850.00.940,12,1,0,0,0,Y
+LT-0000041,"4 Port, Press to Pair Distributor","4 Port, Press to Pair Distributor","4 Port, Press to Pair Distributor",yes,,56.21,64.6415,114.122625,LOOX5,EA,LT,HAFELE,850.00.810,12,1,0,0,0,Y
+LT-0000042,"LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm","LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm","LOOX LED 12V Driver, 0-60 watts, 6 yellow ports, plastic, black, 208 x 56.5 x 30mm",yes,,37.99,43.6885,77.454875,LOOX5,EA,LT,HAFELE,833.74.913,12,1,0,0,0,Y
+LT-0000043,LOOX5 Extension lead 12v/0.5 meter,LOOX5 Extension lead 12v/0.5 meter,LOOX5 Extension lead 12v/0.5 meter,yes,,2.92,3.358,6.8765,LOOX5,EA,LT,HAFELE,833.95.712,12,1,0,0,0,Y
+LT-0000044,LOOX5 Extension lead 12v/1.0 meter,LOOX5 Extension lead 12v/1.0 meter,LOOX5 Extension lead 12v/1.0 meter,yes,,3.93,4.5195,8.909125,LOOX5,EA,LT,HAFELE,833.95.713,12,1,0,0,0,Y
+LT-0000045,LOOX5 Extension lead 12v/2.0 meters,LOOX5 Extension lead 12v/2.0 meters,LOOX5 Extension lead 12v/2.0 meters,yes,,5.02,5.773,11.10275,LOOX5,EA,LT,HAFELE,833.95.714,12,1,0,0,0,Y
+LT-0000046,"Elite Lighted Rnd Tube 18"" 3000K Matt Alum","Elite Lighted Rnd Tube 18"" 3000K Matt Alum","Elite Lighted Rnd Tube 18"" 3000K Matt Alum",yes,,30.13,34.6495,61.636625,LOOX5,EA,LT,HAFELE,833.96.020,12,1,0,0,0,Y
+LT-0000047,"Elite Lighted Rnd Tube 18"" 3000K Pol Chrm","Elite Lighted Rnd Tube 18"" 3000K Pol Chrm","Elite Lighted Rnd Tube 18"" 3000K Pol Chrm",yes,,31.02,35.673,63.42775,LOOX5,EA,LT,HAFELE,833.96.028,12,1,0,0,0,Y
+LT-0000048,"Elite Lighted Rnd Tube 18"" 3000K Matt Ni","Elite Lighted Rnd Tube 18"" 3000K Matt Ni","Elite Lighted Rnd Tube 18"" 3000K Matt Ni",yes,,29.14,33.511,59.64425,LOOX5,EA,LT,HAFELE,833.96.036,12,1,0,0,0,Y
+LT-0000049,"Elite Lighted Rnd Tube 18"" 3000K Black ","Elite Lighted Rnd Tube 18"" 3000K Black ","Elite Lighted Rnd Tube 18"" 3000K Black ",yes,,40.87,47.0005,83.250875,LOOX5,EA,LT,HAFELE,833.96.100,12,1,0,0,0,Y
+LT-0000050,"Elite Lighted Rnd Tube 18"" 3000K Matt Gold","Elite Lighted Rnd Tube 18"" 3000K Matt Gold","Elite Lighted Rnd Tube 18"" 3000K Matt Gold",yes,,29.89,34.3735,61.153625,LOOX5,EA,LT,HAFELE,833.96.052,12,1,0,0,0,Y
+LT-0000051,"Elite Lighted Rnd Tube 18"" 3000K Slate","Elite Lighted Rnd Tube 18"" 3000K Slate","Elite Lighted Rnd Tube 18"" 3000K Slate",yes,,27.59,31.7285,56.524875,LOOX5,EA,LT,HAFELE,833.96.060,12,1,0,0,0,Y
+LT-0000052,"Elite Lighted Rnd Tube 24"" 3000K Matt Alum","Elite Lighted Rnd Tube 24"" 3000K Matt Alum","Elite Lighted Rnd Tube 24"" 3000K Matt Alum",yes,,34.1,39.215,69.62625,LOOX5,EA,LT,HAFELE,833.96.021,12,1,0,0,0,Y
+LT-0000053,"Elite Lighted Rnd Tube 24"" 3000K Pol Chrm","Elite Lighted Rnd Tube 24"" 3000K Pol Chrm","Elite Lighted Rnd Tube 24"" 3000K Pol Chrm",yes,,35.18,40.457,71.79975,LOOX5,EA,LT,HAFELE,833.96.029,12,1,0,0,0,Y
+LT-0000054,"Elite Lighted Rnd Tube 24"" 3000K Matt Ni","Elite Lighted Rnd Tube 24"" 3000K Matt Ni","Elite Lighted Rnd Tube 24"" 3000K Matt Ni",yes,,32.93,37.8695,67.271625,LOOX5,EA,LT,HAFELE,833.96.037,12,1,0,0,0,Y
+LT-0000055,"Elite Lighted Rnd Tube 24"" 3000K Black ","Elite Lighted Rnd Tube 24"" 3000K Black ","Elite Lighted Rnd Tube 24"" 3000K Black ",yes,,48.62,55.913,98.84775,LOOX5,EA,LT,HAFELE,833.96.101,12,1,0,0,0,Y
+LT-0000056,"Elite Lighted Rnd Tube 24"" 3000K Matt Gold","Elite Lighted Rnd Tube 24"" 3000K Matt Gold","Elite Lighted Rnd Tube 24"" 3000K Matt Gold",yes,,33.83,38.9045,69.082875,LOOX5,EA,LT,HAFELE,833.96.053,12,1,0,0,0,Y
+LT-0000057,"Elite Lighted Rnd Tube 24"" 3000K Slate","Elite Lighted Rnd Tube 24"" 3000K Slate","Elite Lighted Rnd Tube 24"" 3000K Slate",yes,,30.92,35.558,63.2265,LOOX5,EA,LT,HAFELE,833.96.061,12,1,0,0,0,Y
+LT-0000058,"Elite Lighted Rnd Tube 30"" 3000K Matt Alum","Elite Lighted Rnd Tube 30"" 3000K Matt Alum","Elite Lighted Rnd Tube 30"" 3000K Matt Alum",yes,,39.98,45.977,81.45975,LOOX5,EA,LT,HAFELE,833.96.022,12,1,0,0,0,Y
+LT-0000059,"Elite Lighted Rnd Tube 30"" 3000K Pol Chrm","Elite Lighted Rnd Tube 30"" 3000K Pol Chrm","Elite Lighted Rnd Tube 30"" 3000K Pol Chrm",yes,,41.3,47.495,84.11625,LOOX5,EA,LT,HAFELE,833.96.030,12,1,0,0,0,Y
+LT-0000060,"Elite Lighted Rnd Tube 30"" 3000K Matt Ni","Elite Lighted Rnd Tube 30"" 3000K Matt Ni","Elite Lighted Rnd Tube 30"" 3000K Matt Ni",yes,,38.54,44.321,78.56175,LOOX5,EA,LT,HAFELE,833.96.038,12,1,0,0,0,Y
+LT-0000061,"Elite Lighted Rnd Tube 30"" 3000K Black ","Elite Lighted Rnd Tube 30"" 3000K Black ","Elite Lighted Rnd Tube 30"" 3000K Black ",yes,,56.39,64.8485,114.484875,LOOX5,EA,LT,HAFELE,833.96.102,12,1,0,0,0,Y
+LT-0000062,"Elite Lighted Rnd Tube 30"" 3000K Matt Gold","Elite Lighted Rnd Tube 30"" 3000K Matt Gold","Elite Lighted Rnd Tube 30"" 3000K Matt Gold",yes,,39.66,45.609,80.81575,LOOX5,EA,LT,HAFELE,833.96.054,12,1,0,0,0,Y
+LT-0000063,"Elite Lighted Rnd Tube 30"" 3000K Slate","Elite Lighted Rnd Tube 30"" 3000K Slate","Elite Lighted Rnd Tube 30"" 3000K Slate",yes,,35.98,41.377,73.40975,LOOX5,EA,LT,HAFELE,833.96.062,12,1,0,0,0,Y
+LT-0000064,"Elite Lighted Rnd Tube 36"" 3000K Matt Alum","Elite Lighted Rnd Tube 36"" 3000K Matt Alum","Elite Lighted Rnd Tube 36"" 3000K Matt Alum",yes,,43.94,50.531,89.42925,LOOX5,EA,LT,HAFELE,833.96.023,12,1,0,0,0,Y
+LT-0000065,"Elite Lighted Rnd Tube 36"" 3000K Pol Chrm","Elite Lighted Rnd Tube 36"" 3000K Pol Chrm","Elite Lighted Rnd Tube 36"" 3000K Pol Chrm",yes,,45.45,52.2675,92.468125,LOOX5,EA,LT,HAFELE,833.96.031,12,1,0,0,0,Y
+LT-0000066,"Elite Lighted Rnd Tube 36"" 3000K Matt Ni","Elite Lighted Rnd Tube 36"" 3000K Matt Ni","Elite Lighted Rnd Tube 36"" 3000K Matt Ni",yes,,42.32,48.668,86.169,LOOX5,EA,LT,HAFELE,833.96.039,12,1,0,0,0,Y
+LT-0000067,"Elite Lighted Rnd Tube 36"" 3000K Black ","Elite Lighted Rnd Tube 36"" 3000K Black ","Elite Lighted Rnd Tube 36"" 3000K Black ",yes,,64.12,73.738,130.0415,LOOX5,EA,LT,HAFELE,833.96.103,12,1,0,0,0,Y
+LT-0000068,"Elite Lighted Rnd Tube 36"" 3000K Matt Gold","Elite Lighted Rnd Tube 36"" 3000K Matt Gold","Elite Lighted Rnd Tube 36"" 3000K Matt Gold",yes,,43.6,50.14,88.745,LOOX5,EA,LT,HAFELE,833.96.055,12,1,0,0,0,Y
+LT-0000069,"Elite Lighted Rnd Tube 36"" 3000K Slate","Elite Lighted Rnd Tube 36"" 3000K Slate","Elite Lighted Rnd Tube 36"" 3000K Slate",yes,,39.31,45.2065,80.111375,LOOX5,EA,LT,HAFELE,833.96.063,12,1,0,0,0,Y
+LT-0000070,"Elite Lighted Rnd Tube 18"" 4000K Matt Alum","Elite Lighted Rnd Tube 18"" 4000K Matt Alum","Elite Lighted Rnd Tube 18"" 4000K Matt Alum",yes,,30.46,35.029,62.30075,LOOX5,EA,LT,HAFELE,833.96.024,12,1,0,0,0,Y
+LT-0000071,"Elite Lighted Rnd Tube 18"" 4000K Pol Chrm","Elite Lighted Rnd Tube 18"" 4000K Pol Chrm","Elite Lighted Rnd Tube 18"" 4000K Pol Chrm",yes,,31.42,36.133,64.23275,LOOX5,EA,LT,HAFELE,833.96.032,12,1,0,0,0,Y
+LT-0000072,"Elite Lighted Rnd Tube 18"" 4000K Matt Ni","Elite Lighted Rnd Tube 18"" 4000K Matt Ni","Elite Lighted Rnd Tube 18"" 4000K Matt Ni",yes,,29.47,33.8905,60.308375,LOOX5,EA,LT,HAFELE,833.96.040,12,1,0,0,0,Y
+LT-0000073,"Elite Lighted Rnd Tube 18"" 4000K Black ","Elite Lighted Rnd Tube 18"" 4000K Black ","Elite Lighted Rnd Tube 18"" 4000K Black ",yes,,42.37,48.7255,86.269625,LOOX5,EA,LT,HAFELE,833.96.104,12,1,0,0,0,Y
+LT-0000074,"Elite Lighted Rnd Tube 18"" 4000K Matt Gold","Elite Lighted Rnd Tube 18"" 4000K Matt Gold","Elite Lighted Rnd Tube 18"" 4000K Matt Gold",yes,,30.22,34.753,61.81775,LOOX5,EA,LT,HAFELE,833.96.056,12,1,0,0,0,Y
+LT-0000075,"Elite Lighted Rnd Tube 18"" 4000K Slate","Elite Lighted Rnd Tube 18"" 4000K Slate","Elite Lighted Rnd Tube 18"" 4000K Slate",yes,,27.91,32.0965,57.168875,LOOX5,EA,LT,HAFELE,833.96.064,12,1,0,0,0,Y
+LT-0000076,"Elite Lighted Rnd Tube 24"" 4000K Matt Alum","Elite Lighted Rnd Tube 24"" 4000K Matt Alum","Elite Lighted Rnd Tube 24"" 4000K Matt Alum",yes,,34.57,39.7555,70.572125,LOOX5,EA,LT,HAFELE,833.96.025,12,1,0,0,0,Y
+LT-0000077,"Elite Lighted Rnd Tube 24"" 4000K Pol Chrm","Elite Lighted Rnd Tube 24"" 4000K Pol Chrm","Elite Lighted Rnd Tube 24"" 4000K Pol Chrm",yes,,35.71,41.0665,72.866375,LOOX5,EA,LT,HAFELE,833.96.033,12,1,0,0,0,Y
+LT-0000078,"Elite Lighted Rnd Tube 24"" 4000K Matt Ni","Elite Lighted Rnd Tube 24"" 4000K Matt Ni","Elite Lighted Rnd Tube 24"" 4000K Matt Ni",yes,,33.38,38.387,68.17725,LOOX5,EA,LT,HAFELE,833.96.041,12,1,0,0,0,Y
+LT-0000079,"Elite Lighted Rnd Tube 24"" 4000K Black ","Elite Lighted Rnd Tube 24"" 4000K Black ","Elite Lighted Rnd Tube 24"" 4000K Black ",yes,,50.59,58.1785,102.812375,LOOX5,EA,LT,HAFELE,833.96.105,12,1,0,0,0,Y
+LT-0000080,"Elite Lighted Rnd Tube 24"" 4000K Matt Gold","Elite Lighted Rnd Tube 24"" 4000K Matt Gold","Elite Lighted Rnd Tube 24"" 4000K Matt Gold",yes,,34.26,39.399,69.94825,LOOX5,EA,LT,HAFELE,833.96.057,12,1,0,0,0,Y
+LT-0000081,"Elite Lighted Rnd Tube 24"" 4000K Slate","Elite Lighted Rnd Tube 24"" 4000K Slate","Elite Lighted Rnd Tube 24"" 4000K Slate",yes,,31.35,36.0525,64.091875,LOOX5,EA,LT,HAFELE,833.96.065,12,1,0,0,0,Y
+LT-0000082,"Elite Lighted Rnd Tube 30"" 4000K Matt Alum","Elite Lighted Rnd Tube 30"" 4000K Matt Alum","Elite Lighted Rnd Tube 30"" 4000K Matt Alum",yes,,40.6,46.69,82.7075,LOOX5,EA,LT,HAFELE,833.96.026,12,1,0,0,0,Y
+LT-0000083,"Elite Lighted Rnd Tube 30"" 4000K Pol Chrm","Elite Lighted Rnd Tube 30"" 4000K Pol Chrm","Elite Lighted Rnd Tube 30"" 4000K Pol Chrm",yes,,41.99,48.2885,85.504875,LOOX5,EA,LT,HAFELE,833.96.034,12,1,0,0,0,Y
+LT-0000084,"Elite Lighted Rnd Tube 30"" 4000K Matt Ni","Elite Lighted Rnd Tube 30"" 4000K Matt Ni","Elite Lighted Rnd Tube 30"" 4000K Matt Ni",yes,,39.14,45.011,79.76925,LOOX5,EA,LT,HAFELE,833.96.042,12,1,0,0,0,Y
+LT-0000085,"Elite Lighted Rnd Tube 30"" 4000K Black ","Elite Lighted Rnd Tube 30"" 4000K Black ","Elite Lighted Rnd Tube 30"" 4000K Black ",yes,,58.83,67.6545,119.395375,LOOX5,EA,LT,HAFELE,833.96.106,12,1,0,0,0,Y
+LT-0000086,"Elite Lighted Rnd Tube 30"" 4000K Matt Gold","Elite Lighted Rnd Tube 30"" 4000K Matt Gold","Elite Lighted Rnd Tube 30"" 4000K Matt Gold",yes,,40.23,46.2645,81.962875,LOOX5,EA,LT,HAFELE,833.96.058,12,1,0,0,0,Y
+LT-0000087,"Elite Lighted Rnd Tube 30"" 4000K Slate","Elite Lighted Rnd Tube 30"" 4000K Slate","Elite Lighted Rnd Tube 30"" 4000K Slate",yes,,36.53,42.0095,74.516625,LOOX5,EA,LT,HAFELE,833.96.066,12,1,0,0,0,Y
+LT-0000088,"Elite Lighted Rnd Tube 36"" 4000K Matt Alum","Elite Lighted Rnd Tube 36"" 4000K Matt Alum","Elite Lighted Rnd Tube 36"" 4000K Matt Alum",yes,,44.67,51.3705,90.898375,LOOX5,EA,LT,HAFELE,833.96.027,12,1,0,0,0,Y
+LT-0000089,"Elite Lighted Rnd Tube 36"" 4000K Pol Chrm","Elite Lighted Rnd Tube 36"" 4000K Pol Chrm","Elite Lighted Rnd Tube 36"" 4000K Pol Chrm",yes,,46.25,53.1875,94.078125,LOOX5,EA,LT,HAFELE,833.96.035,12,1,0,0,0,Y
+LT-0000090,"Elite Lighted Rnd Tube 36"" 4000K Matt Ni","Elite Lighted Rnd Tube 36"" 4000K Matt Ni","Elite Lighted Rnd Tube 36"" 4000K Matt Ni",yes,,43.05,49.5075,87.638125,LOOX5,EA,LT,HAFELE,833.96.043,12,1,0,0,0,Y
+LT-0000091,"Elite Lighted Rnd Tube 36"" 4000K Black ","Elite Lighted Rnd Tube 36"" 4000K Black ","Elite Lighted Rnd Tube 36"" 4000K Black ",yes,,67.02,77.073,135.87775,LOOX5,EA,LT,HAFELE,833.96.107,12,1,0,0,0,Y
+LT-0000092,"Elite Lighted Rnd Tube 36"" 4000K Matt Gold","Elite Lighted Rnd Tube 36"" 4000K Matt Gold","Elite Lighted Rnd Tube 36"" 4000K Matt Gold",yes,,44.27,50.9105,90.093375,LOOX5,EA,LT,HAFELE,833.96.059,12,1,0,0,0,Y
+LT-0000093,"Elite Lighted Rnd Tube 36"" 4000K Slate","Elite Lighted Rnd Tube 36"" 4000K Slate","Elite Lighted Rnd Tube 36"" 4000K Slate",yes,,39.97,45.9655,81.439625,LOOX5,EA,LT,HAFELE,833.96.067,12,1,0,0,0,Y
+MD-0000001,CROWN MLD ALDER 3 1/2 439 PG,CROWN MLD ALDER 3 1/2 439 PG,CROWN MLD ALDER 3 1/2 439 PG,0,MD Crown,1.7,4.4805,16.86,0,LF,MD,SPELLMAN,CC08A,8,1,60500,0,0,Y
+MD-0000004,CROWN MLD ALDER 3 5/8 419 TRA,CROWN MLD ALDER 3 5/8 419 TRA,CROWN MLD ALDER 3 5/8 419 TRA,0,MD Crown,1.7,4.4805,16.86,0,LF,MD,SPELLMAN,CC04A,8,1,60600,0,0,Y
+MD-0000007,CROWN MLD ALDER 2 1/4 417 TRAD,CROWN MLD ALDER 2 1/4 417 TRAD,CROWN MLD ALDER 2 1/4 417 TRAD,0,MD Crown,1.18,3.9449,16.07,0,LF,MD,SPELLMAN,CC09A,8,1,60700,0,0,Y
 MD-0000010,CROWN MLD KG GEORGE 5X1 1/4,CROWN MLD KG GEORGE 5X1 1/4,CROWN MLD KG GEORGE 5X1 1/4,0,MD Crown,4.5,7.3645,21.14,0,LF,MD,SPELLMAN,CC011A,8,1,0,0,0,Y
-MD-0000012,SCRIBE 1/4X1 1/4-RL ALDER,SCRIBE 1/4X1 1/4-RL ALDER,SCRIBE 1/4X1 1/4-RL ALDER,0,Molding,0.55,3.296,11.83,0,LF,MD,SPELLMAN,CC07A,8,1,60800,809160,0,Y
-MD-0000015,QUARTER RD 3/4 IN ALDER,QUARTER RD 3/4 IN ALDER,QUARTER RD 3/4 IN ALDER,0,Molding,1.48,4.2539,13.49,0,LF,MD,SPELLMAN,CC02A,8,1,60900,809160,0,Y
-MD-0000018,CASING FLUTE ALDER 3 1/2 515,CASING FLUTE ALDER 3 1/2 515,CASING FLUTE ALDER 3 1/2 515,0,Molding,1.32,4.0891,13.21,0,LF,MD,SPELLMAN,CC01A,8,1,60300,809160,0,Y
-MD-0000022,OGEE EDGING 1 1/2 X 3/4 ALDER,OGEE EDGING 1 1/2 X 3/4 ALDER,OGEE EDGING 1 1/2 X 3/4 ALDER,0,Molding,0.82,3.5741,12.31,0,LF,MD,SPELLMAN,CC06A,8,1,60400,809160,0,Y
-MD-0000025,BASE ALDER 3 1/4X1/2 WM633,BASE ALDER 3 1/4X1/2 WM633,BASE ALDER 3 1/4X1/2 WM633,0,Molding,1.75,4.532,13.97,0,LF,MD,SPELLMAN,CC05A,8,1,60100,809160,0,Y
+MD-0000012,SCRIBE 1/4X1 1/4-RL ALDER,SCRIBE 1/4X1 1/4-RL ALDER,SCRIBE 1/4X1 1/4-RL ALDER,0,Molding,0.55,3.296,11.83,0,LF,MD,SPELLMAN,CC07A,8,1,60800,0,0,Y
+MD-0000015,QUARTER RD 3/4 IN ALDER,QUARTER RD 3/4 IN ALDER,QUARTER RD 3/4 IN ALDER,0,Molding,1.48,4.2539,13.49,0,LF,MD,SPELLMAN,CC02A,8,1,60900,0,0,Y
+MD-0000018,CASING FLUTE ALDER 3 1/2 515,CASING FLUTE ALDER 3 1/2 515,CASING FLUTE ALDER 3 1/2 515,0,Molding,1.32,4.0891,13.21,0,LF,MD,SPELLMAN,CC01A,8,1,60300,0,0,Y
+MD-0000022,OGEE EDGING 1 1/2 X 3/4 ALDER,OGEE EDGING 1 1/2 X 3/4 ALDER,OGEE EDGING 1 1/2 X 3/4 ALDER,0,Molding,0.82,3.5741,12.31,0,LF,MD,SPELLMAN,CC06A,8,1,60400,0,0,Y
+MD-0000025,BASE ALDER 3 1/4X1/2 WM633,BASE ALDER 3 1/4X1/2 WM633,BASE ALDER 3 1/4X1/2 WM633,0,Molding,1.75,4.532,13.97,0,LF,MD,SPELLMAN,CC05A,8,1,60100,0,0,Y
 MD-0000028,BASE ALDER 4 1/4 SPANISH,BASE ALDER 4 1/4 SPANISH BASE,BASE ALDER 4 1/4 SPANISH,0,Molding,2.25,5.047,14.87,0,LF,MD,SPELLMAN,CC010A,8,1,0,0,0,Y
 MD-0000029,PLINTH BLK 3/4 X 3 1/2 X 6 ALD,PLINTH BLK 3/4 X 3 1/2 X 6 ALD,PLINTH BLK 3/4 X 3 1/2 X 6 ALD,0,Molding,2.732,5.5414,15.73,0,LF,MD,BARGER,12,8,1,0,0,0,Y
-MD-0000032,ROSETTE ALDER 3 1/2 7/8 A1/12,ROSETTE ALDER 3 1/2 7/8 A1/12,ROSETTE ALDER 3 1/2 7/8 A1/12,0,Molding,3.5,6.3345,17.1,0,LF,MD,UKNOWN,0,8,1,60200,809160,0,Y
+MD-0000032,ROSETTE ALDER 3 1/2 7/8 A1/12,ROSETTE ALDER 3 1/2 7/8 A1/12,ROSETTE ALDER 3 1/2 7/8 A1/12,0,Molding,3.5,6.3345,17.1,0,LF,MD,UKNOWN,0,8,1,60200,0,0,Y
 MD-0000044,MLD ROPE 3/8 HR ALD,MLD ROPE 3/8 HR ALD,MLD ROPE 3/8 HR ALD,0,Molding,1.47,4.2436,13.47,0,LF,MD,HARDWARERESOURCES,RMH38ALD-8,8,1,0,0,0,Y
 MD-0000045,MLD QTR ROUND HR ALD,MLD QTR ROUND HR ALD,MLD QTR ROUND HR ALD,0,Molding,1.48,4.2539,13.49,0,LF,MD,HARDWARERESOURCES,34QTRALD-8,8,1,0,0,0,Y
 MD-0000046,MLD AVIANO LARGE,MLD AVIANO LARGE,MLD AVIANO LARGE,0,MD Doors,1.18,3.9449,11.99,0,LF,MD,SPELLMAN,CCALA,8,1,0,0,0,Y
@@ -1142,13 +1195,13 @@ MD-0000059,MLD VERONA LARGE,MLD VERONA LARGE,MLD VERONA LARGE,0,MD Doors,1.18,3.
 MD-0000060,MLD VERONA SMALL,MLD VERONA SMALL,MLD VERONA SMALL,0,MD Doors,0.82,3.5741,11.43,0,LF,MD,SPELLMAN,CCAVS,8,1,0,0,0,Y
 MD-0000066,MLD ROME LARGE,MLD ROME LARGE,MLD ROME LARGE,0,MD Doors,1.52,4.2951,12.51,0,LF,MD,SPELLMAN,CCALR,8,1,0,0,0,Y
 MD-0000067,MLD ROME SMALL,MLD ROME SMALL,MLD ROME SMALL,0,MD Doors,1.18,3.9449,11.99,0,LF,MD,SPELLMAN,CCASR,8,1,0,0,0,Y
-MD-0000068,Under Cab Round,Under Cab Round,Under Cab Round,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCR,8,1,91000,809160,0,Y
-MD-0000069,Under Cab Square,Under Cab Square,Under Cab Square,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCSQ,8,1,91100,809160,0,Y
-MD-0000070,Under Cab Ogee,Under Cab Ogee,Under Cab Ogee,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCOG,8,1,91200,809160,0,Y
-MD-0000071,Valance 304,Valance 304,Valance 304,0,Molding,0.757,3.5123,12.2,0,LF,MD,SPELLMAN,CCV304,8,1,92000,809160,0,Y
-MD-0000072,Valance Aviano,Valance Aviano,Valance Aviano,0,Molding,0.739,3.4917,12.17,0,LF,MD,SPELLMAN,CCV Aviano,8,1,92100,809160,0,Y
-MD-0000073,Valance Milano,Valance Milano,Valance Milano,0,Molding,0.84,3.5947,12.35,0,LF,MD,SPELLMAN,CCVMilano,8,1,92200,809160,0,Y
-MD-0000074,Valance Verona,Valance Verona,Valance Verona,0,Molding,0.809,3.5638,12.29,0,LF,MD,SPELLMAN,CCVVerona,8,1,92300,809160,0,Y
+MD-0000068,Under Cab Round,Under Cab Round,Under Cab Round,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCR,8,1,91000,0,0,Y
+MD-0000069,Under Cab Square,Under Cab Square,Under Cab Square,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCSQ,8,1,91100,0,0,Y
+MD-0000070,Under Cab Ogee,Under Cab Ogee,Under Cab Ogee,0,Molding,0.56,3.3063,11.85,0,LF,MD,SPELLMAN,CCUCOG,8,1,91200,0,0,Y
+MD-0000071,Valance 304,Valance 304,Valance 304,0,Molding,0.757,3.5123,12.2,0,LF,MD,SPELLMAN,CCV304,8,1,92000,0,0,Y
+MD-0000072,Valance Aviano,Valance Aviano,Valance Aviano,0,Molding,0.739,3.4917,12.17,0,LF,MD,SPELLMAN,CCV Aviano,8,1,92100,0,0,Y
+MD-0000073,Valance Milano,Valance Milano,Valance Milano,0,Molding,0.84,3.5947,12.35,0,LF,MD,SPELLMAN,CCVMilano,8,1,92200,0,0,Y
+MD-0000074,Valance Verona,Valance Verona,Valance Verona,0,Molding,0.809,3.5638,12.29,0,LF,MD,SPELLMAN,CCVVerona,8,1,92300,0,0,Y
 MD-0000075,MLD 4482 DRIFTWOOD H70V,MLD 4482 DRIFTWOOD H70V,MLD 4482 DRIFTWOOD H70V,0,MD Doors,1.39,4.1612,12.3,MODERNO,LF,MD,OLON,H70V,8,1,0,0,0,N
 MD-0000076,MLD 4482 EMBER H53V,MLD 4482 EMBER H53V,MLD 4482 EMBER H53V,0,MD Doors,1.39,4.1612,12.3,MODERNO,LF,MD,OLON,H53V,8,1,0,0,0,Y
 MD-0000077,MLD 4482 LUXE H71V,MLD 4482 LUXE H71V,MLD 4482 LUXE H71V,0,MD Doors,1.39,4.1612,12.3,MODERNO,LF,MD,OLON,H71V,8,1,0,0,0,N
@@ -1166,37 +1219,37 @@ MD-0000088,CROWN B-4 W/ DENTIL ,CROWN B-4 W/ DENTIL ,CROWN B-4 W/ DENTIL ,0,MD C
 MD-0000089,CROWN B-5,CROWN B-5,CROWN B-5,0,MD Crown,3.7,6.5405,19.92,0,LF,MD,Barger ,0,8,1,0,0,0,Y
 MD-0000090,CROWN B-5 W/ ROPE ,CROWN B-5 W/ ROPE ,CROWN B-5 W/ ROPE ,0,MD Crown,5.4,8.2915,22.52,0,LF,MD,Barger ,0,8,1,0,0,0,Y
 MD-0000091,CROWN B-5 W/ DENTIL ,CROWN B-5 W/ DENTIL ,CROWN B-5 W/ DENTIL ,0,MD Crown,5.48,8.3739,22.64,0,LF,MD,Barger ,0,8,1,0,0,0,Y
-MD-0000092,Hard Maple S4S 2 1/4 x 1 1/2,Hard Maple S4S 2 1/4 x 1 1/3,Hard Maple S4S 2 1/4 x 1 1/4,0,MD Crown,,,,0,LF,MD,SPELLMAN,0,8,1,0,0,0,N
+MD-0000092,Hard Maple S4S 2 1/4 x 1 1/2,Hard Maple S4S 2 1/4 x 1 1/3,Hard Maple S4S 2 1/4 x 1 1/4,0,MD Crown,2.96,5.01,14.77,0,LF,MD,SPELLMAN,0,8,1,0,0,0,N
 MT-0000001,Mattress Twin,Mattress Twin,Mattress Twin,0,MATTRESS,165,187.8,292.43,0,0,MT,Quality Bedding,Twin,10,1,0,0,0,Y
 MT-0000002,Mattress Double / Full,Mattress Double / Full,Mattress Double / Full,0,MATTRESS,165,187.8,292.43,0,0,MT,Quality Bedding,Double,10,1,0,0,0,Y
 MT-0000003,Mattress Queen,Mattress Queen,Mattress Queen,0,MATTRESS,165,187.8,292.43,0,0,MT,Quality Bedding,Queen,10,1,0,0,0,Y
 PL-0000001,ANTIQUE WHITE PL POST,ANTIQUE WHITE PL POST,Warm Spring,0,Finish,0.301,0.9,2.68,0,SF,PL,LOUIS,L-CAZ03584-1,0,1,0,0,0,Y
 PL-0000002,ALMOND PL POST,ALMOND PL POST,Cafe Au Lait,0,Finish,0.305,0.92,2.69,0,SF,PL,LOUIS,L-CAZ03585-1,0,1,0,0,0,Y
 PL-0000003,Fog Grey PL POST,Fog Grey PL POST,Steel Grey,0,Finish,0.413,1.24,3.11,0,SF,PL,LOUIS,L-CAZ02368-5,0,1,0,0,0,Y
-PL-0000004,LAMP BLK PL POST,LAMP BLK PL POST,Onyx,0,Finish,0.322,0.97,2.76,0,SF,PL,LOUIS,L-CAZ00778-1,0,1,0,0,0,Y
+PL-0000004,LAMP BLK PL POST,LAMP BLK PL POST,Onyx,0,Finish,0.322,0.97,2.76,0,SF,PL,LOUIS,L-CAZ00778-1,0,1,0,114450,0,Y
 PL-0000005,Storm PL POST,Storm PL POST,Gunmetal,0,Finish,0.429,1.29,3.17,0,SF,PL,LOUIS,L_CAZ04429_1,0,1,0,0,0,Y
-PL-0000006,WHITE PL POST,WHITE PL POST,Winter White,0,Finish,0.3,0.9,2.68,0,SF,PL,LOUIS,L-CAZ03586-1,0,1,0,0,0,Y
+PL-0000006,WHITE PL POST,WHITE PL POST,Winter White,0,Finish,0.3,0.9,2.68,0,SF,PL,LOUIS,L-CAZ03586-1,0,1,0,110100,0,Y
 PL-0000007,Custom Match Pig Laq.,Custom Match Pig Laq.,Custom Match Pig Laq.,0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,0,0,N
-PL-0000008,Custom Gray POST,Custom Gray POST,Mystic Cloud,0,Finish,0.409,1.23,3.09,0,SF,PL,LOUIS,L_CAZ04304_1,0,1,0,0,0,Y
-PL-0000009,Pepperdust POST,Pepperdust POST,Agreeable Greige,0,Finish,0.458,1.37,3.28,0,SF,PL,LOUIS,L_CAZ02642_1,0,1,0,0,0,Y
+PL-0000008,Custom Gray POST,Custom Gray POST,Mystic Cloud,0,Finish,0.409,1.23,3.09,0,SF,PL,LOUIS,L_CAZ04304_1,0,1,0,117850,0,Y
+PL-0000009,Pepperdust POST,Pepperdust POST,Agreeable Greige,0,Finish,0.458,1.37,3.28,0,SF,PL,LOUIS,L_CAZ02642_1,0,1,0,156260,0,Y
 PL-0000010,Willow Grey POST,Willow Grey POST,Willow Grey POST ( Panolam Match ),0,Finish,0.409,1.23,3.09,0,SF,PL,LOUIS,L_CAZ04707-1,0,1,0,0,0,Y
 PL-0000014,CARE RETARDER,CARE RETARDER,CARE RETARDER,0,Finish,0.234,0.7,2.43,0,SF,PL,LOUIS,0,0,1,0,0,0,N
 PL-0000016,LEVEL PRIMER WHITE,LEVEL PRIMER WHITE,LEVEL PRIMER WHITE,0,Finish,0.318,0.95,2.74,0,SF,PL,LOUIS,0,0,1,0,0,0,N
-PL-0000017,Bankers Grey PL POST,Bankers Grey PL POST,Iron Mountain,0,Finish,0.436,1.31,3.2,0,SF,PL,LOUIS,L-CAZ00143CWT-1,0,1,0,0,0,Y
-PL-0000018,Forest PL POST,Forest PL POST,Forest (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,0,0,Y
-PL-0000019,Sage PL POST,Sage PL POST,Clarity Sage (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,0,0,Y
-PL-0000020,Deep Blue PL POST,Deep Blue PL POST,Deep Blue,0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,0,0,Y
-PL-0000021,Sky Blue PL POST,Sky Blue PL POST,Sky Blue (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,0,0,Y
-PL-0000022,Desert Sage PL POST,Desert Sage PL POST,Desert Sage,0,Finish,0.589,1.77,3.78,0,SF,PL,LOUIS,L-CAZ01356CWT,0,1,0,0,0,Y
-PL-0000023,Cafe Au Lait PL POST,Cafe Au Lait PL POST,Cafe Au Lait,0,Finish,0.428,1.284,3.17,0,SF,PL,LOUIS,L-CAZ01355CWT,0,1,0,0,0,Y
-PL-0000024,Bridal Veil PL POST,Bridal Veil PL POST,Bridal Veil,0,Finish,0.425,1.275,3.16,0,SF,PL,LOUIS,L-CAZ01357CWT,0,1,0,0,0,Y
-PL-0000025,Warm Spring PL POST,Warm Spring PL POST,Warm Spring ,0,Finish,0.423,1.269,3.15,0,SF,PL,LOUIS,L-CAZ01358CWT,0,1,0,0,0,Y
-PL-0000026,Urban Blue PL POST,Urban Blue PL POST,Urban Blue,0,Finish,0.431,1.293,3.18,0,SF,PL,LOUIS,L-CAZ01359CWT,0,1,0,0,0,Y
-PL-0000027,Tea Leaf PL POST,Tea Leaf PL POST,Tea Leaf,0,Finish,0.477,1.431,3.35,0,SF,PL,LOUIS,L-CAZ01361CWT,0,1,0,0,0,Y
-PL-0000028,Gunmetal PL POST,Gunmetal PL POST,Gunmetal,0,Finish,0.514,1.542,3.5,0,SF,PL,LOUIS,L-CAZ01362CWT,0,1,0,0,0,Y
-PL-0000029,Asphalt PL POST,Asphalt PL POST,Asphalt,0,Finish,0.434,1.302,3.13,0,SF,PL,LOUIS,L-CAZ01406CWT,0,1,0,0,0,N
-PL-0000030,Overcast PL POST,Overcast PL POST,Overcast,0,Finish,0.394,1.181,3.04,0,SF,PL,LOUIS,L-CAZ01406CWT,0,1,0,0,0,N
-PL-0000031,Steel Grey PL POST,Steel Grey PL POST,Steel Grey PL POST,0,Finish,0.4,1.2,3,0,SF,PL,LOUIS,L-CAZ01715CWT,0,1,0,0,0,N
+PL-0000017,Bankers Grey PL POST,Bankers Grey PL POST,Iron Mountain,0,Finish,0.436,1.31,3.2,0,SF,PL,LOUIS,L-CAZ00143CWT-1,0,1,0,114075,0,Y
+PL-0000018,Forest PL POST,Forest PL POST,Forest (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,106970,0,Y
+PL-0000019,Sage PL POST,Sage PL POST,Clarity Sage (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,106910,0,Y
+PL-0000020,Deep Blue PL POST,Deep Blue PL POST,Deep Blue,0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,109200,0,Y
+PL-0000021,Sky Blue PL POST,Sky Blue PL POST,Sky Blue (Kitchen Only),0,Finish,0.541,1.62,3.6,0,SF,PL,LOUIS,0,0,1,0,106870,0,Y
+PL-0000022,Desert Sage PL POST,Desert Sage PL POST,Desert Sage,0,Finish,0.589,1.77,3.78,0,SF,PL,LOUIS,L-CAZ01356CWT,0,1,0,200150,0,Y
+PL-0000023,Cafe Au Lait PL POST,Cafe Au Lait PL POST,Cafe Au Lait,0,Finish,0.428,1.284,3.17,0,SF,PL,LOUIS,L-CAZ01355CWT,0,1,0,110200,0,Y
+PL-0000024,Bridal Veil PL POST,Bridal Veil PL POST,Bridal Veil,0,Finish,0.425,1.275,3.16,0,SF,PL,LOUIS,L-CAZ01357CWT,0,1,0,200140,0,Y
+PL-0000025,Warm Spring PL POST,Warm Spring PL POST,Warm Spring,0,Finish,0.423,1.269,3.15,0,SF,PL,LOUIS,L-CAZ01358CWT,0,1,0,111580,0,Y
+PL-0000026,Urban Blue PL POST,Urban Blue PL POST,Urban Blue,0,Finish,0.431,1.293,3.18,0,SF,PL,LOUIS,L-CAZ01359CWT,0,1,0,200170,0,Y
+PL-0000027,Tea Leaf PL POST,Tea Leaf PL POST,Tea Leaf,0,Finish,0.477,1.431,3.35,0,SF,PL,LOUIS,L-CAZ01361CWT,0,1,0,200160,0,Y
+PL-0000028,Gunmetal PL POST,Gunmetal PL POST,Gunmetal,0,Finish,0.514,1.542,3.5,0,SF,PL,LOUIS,L-CAZ01362CWT,0,1,0,162800,0,Y
+PL-0000029,Asphalt PL POST,Asphalt PL POST,Asphalt,0,Finish,0.434,1.302,3.13,0,SF,PL,LOUIS,L-CAZ01406CWT,0,1,0,109250,0,N
+PL-0000030,Overcast PL POST,Overcast PL POST,Overcast,0,Finish,0.394,1.181,3.04,0,SF,PL,LOUIS,L-CAZ01406CWT,0,1,0,174360,0,N
+PL-0000031,Steel Grey PL POST,Steel Grey PL POST,Steel Grey PL POST,0,Finish,0.4,1.2,3,0,SF,PL,LOUIS,L-CAZ01715CWT,0,1,0,126600,0,N
 PM-0000001,ALMOND PAPER 3/8 G1,Almond_Paper375,ALMOND PAPER 3/8 G1,yes,PM Paper,0.589,0.9579,6.52,PAPER,SF,PM,UKNOWN,0,2,0.375,11300,190600,0,Y
 PM-0000002,WHITE PAPER 3/8 G1,White_Paper375,WHITE PAPER 3/8 G1,yes,PM Paper,0.589,0.9579,6.52,PAPER,SF,PM,UKNOWN,0,2,0.375,11300,190500,0,Y
 PM-0000003,ALMOND PAPER 1/2 G2,Almond_Paper500,ALMOND PAPER 1/2 G2,yes,PM Paper,0.78,1.1845,6.85,PAPER,SF,PM,UKNOWN,0,2,0.5,12310,190600,0,Y
@@ -1229,7 +1282,7 @@ PM-0000074,Mocha Cherry 250,Mocha Cherry250,Cafe Mocha,yes,PM Thermo,1.917,4.429
 PM-0000080,Negotiating in Geneva 250,Negotiating in Geneva250,Cozy Cashmere,yes,PM Thermo,1.886,4.3981,18.91,PANOLAM,SF,PM,SPELLMAN,0,2,0.25,10200,150200,0,Y
 PM-0000082,Witchcraft 250,Witchcraft250,Tea Kettle,yes,PM Thermo,1.672,4.1406,16,PANOLAM,SF,PM,SPELLMAN,0,2,0.25,10205,150350,0,Y
 PM-0000084,NUTMEG CHERRY250 1/4,Nutmeg Cherry250,Nutmeg Cherry,0,PM Thermo,1.517,3.9552,18.04,0,SF,PM,LUMBER,0,2,0.25,10205,150850,0,N
-PM-0000085,Opulent Olmo250 1/4,Opulent Olmo250,Riverwood (Opulent Olmo) Δ,0,PM Thermo,1.42,3.8419,17.82,0,SF,PM,UKNOWN,0,2,0.25,10205,20,0,Y
+PM-0000085,Opulent Olmo250 1/4,Opulent Olmo250,Riverwood (Opulent Olmo) Δ,0,PM Thermo,1.42,3.8419,17.82,0,SF,PM,UKNOWN,0,2,0.25,10205,152000,0,Y
 PM-0000086,OATMEAL COOKIE250 1/4,Oatmeal Cookie250,OATMEAL COOKIE250 1/4 (Malibu Sands),0,PM Thermo,1.385,3.8007,17.74,0,SF,PM,UKNOWN,0,2,0.25,10205,151000,0,N
 PM-0000088,White W954 250,White W954 250,Winter White 250,yes,PM Thermo,1.49,3.9243,11.25,EGGER,SF,PM,HARDWOODS,0,2,0.25,10200,110100,0,Y
 PM-0000090,PEACH COBBLER250 1/4,Peach Cobbler250,PEACH COBBLER250 1/4 (Apple Fritter),0,PM Thermo,1.388,3.811,17.74,0,SF,PM,UKNOWN,0,2,0.25,10205,155000,0,N
@@ -1277,7 +1330,7 @@ PM-0000221,T Sunday Brunch 750,T Sunday Brunch,Candlelight Dinner,0,PM Thermo,2.
 PM-0000222,T SUNSET CRUISE 3/4,T Sunset Cruise ,T Sunset Cruise,0,PM Thermo,2.094,4.6453,19.4,TAFISA,SF,PM,UKNOWN,0,2,0.75,15150,107650,0,N
 PM-0000223,T Tea For Two 750,T Tea For Two,Chamomile Comfort,yes,PM Thermo,2.89,5.5826,21.27,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,107700,0,Y
 PM-0000225,T WEEKEND GETAWAY 3/4,T Weekend Getaway ,T Weekend Getaway,0,PM Thermo,2.094,4.6453,19.4,TAFISA,SF,PM,UKNOWN,0,2,0.75,15150,107900,0,N
-PM-0000226,T WINTER FUN 3/4,T_Winter_Fun,Moonlit Lake (Winter Fun Tafisa) Δ,0,PM Thermo,2.094,4.6453,19.4,TAFISA,SF,PM,UKNOWN,0,2,0.75,5,107925,0,Y
+PM-0000226,T WINTER FUN 3/4,T_Winter_Fun,Moonlit Lake (Winter Fun Tafisa) Δ,0,PM Thermo,2.094,4.6453,19.4,TAFISA,SF,PM,UKNOWN,0,2,0.75,15175,107925,0,Y
 PM-0000227,U Driftwood 750,U Driftwood750,Silver Elm,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,167000,0,Y
 PM-0000228,U Ember 750,U Ember750,Sable,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,167005,0,Y
 PM-0000230,U MYSTIC 3/4,U Mystic,U Mystic,0,PM Thermo,2.172,4.738,19.58,UNIBOARD,SF,PM,UKNOWN,0,2,0.75,15150,167015,0,N
@@ -1307,7 +1360,7 @@ PM-0000354,DURA WHITE 3/4 G2S W662,DURA WHITE,Winter White / Winter White (Ox Wh
 PM-0000357,DURA WHT_GRPH SPK 3/4,DURA WHT_GRPH SPK,Cosmic Dust / Winter White (Graphite Spectrum/Ox White),no,PM Garage,0.934,2.6574,10.07,0,SF,PM,DURAPLAY,0,2,0.75,1,191150,0,N
 PM-0000359,DURA WHT_FOG GREY 3/4,DURA WHT_FOG GREY,Steel Grey / Winter White (Fog Grey/Ox White),no,PM Garage,1.053,2.7913,10.26,0,SF,PM,DURAPLAY,0,2,0.75,1,191250,0,N
 PM-0000361,DURA WHT_HRDRCK MPL 3/4,DURA WHT_HRDRCK MPL,Danish Maple / Winter White (Hard Rock Maple/Ox White),no,PM Garage,0.812,2.5132,9.85,0,SF,PM,DURAPLAY,0,2,0.75,1,191260,0,N
-PM-0000365,U Graphite Spectrum 750,Ebony Sand,Night Skies,yes,PM Thermo,1.764,4.2539,18.63,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,2,123050,0,Y
+PM-0000365,U Graphite Spectrum 750,U Graphite Spectrum 750,Night Skies,yes,PM Thermo,1.764,4.2539,18.63,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,2,123050,0,Y
 PM-0000372,EXQUISITE ELM 3/4,EXQUISITE ELM,En Plein Air,no,PM Thermo,1.903,4.4187,18.95,0,SF,PM,SPELLMAN,0,2,0.75,15200,123950,0,N
 PM-0000376,U Canadian Grey 750,U Canadian Grey 750,Steel Grey,yes,PM Thermo,1.828,3.914,17.94,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,2,126600,0,Y
 PM-0000379,GOTTA HAVIT 3/4,Gotta Havit 15200,Mango Tango,no,PM Thermo,1.832,4.3363,18.78,0,SF,PM,UKNOWN,0,2,0.75,15200,129640,0,N
@@ -1322,7 +1375,7 @@ PM-0000409,NUTMEG CHERRY 3/4,Nutmeg Cherry,Nutmeg Cherry,yes,PM Thermo,2.108,4.6
 PM-0000411,OATMEAL COOKIE 3/4,Oatmeal Cookie 15200,OATMEAL COOKIE 3/4 (Malibu Sands),yes,PM Thermo,1.912,4.429,18.97,0,SF,PM,UKNOWN,0,2,0.75,15200,151000,0,N
 PM-0000412,Opullent Olmo 3/4,Opullent Olmo 15200,Opullent Olmo 3/4,no,PM Thermo,1.895,4.4084,18.93,0,SF,PM,UKNOWN,0,2,0.75,15200,152000,0,N
 PM-0000413,White 954 750,Oxford White,Winter White,yes,PM White,0.998,2.7295,11.25,EGGER,SF,PM,HARDWOODS,0,2,0.75,2,110100,0,Y
-PM-0000414,White 954 XL 750,White 954 XL 750,Winter White XL,yes,PM White,0.998,2.7295,11.25,EGGER,SF,PM,HARDWOODS,0,2,0.75,9,110100,0,Y
+PM-0000414,White 954 XL 750,White 954 XL 750,Winter White XL,yes,PM White,0.998,2.7295,12,EGGER,SF,PM,HARDWOODS,0,2,0.75,9,110100,0,Y
 PM-0000415,OXFORD WHITE FORMALD FREE 3/4,Oxford White,Oxford White (Frost),no,PM Thermo,1.135,3.5123,17.15,0,SF,PM,UKNOWN,0,2,0.75,15205,110100,0,N
 PM-0000417,PEACH COBBLER 3/4,Peach Cobbler,PEACH COBBLER 3/4 (Apple Fritter),yes,PM Thermo,1.919,4.4393,18.98,0,SF,PM,UKNOWN,0,2,0.75,15200,155000,0,N
 PM-0000420,Pepperdust 750,Pepperdust,Agreeable Greige,yes,PM Thermo,2.235,4.8101,16,PANOLAM,SF,PM,SPELLMAN,0,2,0.75,2,156260,0,Y
@@ -1364,7 +1417,7 @@ PM-0000624,U Canvas 250,U Canvas 250,Teacloth,yes,PM Thermo,1.5,3.9449,13.5,UNIB
 PM-0000625,U Cannes 250,U Cannes 250,Summer Oak,yes,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,166650,0,Y
 PM-0000626,T First Class 250,T First Class 250,Weathered Oak,yes,PM Thermo,2.07,4.6144,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10100,166675,0,Y
 PM-0000627,U Chino 250,U Chino 250,Cool Blue,yes,PM Thermo,1.866,4.3775,18.86,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,20150,166680,0,Y
-PM-0000628,U Nizza250 1/4,U NIZZA250,Ammonite,no,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167016,0,Y
+PM-0000628,U Nizza 250,U NIZZA 250,Ammonite,no,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167016,0,Y
 PM-0000629,U Skye 250,U Skye 250,Foggy Mornings,yes,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167021,0,Y
 PM-0000630,SALT Lakeshore Oak250 1/4,Salt Lakeshore Oak250,S Lakeshore Oak,yes,PM Thermo,2.656,5.3045,20.72,SALT,SF,PM,PETERMANLUMBER,0,2,0.25,10100,164000,0,N
 PM-0000631,CL Cool Grey Linen250 1/4,CL Cool Grey Linen250,CL Cool Grey Linen,yes,PM Thermo,3.113,5.8504,21.79,CLEAF,SF,PM,E.B. Bradley,0,2,0.25,10100,110860,0,N
@@ -1373,8 +1426,8 @@ PM-0000633,CL Rialto250 1/4,CL Rialto250,CL Rialto,yes,PM Thermo,3.113,5.8504,21
 PM-0000634,U Cannes 750,U Cannes,Summer Oak,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,166650,0,Y
 PM-0000635,T First Class 750,T First Class 750,Weathered Oak,yes,PM Thermo,2.16,4.7174,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,166675,0,Y
 PM-0000636,U Chino 750,U Chino 750,Cool Blue,yes,PM Thermo,2.217,4.7895,19.69,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,6,166680,0,Y
-PM-0000637,U Nizza 3/4,U NIZZA,Ammonite,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,Spellman,0,2,0.75,15175,167016,0,Y
-PM-0000638,U Skye 750,U Skye,Foggy Mornings,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,167021,0,Y
+PM-0000637,U Nizza 750,U NIZZA 750,Ammonite,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,Spellman,0,2,0.75,15175,167016,0,Y
+PM-0000638,U Skye 750,U Skye 750,Foggy Mornings,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,167021,0,Y
 PM-0000639,CL Cool Grey Linen 3/4,M Cool Grey Linen,CL Cool Grey Linen,yes,PM Thermo,3.113,5.8504,21.79,CLEAF,SF,PM,E.B. Bradley,0,2,0.75,15150,110860,0,N
 PM-0000644,U Mistral 250,U Mistral250,Wheat Field,yes,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167013,0,Y
 PM-0000645,U Monaco 250,U Monaco 250,Dark Walnut,yes,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167014,0,Y
@@ -1391,22 +1444,22 @@ PM-0000671,MLX White SM 750,MLX White SM 750,Cloud Δ,yes,PM Thermo,6.344,9.682,
 PM-0000672,MLX White SM 250,MLX White SM 250,Cloud Δ,yes,PM Thermo,5.472,8.6417,27.33,MIRLUX,SF,PM,SPELLMAN,0,2,0.25,20200,109500,0,Y
 PM-0000673,U Riva 250,U Riva250,Irish Cream,yes,PM Thermo,2.457,5.0779,20.25,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,167019,0,Y
 PM-0000674,U Riva 750,U Riva,Irish Cream,yes,PM Thermo,2.514,5.1397,20.38,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,167019,0,Y
-PM-0000675,OPULENT OLMO 3/4,Opullent Olmo,Riverwood (Opulent Olmo) Δ,no,PM Thermo,1.895,4.4084,18.93,0,SF,PM,SPELLMAN,0,2,0.75,3,20,0,Y
+PM-0000675,OPULENT OLMO 3/4,Opullent Olmo,Riverwood (Opulent Olmo) Δ,yes,PM Thermo,1.895,4.4084,18.93,0,SF,PM,SPELLMAN,0,2,0.75,15205,152000,0,Y
 PM-0000676,U COASTAL PEAR 3/4,U COASTAL PEAR 3/4,U COASTAL PEAR 3/4,yes,PM Thermo,3.318,6.0976,22.27,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15150,166690,0,N
 PM-0000677,White Linen 250,White Linen 250,White Linen 250,yes,PM Thermo,1.455,3.8831,17.9,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,20150,167100,0,N
 PM-0000678,White Linen 750,White Linen 750,White Linen 750,yes,PM Thermo,1.83,4.326,18.78,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,6,167100,0,N
 PM-0000679,Beige Textile 250,Beige Textile 250,Tweed,yes,PM Thermo,1.69,4.1612,14.5,EGGER,SF,PM,HARDWOODS,0,2,0.25,20150,167150,0,Y
 PM-0000680,Beige Textile 750,Tweed,Tweed,yes,PM Thermo,2.02,4.5526,14.5,EGGER,SF,PM,HARDWOODS,0,2,0.75,6,167150,0,Y
-PM-0000681,Blanco 3/4,PEARL_RIVER,Pearl River (Blanco SL) Δ,0,PM Thermo,1.74,4.223,18.56,Specialty Lam.,SF,PM,SPELLMAN,0,2,0.75,3,168100,0,Y
-PM-0000682,Blanco250 1/4,PEARL_RIVER250,Pearl River (Blanco SL) Δ,0,PM Thermo,1.57,4.0273,18.17,Specialty Lam.,SF,PM,SPELLMAN,0,2,0.25,10205,168100,0,Y
-PM-0000683,U Sheer Linen 250,U Sheer Linen 250,Chesapeake Bay,yes,PM Thermo,1.866,4.3775,18.86,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,20150,164009,0,Y
-PM-0000684,U Sheer Linen 750,U Sheer Linen 750,Chesapeake Bay,yes,PM Thermo,2.217,4.7895,19.69,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,6,164009,0,Y
+PM-0000681,Blanco 3/4,PEARL_RIVER,Pearl River (Blanco SL) Δ,yes,PM Thermo,1.74,4.223,18.56,Specialty Lam.,SF,PM,SPELLMAN,0,2,0.75,3,168100,0,Y
+PM-0000682,Blanco250 1/4,PEARL_RIVER250,Pearl River (Blanco SL) Δ,yes,PM Thermo,1.57,4.0273,18.17,Specialty Lam.,SF,PM,SPELLMAN,0,2,0.25,10205,168100,0,Y
+PM-0000683,U Sheer Linen 250,U Sheer Linen 250,Chesapeake Bay,yes,PM Thermo,1.866,4.3775,16,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,20150,164009,0,Y
+PM-0000684,U Sheer Linen 750,U Sheer Linen 750,Chesapeake Bay,yes,PM Thermo,2.217,4.7895,16,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,6,164009,0,Y
 PM-0000685,SALT Uva250 1/4,SALT Uva250 1/4,SALT Uva250 1/4,no,PM Thermo,2.89,5.5826,21.27,SALT,SF,PM,PETERMAN,0,2,0.25,10100,164250,0,N
 PM-0000686,SALT Uva 3/4 ,SALT Uva 3/4 ,SALT Uva 3/4 ,no,PM Thermo,3.828,6.695,23.46,SALT,SF,PM,PETERMAN,0,2,0.75,15150,164250,0,N
 PM-0000687,SALT Mahnolia Linen250 1/4 ,SALT Mahnolia Linen250 1/4 ,SALT Mahnolia Linen250 1/4 ,no,PM Thermo,2.89,5.5826,21.27,SALT,SF,PM,PETERMAN,0,2,0.25,10100,164039,0,N
 PM-0000688,SALT Mahnolia Linen 3/4,SALT Mahnolia Linen 3/4,SALT Mahnolia Linen 3/4,no,PM Thermo,3.828,6.695,23.46,SALT,SF,PM,PETERMAN,0,2,0.75,15150,164039,0,N
 PM-0000689,U Nova White 250,U Nova White 250,Snow Drift,yes,PM White,1.202,2.9561,13.5,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10200,200110,0,Y
-PM-0000690,U Nova White 750,U Nova White,Snow Drift,yes,PM White,1.023,2.7604,13.5,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,2,200110,0,Y
+PM-0000690,U Nova White 750,U Nova White 750,Snow Drift,yes,PM White,1.023,2.7604,13.5,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,2,200110,0,Y
 PM-0000691,Snow White 250,Snow White 250,Mountain Peak,yes,PM White,1.038,2.7707,13.5,KRONOSPAN,SF,PM,SPELLMAN,0,2,0.25,10200,200120,0,Y
 PM-0000692,Snow White 750,Snow White 750,Mountain Peak,yes,PM White,1.02,2.7501,13.5,KRONOSPAN,SF,PM,SPELLMAN,0,2,0.75,15200,200120,0,Y
 PM-0000693,U Antique White 250,Antique White 250,Warm Spring,yes,PM Thermo,1.476,3.914,17.94,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10200,111580,0,Y
@@ -1423,12 +1476,12 @@ PM-0000703,T Ganache 250,T Ganache 250,Bayou Cypress,yes,PM Thermo,1.52,3.9655,1
 PM-0000704,T Ganache 750,T Ganache 750,Bayou Cypress,yes,PM Thermo,1.91,4.429,14.5,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,200180,0,Y
 PM-0000705,White Nordic Wood 250,White Nordic Wood 250,Norwegian Wood,yes,PM Thermo,1.496,3.9346,13.5,KRONSPAN,SF,PM,SPELLMAN,0,2,0.25,10205,200190,0,Y
 PM-0000706,White Nordic Wood 750,White Nordic Wood 750,Norwegian Wood,yes,PM Thermo,1.697,4.1715,13.5,KRONSPAN,SF,PM,SPELLMAN,0,2,0.75,15175,200190,0,Y
-PM-0000707,Vintage Harbor Oak 250,Vintage Harbor Oak 250,Rustic Oak Δ,yes,PM Thermo,1.796,4.2951,18.63,KRONSPAN,SF,PM,SPELLMAN,0,2,0.25,10100,200210,0,Y
-PM-0000708,Vintage Harbor Oak 750,Vintage Harbor Oak 750,Rustic Oak Δ,yes,PM Thermo,1.992,4.5217,18.63,KRONSPAN,SF,PM,SPELLMAN,0,2,0.75,15175,200210,0,Y
-PM-0000709,U Maria 250,U Maria 250,Forest Oak Δ,yes,PM Thermo,1.816,4.3157,18.75,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,200220,0,Y
-PM-0000710,U Maria 750,U Maria 750,Forest Oak Δ,yes,PM Thermo,2.217,4.7895,19.69,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,200220,0,Y
-PM-0000711,U Chicory 250,U Chicory 250,Root Tea Δ,yes,PM Thermo,1.866,4.3775,18.86,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,200230,0,Y
-PM-0000712,U Chicory 750,U Chicory 750,Root Tea Δ,yes,PM Thermo,2.28,4.8616,19.83,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,200230,0,Y
+PM-0000707,Vintage Harbor Oak 250,Vintage Harbor Oak 250,Rustic Oak,yes,PM Thermo,1.796,4.2951,18.63,KRONSPAN,SF,PM,SPELLMAN,0,2,0.25,10100,200210,0,Y
+PM-0000708,Vintage Harbor Oak 750,Vintage Harbor Oak 750,Rustic Oak,yes,PM Thermo,1.992,4.5217,18.63,KRONSPAN,SF,PM,SPELLMAN,0,2,0.75,15175,200210,0,Y
+PM-0000709,U Maria 250,U Maria 250,Forest Oak,yes,PM Thermo,1.816,4.3157,18.75,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,200220,0,Y
+PM-0000710,U Maria 750,U Maria 750,Forest Oak,yes,PM Thermo,2.217,4.7895,19.69,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,200220,0,Y
+PM-0000711,U Chicory 250,U Chicory 250,Root Tea,yes,PM Thermo,1.866,4.3775,18.86,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,10100,200230,0,Y
+PM-0000712,U Chicory 750,U Chicory 750,Root Tea,yes,PM Thermo,2.28,4.8616,19.83,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,15175,200230,0,Y
 PM-0000713,U Otter Grey 250,U Otter Grey 250,Gray Shoreline,yes,PM Thermo,1.674,4.1509,14.5,UNIBOARD,SF,PM,SPELLMAN,0,2,0.25,20150,200240,0,Y
 PM-0000714,U Otter Grey 750,U Otter Grey 750,Gray Shoreline,yes,PM Thermo,1.947,4.4702,14.5,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,6,200240,0,Y
 PM-0000715,U New England Almond/Nova White 750,U New England Almond/Nova White 750,Cafe Au Lait / White,yes,PM Thermo,1.785,4.2745,12,UNIBOARD,SF,PM,SPELLMAN,0,2,0.75,8,200250,0,Y
@@ -1457,11 +1510,11 @@ PM-0000737,T Chameleon 250,T Chameleon 250,Shaded Oak,yes,PM Thermo,1.984,4.48,1
 PM-0000738,T Chameleon 750,T Chameleon 750,Shaded Oak,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,200520,0,Y
 PM-0000739,T Rhapsody 250,T Rhapsody 250,Blonde Sprig,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10200,200530,0,Y
 PM-0000740,T Rhapsody 750,T Rhapsody 750,Blonde Sprig,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,200530,0,Y
-PM-0000741,T Force of Nature 250,T Force of Nature 250,Silt,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10200,200540,0,Y
+PM-0000741,T Force of Nature 250,T Force of Nature 250,Silt,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10100,200540,0,Y
 PM-0000742,T Force of Nature 750,T Force of Nature 750,Silt,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,4,200540,0,Y
-PM-0000743,T Rock Solid 250,T Rock Solid 250,Valley Shale,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10200,200550,0,Y
+PM-0000743,T Rock Solid 250,T Rock Solid 250,Valley Shale,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10100,200550,0,Y
 PM-0000744,T Rock Solid 750,T Rock Solid 750,Valley Shale,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,4,200550,0,Y
-PM-0000745,T Urban Vibe 250,T Urban Vibe 250,City Grit,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10200,200560,0,Y
+PM-0000745,T Urban Vibe 250,T Urban Vibe 250,City Grit,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10100,200560,0,Y
 PM-0000746,T Urban Vibe 750,T Urban Vibe 750,City Grit,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,4,200560,0,Y
 PM-0000747,T Natural Affinity 250,T Natural Affinity 250,Warm Grain,yes,PM Thermo,1.984,4.48,16,TAFISA,SF,PM,HARDWOODS,0,2,0.25,10200,200570,0,Y
 PM-0000748,T Natural Affinity 750,T Natural Affinity 750,Warm Grain,yes,PM Thermo,2.094,4.61,16,TAFISA,SF,PM,HARDWOODS,0,2,0.75,15175,200570,0,Y
@@ -1506,51 +1559,51 @@ QZ-0000026,Apollo,Apollo,Apollo,yes,Quartz,7.9,29.69,45,Della Terra ,SF,QZ,AZ Ti
 QZ-0000027,Gemstone Beige,Gemstone Beige,Gemstone Beige,yes,Quartz,7.9,29.69,45,Della Terra ,SF,QZ,AZ Tile ,0,11,0.787,0,0,0,Y
 QZ-0000028,Steel,Steel,Steel,yes,Quartz,7.9,29.69,45,Della Terra ,SF,QZ,AZ Tile ,0,11,0.787,0,0,0,Y
 QZ-0000029,Bianco Tiza,Bianco Tiza,Bianco Tiza,yes,Quartz,9.65,31.62,45,Della Terra ,SF,QZ,AZ Tile ,0,11,0.787,0,0,0,Y
-SN-0000001,Afternoon Showers ST,Afternoon Showers,Afternoon Showers,yes,Stain,0.215,1,5.85,STAIN,SF,S,LOUIS,L_CAZ02698_1,0,1,0,0,0,Y
-SN-0000002,Alive In Memphis ST,Alive In Memphis ST,Alive In Memphis ST,yes,Stain,0.25,1.04,5.97,STAIN,SF,S,LOUIS,L_CAZ02894_1,0,1,0,0,0,N
-SN-0000003,Arbor Myrtle ST,Arbor Myrtle,Sugar Maple,yes,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02292_1,0,1,0,0,0,Y
-SN-0000004,Backwoods Sycamore ST,Backwoods Sycamore ST,Backwoods Sycamore,yes,Stain,0.197,0.98,5.8,STAIN,SF,S,LOUIS,L_CAZ02706_1,0,1,0,0,0,N
-SN-0000005,Bella Terra ST,Bella Terra ST,Bella Terra,yes,Stain,0.218,1,5.87,STAIN,SF,S,LOUIS,L_CAZ02639_1,0,1,0,0,0,Y
-SN-0000006,Brown Pearwood ST,Brown Pearwood(Choc Pear),Walk in the Woods,0,Stain,0.319,1.12,6.19,STAIN,SF,S,LOUIS,L_CAZ02293_1,0,1,0,0,0,Y
-SN-0000007,Castle Oak ST,Castle Oak ST,Castle Oak ST,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02976_1,0,1,0,0,0,N
-SN-0000008,Chusto Printatre ST,Chusto Printatre ST,Chusto Printatre,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02969_1,0,1,0,0,0,N
-SN-0000009,Corretto Cherry ST,Corretto Cherry ST,Corretto Cherry,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02700_1,0,1,0,0,0,N
-SN-0000010,Dusk to Dawn ST,Dusk to Dawn ST,Dusk to Dawn,0,Stain,0.239,1.02,5.94,STAIN,SF,S,LOUIS,L_CAZ02977_1,0,1,0,0,0,N
-SN-0000011,Electo Printatre ST,Electo Printatre ST,Electo Printatre,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02697_1,0,1,0,0,0,N
-SN-0000012,English Oak ST,English Oak ST,English Oak,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02764_1,0,1,0,0,0,N
-SN-0000013,Espresso Maple ST,Espresso Maple ST,Espresso Maple,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02884_1,0,1,0,0,0,N
-SN-0000014,Field Cherry ST,Field Cherry ST,Field Cherry,0,Stain,0.278,1.07,6.06,STAIN,SF,S,LOUIS,L-CAZ03485-1,0,1,0,0,0,N
-SN-0000015,Gotta Havit ST,Gotta Havit ST,Mango Tango,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02696_1,0,1,0,0,0,N
-SN-0000016,Gunstock Walnut ST,Gunstock Walnut,Maple Walnut,0,Stain,0.327,1.13,6.22,STAIN,SF,S,LOUIS,L_CAZ02762_1,0,1,0,0,0,N
-SN-0000017,Kona Blend ST,Kona Blend ST,Kona Blend,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ03441_1,0,1,0,0,0,N
-SN-0000018,Mahogany ST,Mahogany,Mahgony,0,Stain,0.307,1.1,6.15,STAIN,SF,S,LOUIS,L_CAZ02812_1,0,1,0,0,0,N
-SN-0000019,Mahogany Impression ST,Mahogany Impression,Acer Rubrum,0,Stain,0.369,1.17,6.35,STAIN,SF,S,LOUIS,L_CAZ02552_1,0,1,0,0,0,N
-SN-0000020,Mocha Cherry ST,Mocha Cherry,Cafe Mocha,0,Stain,0.224,1.01,5.89,STAIN,SF,S,LOUIS,l_CAZ02295_1,0,1,0,0,0,Y
-SN-0000021,Morning Dew ST,Morning Dew ST,Morning Dew,0,Stain,0.223,1.01,5.89,STAIN,SF,S,LOUIS,L_CAZ03207_1,0,1,0,0,0,N
-SN-0000022,Nightfall ST,Nightfall ST,Tea Kettle,0,Stain,0.307,1.1,6.15,STAIN,SF,S,LOUIS,L_CAZ02556_1,0,1,0,0,0,N
-SN-0000024,Nutmeg Cherry ST,Nutmeg Cherry,Nutmeg Cherry,0,Stain,0.211,0.99,5.84,STAIN,SF,S,LOUIS,L_CAZ2701_1,0,1,0,0,0,N
-SN-0000025,Opto Printatre ST,Opto Printatre ST,Opto Printatre,0,Stain,0.221,1,5.88,STAIN,SF,S,LOUIS,L_CAZ02687_1,0,1,0,0,0,N
-SN-0000026,Opulent Olmo ST,Opulent Olmo ST,Opulent Olmo (Riverwood) Δ,0,Stain,0.224,1.01,5.89,STAIN,SF,S,LOUIS,L_CAZ02804_1,0,1,0,0,0,Y
-SN-0000027,Select Walnut ST,Select Walnut ST,Select Walnut,0,Stain,0.267,1.06,6.03,STAIN,SF,S,LOUIS,L_CAZ03046_1,0,1,0,0,0,N
-SN-0000028,Twilight ST,Twilight ST,Twilight,0,Stain,0.258,1.05,6,STAIN,SF,S,LOUIS,L_CAZ02750_1,0,1,0,0,0,Y
-SN-0000029,Vienna Cherry ST,Vienna Cherry ST,Vienna Cherry,0,Stain,0.206,0.99,5.82,STAIN,SF,S,LOUIS,L_CAZ02525_1,0,1,0,0,0,N
+SN-0000001,Afternoon Showers ST,Afternoon Showers,Afternoon Showers,yes,Stain,0.215,1,5.85,STAIN,SF,S,LOUIS,L_CAZ02698_1,0,1,0,111250,0,Y
+SN-0000002,Alive In Memphis ST,Alive In Memphis ST,Alive In Memphis ST,yes,Stain,0.25,1.04,5.97,STAIN,SF,S,LOUIS,L_CAZ02894_1,0,1,0,106880,0,N
+SN-0000003,Arbor Myrtle ST,Arbor Myrtle,Sugar Maple,yes,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02292_1,0,1,0,111710,0,Y
+SN-0000004,Backwoods Sycamore ST,Backwoods Sycamore ST,Backwoods Sycamore,yes,Stain,0.197,0.98,5.8,STAIN,SF,S,LOUIS,L_CAZ02706_1,0,1,0,114050,0,N
+SN-0000005,Bella Terra ST,Bella Terra ST,Bella Terra,yes,Stain,0.218,1,5.87,STAIN,SF,S,LOUIS,L_CAZ02639_1,0,1,0,106890,0,Y
+SN-0000006,Brown Pearwood ST,Brown Pearwood(Choc Pear),Walk in the Woods,0,Stain,0.319,1.12,6.19,STAIN,SF,S,LOUIS,L_CAZ02293_1,0,1,0,115000,0,Y
+SN-0000007,Castle Oak ST,Castle Oak ST,Castle Oak ST,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02976_1,0,1,0,117040,0,N
+SN-0000008,Chusto Printatre ST,Chusto Printatre ST,Chusto Printatre,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02969_1,0,1,0,106900,0,N
+SN-0000009,Corretto Cherry ST,Corretto Cherry ST,Corretto Cherry,0,Stain,0.228,1.01,5.9,STAIN,SF,S,LOUIS,L_CAZ02700_1,0,1,0,106920,0,N
+SN-0000010,Dusk to Dawn ST,Dusk to Dawn ST,Dusk to Dawn,0,Stain,0.239,1.02,5.94,STAIN,SF,S,LOUIS,L_CAZ02977_1,0,1,0,106930,0,N
+SN-0000011,Electo Printatre ST,Electo Printatre ST,Electo Printatre,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02697_1,0,1,0,123068,0,N
+SN-0000012,English Oak ST,English Oak ST,English Oak,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02764_1,0,1,0,106940,0,N
+SN-0000013,Espresso Maple ST,Espresso Maple ST,Espresso Maple,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02884_1,0,1,0,106950,0,N
+SN-0000014,Field Cherry ST,Field Cherry ST,Field Cherry,0,Stain,0.278,1.07,6.06,STAIN,SF,S,LOUIS,L-CAZ03485-1,0,1,0,106960,0,N
+SN-0000015,Gotta Havit ST,Gotta Havit ST,Mango Tango,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ02696_1,0,1,0,129640,0,N
+SN-0000016,Gunstock Walnut ST,Gunstock Walnut,Maple Walnut,0,Stain,0.327,1.13,6.22,STAIN,SF,S,LOUIS,L_CAZ02762_1,0,1,0,129850,0,N
+SN-0000017,Kona Blend ST,Kona Blend ST,Kona Blend,0,Stain,0.286,1.08,6.09,STAIN,SF,S,LOUIS,L_CAZ03441_1,0,1,0,165360,0,N
+SN-0000018,Mahogany ST,Mahogany,Mahgony,0,Stain,0.307,1.1,6.15,STAIN,SF,S,LOUIS,L_CAZ02812_1,0,1,0,147010,0,N
+SN-0000019,Mahogany Impression ST,Mahogany Impression,Acer Rubrum,0,Stain,0.369,1.17,6.35,STAIN,SF,S,LOUIS,L_CAZ02552_1,0,1,0,147030,0,N
+SN-0000020,Mocha Cherry ST,Mocha Cherry,Cafe Mocha,0,Stain,0.224,1.01,5.89,STAIN,SF,S,LOUIS,l_CAZ02295_1,0,1,0,147450,0,Y
+SN-0000021,Morning Dew ST,Morning Dew ST,Morning Dew,0,Stain,0.223,1.01,5.89,STAIN,SF,S,LOUIS,L_CAZ03207_1,0,1,0,106980,0,N
+SN-0000022,Nightfall ST,Nightfall ST,Tea Kettle,0,Stain,0.307,1.1,6.15,STAIN,SF,S,LOUIS,L_CAZ02556_1,0,1,0,150350,0,N
+SN-0000024,Nutmeg Cherry ST,Nutmeg Cherry,Nutmeg Cherry,0,Stain,0.211,0.99,5.84,STAIN,SF,S,LOUIS,L_CAZ2701_1,0,1,0,150850,0,N
+SN-0000025,Opto Printatre ST,Opto Printatre ST,Opto Printatre,0,Stain,0.221,1,5.88,STAIN,SF,S,LOUIS,L_CAZ02687_1,0,1,0,123067,0,N
+SN-0000026,Opulent Olmo ST,Opulent Olmo ST,Opulent Olmo (Riverwood) Δ,0,Stain,0.224,1.01,5.89,STAIN,SF,S,LOUIS,L_CAZ02804_1,0,1,0,152000,0,Y
+SN-0000027,Select Walnut ST,Select Walnut ST,Select Walnut,0,Stain,0.267,1.06,6.03,STAIN,SF,S,LOUIS,L_CAZ03046_1,0,1,0,162210,0,N
+SN-0000028,Twilight ST,Twilight ST,Twilight,0,Stain,0.258,1.05,6,STAIN,SF,S,LOUIS,L_CAZ02750_1,0,1,0,165950,0,Y
+SN-0000029,Vienna Cherry ST,Vienna Cherry ST,Vienna Cherry,0,Stain,0.206,0.99,5.82,STAIN,SF,S,LOUIS,L_CAZ02525_1,0,1,0,106990,0,N
 SN-0000030,Custom Match Stain,Custom Match Stain,Custom Match Stain,0,Stain,0.394,1.2,6.44,STAIN,SF,S,LOUIS,0,0,1,0,0,0,N
-SN-0000031,Trytoo Savatre ST,Trytoo Savatre ST,Cypress,0,Stain,0.258,1.05,6,STAIN,SF,S,LOUIS,L_CAZ04768_1,0,1,0,0,0,Y
-SN-0000032,Absolute Acajou ST,Absolute Acajou ST,Georgia Pines (Absolute Acajou) Δ,0,Stain,0.218,1,5.87,STAIN,SF,S,LOUIS,L_CAZ06697_1,0,1,0,0,0,Y
-SN-0000033,Witchcraft ST,Witchcraft ST,Tea Kettle,0,Stain,0.394,1.2,6.44,STAIN,SF,S,LOUIS,L_CAZ02556-1,0,1,0,0,0,Y
-SN-0000034,Midnight Black ST,Midnight Black ST,Onyx,0,Stain,0.412,1.22,6.5,STAIN,SF,S,LOUIS,L_CAZ02814-1,0,1,0,0,0,Y
+SN-0000031,Trytoo Savatre ST,Trytoo Savatre ST,Cypress,0,Stain,0.258,1.05,6,STAIN,SF,S,LOUIS,L_CAZ04768_1,0,1,0,123064,0,Y
+SN-0000032,Absolute Acajou ST,Absolute Acajou ST,Georgia Pines (Absolute Acajou) Δ,0,Stain,0.218,1,5.87,STAIN,SF,S,LOUIS,L_CAZ06697_1,0,1,0,111000,0,Y
+SN-0000033,Witchcraft ST,Witchcraft ST,Tea Kettle,0,Stain,0.394,1.2,6.44,STAIN,SF,S,LOUIS,L_CAZ02556-1,0,1,0,150350,0,Y
+SN-0000034,Midnight Black ST,Midnight Black ST,Onyx,0,Stain,0.412,1.22,6.5,STAIN,SF,S,LOUIS,L_CAZ02814-1,0,1,0,114450,0,Y
 SO-0000001,Special Order,Special Order,Special Order,0,0,0,0,0,0,EA,SO,0,0,0,0,0,0,0,Y
 VM-0000001,ALD VEN_WHT 3/4,Alder Veneer_White 15810,ALD VEN_WHT 3/4,0,VEN/LAM,2.22,4.5835,26.65,VENMEL,SF,VM,SPELLMAN,0,2,0.75,15900,808112,0,Y
 VM-0000002,ALD VEN_ALM 3/4,Alder Veneer_Almond 15810,ALD VEN_ALM 3/4,0,VEN/LAM,2.24,4.6144,26.71,VENMEL,SF,VM,SPELLMAN,0,2,0.75,15900,808114,0,Y
 VM-0000003,ALD VEN_HRDROCK MPL 3/4,Alder Veneer_Hardrock Maple 15810,ALD VEN_HRDROCK MPL 3/4,0,VEN/LAM,2.36,4.7483,27.07,VENMEL,SF,VM,SPELLMAN,0,2,0.75,15900,808116,0,Y
-VN-0000004,ALDER CLEAR VEN 1/4 G1S MDF,Alder Clear Veneer 15800,Stained Alder Veneer,0,VENEER,1.463,4.0479,26.33,0,SF,VN,UKNOWN,0,2,0.25,20800,808110,0,Y
-VN-0000005,ALDER CLEAR VEN 1/4 G2S MDF,Alder Clear Veneer 20800,ALDER CLR VEN A1 PS PB BM2,0,VENEER,2.206,4.9337,28.72,0,SF,VN,LUMBER,0,2,0.25,20850,808110,0,Y
+VM-0000004,RED OAK_WHT VENEER 3/4,Red Oak Veneer_White Mel 15900,ALDER CLR VEN A1 PS PB BM2,no,VEN/LAM,1.669,3.9346,25.04,0,SF,VN,LUMBER,0,2,0.75,15200,809140,0,N
+VN-0000004,ALDER CLEAR VEN 1/4 G1S MDF,Alder Clear Veneer 15800,Stained Alder Veneer,0,VENEER,1.463,4.0479,26.33,0,SF,VN,UKNOWN,0,2,0.25,20800,0,0,Y
+VN-0000005,ALDER CLEAR VEN 1/4 G2S MDF,Alder Clear Veneer 20800,ALDER CLR VEN A1 PS PB BM2,0,VENEER,2.206,4.9337,28.72,0,SF,VN,LUMBER,0,2,0.25,20850,0,0,Y
 VN-0000006,CEDAR AROMATIC VEN 1/4 G1,Cedar Aromatic Veneer Backing,CEDAR AROMATIC VEN250 G1,0,VENEER,0.984,3.4814,24.79,0,SF,VN,AMHARDWOODS,0,2,0.25,30500,808170,0,Y
-VN-0000014,ALDER CLR VN 3/4 AA PS PB BM2,Alder Clear Veneer 15810,Stained Alder Veneer,0,VENEER,4.33,7.2295,29.44,0,SF,VN,SPELLMAN,0,2,0.75,10,808110,0,Y
-VN-0000015,ALDER CLR VN 3/4 A1 PS PB BM2,Alder Clear Veneer ,ALDER CLR VEN A1 PS PB BM2,0,VENEER,2.2,4.9234,28.71,0,SF,VN,SPELLMAN,ALOPAB,2,0.75,15810,808110,0,Y
-VN-0000017,ALDER VENEER AA 4x10 3/4,Alder Veneer 15815,ALDER VENEER 4x10 3/4,0,VENEER,2.885,5.7371,30.92,4X10,SF,VN,UKNOWN,0,2,0.75,15815,808110,0,Y
-VN-0000018,ALDER VEN 3/4 A1 PS CLA PLY,Alder Veneer 35050,ALDER VEN 3/4 A1 PS CLA PLY,no,VENEER,3.41,6.3551,32.61,0,SF,VN,UKNOWN,0,2,0.75,35050,808110,0,Y
-VN-0000042,RED OAK_WHT VENEER 3/4,Red Oak Veneer_White Mel 15900,ALDER CLR VEN A1 PS PB BM2,no,VEN/LAM,1.669,3.9346,25.04,0,SF,VN,LUMBER,0,2,0.75,15200,809140,0,N
+VN-0000014,ALDER CLR VN 3/4 AA PS PB BM2,Alder Clear Veneer 15810,Stained Alder Veneer,0,VENEER,4.33,7.2295,29.44,0,SF,VN,SPELLMAN,0,2,0.75,10,0,0,Y
+VN-0000015,ALDER CLR VN 3/4 A1 PS PB BM2,Alder Clear Veneer ,ALDER CLR VEN A1 PS PB BM2,0,VENEER,2.2,4.9234,28.71,0,SF,VN,SPELLMAN,ALOPAB,2,0.75,15810,0,0,Y
+VN-0000017,ALDER VENEER AA 4x10 3/4,Alder Veneer 15815,ALDER VENEER 4x10 3/4,0,VENEER,2.885,5.7371,30.92,4X10,SF,VN,UKNOWN,0,2,0.75,15815,0,0,Y
+VN-0000018,ALDER VEN 3/4 A1 PS CLA PLY,Alder Veneer 35050,ALDER VEN 3/4 A1 PS CLA PLY,no,VENEER,3.41,6.3551,32.61,0,SF,VN,UKNOWN,0,2,0.75,35050,0,0,Y
 WB-0000002,EURO 24/7 DBL BLACK,EURO 24/7 DBL BLACK,EURO 24/7 DBL BLACK,no,SICO,1693.5,2166.88,"5,678.53",EURO,EA,WB,SICO,5690T.ENNC.BLBL,4,1,0,0,0,Y
 WB-0000008,EURO 24/7 DBL XL BLACK,EURO 24/7 DBL XL BLACK,EURO 24/7 DBL XL BLACK,no,SICO,1759,2248.75,"5,887.32",EURO,EA,WB,SICO,5695T.ENNC.BLBL,4,1,0,0,0,Y
 WB-0000014,EURO 24/7 QUEEN BLACK,EURO 24/7 QUEEN BLACK,EURO 24/7 QUEEN BLACK,no,SICO,1785,2281.25,"5,970.19",EURO,EA,WB,SICO,6395T-ENNC-BLBL,4,1,0,0,0,Y
@@ -1580,29 +1633,29 @@ WD-0000001,4/4 ALDER,4/4 CLEAR ALDER,4/4 ALDER,0,Alder,2.43,4.9337,30.59,0,LF,WD
 WD-0000002,4/4 ALDER JACKET BOARD 15/16,4/4 ALDER JACKET BOARD 15/16,4/4 ALDER JACKET BOARD 15/16,0,Alder,3.43,6.1182,33.52,0,SF,WD,SPELLMAN,0,3,1,0,0,0,Y
 WD-0000003,4/4 ALDER SUPERIOR BLANK,4/4 ALDER SUPERIOR BLANK,4/4 ALDER SUPERIOR BLANK,0,Alder,2.65,5.2015,31.23,0,SF,WD,SPELLMAN,0,3,1,0,0,0,N
 WD-0000005,6/4 CLEAR ALDER,6/4 CLEAR ALDER,6/4 CLEAR ALDER,0,Alder,3.273,5.9328,33.06,0,SF,WD,SPELLMAN,0,3,1,0,0,0,Y
-WD-0000006,HARDBOARD 4x8-1/4 G1S,HARDBOARD 4x8-1/4 G1S,HARDBOARD 4x8-1/4 G1S,0,MDF,0.76,2.6986,9.75,0,SF,WD,UKNOWN,0,2,0.25,40010,890300,0,Y
-WD-0000007,MDF 1/4 (6 mm),MDF 1/4 (6 mm),Painted MDF,0,MDF,0.338,2.2042,8.52,0,SF,WD,UKNOWN,0,2,0.25,20000,890470,0,Y
-WD-0000008,MDF 1/2,MDF 1/2,MDF 1/2,0,MDF,0.639,2.5544,9.39,0,SF,WD,UKNOWN,0,2,0.5,21000,890470,0,Y
-WD-0000009,MDF 5/8,MDF 5/8,MDF 5/8,0,MDF,0.784,2.7295,9.82,0,SF,WD,LUMBER,0,2,0.625,13200,890470,0,Y
-WD-0000010,MDF 3/4,MDF 3/4,Painted MDF,0,MDF,1.7265,3.8522,12.59,0,SF,WD,AMHARDWOODS,0,2,0.75,10,890470,0,Y
-WD-0000011,MDF 4X10-3/4,MDF 4X10-3/4,MDF 4X10-3/4,0,MDF,1.053,3.0488,10.61,0,SF,WD,UKNOWN,0,2,0.75,25010,890470,0,Y
-WD-0000012,MDF 4X16-3/4,MDF 4X16-3/4,MDF 4X16-3/4,0,MDF,0.714,2.6471,9.62,0,SF,WD,UKNOWN,0,2,0.75,25040,890470,0,N
-WD-0000013,MDF ALMOND SLAT WALL 3/4,MDF ALMOND SLAT WALL 3/4,MDF ALMOND SLAT WALL 3/4,0,MDF,1.437,3.502,11.74,0,SF,WD,UKNOWN,0,2,0.75,25000,891200,0,N
-WD-0000014,MDF WHITE SLAT WALL 3/4,MDF WHITE SLAT WALL 3/4,MDF WHITE SLAT WALL 3/4,0,MDF,1.575,3.6668,12.14,0,SF,WD,UKNOWN,0,2,0.75,25000,891100,0,N
-WD-0000015,MDF 1in,MDF 1in,MDF 1in,0,MDF,1.348,3.399,11.48,0,SF,WD,UKNOWN,0,2,1,26100,890470,0,Y
-WD-0000016,MDF 4x10 -1in,MDF 4x10 -1in,MDF 4x10 -1in,0,MDF,1.473,3.5432,11.84,0,SF,WD,UKNOWN,0,2,1,26120,890470,0,Y
-WD-0000017,PBI 1/2,PBI 1/2,PBI 1/2,0,PBI,0.375,1.1639,5.95,0,SF,WD,AMHARDWOODS,0,2,0.5,12000,890560,0,Y
-WD-0000018,PBI 11/16,PBI 11/16,PBI 11/16,0,PBI,0.51,1.3287,6.34,0,SF,WD,UKNOWN,0,2,0.678,17000,890560,0,Y
-WD-0000019,PBI 3/4,PBI 3/4,PBI 3/4,0,PBI,0.519,1.339,6.36,0,SF,WD,LUMBER,0,2,0.75,15000,890560,0,Y
-WD-0000020,PBI 4x10-3/4,PBI 4x10-3/4,PBI 4x10-3/4,0,PBI,1.159,2.0909,8.24,0,SF,WD,AMHARDWOODS,0,2,0.75,15010,890560,0,Y
-WD-0000021,PBI 5X8-3/4,PBI 5X8-3/4,PBI 5X8-3/4,0,PBI,0.975,1.8746,7.7,0,SF,WD,UKNOWN,0,2,0.75,15015,890560,0,Y
-WD-0000022,PBI 1in,PBI 1in,PBI 1in,0,PBI,0.72,1.5759,6.96,0,SF,WD,UKNOWN,0,2,1,18100,890560,0,Y
-WD-0000023,PEGBOARD250 1/4,PEGBOARD250 1/4,PEGBOARD250 1/4,0,Peg,1.09,2.472,14.29,0,SF,WD,LUMBER,0,2,0.25,90300,890570,0,Y
-WD-0000026,LUAN 1/8,LUAN 1/8,LUAN 1/8,0,MDF,0.364,2.2351,8.59,0,SF,WD,LUMBER,0,2,0.125,30000,808370,0,N
-WD-0000027,LUAN BENDER BOARD 3/8,LUAN BENDER BOARD 3/8,LUAN BENDER BOARD 3/8,0,MDF,0.78,2.7295,9.81,0,SF,WD,UKNOWN,0,2,0.375,31800,808370,0,N
-WD-0000028,PLYWOOD ACX 3/4,PLYWOOD ACX 3/4,PLYWOOD ACX 3/4,0,Ply,1.524,3.9449,15.88,0,SF,WD,UKNOWN,0,2,0.75,35010,890700,0,Y
-WD-0000029,PLYWOOD BC SELECT 3/4,PLYWOOD BC SELECT 3/4,PLYWOOD BC SELECT 3/4,0,Ply,1.02,3.3166,14.34,0,SF,WD,AMHARDWOODS,0,2,0.75,35000,890700,0,N
-WD-0000030,PLYWOOD BCX 3/4,PLYWOOD BCX 3/4,PLYWOOD BCX 3/4,0,Ply,1.15,3.4814,14.74,0,SF,WD,UKNOWN,0,2,0.75,35020,890700,0,Y
-WD-0000031,PLYWOOD CC PTS 3/4,PLYWOOD CC PTS 3/4,PLYWOOD CC PTS 3/4,0,Ply,0.94,3.2239,14.1,0,SF,WD,UKNOWN,0,2,0.75,35040,890700,0,N
-WD-0000032,PLYWOOD CDX 3/4,PLYWOOD CDX 3/4,PLYWOOD CDX 3/4,0,Ply,0.885,3.1518,13.93,0,SF,WD,AMHARDWOODS,0,2,0.75,35030,890700,0,Y
-WD-0000033,PLYWOOD CDX 5/8,PLYWOOD CDX 5/8,PLYWOOD CDX 5/8,0,Ply,1.469,3.8728,15.72,0,SF,WD,SPELLMAN,0,2,0.625,35005,890700,0,Y
+WD-0000006,HARDBOARD 4x8-1/4 G1S,HARDBOARD 4x8-1/4 G1S,HARDBOARD 4x8-1/4 G1S,0,MDF,0.76,2.6986,9.75,0,SF,WD,UKNOWN,0,2,0.25,40010,0,0,Y
+WD-0000007,MDF 1/4 (6 mm),MDF 1/4 (6 mm),Painted MDF,0,MDF,0.338,2.2042,8.52,0,SF,WD,UKNOWN,0,2,0.25,20000,0,0,Y
+WD-0000008,MDF 1/2,MDF 1/2,MDF 1/2,0,MDF,0.639,2.5544,9.39,0,SF,WD,UKNOWN,0,2,0.5,21000,0,0,Y
+WD-0000009,MDF 5/8,MDF 5/8,MDF 5/8,0,MDF,0.784,2.7295,9.82,0,SF,WD,LUMBER,0,2,0.625,13200,0,0,Y
+WD-0000010,MDF 3/4,MDF 3/4,Painted MDF,0,MDF,1.7265,3.8522,12.59,0,SF,WD,AMHARDWOODS,0,2,0.75,25000,0,0,Y
+WD-0000011,MDF 4X10-3/4,MDF 4X10-3/4,MDF 4X10-3/4,0,MDF,1.053,3.0488,10.61,0,SF,WD,UKNOWN,0,2,0.75,25010,0,0,Y
+WD-0000012,MDF 4X16-3/4,MDF 4X16-3/4,MDF 4X16-3/4,0,MDF,0.714,2.6471,9.62,0,SF,WD,UKNOWN,0,2,0.75,25040,0,0,N
+WD-0000013,MDF ALMOND SLAT WALL 3/4,MDF ALMOND SLAT WALL 3/4,MDF ALMOND SLAT WALL 3/4,0,MDF,1.437,3.502,11.74,0,SF,WD,UKNOWN,0,2,0.75,25000,0,0,N
+WD-0000014,MDF WHITE SLAT WALL 3/4,MDF WHITE SLAT WALL 3/4,MDF WHITE SLAT WALL 3/4,0,MDF,1.575,3.6668,12.14,0,SF,WD,UKNOWN,0,2,0.75,25000,0,0,N
+WD-0000015,MDF 1in,MDF 1in,MDF 1in,0,MDF,1.348,3.399,11.48,0,SF,WD,UKNOWN,0,2,1,26100,0,0,Y
+WD-0000016,MDF 4x10 -1in,MDF 4x10 -1in,MDF 4x10 -1in,0,MDF,1.473,3.5432,11.84,0,SF,WD,UKNOWN,0,2,1,26120,0,0,Y
+WD-0000017,PBI 1/2,PBI 1/2,PBI 1/2,0,PBI,0.375,1.1639,5.95,0,SF,WD,AMHARDWOODS,0,2,0.5,12000,0,0,Y
+WD-0000018,PBI 11/16,PBI 11/16,PBI 11/16,0,PBI,0.51,1.3287,6.34,0,SF,WD,UKNOWN,0,2,0.678,17000,0,0,Y
+WD-0000019,PBI 3/4,PBI 3/4,PBI 3/4,0,PBI,0.519,1.339,6.36,0,SF,WD,LUMBER,0,2,0.75,15000,0,0,Y
+WD-0000020,PBI 4x10-3/4,PBI 4x10-3/4,PBI 4x10-3/4,0,PBI,1.159,2.0909,8.24,0,SF,WD,AMHARDWOODS,0,2,0.75,15010,0,0,Y
+WD-0000021,PBI 5X8-3/4,PBI 5X8-3/4,PBI 5X8-3/4,0,PBI,0.975,1.8746,7.7,0,SF,WD,UKNOWN,0,2,0.75,15015,0,0,Y
+WD-0000022,PBI 1in,PBI 1in,PBI 1in,0,PBI,0.72,1.5759,6.96,0,SF,WD,UKNOWN,0,2,1,18100,0,0,Y
+WD-0000023,PEGBOARD250 1/4,PEGBOARD250 1/4,PEGBOARD250 1/4,0,Peg,1.09,2.472,14.29,0,SF,WD,LUMBER,0,2,0.25,90300,0,0,Y
+WD-0000026,LUAN 1/8,LUAN 1/8,LUAN 1/8,0,MDF,0.364,2.2351,8.59,0,SF,WD,LUMBER,0,2,0.125,30000,0,0,N
+WD-0000027,LUAN BENDER BOARD 3/8,LUAN BENDER BOARD 3/8,LUAN BENDER BOARD 3/8,0,MDF,0.78,2.7295,9.81,0,SF,WD,UKNOWN,0,2,0.375,31800,0,0,N
+WD-0000028,PLYWOOD ACX 3/4,PLYWOOD ACX 3/4,PLYWOOD ACX 3/4,0,Ply,1.524,3.9449,15.88,0,SF,WD,UKNOWN,0,2,0.75,35010,0,0,Y
+WD-0000029,PLYWOOD BC SELECT 3/4,PLYWOOD BC SELECT 3/4,PLYWOOD BC SELECT 3/4,0,Ply,1.02,3.3166,14.34,0,SF,WD,AMHARDWOODS,0,2,0.75,35000,0,0,N
+WD-0000030,PLYWOOD BCX 3/4,PLYWOOD BCX 3/4,PLYWOOD BCX 3/4,0,Ply,1.15,3.4814,14.74,0,SF,WD,UKNOWN,0,2,0.75,35020,0,0,Y
+WD-0000031,PLYWOOD CC PTS 3/4,PLYWOOD CC PTS 3/4,PLYWOOD CC PTS 3/4,0,Ply,0.94,3.2239,14.1,0,SF,WD,UKNOWN,0,2,0.75,35040,0,0,N
+WD-0000032,PLYWOOD CDX 3/4,PLYWOOD CDX 3/4,PLYWOOD CDX 3/4,0,Ply,0.885,3.1518,13.93,0,SF,WD,AMHARDWOODS,0,2,0.75,35030,0,0,Y
+WD-0000033,PLYWOOD CDX 5/8,PLYWOOD CDX 5/8,PLYWOOD CDX 5/8,0,Ply,1.469,3.8728,15.72,0,SF,WD,SPELLMAN,0,2,0.625,35005,0,0,Y

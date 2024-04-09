@@ -902,6 +902,11 @@ def hook_vertex_group_to_object(obj_mesh, vertex_group, obj_hook):
     obj_hook.select_set(True)
     obj_mesh.hide_set(False)
     obj_mesh.hide_select = False
+
+    # Check to avoid RuntimeError: Error: Cannot add hook with no other selected objects
+    if len(bpy.context.selected_objects) == 0:
+        return
+
     if vertex_group in obj_mesh.vertex_groups:
         vgroup = obj_mesh.vertex_groups[vertex_group]
         obj_mesh.vertex_groups.active_index = vgroup.index
@@ -909,8 +914,10 @@ def hook_vertex_group_to_object(obj_mesh, vertex_group, obj_hook):
         bpy.ops.sn_object.toggle_edit_mode(obj_name=obj_mesh.name)
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.vertex_group_select()
+
         if obj_mesh.data.total_vert_sel > 0:
             bpy.ops.object.hook_add_selob()
+
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.sn_object.toggle_edit_mode(obj_name=obj_mesh.name)
 

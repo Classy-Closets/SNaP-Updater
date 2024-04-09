@@ -277,6 +277,11 @@ def assign_material_pointers(scene=None):
         if mat_props.door_drawer_mat_color_index >= len(door_drawer_mat_type.colors):
             mat_props.door_drawer_mat_color_index = len(door_drawer_mat_type.colors) - 1
 
+        if mat_props.five_piece_melamine_door_mat_color_index >= len(mat_props.five_piece_melamine_door_colors):
+            mat_props.five_piece_melamine_door_mat_color_index = len(mat_props.five_piece_melamine_door_colors) - 1
+
+        five_piece_melamine_door_color = mat_props.five_piece_melamine_door_colors[mat_props.five_piece_melamine_door_mat_color_index]
+
         check_discontinued_colors(mat_props, scene)
 
         curr_ver = sn_utils.get_version_str()
@@ -360,6 +365,11 @@ def assign_material_pointers(scene=None):
                         if new_type_idx is not None and new_color_idx is not None:
                             mat_props.door_drawer_edge_type_index = new_type_idx
                             door_drawer_edge_type.set_color_index(new_color_idx)
+
+                    if five_piece_melamine_door_color.name != room_mat_color:
+                        for color_idx, color in enumerate(mat_props.five_piece_melamine_door_colors):
+                            if color.name.startswith(room_mat_color) and "XL" not in color.name:
+                                mat_props.five_piece_melamine_door_mat_color_index = color_idx
 
                 if custom_colors:
                     edge = None
