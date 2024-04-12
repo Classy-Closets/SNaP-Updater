@@ -342,6 +342,13 @@ def assign_material_pointers(scene=None):
                     if "Snow Drift" in room_mat_color:
                         edge_color = "Winter White"
 
+                    # Check for edge color out of bounds
+                    if mat_props.edge_color_index >= len(edge_type.colors):
+                        mat_props.color_change = False
+                        mat_props.edge_color_index = len(edge_type.colors) - 1
+                        mat_props.secondary_edge_color_index = len(edge_type.colors) - 1
+                        mat_props.door_drawer_edge_color_index = len(edge_type.colors) - 1
+
                     if edge_type.get_edge_color().name != edge_color:
                         new_type_idx, new_color_idx = get_material_indexes(
                             mat_props, mat_props.edges.edge_types, edge_color, is_garage_material, is_edge=True)

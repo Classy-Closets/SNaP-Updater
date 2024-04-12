@@ -1501,6 +1501,8 @@ class SNAP_OT_update_door_selection(Operator):
 
         for obj_bp in door_bps:
             door_assembly = sn_types.Assembly(obj_bp)
+            small_face_needed = False
+            slab_face_needed = False
 
             if props.door_category == "Slab Door":
                 new_door = common_parts.add_door(sn_types.Assembly(obj_bp.parent))
@@ -1515,8 +1517,6 @@ class SNAP_OT_update_door_selection(Operator):
                         child.snap.type_mesh = 'CUTPART'
 
             else:
-                small_face_needed = False
-                slab_face_needed = False
 
                 if door_assembly.obj_bp.get('IS_BP_DRAWER_FRONT'):
                     drawer_height = door_assembly.obj_x.location.x
@@ -1677,15 +1677,18 @@ class SNAP_OT_update_door_selection(Operator):
                 door_style.set_value(props.get_door_style())
                 if new_door.obj_bp.get('IS_BP_DRAWER_FRONT'):
                     drawer_height = new_door.obj_x.location.x
-                    for style in common_lists.FIVE_HOLE_DRAWER_STYLE_LIST:
-                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(155.955):
-                            door_style.set_value(props.get_door_style() + ' 5')
-                    for style in common_lists.SIX_HOLE_DRAWER_STYLE_LIST:
-                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(187.95):
-                            door_style.set_value(props.get_door_style() + ' 6')
-                    for style in common_lists.EIGHT_HOLE_DRAWER_STYLE_LIST:
-                        if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(251.967):
-                            door_style.set_value(props.get_door_style() + ' 8')
+                    if slab_face_needed:
+                        door_style.set_value("Slab Door")
+                    else:
+                        for style in common_lists.FIVE_HOLE_DRAWER_STYLE_LIST:
+                            if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(155.955):
+                                door_style.set_value(props.get_door_style() + ' 5')
+                        for style in common_lists.SIX_HOLE_DRAWER_STYLE_LIST:
+                            if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(187.95):
+                                door_style.set_value(props.get_door_style() + ' 6')
+                        for style in common_lists.EIGHT_HOLE_DRAWER_STYLE_LIST:
+                            if (style in door_style.get_value()) and drawer_height < sn_unit.millimeter(251.967):
+                                door_style.set_value(props.get_door_style() + ' 8')
 
                 if "Traviso" in (door_style.get_value()) and not new_door.obj_bp.get('IS_BP_DRAWER_FRONT'):
                     door_height = new_door.obj_x.location.x
@@ -1712,7 +1715,10 @@ class SNAP_OT_update_door_selection(Operator):
                         height_exceeded_ppt.set_value(False)
 
             if parent_door_style:
-                parent_door_style.set_value(props.get_door_style())
+                if slab_face_needed:
+                    parent_door_style.set_value("Slab Door")
+                else:
+                    parent_door_style.set_value(props.get_door_style())
 
             if parent_glass_color:
                 parent_glass_color.set_value(closet_materials.get_glass_color().name)

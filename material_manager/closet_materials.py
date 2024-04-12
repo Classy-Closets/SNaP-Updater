@@ -976,6 +976,13 @@ class SnapMaterialSceneProps(PropertyGroup):
             sku = self.get_garage_material_sku(obj, assembly, part_name)
             if sku != "Unknown":
                 return sku
+            if (part_name == "Topshelf" or part_name == "Melamine Countertop"):
+                if color_name == "Steel Grey":
+                    return "PM-0000376"
+                elif color_name == "Cosmic Dust":
+                    return "PM-0000365"
+                elif color_name == "Cafe Au Lait":
+                    return "PM-0000321"
             type_code = 8
 
         if type_code == 2 and color_name == "Cafe Au Lait (Cabinet Almond)":
