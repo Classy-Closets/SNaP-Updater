@@ -52,6 +52,11 @@ def is_startup_file():
 def assign_material_pointers(scene=None):
 
     def get_material_indexes(mat_props, mat_types, room_mat_color, is_garage_material, is_edge=False):
+        if not is_garage_material and room_mat_color == "Snow Drift":
+            mat_type = mat_props.materials.mat_types["Solid Color Smooth Finish"]
+            for i, color in enumerate(mat_type.colors):
+                if color.name == "Winter White":
+                    return 0, i
         if is_garage_material and not is_edge:
             if room_mat_color == "Winter White (Oxford White)":
                 return 6, 4
@@ -124,26 +129,83 @@ def assign_material_pointers(scene=None):
             message="\"{}\"\nThis {} color is no longer available to order!".format(color_name, type_name))
 
     def check_countertop_color(scene):
-        discontinued_ct_colors = ["London Sky"]
+        room_ct_color = None
+        countertops = mat_props.countertops
+        ct_type = countertops.get_type()
+        current_ct_color = None
+        current_ct_color = countertops.get_color()
 
-        for obj in bpy.data.objects:
-            # Check for quartz countertop
-            if obj.get("IS_BP_ASSEMBLY") and obj.get("COUNTERTOP_QUARTZ"):
-                product_bp = sn_utils.get_bp(obj, 'PRODUCT')
+        if current_ct_color:
+            current_ct_color = current_ct_color.name
+
+        discontinued_ct_colors = [
+            "London Sky",  # Discontinued v2.7.3
+            "Calacatta Oro",  # Discontinued v2.8.4
+            "Apollo",  # Discontinued v2.9.0
+            "Marble Falls",  # Discontinued v2.9.0
+            "Logan Pass",  # Discontinued v2.9.0
+            "Palmeri",  # Discontinued v2.9.0
+        ]
+
+        # Check if countertop index is out of range
+        if mat_props.ct_color_index >= len(ct_type.colors):
+            print("COUNTERTOP INDEX OUT OF RANGE: FIXING...")
+            mat_props.color_change = False
+            mat_props.ct_color_index = len(ct_type.colors) - 1
+
+        # Check countertop color(s) in the room and compare to current color selection
+        ct_part_mesh = None
+        countertop_bps = [
+            obj for obj in scene.objects
+            if obj.get("IS_BP_COUNTERTOP") or obj.get("IS_BP_CABINET_COUNTERTOP")]
+
+        for obj_bp in countertop_bps:
+            # Check for quartz countertops
+            if obj_bp.get("COUNTERTOP_QUARTZ"):
+                product_bp = sn_utils.get_bp(obj_bp, 'PRODUCT')
                 product_ver = product_bp.get('SNAP_VERSION')
+                countertop_bp = sn_utils.get_countertop_bp(obj_bp)
 
-                # Check if product is older than current version
-                if not product_ver or product_ver < sn_utils.get_version_str():
-                    for child in obj.children:
-                        if child.type == 'MESH' and child.visible_get():
-                            for mat_slot in child.material_slots:
-                                # Show message box if material is discontinued
-                                if mat_slot.material.name in discontinued_ct_colors:
-                                    message_box("Countertop", mat_slot.material.name)
+                if countertop_bp:
+                    ct_part_mesh = get_part_mesh(obj_bp, 'BUYOUT')
+
+                if ct_part_mesh:
+                    # Check if product is older than current version
+                    if not product_ver or product_ver < sn_utils.get_version_str():
+                        # Show message box if material is discontinued
+                        for mat_slot in ct_part_mesh.material_slots:
+                            if mat_slot.material.name in discontinued_ct_colors:
+                                message_box("Countertop", mat_slot.material.name)
+                                return
+
+                    if not room_ct_color:
+                        # Ignore countertops using unique materials
+                        if not countertop_bp.sn_closets.use_unique_material:
+                            ct_mat_slot = ct_part_mesh.snap.material_slots.get("Countertop")
+                            if ct_mat_slot:
+                                room_ct_color = ct_part_mesh.snap.material_slots["Countertop"].item_name
+
+                # Check if room countertop color is different from current color selection
+                if room_ct_color and current_ct_color:
+                    if current_ct_color != room_ct_color:
+                        ct_types = mat_props.countertops.countertop_types
+                        new_type_idx = None
+                        new_color_idx = None
+
+                        # Find new color index
+                        for mat_idx, mat_type in enumerate(ct_types):
+                            for color_idx, color in enumerate(mat_type.colors):
+                                if color.name.startswith(room_ct_color):
+                                    new_type_idx = mat_idx
+                                    new_color_idx = color_idx
                                     break
 
+                        # Set new color index if found
+                        if new_type_idx is not None and new_color_idx is not None:
+                            mat_props.ct_type_index = new_type_idx
+                            mat_props.ct_color_index = new_color_idx
+
     def check_discontinued_colors(mat_props, scene):
-        check_countertop_color(scene)
         color_name = mat_props.materials.get_mat_type().get_mat_color().name
         is_frosted_forest = "Frosted Forest" in color_name
         is_bridal_shower = "Bridal Shower" in color_name
@@ -292,6 +354,8 @@ def assign_material_pointers(scene=None):
                 print(f"Room version ({room_ver}) is older than current version - Updating room color indexes...")
                 if mat_props.use_kb_color_scheme:
                     update_kb_colors(mat_props)
+
+                check_countertop_color(scene)
 
                 # if not custom_colors:
                 for obj in scene.objects:

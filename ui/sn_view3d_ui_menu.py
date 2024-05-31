@@ -133,7 +133,7 @@ class VIEW3D_MT_object_context_menu(Menu):
         closet_bp = sn_utils.get_closet_bp(obj)
         insert_bp = sn_utils.get_bp(context.object, 'INSERT')
         carcass_bp = sn_utils.get_carcass_bp(context.object)
-        countertop_bp = sn_utils.get_countertop_bp(context.object)
+        cab_countertop_bp = sn_utils.get_cabinet_countertop_bp(context.object)
         entry_door_bp = sn_utils.get_entry_door_bp(context.object)
         window_bp = sn_utils.get_window_bp(context.object)
         appliance_bp = sn_utils.get_appliance_bp(context.object)
@@ -174,7 +174,7 @@ class VIEW3D_MT_object_context_menu(Menu):
                     icon='X')
                 
             if insert_bp:
-                if not appliance_bp and not carcass_bp and not countertop_bp:
+                if not appliance_bp and not carcass_bp and not cab_countertop_bp:
                     layout.operator(
                         'sn_closets.copy_insert',
                         text="Copy - {}".format(insert_bp.snap.name_object),

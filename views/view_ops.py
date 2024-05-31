@@ -5168,20 +5168,21 @@ class VIEW_OT_generate_2d_views(Operator):
                             re_origin = instance_info[1]
 
                             if instance:
-                                new_scene.collection.objects.link(instance)
-                                if show_csh_lsh and has_csh_lsh:
-                                    if re_origin:
-                                        if re_origin.get("origin_loc_x") and re_origin.get("origin_rot"):
-                                            bpy.ops.object.select_all(action='DESELECT')
-                                            bpy.context.scene.cursor.location = (re_origin["origin_loc_x"], 0, 0)
-                                            instance.select_set(True)
-                                            bpy.context.view_layer.objects.active = instance
-                                            bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='BOUNDS')
-                                            instance.rotation_euler = re_origin["origin_rot"]
-                                    self.add_csh_lsh_accordion_dims(instance)
-                                    # adjust if needed for right corner at end of wall
-                                    self.adjust_accordion_dims(instance)
-                                    self.add_kb_corner_accordion_dims(instance)
+                                if instance.name not in new_scene.collection.objects:
+                                    new_scene.collection.objects.link(instance)
+                                    if show_csh_lsh and has_csh_lsh:
+                                        if re_origin:
+                                            if re_origin.get("origin_loc_x") and re_origin.get("origin_rot"):
+                                                bpy.ops.object.select_all(action='DESELECT')
+                                                bpy.context.scene.cursor.location = (re_origin["origin_loc_x"], 0, 0)
+                                                instance.select_set(True)
+                                                bpy.context.view_layer.objects.active = instance
+                                                bpy.ops.object.origin_set(type='ORIGIN_CURSOR', center='BOUNDS')
+                                                instance.rotation_euler = re_origin["origin_rot"]
+                                        self.add_csh_lsh_accordion_dims(instance)
+                                        # adjust if needed for right corner at end of wall
+                                        self.adjust_accordion_dims(instance)
+                                        self.add_kb_corner_accordion_dims(instance)
 
                 wall_assy = sn_types.Assembly(wall)
                 self.create_elevation_floor(new_scene, wall_assy)

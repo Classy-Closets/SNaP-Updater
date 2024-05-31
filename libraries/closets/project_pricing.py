@@ -32,6 +32,7 @@ LENGTH = 0
 WIDTH = 0
 THICKNESS = 0
 DESCRIPTION = ''
+ROOM_DRAWING_NUMBER = ''
 PART_TYPE = ''
 
 NAME = ''
@@ -479,6 +480,8 @@ def generate_retail_pricing_summary(parts_file):
     erp_sheet["D" + str(erp_row + 1)].font = openpyxl.styles.Font(bold=True)
     erp_sheet["E" + str(erp_row + 1)] = "Est Materials Cost"
     erp_sheet["E" + str(erp_row + 1)].font = openpyxl.styles.Font(bold=True)
+    erp_sheet["F" + str(erp_row + 1)] = "Room Drawing Number"
+    erp_sheet["F" + str(erp_row + 1)].font = openpyxl.styles.Font(bold=True)
 
     for i in range(len(R_ROOM_PRICING_LIST)):
         pricing_sheet["A" + str(row_start + 1)] = "Room Name"
@@ -601,6 +604,7 @@ def generate_retail_pricing_summary(parts_file):
         erp_sheet["D" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
         erp_sheet["E" + str(erp_row + 2)] = "=D" + str(erp_row + 2) + "*0.5"
         erp_sheet["E" + str(erp_row + 2)].number_format = openpyxl.styles.numbers.FORMAT_CURRENCY_USD_SIMPLE
+        erp_sheet["F" + str(erp_row + 2)] = R_ROOM_PRICING_LIST[i][11]
 
         pricing_sheet["A" + str(row_start + 17)] = ""
         row_start = pricing_sheet.max_row
@@ -3109,6 +3113,10 @@ def calculate_project_price(xml_file, cos_flag=False):
         for description in item.findall("Description"):
             DESCRIPTION = description.text
 
+        for var in item.findall("Var"):
+            if var.find("Name").text == "DrawingNum":
+                ROOM_DRAWING_NUMBER = var.find("Value").text
+
         for part in item.findall("Part"):
             PART_LABEL_ID = part.attrib.get('LabelID')
 
@@ -3881,7 +3889,21 @@ def calculate_project_price(xml_file, cos_flag=False):
                 THICKNESS = 0
 
         R_ROOM_TOTAL_PRICE = sum(map(float, R_MATERIAL_PRICES)) + sum(map(float, R_HARDWARE_PRICES)) + sum(map(float, R_ACCESSORY_PRICES)) + sum(map(float, R_UPGRADED_PANEL_PRICES)) + sum(map(float, R_GLASS_PRICES))
-        R_ROOM_PRICING_LIST.append([DESCRIPTION, sum(map(float, R_MATERIAL_SQUARE_FOOTAGE)), sum(map(float, R_MATERIAL_LINEAR_FOOTAGE)), sum(map(float, R_MATERIAL_PRICES)), sum(map(float, R_HARDWARE_PRICES)), sum(map(float, R_ACCESSORY_PRICES)), sum(map(float, R_UPGRADED_PANEL_PRICES)), len(R_SPECIAL_ORDER_PRICES), sum(map(float, R_LABOR_PRICES)), sum(map(float, R_GLASS_PRICES)), R_ROOM_TOTAL_PRICE])
+        R_ROOM_PRICING_LIST.append([
+            DESCRIPTION,
+            sum(map(float, R_MATERIAL_SQUARE_FOOTAGE)),
+            sum(map(float, R_MATERIAL_LINEAR_FOOTAGE)),
+            sum(map(float, R_MATERIAL_PRICES)),
+            sum(map(float, R_HARDWARE_PRICES)),
+            sum(map(float, R_ACCESSORY_PRICES)),
+            sum(map(float, R_UPGRADED_PANEL_PRICES)),
+            len(R_SPECIAL_ORDER_PRICES),
+            sum(map(float, R_LABOR_PRICES)),
+            sum(map(float, R_GLASS_PRICES)),
+            R_ROOM_TOTAL_PRICE,
+            ROOM_DRAWING_NUMBER,
+            ])
+
         R_PROJECT_TOTAL_HARDWARE.append(sum(map(float, R_HARDWARE_PRICES)))
         R_PROJECT_TOTAL_ACCESSORIES.append(sum(map(float, R_ACCESSORY_PRICES)))
         R_PROJECT_TOTAL_SQUARE_FOOTAGE.append(sum(map(float, R_MATERIAL_SQUARE_FOOTAGE)))

@@ -1400,15 +1400,23 @@ class SNAP_OT_update_door_selection(Operator):
             if slot.name == 'Melamine Door Panel':
                 slot.pointer_name = "Five_Piece_Melamine_Door_Surface"
 
-    def get_door_assembly(self, obj):
+    def is_valid_door(self, obj):
+        valid_door = False
         is_door = obj.get("IS_DOOR")
         is_bp_drawer_front = obj.get("IS_BP_DRAWER_FRONT")
         is_bp_hamper_front = obj.get("IS_BP_HAMPER_FRONT")
+
         if is_door or is_bp_drawer_front or is_bp_hamper_front:
+            valid_door = True
+
+        return valid_door
+
+    def get_door_bp(self, obj):
+        if self.is_valid_door(obj):
             return obj
         else:
             if obj.parent:
-                return self.get_door_assembly(obj.parent)
+                return self.get_door_bp(obj.parent)
 
     def get_door_match(self, context, obj_bp):
         insert_bp = sn_utils.get_bp(obj_bp, 'INSERT')
@@ -1430,6 +1438,7 @@ class SNAP_OT_update_door_selection(Operator):
                         if driver_var.name == "DF_Height":
                             driver_var.targets[0].id = new_door.obj_x
                             print("FOUND DRIVER:", driver_var.name, driver_var.targets[0].id.name)
+
     # def invoke(self, context, event):
     #     wm = context.window_manager
     #     return wm.invoke_props_dialog(self, width=400)
@@ -1469,35 +1478,67 @@ class SNAP_OT_update_door_selection(Operator):
         # row6.prop(self, "upper_drawers", text="")
         # row6.label(text="Upper Drawers")
 
+    def check_and_repair_door(self, obj_bp):
+        """Doors may have lost tag or have missing properties. This function will attempt to check and repair them."""
+        # Exclude entry doors
+        if obj_bp.get("IS_BP_ENTRY_DOOR"):
+            return
+
+        door_missing_tag = not self.is_valid_door(obj_bp)
+
+        if door_missing_tag:
+            if "door" in obj_bp.name.lower():
+                obj_bp["IS_DOOR"] = True
+                return obj_bp
+            elif "drawer" in obj_bp.name.lower():
+                obj_bp["IS_BP_DRAWER_FRONT"] = True
+                return obj_bp
+            elif "hamper door" in obj_bp.name.lower():
+                obj_bp["IS_BP_HAMPER_FRONT"] = True
+                return obj_bp
+
     def execute(self, context):
+        st = time.time()
+        assign_materials = False
+        del_objs = []
         door_bps = []
         props = bpy.context.scene.sn_closets.closet_options
         closet_materials = bpy.context.scene.closet_materials
 
-        for obj in context.selected_objects:
-            closet_bp = sn_utils.get_closet_bp(obj)
+        selected_assy_bps = [sn_utils.get_assembly_bp(obj) for obj in context.selected_objects if sn_utils.get_assembly_bp(obj)]
 
-            if closet_bp:
+        for obj_bp in selected_assy_bps:
+            closet_bp = sn_utils.get_closet_bp(obj_bp)
+            cabinet_bp = sn_utils.get_cabinet_bp(obj_bp)
+
+            if closet_bp or cabinet_bp:
+                # Wall bed doors
                 if closet_bp.get("IS_BP_WALL_BED"):
                     for child in closet_bp.children:
                         if child.get("IS_DOOR"):
                             for nchild in child.children:
                                 if nchild.get("IS_DOOR"):
-                                    door_bp = self.get_door_assembly(nchild)
+                                    door_bp = self.get_door_bp(nchild)
                                     if door_bp and door_bp not in door_bps:
                                         door_bps.append(door_bp)
 
-            door_bp = self.get_door_assembly(obj)
+                # Door may be valid but missing the correct tag. Check name in this case.
+                door_candidate = "door" in obj_bp.name.lower() or "drawer" in obj_bp.name.lower()
+                door_bp = self.get_door_bp(obj_bp)
 
-            if door_bp and door_bp not in door_bps:
-                door_bps.append(door_bp)
-                insert_bp = sn_utils.get_bp(door_bp, 'INSERT')
-                bp_cabinet = "IS_BP_CABINET" in closet_bp
+                # Check for broken door/drawers
+                if not door_bp and door_candidate:
+                    door_bp = self.check_and_repair_door(obj_bp)
 
-                if not bp_cabinet:
-                    if insert_bp and insert_bp.get('IS_BP_DOOR_INSERT'):
-                        door_match_bp = self.get_door_match(context, door_bp)
-                        door_bps.append(door_match_bp)
+                if door_bp and door_bp not in door_bps:
+                    door_bps.append(door_bp)
+                    insert_bp = sn_utils.get_bp(door_bp, 'INSERT')
+                    bp_cabinet = "IS_BP_CABINET" in closet_bp
+
+                    if not bp_cabinet:
+                        if insert_bp and insert_bp.get('IS_BP_DOOR_INSERT'):
+                            door_match_bp = self.get_door_match(context, door_bp)
+                            door_bps.append(door_match_bp)
 
         for obj_bp in door_bps:
             door_assembly = sn_types.Assembly(obj_bp)
@@ -1597,13 +1638,13 @@ class SNAP_OT_update_door_selection(Operator):
 
             id_prompt = door_assembly.obj_bp.get("ID_PROMPT")
 
+            # Failing to copy the drivers will cause the door to not update properly
             sn_utils.copy_assembly_prompts(door_assembly, new_door)
             sn_utils.copy_drivers(door_assembly.obj_bp, new_door.obj_bp)
             sn_utils.copy_prompt_drivers(door_assembly.obj_bp, new_door.obj_bp)
             sn_utils.copy_drivers(door_assembly.obj_x, new_door.obj_x)
             sn_utils.copy_drivers(door_assembly.obj_y, new_door.obj_y)
             sn_utils.copy_drivers(door_assembly.obj_z, new_door.obj_z)
-
 
             obj_props = new_door.obj_bp.sn_closets
             obj_props.is_door_bp = door_assembly.obj_bp.sn_closets.is_door_bp
@@ -1658,7 +1699,7 @@ class SNAP_OT_update_door_selection(Operator):
             if obj_props.is_hamper_front_bp:
                 new_door.obj_bp['IS_BP_HAMPER_FRONT'] = True
 
-            sn_utils.delete_obj_list(sn_utils.get_child_objects(door_assembly.obj_bp, []))
+            del_objs.extend(sn_utils.get_child_objects(door_assembly.obj_bp, []))
 
             parent_assembly = sn_types.Assembly(new_door.obj_bp.parent)
             parent_door_style = parent_assembly.get_prompt("Door Style")
@@ -1728,9 +1769,16 @@ class SNAP_OT_update_door_selection(Operator):
 
             if obj_product_bp.get("IS_BP_CABINET") and obj_product_bp.get("MATERIAL_POINTER_NAME"):
                 sn_utils.add_kb_insert_material_pointers(obj_product_bp)
-                bpy.ops.closet_materials.poll_assign_materials()
+                assign_materials = True
+
+        if assign_materials:
+            bpy.ops.closet_materials.poll_assign_materials()
+
+        sn_utils.delete_obj_list(del_objs)
 
         bpy.context.view_layer.update()
+
+        print("SNAP_OT_update_door_selection - TIME:", time.time() - st)
 
         return {'FINISHED'}
 

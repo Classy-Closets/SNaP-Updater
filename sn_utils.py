@@ -277,7 +277,8 @@ def get_cabinet_bp(obj):
         return obj
     elif obj.parent:
         return get_cabinet_bp(obj.parent)
-    
+
+
 def get_closet_bp(obj):
     if not obj:
         return None
@@ -285,7 +286,8 @@ def get_closet_bp(obj):
         return obj
     elif obj.parent:
         return get_closet_bp(obj.parent)
-    
+
+
 def get_corner_bp(obj):
     if not obj:
         return None
@@ -293,6 +295,7 @@ def get_corner_bp(obj):
         return obj
     elif obj.parent:
         return get_corner_bp(obj.parent)
+
 
 def get_carcass_bp(obj):
     if not obj:
@@ -304,13 +307,24 @@ def get_carcass_bp(obj):
     elif obj.parent:
         return get_carcass_bp(obj.parent)
 
+
 def get_countertop_bp(obj):
+    if not obj:
+        return None
+    if "IS_BP_COUNTERTOP" in obj:
+        return obj
+    elif obj.parent:
+        return get_countertop_bp(obj.parent)
+
+
+def get_cabinet_countertop_bp(obj):
     if not obj:
         return None
     if "IS_BP_CABINET_COUNTERTOP" in obj:
         return obj
     elif obj.parent:
-        return get_countertop_bp(obj.parent)
+        return get_cabinet_countertop_bp(obj.parent)
+
 
 def get_tagged_bp(obj, tag):
     if not obj:
@@ -2146,7 +2160,7 @@ def copy_assembly_prompts(assembly, target_assembly):
                                 newdriver = target_prompt.id_data.driver_add(
                                     driver.data_path)
                             except Exception:
-                                print("Unable to Copy Prompt Driver", driver.data_path)
+                                print("copy_assembly_prompts Unable to Copy Prompt Driver", driver.data_path)
                         if newdriver:
                             newdriver.driver.expression = driver.driver.expression
                             newdriver.driver.type = driver.driver.type
@@ -2610,7 +2624,7 @@ def copy_drivers(obj, obj_target):
                 try:
                     newdriver = obj_target.driver_add(driver.data_path)
                 except Exception:
-                    print("Unable to Copy Prompt Driver", driver.data_path)
+                    print("copy_drivers Unable to Copy Prompt Driver", driver.data_path)
             if newdriver:
                 newdriver.driver.expression = driver.driver.expression
                 newdriver.driver.type = driver.driver.type
@@ -2649,8 +2663,7 @@ def copy_prompt_drivers(obj, obj_target):
                                 newdriver = obj_target.driver_add(
                                     driver.data_path)
                             except Exception:
-                                print("Unable to Copy Prompt Driver",
-                                      driver.data_path)
+                                print("copy_prompt_drivers Unable to Copy Prompt Driver", driver.data_path)
                     if newdriver:
                         newdriver.driver.expression = driver.driver.expression
                         newdriver.driver.type = driver.driver.type

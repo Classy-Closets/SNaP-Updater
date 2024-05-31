@@ -70,8 +70,8 @@ def update_material_and_edgeband_colors(self, context):
     if not self.use_custom_color_scheme and self.defaults_set:
         self.set_all_material_colors()
 
-    elif self.use_custom_color_scheme:
-        self.set_default_upgrade_selection()
+    # elif self.use_custom_color_scheme:
+    #     self.set_default_upgrade_selection()
 
     if mat_type.name == "Garage Material":
         steel_grey_black_edge = mat_color_name == "Steel Grey" and self.use_black_edge
@@ -566,6 +566,13 @@ class SnapMaterialSceneProps(PropertyGroup):
             obj_props.is_drawer_sub_front_bp,
         ]
 
+        # Objects With Unique Material
+        if obj_props.use_unique_material:
+            mat_type = self.materials.mat_types[obj_props.unique_mat_types]
+            mat_name = sn_utils.get_unique_material_name(obj_props.unique_mat, assembly.obj_bp)
+            type_code = 1037
+            color_code = mat_type.colors[mat_name].color_code
+
         # 1/2 Melamine drawer box parts
         if any(drawer_box_parts):
             box_type_ppt = assembly.get_prompt("Box Type")
@@ -601,16 +608,6 @@ class SnapMaterialSceneProps(PropertyGroup):
         if any(door_drawer_parts):
             type_code = self.door_drawer_edges.get_edge_type().type_code
             color_code = self.door_drawer_edges.get_edge_color().color_code
-
-        # Countertops with Unique Material
-        if any(countertop_parts):
-            if obj_props.use_unique_material and 'Melamine' not in part_name:
-                mat_type = self.materials.mat_types[obj_props.unique_mat_types]
-                mat_name = sn_utils.get_unique_material_name(obj_props.unique_mat, assembly.obj_bp)
-                type_code = mat_type.type_code
-                if type_code == 5: # Change EB typecode to old 1037 to locate in CCItems
-                    type_code = 1037
-                color_code = mat_type.colors[mat_name].color_code
 
         # 1/2 Melamine drawer box parts
         if any(drawer_box_parts):
@@ -1699,16 +1696,17 @@ class SnapMaterialSceneProps(PropertyGroup):
         return mat_color_indexes[mat_type]
 
     def set_all_edge_colors(self, mat_color):
-        for type_index, edge_type in enumerate(self.edges.edge_types):
-            if mat_color.name in edge_type.colors:
-                color_index = edge_type.colors.find(mat_color.name)
-                self.edge_type_index = type_index
-                self.secondary_edge_type_index = type_index
-                self.door_drawer_edge_type_index = type_index
-                self.edge_color_index = color_index
-                self.secondary_edge_color_index = color_index
-                self.door_drawer_edge_color_index = color_index
-                break
+        if not self.use_custom_color_scheme:
+            for type_index, edge_type in enumerate(self.edges.edge_types):
+                if mat_color.name in edge_type.colors:
+                    color_index = edge_type.colors.find(mat_color.name)
+                    self.edge_type_index = type_index
+                    self.secondary_edge_type_index = type_index
+                    self.door_drawer_edge_type_index = type_index
+                    self.edge_color_index = color_index
+                    self.secondary_edge_color_index = color_index
+                    self.door_drawer_edge_color_index = color_index
+                    break
 
     def set_edge(self, color_name):
         for type_index, edge_type in enumerate(self.edges.edge_types):
@@ -1728,6 +1726,31 @@ class SnapMaterialSceneProps(PropertyGroup):
         self.door_drawer_mat_type_index = self.door_drawer_materials.mat_types.find(material_type.name)
         door_drawer_mat_type = self.door_drawer_materials.get_mat_type()
         self.door_drawer_mat_color_index = door_drawer_mat_type.colors.find(material_color.name)
+
+        if door_drawer_mat_type.get_color_index() != self.door_drawer_mat_color_index:
+            door_drawer_mat_type.set_color_index(self.door_drawer_mat_color_index)
+
+        stain_colors = self.get_stain_colors()
+        paint_colors = self.get_paint_colors()
+
+        if material_color.name in stain_colors:
+            self.upgrade_type_index = 2
+            self.stain_color_index = self.stain_colors.find(material_color.name)
+        elif material_color.name in paint_colors:
+            if (material_color.name == "Snow Drift" or material_color.name == "Mountain Peak"):
+                self.paint_color_index = self.paint_colors.find("Winter White")
+
+            elif material_color.name == "Bridal Shower (Antique White) Δ":
+                self.paint_color_index = self.paint_colors.find("Warm Spring")
+
+            elif material_color.name in paint_colors:
+                self.paint_color_index = self.paint_colors.find(material_color.name)
+        else:
+            self.upgrade_type_index = 1
+            self.paint_color_index = self.paint_colors.find("Winter White")
+
+            
+
 
         if self.five_piece_melamine_door_colors.find(material_color.name) != -1:
             if "Bridal Shower (Antique White) Δ" in material_color.name:

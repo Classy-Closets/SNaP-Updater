@@ -244,9 +244,9 @@ class Room(PropertyGroup, CollectionMixIn):
 
             # Save file to project dir
             if save_room_file:
-                bpy.ops.wm.save_as_mainfile(filepath=self.file_path)
                 scene = sn_utils.get_main_scene()
                 scene.sn_roombuilder.room_version = sn_utils.get_version_str()
+                bpy.ops.wm.save_as_mainfile(filepath=self.file_path)
 
             wm.current_file_project = project.name
             wm.current_file_room = self.name

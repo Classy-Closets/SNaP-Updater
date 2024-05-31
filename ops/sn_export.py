@@ -2219,7 +2219,7 @@ class OPS_Export_XML(Operator):
         bore_dia = sn_unit.meter_to_inch(sn_unit.millimeter(35))
         dim_in_x = sn_unit.meter_to_inch(sn_unit.millimeter(21))
         dim_in_y = sn_unit.meter_to_inch(sn_unit.millimeter(78))                                   
-        bore_depth = sn_unit.meter_to_inch(sn_unit.millimeter(11.5))
+        bore_depth = sn_unit.meter_to_inch(sn_unit.inch(0.55))
         screw_hole_x_dim = sn_unit.meter_to_inch(sn_unit.millimeter(9.5)) 
         screw_hole_dia = sn_unit.meter_to_inch(sn_unit.millimeter(1.5)) 
         screw_hole_depth = sn_unit.meter_to_inch(sn_unit.millimeter(2))
