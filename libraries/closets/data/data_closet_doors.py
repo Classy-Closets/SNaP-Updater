@@ -739,7 +739,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
 
     door_opening_height: EnumProperty(
         name="Height",
-        items=common_lists.OPENING_HEIGHTS,
+        items=common_lists.DOOR_OPENING_HEIGHTS,
         update=update_door_opening_height)
 
     use_shelves: BoolProperty(name="Use Shelves", default=False, update=update_use_shelves)
@@ -961,9 +961,9 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         self.plant_on_top_opening_height = common_lists.PLANT_ON_TOP_OPENING_HEIGHTS[index - 1][0]
                         break
             else:
-                for index, height in enumerate(common_lists.OPENING_HEIGHTS):
+                for index, height in enumerate(common_lists.DOOR_OPENING_HEIGHTS):
                     if not value >= float(height[0]):
-                        self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
+                        self.door_opening_height = common_lists.DOOR_OPENING_HEIGHTS[index - 1][0]
                         break
 
     def closest_hole_amt(self, opening_heights, height):
@@ -1004,9 +1004,9 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                         if self.door_height_exceeded:
                             self.assembly.get_prompt("Fill Opening").set_value(False)
                             self.assembly.get_prompt("Insert Height").set_value(sn_unit.millimeter(1485.392))
-                            for index, height in enumerate(common_lists.OPENING_HEIGHTS):
+                            for index, height in enumerate(common_lists.DOOR_OPENING_HEIGHTS):
                                 if not 1485.392 >= float(height[0]):
-                                    self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
+                                    self.door_opening_height = common_lists.DOOR_OPENING_HEIGHTS[index - 1][0]
                                     break
 
     def check(self, context):

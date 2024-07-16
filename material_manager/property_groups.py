@@ -12,7 +12,7 @@ from bpy.props import (
     EnumProperty
 )
 
-from snap import sn_paths
+from snap import sn_paths, sn_utils
 
 
 def render_material_exists(material_name):
@@ -494,7 +494,8 @@ class Materials(PropertyGroup):
                 bool_value=defaults.thick_adjustable_shelves)
 
     def get_mat_type(self):
-        scene_props = bpy.context.scene.closet_materials
+        # scene_props = bpy.context.scene.closet_materials
+        scene_props = sn_utils.get_main_scene().closet_materials
         return self.mat_types[scene_props.mat_type_index]
 
     def get_type_list(self):

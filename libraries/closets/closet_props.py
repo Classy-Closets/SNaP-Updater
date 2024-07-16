@@ -91,6 +91,7 @@ def update_unique_mat_pointer(self, context):
 
         update_render_materials(self, context)
 
+
 def update_unique_glass_color(self, context):
     obj = context.object
     if obj:
@@ -121,7 +122,6 @@ def update_unique_glass_color(self, context):
                                 glass_color = part_assembly.get_prompt("Glass Color")
                                 if glass_color:
                                     glass_color.set_value(cab_mat_props.get_glass_color().name)
-                    
 
 
 # ---------DICTIONARY DYNAMIC ENUM PROPERTIES
@@ -390,9 +390,8 @@ def scene_parts(context):
     for obj in bpy.data.objects:
         if obj.get('IS_BP_ASSEMBLY'):
             part = sn_types.Part(obj)
-            if part_is_not_hidden(part):
-                if obj.name in [obj.name for obj in context.view_layer.objects]:
-                    yield part
+            if obj.name in [obj.name for obj in context.view_layer.objects]:
+                yield part
 
 
 def enum_rods(self, context):
@@ -1198,13 +1197,12 @@ class Closet_Defaults(PropertyGroup):
 
 
 class Closet_Options(PropertyGroup):
-    
     hardware_tabs: EnumProperty(name="Hardware Tabs",
                                  items=[('RODS',"Rods",'Show the rod options'),
                                         ('PULLS',"Pulls",'Show the pull options'),
                                         ('HINGES',"Hinges",'Show the hinge options')],
                                  default = 'RODS')
-    
+
     base_molding_category: EnumProperty(name="Base Molding Category",items=enum_base_molding_categories,update=update_base_molding_category)
     base_molding: EnumProperty(name="Base Molding",items=enum_base_molding)
     
@@ -1247,13 +1245,13 @@ class Closet_Options(PropertyGroup):
                                         ('DOVE',"Dovetail Drawer Box",'Show the slide options')],
                                  default = 'MEL')    
 
-    dt_slide_name: EnumProperty(name="Dove Tail Slide Name",items=enum_dt_slides)    
+    dt_slide_name: EnumProperty(name="Dove Tail Slide Name",items=enum_dt_slides)
     mel_slide_name: EnumProperty(name="Melamine Slide Name",items=enum_mel_slides)
 
     pole_cup_name: EnumProperty(name="Pole Cup Name",items=enum_rod_cups)
-    
+
     accessory_category: EnumProperty(name="Accessory Category",items=enum_accessories_categories,update=update_accessories_category)
-    accessory_name: EnumProperty(name="Accessory Name",items=enum_accessories)    
+    accessory_name: EnumProperty(name="Accessory Name",items=enum_accessories)
 
     def get_door_style(self):
         if self.door_category == "Glass Inset Doors":
@@ -1419,25 +1417,6 @@ class Closet_Options(PropertyGroup):
             row = col.row(align=True)
             row.label(text="Hinges:")
             col.template_icon_view(self,"hinge_name",show_labels=True)
-        
-        # if self.hardware_tabs == 'DRAWERS':
-        #     col = hardware_box.column(align=True)
-        #     row = col.row()
-        #     row.prop(self,'box_type',expand=True)
-            
-        #     if self.box_type == 'MEL':
-        #         row = col.row(align=True)
-        #         row.label(text="Melamine Slides:")
-        #         mat_props = bpy.context.scene.closet_materials
-        #         slide_type = mat_props.get_drawer_slide_type()
-        #         col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
-
-        #     else:
-        #         row = col.row(align=True)
-        #         row.label(text="Dovetail Slides:")
-        #         mat_props = bpy.context.scene.closet_materials
-        #         slide_type = mat_props.get_drawer_slide_type()
-        #         col.menu('SNAP_MATERIAL_MT_Drawer_Slides', text=slide_type.name, icon='SOLO_ON')
 
 
 class Project_Property(PropertyGroup):

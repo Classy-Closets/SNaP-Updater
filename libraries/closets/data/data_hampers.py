@@ -559,7 +559,6 @@ class OPS_Hamper_Drop(Operator, PlaceClosetInsert):
             event,
             objects=self.include_objects,
             exclude_objects=self.exclude_objects)
-
         self.position_asset(context)
 
         if self.adjacent_cant_be_deeper and self.is_between_deeper():

@@ -1,0 +1,175 @@
+<html>
+<head>
+<meta content="text/html"; charset="utf-8" http-equiv="Content-Type" />
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="pragma" content="no-cache">
+<meta http-equiv="expires" content="0">
+<title>Classy Closets Proposal</title>
+<style type="text/css">
+
+  body {
+      /* Set background image */
+      background-image: url('<s3_resource_url>/prop_background_1.jpg');
+      
+      /* Ensure full coverage of the viewport */
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      font-family: "Calibri Light", Arial, sans-serif;
+      font-size: 1rem;
+      color: #1A1818;
+      background-size: cover; /* Cover the entire viewport */
+      background-position: center; /* Center the background image */
+      position: relative; /* Required for stacking */
+    }
+  
+    /* Create a pseudo-element for gradient overlay */
+    body::before {
+      content: "";
+      z-index: 0; /* Ensure the content is on top of the gradient */
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(to top, rgba(255,255,255,0), rgba(255,255,255,1)); /* White gradient */
+      height: 50%
+      /* Adjust gradient opacity and colors as needed */
+    }
+  
+  img {
+      border: 1px solid black; /* Set border width and color */
+      /* You can adjust the border width, style, and color as needed */
+  }
+  
+  .content-logo {
+      z-index: 2; /* Ensure the content is on top of the gradient */
+      position: absolute; /* Required for stacking */
+    
+      padding: 0 25px;
+      background-color: white;
+      border: 0px solid black;
+      width: 50%
+      
+    }
+    
+  .img-logo {
+      width: 100%; /* Set the width to 50% (adjust as needed) */
+      max-width: 100%; /* Ensure the image doesn't exceed its container */
+      height: auto; /* Let the height adjust automatically based on aspect ratio */
+      display: block; /* Ensure the image behaves as a block-level element */
+      margin: 0 auto; /* Center the image horizontally */
+      border: 0px solid blue;
+      /* You can adjust the border width, style, and color as needed */
+    }
+    
+  .content-frame{
+      z-index: 1; /* Ensure the content is on top of the gradient */
+      position: relative; /* Required for stacking */
+      border: 3px solid #611A2B;
+      margin-top: 4%;
+      padding: 50px;
+      opacity: 1
+    }
+  
+  table {
+      border-collapse: separate; /* Remove default cell spacing and borders */
+      background-color: rgba(0, 0, 0, 0); /* Transparent background color */
+  }
+
+  th, xtd {
+      border: 1px solid black; /* Add border to cells for visibility */
+      padding: 8px; /* Add padding for better appearance */
+      background-color: rgba(0, 0, 0, 0); /* Transparent background color for cells */
+  }
+  
+  .container {
+      position: relative;
+      /* width: 400px; Set the width and height of the container */
+      /* height: 300px; */
+    }
+  
+  .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%; /* Cover the entire container */
+      height: 100%;
+      background: rgba(0, 0, 0, 0); /* Semi-transparent black overlay */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 24px;
+    }
+  
+  .overlay img {
+      max-width: 100%; /* Ensure the image doesn't exceed the container */
+      max-height: 100%;
+      display: block;
+    }
+
+  .truncate {
+      width: 95%;             /* Set the width of the container to 200 pixels */
+      white-space: nowrap;      /* Prevent the text from wrapping to the next line */
+      overflow: hidden;         /* Hide the overflow text */
+      text-overflow: ellipsis;  /* Use an ellipsis to indicate that the text is truncated */
+    }
+
+  .div-disclaimer {
+      font-family: "Calibri", Arial, sans-serif;
+      font-size: 1rem;
+      color: #1A1818;
+      position: relative; 
+      width: 90%;
+      background-color: white;
+      opacity: 60%;
+      padding: 10px
+  }
+  </style>
+
+  <script>
+    // Check if the user agent string contains "Mobile"
+    const isMobile = /Mobile/.test(navigator.userAgent);
+    
+    if (isMobile) {
+        window.location.href = window.location.href.replace(".html", "_mobile.html");
+    }
+    
+    
+    </script>
+</head>
+
+<body>
+
+  <div align="center" class="content-logo" id="div_logo">
+    <br>    
+    <p align="center">
+      <a href="https://classyclosets.com/" target="_blank">
+          <img class="img-logo" src="<s3_resource_url>/prop_logo_1.jpg" alt="Classy Closets"></a></p><a href="https://classyclosets.com/" target="_blank">
+      </a>
+  </div>
+  
+  <div align="center" class="content-frame" id="div_content">
+    <table id="table-layout" cellpadding="10" cellspacing="0">
+      <tr><td>
+        <room_segment>
+      </td></tr>
+    </table> 
+  </div>
+
+  <div class="div-disclaimer" width="80%" id="div_disclaimer">
+    <font face="Calibri" size="4" color="black">
+      <br><br><br>
+        <b>
+          **This proposal is for display and proposal purposes only. The pricing displayed is an estimate and may not fully reflect the final details and complete costs of the design. Actual pricing will be presented in a contract that the designer will prepare after the final design and all details have been agreed to, and after full pricing has been determined.
+        </b>
+      <br><br><br>
+    </font>
+  </div>
+
+</body>
+</html>

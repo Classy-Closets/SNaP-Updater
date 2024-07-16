@@ -21,8 +21,8 @@ from .data import data_closet_bottom_capping
 from .data import data_garage_leg
 from .data import data_topshelf_support_corbels
 from .data import data_annotation
-
 from .data import data_closet_wall_bed
+
 from .data import data_214
 
 import bpy
@@ -1103,4 +1103,3 @@ class PRODUCT_Nuvola_Queen_NoFace_Wall_Bed(data_closet_wall_bed.Wall_Bed):
                         }
         self.bed_make = 3
         super().__init__()
-

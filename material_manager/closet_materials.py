@@ -478,6 +478,8 @@ class SnapMaterialSceneProps(PropertyGroup):
     dd_mat_discontinued_color: StringProperty(name="Door Drawer Material Discontinued Color", default="")
     dd_edge_discontinued_color: StringProperty(name="Door Drawer Edge Discontinued Color", default="")
     stain_discontinued_color: StringProperty(name="Stain Discontinued Color", default="")
+    traviso_discontinued_color: StringProperty(name="Traviso Discontinued Color", default="")
+    moderno_discontinued_color: StringProperty(name="Moderno Discontinued Color", default="")
 
     wire_basket_colors: EnumProperty(
         name="Wire Basket Color",
@@ -628,6 +630,9 @@ class SnapMaterialSceneProps(PropertyGroup):
 
         if assembly.obj_bp.get("IS_BP_FILE_RAIL"):
             return "EB-0000316"  # 1/2 White EB
+        
+        if color_code == 200690:  # Change Chesapeake Bay Color Code to use the Sheer Linen EB
+            color_code = 164009
 
         sku = sn_db.query_db(
             "SELECT\
@@ -676,6 +681,9 @@ class SnapMaterialSceneProps(PropertyGroup):
         # Stain/Paint EB
         if self.materials.get_mat_type().name == "Upgrade Options":
             return "EB-0000433"  # EB Alder Veneer 1MM
+
+        if color_code == 200690:  # Change Chesapeake Bay Color Code to use the Sheer Linen EB
+            color_code = 164009
 
         sku = sn_db.query_db(
             "SELECT\
@@ -883,9 +891,7 @@ class SnapMaterialSceneProps(PropertyGroup):
                                 return "Unknown"
                     # 3/4 Melamine
                     elif box_type == 1:
-                        color_code = 0
-
-                        # Garage Materials
+                        color_code = self.materials.get_mat_color().color_code
                         if type_code == 1:
                             type_code = 2  # Solid Color Smooth Finish
                             color_code = 110100  # Winter White
@@ -1405,6 +1411,10 @@ class SnapMaterialSceneProps(PropertyGroup):
         color_code = self.materials.get_mat_color().color_code
         color_name = self.materials.get_mat_color().name
 
+        # Skip countertop if not melamine
+        if obj_props.is_countertop_bp and "Melamine" not in part_name:
+            return "Unknown"
+
         exterior_parts = [
             "Garage_End_Panel",
             "Garage_Slab_Door",
@@ -1613,6 +1623,9 @@ class SnapMaterialSceneProps(PropertyGroup):
     def get_ct_stain_color(self):
         stain_colors = self.countertops.get_type().get_mfg().colors
         return stain_colors[self.ct_stain_color_index]
+    
+    def get_moderno_door_color(self):
+        return self.moderno_colors[self.moderno_color_index]
 
     def get_moderno_colors(self):
         return [color.name for color in self.moderno_colors]
@@ -1749,9 +1762,6 @@ class SnapMaterialSceneProps(PropertyGroup):
             self.upgrade_type_index = 1
             self.paint_color_index = self.paint_colors.find("Winter White")
 
-            
-
-
         if self.five_piece_melamine_door_colors.find(material_color.name) != -1:
             if "Bridal Shower (Antique White) Δ" in material_color.name:
                 self.five_piece_melamine_door_mat_color_index = self.five_piece_melamine_door_colors.find("Warm Spring")
@@ -1787,7 +1797,7 @@ class SnapMaterialSceneProps(PropertyGroup):
             for i, color in enumerate(self.std_quartz_colors):
                 if color.name == self.default_kb_countertop_color:
                     self.ct_color_index = i
-        else:
+        elif active_lib == "Product Library":
             self.ct_type_index = 0
             self.ct_mfg_index = 0
             self.ct_color_index = 0

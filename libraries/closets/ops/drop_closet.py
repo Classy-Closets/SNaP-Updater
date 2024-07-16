@@ -374,7 +374,6 @@ class PlaceClosetInsert(PlaceClosetAsset):
         # Clear  to avoid old/duplicate openings
         self.openings.clear()
         insert_type = self.insert.obj_bp.snap.placement_type
-        insert_op_num = self.insert.obj_bp.sn_closets.opening_name
 
         for obj in bpy.context.scene.objects:
             # Check to avoid opening that is part of the dropped insert
@@ -453,11 +452,14 @@ class PlaceClosetInsert(PlaceClosetAsset):
         self.insert.obj_bp.parent = self.selected_opening.obj_bp.parent
         self.insert.obj_bp.location = self.selected_opening.obj_bp.location
         self.insert.obj_bp.rotation_euler = self.selected_opening.obj_bp.rotation_euler
+
         if self.insert.obj_bp.snap.placement_type == 'INTERIOR':
             self.selected_opening.obj_bp.snap.interior_open = False
+
         if self.insert.obj_bp.snap.placement_type == 'EXTERIOR':
             if not self.insert.obj_bp.get("IS_BP_APPLIANCE"):
                 self.selected_opening.obj_bp.snap.exterior_open = False
+
         if self.insert.obj_bp.snap.placement_type == 'SPLITTER':
             self.selected_opening.obj_bp.snap.interior_open = False
             self.selected_opening.obj_bp.snap.exterior_open = False
@@ -567,8 +569,6 @@ class PlaceClosetInsert(PlaceClosetAsset):
             self.confirm_placement(context)
             return self.finish(context)
 
-
-
         if self.event_is_cancel_command(event):
             bpy.context.preferences.themes[0].view_3d.object_active = self.object_selected_original_color
             bpy.context.preferences.themes[0].view_3d.object_selected = self.active_object_original_color
@@ -656,7 +656,6 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
            
             if cabinet_bp and island_bp and self.kb_is_targeting_back:
                 self.placement = 'BACK'
-                print("placement=back")
                 add_x_loc = 0
                 add_y_loc = 0
                 x_loc = self.selected_asset.obj_x.matrix_world.translation.x
@@ -664,14 +663,12 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
                 self.asset.obj_x.matrix_world.translation.x = self.selected_asset.obj_bp.matrix_world.translation.x
             elif dist_to_bp < dist_to_x:
                 self.placement = 'LEFT'
-                print("placement=left")
                 add_x_loc = 0
                 add_y_loc = 0
                 x_loc = sel_asset_loc_x - math.cos(rot) * self.asset.obj_x.location.x + add_x_loc
                 y_loc = sel_asset_loc_y - math.sin(rot) * self.asset.obj_x.location.x + add_y_loc 
             else:
                 self.placement = 'RIGHT'
-                print("placement=right")
                 x_loc = sel_asset_loc_x + math.cos(rot) * self.selected_asset.obj_x.location.x
                 y_loc = sel_asset_loc_y + math.sin(rot) * self.selected_asset.obj_x.location.x
             
@@ -815,11 +812,12 @@ class SN_CLOSET_OT_place_product(Operator, PlaceClosetAsset):
             if self.placement == 'RIGHT' and not cabinet_bp:
                 self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
                 constraint_obj = self.selected_asset.obj_x
-                constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
+                constraint = self.asset.obj_bp.constraints.new('COPY_LOCATION')
                 constraint.target = constraint_obj
                 constraint.use_x = True
                 constraint.use_y = True
                 constraint.use_z = False
+
             elif self.placement == 'RIGHT' and cabinet_bp:
                 self.asset.obj_bp.parent = self.selected_asset.obj_bp.parent
                 constraint_obj = self.selected_asset.obj_x

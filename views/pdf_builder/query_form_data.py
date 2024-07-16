@@ -14,7 +14,8 @@ class Query_PDF_Form_Data:
         self.etl_object = etl_object
         self.data_dict = {}
         self.page_walls_dict = page_walls_dict
-        self.main_sc_objs = bpy.data.scenes['_Main'].objects
+        main_scene = sn_utils.get_main_scene()
+        self.main_sc_objs = main_scene.objects
         self.walls_basepoints = self.__get_walls_obj_bp(context)
         self.garage_legs = self.__get_garage_legs()
         self.ext_colors = self.__walls_ext_color(self.walls_basepoints)
@@ -26,6 +27,7 @@ class Query_PDF_Form_Data:
         self.hampers = self.__get_hampers(page_walls_dict)
         self.room_name = self.__get_room_name(context)
         self.line_hole_dia = self.__get_drill_diameter(context)
+
         self.__dict_from_pages(page_walls_dict)
         self.__fill_pulls()
         self.__fill_garage_legs()
@@ -112,6 +114,7 @@ class Query_PDF_Form_Data:
         hampers_walls = {}
         hampers = (o for o in self.main_sc_objs if o.sn_closets.is_hamper_bp)
         seen = []
+        first_hamper = True
         for hmp in hampers:
             really_canvas = 'canvas' in hmp.name.lower()
             really_basket = 'basket' in hmp.name.lower()
@@ -148,16 +151,22 @@ class Query_PDF_Form_Data:
                     vendor_id = '547.43.311'
                     scene_hampers.append((wall_letter, vendor_id))
                     seen.append(hmp.name)
-                elif 30.0 > basket_width >= 18.0:
+                elif 30.0 > basket_width >= 18.0 and first_hamper:
                     # HAMPER TILT OUT 24" 20H DOUBLE BAG
                     vendor_id = '547.43.313'
                     scene_hampers.append((wall_letter, vendor_id))
                     seen.append(hmp.name)
-                elif basket_width >= 30.0:
+                    first_hamper = False
+                elif 30.0 > basket_width >= 18.0 and not first_hamper:
+                    first_hamper = True
+                elif basket_width >= 30.0 and first_hamper:
                     # HAMPER TILT OUT 30" 20H DOUBLE BAG
-                    vendor_id = '547.43.515'
+                    vendor_id = '547.43.315'
                     scene_hampers.append((wall_letter, vendor_id))
                     seen.append(hmp.name)
+                    first_hamper = False
+                elif basket_width >= 30.0 and not first_hamper:
+                    first_hamper = True
         for hamper in scene_hampers:
             wall, vendor_id = hamper
             has_entry = hampers_walls.get(wall)
@@ -212,7 +221,7 @@ class Query_PDF_Form_Data:
             realname = [o.snap.name_object for o in pullch if o.type == 'MESH'][0]
             pull_assy = sn_types.Assembly(pull_obj)
 
-            if pull_assy:
+            if pull_assy and pull_assy.get_prompt("Hide"):
                 hidden_pull = pull_assy.get_prompt("Hide").get_value()
             else:
                 continue
@@ -415,7 +424,6 @@ class Query_PDF_Form_Data:
     def __get_door_type(self, obj):
         door = None
         door_mesh = None
-
         # Wall bed door
         if obj.get("IS_BP_WALLBED_DECO"):
             for child in obj.children:
@@ -442,11 +450,12 @@ class Query_PDF_Form_Data:
                 if "Wood_Door_Surface" == slot.pointer_name:
                     return "wood"
                 elif "Five_Piece_Melamine_Door_Surface" == slot.pointer_name:
-                    return "slab"
+                    # return "slab"
+                    return "traviso"
                 elif "Door_Surface" == slot.pointer_name:
                     return "slab"
                 elif "Moderno_Door" == slot.pointer_name:
-                    return "slab"
+                    return "moderno"
 
     def __get_ext_wall_color(self, context, wall):
         ext_colors = []
@@ -459,11 +468,10 @@ class Query_PDF_Form_Data:
         style = self.__get_door_type(door_panel)
         scene_props = context.scene.closet_materials
         color = None
-
         if scene_props.use_kb_color_scheme:
             ext_colors = scene_props.get_kb_material_list()
         else:
-            if style == "slab":
+            if style in ("slab", "traviso", "moderno"):
                 mat_types = scene_props.materials.mat_types
                 type_index = scene_props.door_drawer_mat_type_index
                 material_type = mat_types[type_index]
@@ -484,16 +492,29 @@ class Query_PDF_Form_Data:
                 if material_type.name.lower() == "veneer":
                     colors.append(color.name)
 
-                ext_colors.append(color.name)
+                if style == "slab":
+                    ext_colors.append(color.name)
+                elif style == "traviso":
+                    # always use the five piece melamine door color for traviso as is auto-changed if not using custom color scheme
+                    ext_colors.append(scene_props.get_five_piece_melamine_door_color().name)
+                elif style == "moderno":
+                    # always use moderno door color as the doors only can be from this moderno color list
+                    ext_colors.append(scene_props.get_moderno_door_color().name)
 
             elif style == "wood" and scene_props.use_custom_color_scheme:
-                colors = scene_props.stain_colors
-                color_index = scene_props.stain_color_index
-                color = colors[color_index]
+                # colors = scene_props.stain_colors
+                # color_index = scene_props.stain_color_index
+                # color = colors[color_index]
+                # ext_colors.append(color.name)
+                if scene_props.upgrade_options.get_type().name == "Paint":
+                    color = scene_props.paint_colors[scene_props.paint_color_index]
+                else:
+                    color = scene_props.stain_colors[scene_props.stain_color_index]
                 ext_colors.append(color.name)
 
             else:
                 ext_colors.append(scene_props.materials.get_mat_color().name)
+
             ext_colors = list(set(ext_colors))
 
         return ext_colors
@@ -606,12 +627,12 @@ class Query_PDF_Form_Data:
         for page, walls in page_walls_dict.items():
             paging = f'{str(page + 1)} of {str(len(page_walls_dict))}'
             self.data_dict[page] = {}
-            # -> Wallbed Data 
+            # -> Wallbed Data
             wallbeds_door_dict = self.__get_wallbed_door_data(walls)
             wallbeds_drw_dict = self.__get_wallbed_drawers_data(walls)
             # Job Info
             self.__write_job_info(page, paging, walls)
-            # Materials 
+            # Materials
             self.__write_material_info(page, walls)
             # Install Section
             self.__write_install_info(page, walls)
@@ -1333,6 +1354,66 @@ class Query_PDF_Form_Data:
                         result["wood_drawer"] += " / " + drw_key
         return result
 
+    def __get_lighting_data(self, walls):
+        light_insert_bps = sn_utils.get_light_insert_bps()
+        result = {
+            "puck": {
+                "qty": 0,
+                "brightness": "",
+                "square_housing": 0,
+                "round_housing": 0,
+                "square_color": "",
+                "round_color": ""},
+            "ribbon": {"qty": 0, "brightness": ""},
+            "shelf_bar": {"qty": 0, "brightness": ""},
+            "lighted_rod": {"qty": 0, "brightness": ""}
+        }
+
+        for bp in light_insert_bps:
+            wall_bp = sn_utils.get_wall_bp(bp)
+            if not wall_bp:
+                continue
+            wall_letter = wall_bp.snap.name_object.replace("Wall ", "")
+
+            if wall_letter in walls:
+                light_assembly = sn_types.Assembly(bp)
+                brightness_ppt = light_assembly.get_prompt("Brightness")
+
+                if bp.get("IS_BP_PUCK_LIGHT"):
+                    result["puck"]["qty"] += 1
+                    housing_ppt = light_assembly.get_prompt("Housing Type")
+                    if brightness_ppt:
+                        brightness_str = "3000K" if brightness_ppt.get_value() == 0 else "4000K"
+                        result["puck"]["brightness"] = brightness_str
+                    if housing_ppt:
+                        result["puck"][f"{housing_ppt.get_value().lower()}_housing"] += 1
+
+                if bp.get("IS_BP_RIBBON_LIGHT_V") or bp.get("IS_BP_RIBBON_LIGHT_H"):
+                    # 2 ribbons for vertical lighting, 1 for horizontal
+                    result["ribbon"]["qty"] += 1 if bp.get("IS_BP_RIBBON_LIGHT_H") else 2
+                    if brightness_ppt:
+                        brightness_str = "3000K" if brightness_ppt.get_value() == 0 else "4000K"
+                        result["ribbon"]["brightness"] = brightness_str
+
+                if bp.get("IS_BP_SHELF_BAR_LIGHT"):
+                    result["shelf_bar"]["qty"] += 1
+                    if brightness_ppt:
+                        brightness_str = "3000K" if brightness_ppt.get_value() == 0 else "4000K"
+                        result["shelf_bar"]["brightness"] = brightness_str
+
+                if bp.get("IS_BP_ROD_ROUND"):
+                    add_light_ppt = light_assembly.get_prompt("Add Light")
+                    hide_ppt = light_assembly.get_prompt("Hide")
+
+                    if add_light_ppt and hide_ppt:
+                        if add_light_ppt.get_value() and not hide_ppt.get_value():
+                            result["lighted_rod"]["qty"] += 1
+                            if brightness_ppt:
+                                brightness_str = "3000K" if brightness_ppt.get_value() == 0 else "4000K"
+                                result["lighted_rod"]["brightness"] = brightness_str
+
+        return result
+
     def __write_door_section_info(self, page, walls, wallbeds_dict):
         doors = self.__get_walls_doors_types(walls, wallbeds_dict)
         hampers_doors = self.__get_hamper_doors_types(walls)
@@ -1370,12 +1451,13 @@ class Query_PDF_Form_Data:
         wood = self.etl_object.part_walls_query("wood countertop", walls)
         hpl = self.etl_object.part_walls_query("hpl countertop", walls)
         quartz = self.etl_object.part_walls_query("quartz countertop", walls)
-
+        
         self.data_dict[page]["ct_type"] = ''
         self.data_dict[page]["ct_color"] = ''
         self.data_dict[page]["ct_chip"] = ''
         self.data_dict[page]["ct_client"] = False
         if len(mel) > 0:
+            print("a111111111111111111111111111111111111111111111111111111111111111111")
             for key, _ in mel.items():
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
@@ -1383,6 +1465,7 @@ class Query_PDF_Form_Data:
                 self.data_dict[page]["ct_type"] += 'Melamine'
                 self.data_dict[page]["ct_color"] += key
         if len(gnt) > 0:
+            print("b111111111111111111111111111111111111111111111111111111111111111111")
             for key, _ in gnt.items():
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
@@ -1390,6 +1473,7 @@ class Query_PDF_Form_Data:
                 self.data_dict[page]["ct_type"] += 'Granite'
                 self.data_dict[page]["ct_color"] += key
         if len(wood) > 0:
+            print("c111111111111111111111111111111111111111111111111111111111111111111")
             for key, _ in wood.items():
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
@@ -1405,6 +1489,7 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["ct_color"] += color_name
                 
         if len(hpl) > 0:
+            print("d111111111111111111111111111111111111111111111111111111111111111111")
             for key, _ in hpl.items():
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
@@ -1420,6 +1505,7 @@ class Query_PDF_Form_Data:
                     self.data_dict[page]["ct_type"] += mfg.name
                     self.data_dict[page]["ct_color"] += color.name
         if len(quartz) > 0:
+            print("e111111111111111111111111111111111111111111111111111111111111111111")
             for key, _ in quartz.items():
                 if self.data_dict[page]["ct_type"] != '':
                     self.data_dict[page]["ct_type"] += ' / '
@@ -1474,4 +1560,36 @@ class Query_PDF_Form_Data:
         self.data_dict[page]["design_date"] = self.job_info.get("design_date", '')
         self.data_dict[page]["lead_id"] = self.job_info.get("lead_id", '')
         self.data_dict[page]["room_name"] = self.room_name
+
+    def __write_lighting_info(self, page, walls, lighting_dict):
+        closet_options = sn_utils.get_main_scene().sn_closets.closet_options
+        self.data_dict[page]["room_has_lighting"] = sn_utils.room_has_lighting()
+
+        # PUCK
+        if lighting_dict["puck"]["qty"] > 0:
+            self.data_dict[page]["puck_light_qty"] = str(lighting_dict["puck"]["qty"])
+            self.data_dict[page]["puck_light_brightness"] = str(lighting_dict["puck"]["brightness"])
+            self.data_dict[page]["puck_light_round_qty"] = str(lighting_dict["puck"]["round_housing"])
+            self.data_dict[page]["puck_light_round_color"] = str(lighting_dict["puck"]["round_color"])
+            self.data_dict[page]["puck_light_square_qty"] = str(lighting_dict["puck"]["square_housing"])
+            self.data_dict[page]["puck_light_square_color"] = str(lighting_dict["puck"]["square_color"])
+        # RIBBON
+        if lighting_dict["ribbon"]["qty"] > 0:
+            self.data_dict[page]["ribbon_light_qty"] = str(lighting_dict["ribbon"]["qty"])
+            self.data_dict[page]["ribbon_light_brightness"] = str(lighting_dict["ribbon"]["brightness"])
+        # SHELF BAR
+        if lighting_dict["shelf_bar"]["qty"] > 0:
+            self.data_dict[page]["shelf_bar_light_qty"] = str(lighting_dict["shelf_bar"]["qty"])
+            self.data_dict[page]["shelf_bar_light_brightness"] = str(lighting_dict["shelf_bar"]["brightness"])
+        # LIGHTED ROD
+        if lighting_dict["lighted_rod"]["qty"] > 0:
+            self.data_dict[page]["lit_hang_rod_qty"] = str(lighting_dict["lighted_rod"]["qty"])
+            self.data_dict[page]["lit_hang_rod_brightness"] = str(lighting_dict["lighted_rod"]["brightness"])
+        # ROOM TOTALS
+        if closet_options.light_switch_qty > 0:
+            self.data_dict[page]["switch_qty"] = str(closet_options.light_switch_qty)
+        if closet_options.light_driver_qty > 0:
+            self.data_dict[page]["driver_qty"] = str(closet_options.light_driver_qty)
+        if closet_options.light_distributor_qty > 0:
+            self.data_dict[page]["distributor_qty"] = str(closet_options.light_distributor_qty)
 

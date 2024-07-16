@@ -1202,11 +1202,13 @@ def add_ironing_board_door_front(assembly):
     obj_props.door_type = 'FLAT'
     return door
 
+
 def add_round_hanging_rod(assembly):
     opts = bpy.context.scene.sn_closets.closet_options
     rod = sn_types.Part(assembly.add_assembly_from_file(ROUND_HANGING_ROD))
     assembly.add_assembly(rod)
     rod.obj_bp["IS_BP_ASSEMBLY"] = True
+    rod.obj_bp["IS_BP_ROD_ROUND"] = True
     rod.obj_bp.snap.comment_2 = "1015"
     rod.set_name("Round Hanging Rod")
     rod.solid_stock("Round Hanging Rod")
@@ -1215,6 +1217,7 @@ def add_round_hanging_rod(assembly):
     props = rod.obj_bp.sn_closets
     props.is_hanging_rod = True
     return rod
+
 
 def add_oval_hanging_rod(assembly):
     opts = bpy.context.scene.sn_closets.closet_options    

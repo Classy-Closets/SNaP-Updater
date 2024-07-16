@@ -60,43 +60,12 @@ class SN_OBJ_override_object_context_menu(Operator):
 
 class SN_OBJ_delete(Operator):
     bl_idname = "sn_object.delete"
-    bl_label = "Delete Operator that honors delete protected objects"
-
-    use_global: BoolProperty(name='Use Global', default=False)
-
-    @classmethod
-    def poll(cls, context):
-        return context.active_object is not None
-
-    def execute(self, context):
-        contains_protected = False
-        delete_protected_objects = []
-        for obj in context.selected_objects:
-            if obj.snap.delete_protected:
-                obj.select_set(False)
-                contains_protected = True
-                delete_protected_objects.append(obj.name)
-
-        bpy.ops.object.delete(use_global=self.use_global)
-        if contains_protected:
-            bpy.ops.snap.message_box(
-                'INVOKE_DEFAULT',
-                message="Unable to delete wall. Proceed building room and then \nadd door or open entry way to reflect open space.")
-
-
-        return {'FINISHED'}
-
-
-class SN_OBJ_delete(Operator):
-    bl_idname = "sn_object.delete"
     bl_label = "Delete Object(s)"
 
     use_global: BoolProperty(name='Use Global', default=False)
     del_obj_protected: BoolProperty(name='Delete Protected Object', default=False)
     del_obj = None
     del_obj_bp = None
-    delete_protected_objects = []
-
 
     @classmethod
     def poll(cls, context):
@@ -104,10 +73,19 @@ class SN_OBJ_delete(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
+        skip_msg = False
+        is_light_insert = False
 
         for obj in context.selected_objects:
-            # Ensure delete_protected is set for older library data
+            insert_bp = sn_utils.get_bp(obj, 'INSERT')
+
+            if insert_bp:
+                if insert_bp.get("IS_BP_LIGHT"):
+                    is_light_insert = True
+
             obj_bp = sn_utils.get_assembly_bp(obj)
+
+            # Ensure delete_protected is set for older library data
             if obj_bp:
                 parts = [
                     obj_bp.get("IS_BP_L_SHELF"),
@@ -117,14 +95,17 @@ class SN_OBJ_delete(Operator):
                     obj.snap.delete_protected = True
 
             if obj.snap.delete_protected:
-                self.del_obj = obj
+                if is_light_insert:
+                    skip_msg = True
+                    self.del_obj = insert_bp
+                else:
+                    self.del_obj = obj
                 obj.select_set(False)
                 self.del_obj_protected = True
-                self.delete_protected_objects.append(obj.name)
 
         self.del_obj_bp = sn_utils.get_assembly_bp(self.del_obj)
 
-        if self.del_obj_bp:
+        if self.del_obj_bp and not skip_msg:
             return wm.invoke_props_dialog(self, width=350)
         return self.execute(context)
 

@@ -2,12 +2,14 @@
 from snap.project_manager import pm_ops
 from snap.project_manager import pm_props
 from snap.project_manager import pm_ui
+from snap.project_manager import pm_sketchfab
 from snap.project_manager import pm_handlers
 
 classes = (
     pm_handlers,
     pm_props,
     pm_ops,
+    pm_sketchfab,
     pm_ui,
 )
 

@@ -1241,9 +1241,10 @@ class PROMPTS_Vertical_Splitter_Prompts(sn_types.Prompts_Interface):
 
         self.assembly.update()
         bpy.ops.object.select_all(action='DESELECT')
+        new_shelves = self.assembly.splitters
 
-        if shelves:
-            shelf = shelves[0]
+        if new_shelves:
+            shelf = new_shelves[0]
             for child in shelf.obj_bp.children:
                 if child.type == 'MESH':
                     bpy.context.view_layer.objects.active = child

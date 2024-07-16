@@ -1,0 +1,7 @@
+[
+    { "label": "PUCK", "position": { "LEGAL": [18, 11], "ELEVENSEVENTEEN": [18, 11] } },
+    { "label": "RIBBON", "position": { "LEGAL": [188, 11], "ELEVENSEVENTEEN": [188, 11] } },
+    { "label": "SHELF BAR", "position": { "LEGAL": [338, 11], "ELEVENSEVENTEEN": [395, 11] } },
+    { "label": "ROD", "position": { "LEGAL": [480, 11], "ELEVENSEVENTEEN": [574, 11] } },
+    { "label": "ROOM SUM", "position": { "LEGAL": [602, 11], "ELEVENSEVENTEEN": [796, 11] } }
+]

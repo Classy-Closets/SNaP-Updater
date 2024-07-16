@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import shutil
 import ctypes
 import snap
+from cryptography.fernet import Fernet
 
 FILE_ATTRIBUTE_HIDDEN = 0x02
 
@@ -271,3 +272,15 @@ def set_name_unique(op, name, value):
         new_value = new_val(stem, nbr_int)
 
     op[name] = new_value
+
+# -------DATA INTEGRAION FUNCTIONS
+    
+def decode(original_value):
+    crypto = Fernet(b'DlGm705ZbMnSG6ckDcV-PGbrEWNpFXVYE19riBl3J4M=')
+    new_value = crypto.decrypt(original_value).decode()
+    return new_value
+
+def encode(original_value):
+    crypto = Fernet(b'DlGm705ZbMnSG6ckDcV-PGbrEWNpFXVYE19riBl3J4M=')
+    new_value = crypto.encrypt(original_value.encode())
+    return new_value

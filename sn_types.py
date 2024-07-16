@@ -151,7 +151,6 @@ class Assembly:
         self.obj_z.lock_rotation[2] = True
         self.coll.objects.link(self.obj_z)
 
-        coll = bpy.data.scenes[0].collection
         self.obj_prompts = bpy.data.objects.new("OBJ_PROMPTS", None)
         self.obj_prompts.location = (0, 0, 0)
         self.obj_prompts.parent = self.obj_bp
@@ -163,7 +162,7 @@ class Assembly:
         self.obj_prompts.lock_rotation[1] = True
         self.obj_prompts.lock_rotation[2] = True
         self.obj_prompts["obj_prompts"] = True
-        coll.objects.link(self.obj_prompts)
+        self.coll.objects.link(self.obj_prompts)
 
     def create_cube(self, name="Cube", size=(0, 0, 0)):
         """ This will create a cube mesh and assign mesh hooks
@@ -1298,6 +1297,7 @@ class Wall(Assembly):
                 if global_loc == right_wall_x_global_loc:
                     return Wall(obj_bp=obj_bp)
 
+
 class Dimension():
     anchor = None
     end_point = None
@@ -1565,6 +1565,7 @@ class Prompts_Interface(Operator):
         obj = bpy.data.objects[bpy.context.object.name]
         obj_product_bp = sn_utils.get_bp(obj, 'INSERT')
         insert = Assembly(obj_product_bp)
+
         return insert
 
     def draw_product_size(self, layout, alt_height="", use_rot_z=True):

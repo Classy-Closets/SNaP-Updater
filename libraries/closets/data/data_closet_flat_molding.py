@@ -54,7 +54,6 @@ class Flat_Molding(sn_types.Assembly):
             else:
                 self.obj_bp["IS_BP_LIGHT_RAIL"] = True
 
-
         self.obj_bp["ID_PROMPT"] = self.id_prompt
         self.obj_bp["ID_DROP"] = self.drop_id
         self.obj_y['IS_MIRROR'] = True
@@ -591,12 +590,26 @@ class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
     objects = []
     selected_panel_1 = None
     selected_panel_2 = None
+    panels = []
 
     def execute(self, context):
         self.objects = [obj for obj in context.visible_objects if obj.parent and obj.parent.sn_closets.is_panel_bp]
         return super().execute(context)
 
-    def get_distance_between_panels(self, panel_1, panel_2):    
+    def get_inculded_panels(self, sel_product_bp, panel_1, panel_2):
+        self.panels.clear()
+        p1_x_loc = panel_1.obj_bp.location.x
+        p2_x_loc = panel_2.obj_bp.location.x
+
+        for child in sel_product_bp.children:
+            if 'IS_BP_BLIND_CORNER_PANEL' in child:
+                continue
+
+            if 'IS_BP_PANEL' in child:
+                if p1_x_loc <= child.location.x <= p2_x_loc:
+                    self.panels.append(sn_types.Assembly(child))
+
+    def get_distance_between_panels(self, panel_1, panel_2):
         if panel_1.obj_z.location.z > 0:
             obj_1 = panel_1.obj_z
         else:
@@ -613,7 +626,6 @@ class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
 
         x2 = obj_2.matrix_world[0][3]
         y2 = obj_2.matrix_world[1][3]
-        z2 = obj_2.matrix_world[2][3]
 
         # DONT CALCULATE Z DIFFERENCE
         return sn_utils.calc_distance((x1, y1, z1), (x2, y2, z1))
@@ -623,7 +635,6 @@ class DROP_OPERATOR_Place_Top(Operator, PlaceClosetInsert):
         bpy.ops.object.select_all(action='DESELECT')
 
         if selected_obj is not None:
-
             sel_product_bp = sn_utils.get_bp(selected_obj, 'PRODUCT')
             sel_assembly_bp = sn_utils.get_assembly_bp(selected_obj)
 

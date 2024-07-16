@@ -1227,6 +1227,8 @@ class Corner_Shelves(sn_types.Assembly):
         angle_kick = common_parts.add_toe_kick(self)
         angle_kick.set_name("Angle Kick")
         angle_kick.obj_bp.snap.comment_2 = "1034"
+        angle_kick.obj_bp['IS_BP_TOE_KICK_FRONT'] = True
+        angle_kick.obj_bp['IS_BP_ANGLED_TOE_KICK_FRONT'] = True
         angle_kick.loc_x(
             'Left_Depth-Toe_Kick_Setback-PT+.00635',
             [Left_Depth, Toe_Kick_Setback, PT])

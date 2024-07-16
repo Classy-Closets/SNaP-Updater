@@ -35,6 +35,18 @@ def get_room_version():
         return ""
 
 
+def is_legacy_file():
+    legacy_file = False
+    curr_ver = sn_utils.get_version_str()
+    room_ver = sn_utils.get_room_version()
+
+    if room_ver:
+        if room_ver < curr_ver:
+            legacy_file = True
+
+    return legacy_file
+
+
 def get_franchise_location():
     franchise_location = bpy.context.preferences.addons['snap'].preferences.franchise_location
 
@@ -85,6 +97,17 @@ def get_assembly_bp(obj):
             return obj
         elif obj.parent:
             return get_assembly_bp(obj.parent)
+
+
+def get_assembly_prompt_obj(obj_bp):
+    prompt_obj = None
+
+    for child in obj_bp.children:
+        if child.get("obj_prompts"):
+            prompt_obj = child
+            break
+
+    return prompt_obj
 
 
 def get_drivers(obj):
@@ -242,6 +265,20 @@ def get_wall_bp(obj):
         return get_wall_bp(obj.parent)
 
 
+def get_wall_bps(context):
+    wall_bps = [o for o in context.scene.objects if o.get("IS_BP_WALL")]
+    return wall_bps
+
+
+def get_wall_quantity():
+    wall_qty = 0
+    main_sc = get_main_scene()
+    main_sc = main_sc.objects
+    main_sc_walls = [o for o in main_sc if o.get("IS_BP_WALL")]
+    wall_qty = len(main_sc_walls)
+    return wall_qty
+
+
 def get_floor_parent(obj):
     if not obj:
         return None
@@ -326,6 +363,7 @@ def get_cabinet_countertop_bp(obj):
         return get_cabinet_countertop_bp(obj.parent)
 
 
+
 def get_tagged_bp(obj, tag):
     if not obj:
         return None
@@ -342,7 +380,8 @@ def get_appliance_bp(obj):
         return obj
     elif obj.parent:
         return get_appliance_bp(obj.parent)
-    
+
+
 def get_applied_panel_bp(obj):
     if not obj:
         return None
@@ -414,6 +453,7 @@ def get_exterior_bp(obj):
     elif obj.parent:
         return get_exterior_bp(obj.parent)
 
+
 def get_annotation_bp(obj):
     if not obj:
         return None
@@ -421,7 +461,8 @@ def get_annotation_bp(obj):
         return obj
     elif obj.parent:
         return get_annotation_bp(obj.parent)
-        
+
+
 def get_island_bp(obj):
     if not obj:
         return None
@@ -431,8 +472,271 @@ def get_island_bp(obj):
         return get_island_bp(obj.parent)
 
 
+def get_wall_meshes(context):
+    for obj in context.visible_objects:
+        if obj.snap.is_wall_mesh:
+            yield obj
+
+
+# -------LIGHTING FUNCTIONS-------
+
+
+def get_lighting_bp(obj):
+    if not obj:
+        return None
+
+    light_bps = [
+        "IS_BP_PUCK_LIGHT" in obj,
+        "IS_BP_RIBBON_LIGHT_V" in obj,
+        "IS_BP_RIBBON_LIGHT_H" in obj,
+        "IS_BP_SHELF_BAR_LIGHT" in obj]
+
+    if any(light_bps):
+        return obj
+    elif obj.parent:
+        return get_lighting_bp(obj.parent)
+
+
+def panel_has_light(product_bp, panel_bp):
+    has_light = False
+    partition_num_str = panel_bp.get("PARTITION_NUMBER")
+
+    if partition_num_str:
+        partition_num = int(partition_num_str)
+        for child in product_bp.children:
+            if "IS_BP_LIGHT" in child:
+                light_opening_num = int(child.sn_closets.opening_name)
+
+                if light_opening_num == partition_num or partition_num + 1 == light_opening_num:
+                    has_light = True
+                    break
+
+    return has_light
+
+
+def adjust_puck_lighting(assembly_bp):
+    lights = [child for child in assembly_bp.children if child.get("IS_BP_PUCK_LIGHT")]
+    obj_x = [child for child in assembly_bp.children if child.get("obj_x")][0]
+    assembly_width = obj_x.location.x
+
+    for i, light_bp in enumerate(lights):
+        light_bp.location.x = (assembly_width / (len(lights) + 1)) * (i + 1)
+
+
+def get_light_insert_bps():
+    light_insert_bps = []
+    insert_bps = [
+        sn_utils.get_bp(o, 'INSERT') for o in get_main_scene().objects
+        if sn_utils.get_bp(o, 'INSERT') and sn_utils.get_bp(o, 'INSERT').get("IS_BP_ASSEMBLY")]
+
+    lit_rod_bps = [
+        o.parent for o in bpy.context.visible_objects
+        if o.get("IS_ROD_LIGHT") and o.parent.get("IS_BP_ROD_ROUND")]
+
+    for insert_bp in insert_bps:
+        if insert_bp.get("IS_BP_LIGHT"):
+            if insert_bp not in light_insert_bps:
+                light_insert_bps.append(insert_bp)
+
+    for rod_light_bp in lit_rod_bps:
+        if rod_light_bp not in light_insert_bps:
+            light_insert_bps.append(rod_light_bp)
+
+    return light_insert_bps
+
+
+def wall_has_lighting(wall_bp):
+    wall_coll = wall_bp.users_collection[0]
+    for obj in wall_coll.objects:
+        is_light_bp = obj.get("IS_BP_LIGHT")
+
+        # Lighted Rod
+        is_hanging_rod = obj.sn_closets.is_hanging_rod
+        lighted_hang_rod = False
+        if is_hanging_rod:
+            rod_assy = sn_types.Assembly(obj)
+            add_light_ppt = rod_assy.get_prompt("Add Light")
+            if add_light_ppt:
+                lighted_hang_rod = is_hanging_rod and add_light_ppt.get_value()
+
+        if is_light_bp or lighted_hang_rod:
+            return True
+    return False
+
+
+def lighting_outlet_available(wall_bp, limit_left=False, limit_right=False):
+    limit = 36.0  # 36 inches
+    has_outlet = False
+    wall_obj_x = [obj for obj in wall_bp.children if obj.get("obj_x")][0]
+
+    for object in wall_bp.children:
+        if object.get("IS_LIGHTING_DRIVER_OUTLET"):
+            outlet_x_loc_inch = round(sn_unit.meter_to_inch(object.location.x), 2)
+
+            if limit_left:
+                if outlet_x_loc_inch <= limit:
+                    has_outlet = True
+                    break
+            elif limit_right:
+                wall_x_inch = round(sn_unit.meter_to_inch(wall_obj_x.location.x), 2)
+                # Since BP is on the left, take into account the width of the outlet object
+                outlet_x_dim = round(sn_unit.meter_to_inch(object.dimensions.x), 2)
+                outlet_pos = wall_x_inch - (outlet_x_loc_inch + outlet_x_dim)
+
+                if outlet_pos <= limit:
+                    has_outlet = True
+                    break
+            else:
+                has_outlet = True
+                break
+
+    return has_outlet
+
+
+def room_has_outlet(room_lighting_info):
+    outlet_found = False
+    for k, v in room_lighting_info.items():
+        if v['has_lighting_outlet']:
+            outlet_found = True
+            break
+    return outlet_found
+
+
+def room_has_lighting():
+    has_lighting = False
+    main_scene = get_main_scene()
+
+    for object in main_scene.objects:
+        if object.get("IS_BP_LIGHT"):
+            has_lighting = True
+            break
+
+    return has_lighting
+
+
+def insert_shelf_bar_light_qty(insert_bp):
+    qty = 0
+    for child in insert_bp.children:
+        if "IS_SHELF" in child:
+            for nchild in child.children:
+                if "IS_BP_SHELF_BAR_LIGHT" in nchild:
+                    qty += 1
+
+    return qty
+
+
+def room_is_closed(obj1, obj2, max_distance=sn_unit.inch(6)):
+    loc1 = obj1.matrix_world.to_translation()
+    loc2 = obj2.matrix_world.to_translation()
+
+    # Calculate the distance in the XY plane only
+    distance = math.sqrt((loc1.x - loc2.x) ** 2 + (loc1.y - loc2.y) ** 2)
+
+    return distance <= max_distance
+
+
+def get_room_lighting_info(context):
+    room_lighting_info = {}
+    closed_room = False
+    wall_collections = [c for c in context.scene.collection.children if c.snap.type == 'WALL']
+    wall_bps = []
+
+    for collection in wall_collections:
+        for obj in collection.objects:
+            if obj.get("IS_BP_WALL"):
+                if obj.name not in wall_bps:
+                    wall_bps.append(obj)
+                    break  # Stop searching after the first match
+
+    # If more than 2 walls are found, check if the room is closed
+    if len(wall_bps) > 2:
+        first_wall = wall_bps[0]
+        last_wall = wall_bps[-1]
+
+        for obj in last_wall.children:
+            if obj.get("obj_x"):
+                last_wall_obj_x = obj
+
+        closed_room = room_is_closed(first_wall, last_wall_obj_x)
+
+    for i, wall_bp in enumerate(wall_bps):
+        wall_has_outlet = lighting_outlet_available(wall_bp)
+
+        # This is the first wall and will only have a previous wall if the room is closed
+        if i == 0 and closed_room:
+            prev_wall_has_outlet = lighting_outlet_available(wall_bps[-1], limit_right=True)
+        else:
+            prev_wall_has_outlet = lighting_outlet_available(wall_bps[i - 1], limit_right=True)
+
+        # If this is the last wall, check if the next wall has an outlet only if the room is closed
+        if i + 1 >= len(wall_bps):
+            if closed_room:
+                next_wall_has_outlet = lighting_outlet_available(wall_bps[0], limit_left=True)
+        else:
+            next_wall_has_outlet = lighting_outlet_available(wall_bps[i + 1], limit_left=True)
+
+        room_lighting_info[wall_bp.name] = {
+            "has_lighting": wall_has_lighting(wall_bp),
+            "has_lighting_outlet": any([prev_wall_has_outlet, wall_has_outlet, next_wall_has_outlet])}
+
+    return room_lighting_info
+
+
+def hang_rod_has_lighting(hang_rod_bp):
+    has_lighting = False
+
+    for child in hang_rod_bp.children:
+        if child.get("IS_ROD_LIGHT"):
+            # Light is on
+            if child.visible_get():
+                has_lighting = True
+
+    return has_lighting
+
+
+def find_product_lights(obj, lights=None):
+    if lights is None:
+        lights = []
+
+    rod_light = obj.get("IS_ROD_LIGHT") and not obj.hide_viewport
+    shelf_bar_light = obj.get("IS_BP_SHELF_BAR_LIGHT")
+
+    if shelf_bar_light or rod_light:
+        lights.append(obj)
+
+    # Recursively check all children
+    for child in obj.children:
+        find_product_lights(child, lights)
+
+    return lights
+
+
+def opening_has_fixed_lighting(obj_bp, opening_num):
+    has_lighting = False
+    light_bps = sn_utils.find_product_lights(obj_bp)
+
+    if len(light_bps) > 0:
+        for light_bp in light_bps:
+            # Get parent insert to retrieve opening number
+            if light_bp.get("IS_ROD_LIGHT"):
+                insert_bp = sn_utils.get_bp(light_bp, "INSERT")
+
+            elif light_bp.get("IS_BP_SHELF_BAR_LIGHT"):
+                insert_bp = sn_utils.get_bp(light_bp.parent, "INSERT")
+
+            if insert_bp:
+                insert_opening_num = insert_bp.sn_closets.opening_name
+
+                if insert_opening_num == str(opening_num):
+                    has_lighting = True
+                    break
+
+    return has_lighting
+
+# -------END LIGHTING FUNCTIONS-------
+
+
 def get_object(path):
-    print(path)
     if os.path.exists(path):
 
         with bpy.data.libraries.load(path, link=False, relative=False) as (data_from, data_to):
@@ -449,13 +753,6 @@ def get_drawer_stack_bps():
                 if not obj.snap.dont_export:
                     if obj.get("IS_BP_DRAWER_STACK"):
                         yield obj
-                            
-    # for obj in bpy.context.scene.collection.objects:
-    #     print(obj)
-    #     props = obj.sn_closets
-    #     if props.is_drawer_stack_bp:
-    #         print("Found Drawer Stack")
-    #         yield obj
 
 
 def get_kitchen_bath_products():
@@ -1001,6 +1298,29 @@ def create_cube_mesh(name, size):
     return create_object_from_verts_and_faces(verts, faces, name)
 
 
+def create_lighting_cone_mesh(name, size):
+
+    verts = [(0.0, 0.0, 0.0),
+             (0.0, size[1], 0.0),
+             (size[0], size[1], 0.0),
+             (size[0], 0.0, 0.0),
+             (-size[0], 0.0, size[2]),
+             (-size[0], size[1], size[2]),
+             (size[0]*2, size[1], size[2]),
+             (size[0]*2, 0.0, size[2]),
+             ]
+
+    faces = [(0, 1, 2, 3),
+             (4, 7, 6, 5),
+             (0, 4, 5, 1),
+             (1, 5, 6, 2),
+             (2, 6, 7, 3),
+             (4, 0, 3, 7),
+             ]
+
+    return create_object_from_verts_and_faces(verts, faces, name)
+
+
 def create_object_from_verts_and_faces(verts, faces, name):
     """
     Creates an object from Verties and Faces
@@ -1071,6 +1391,19 @@ def get_garbage_collection_scene():
 
     if gc_scene:
         return gc_scene
+
+
+def get_3d_export_scene():
+    export_3d_scene = None
+
+    if "3D Export" not in bpy.data.scenes:
+        export_3d_scene = bpy.data.scenes.new("3D Export")
+        export_3d_scene.snap.scene_type = '3D_EXPORT'
+    else:
+        export_3d_scene = bpy.data.scenes["3D Export"]
+
+    if export_3d_scene:
+        return export_3d_scene
 
 
 def remove_obj_and_children_from_collections(obj, scene, gc_scene):
@@ -2650,8 +2983,8 @@ def copy_prompt_drivers(obj, obj_target):
     """
     if obj.animation_data:
         for driver in obj.animation_data.drivers:
-            if 'mv.PromptPage' in driver.data_path:
-                for prompt in obj_target.snap.PromptPage.COL_Prompt:
+            if 'snap.prompts' in driver.data_path:
+                for prompt in obj_target.snap.prompts:
                     newdriver = None
                     if prompt.name in driver.data_path:
                         newdriver = None
@@ -2884,14 +3217,7 @@ def set_prompt_if_exists(assembly, prompt_name, value):
     if prompt:
         prompt.set_value(value)
 
-def get_wall_quantity():
-    wall_qty = 0
-    main_sc = get_main_scene()
-    main_sc = main_sc.objects
-    main_sc_walls = [o for o in main_sc if o.get("IS_BP_WALL")]
-    wall_qty = len(main_sc_walls)
-    return wall_qty 
-    
+
 def get_wallbed_doors():
     wallbed_doors = []
     main_scene = "_Main"

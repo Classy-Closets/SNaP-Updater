@@ -437,9 +437,9 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     #Rod
     if assembly.obj_bp.sn_closets.is_hanging_rod:
-        # print("is_hanging_rod", assembly.obj_bp)
         item_name = bpy.context.scene.sn_closets.closet_options.rods_name
         vendor_id = item_name[-10:]
+        print("    is_hanging_rod", assembly.obj_bp, item_name, vendor_id)
 
         cursor.execute(
             "SELECT\
@@ -459,7 +459,7 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             return 'SO-0000001'
         for row in rows:
             sku = row[0]
-            #print("FOUND HANGING ROD SKU: ", sku)            
+            print("FOUND HANGING ROD SKU: ", sku)            
         
         conn.close()
         return sku
@@ -469,7 +469,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
         cup_category = ""
         cup_type = ""
         cup_color = ""
-        # hw_sku = bpy.context.scene.sn_closets.closet_options.pole_cup_name
         rod_name = bpy.context.scene.sn_closets.closet_options.rods_name
 
         if "Elite" in rod_name:
@@ -490,8 +489,6 @@ def get_hardware_sku(obj_bp, assembly, item_name):
             cup_color = "Matt Gold"
         if "Slate" in rod_name:
             cup_color = "Slate"
-        # if "Oil Rubbed Bronze" in rod_name:
-        #     cup_color = "ORB"
         if "Polished Chrome" in rod_name:
             cup_color = "Pol Chrome"
 
@@ -873,6 +870,35 @@ def get_hardware_sku(obj_bp, assembly, item_name):
 
     print("No Hardware or Accessory SKU found. Special Order SKU number returned")
     return sku 
+
+
+def get_light_sku_by_vendor_id(vendor_id):
+    conn = sn_db.connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT\
+            sku,\
+            name\
+        FROM\
+            {CCItems}\
+        WHERE\
+            ProductType == 'LT' AND\
+            VendorItemNum ='{}'\
+        ;".format(vendor_id, CCItems="CCItems_" + sn_utils.get_franchise_location())
+    )
+
+    rows = cursor.fetchall()
+
+    if len(rows) == 0:
+        print(f"SKU match not found for light - VendorItemNum: {vendor_id} Special Order Sku Returned: SO-0000001")
+        return 'SO-0000001'
+    for row in rows:
+        sku = row[0]
+        name = row[1]
+
+    conn.close()
+    return sku, name
 
 
 def get_export_prompts(obj_bp):
@@ -2089,14 +2115,13 @@ class OPS_Export_XML(Operator):
     def get_door_hinge_drilling(self, assembly, token, circles):
         door_swing = assembly.get_prompt("Door Swing").get_value()
         door_x_dim = sn_unit.meter_to_inch(assembly.obj_x.location.x)
-        door_y_dim = abs(sn_unit.meter_to_inch(assembly.obj_y.location.y))
         normal_z = -1
         org_displacement = self.distance(sn_utils.get_part_thickness(get_cutpart(assembly.obj_bp)))
         bore_dia = sn_unit.meter_to_inch(sn_unit.millimeter(35))
         dim_in_x = sn_unit.meter_to_inch(sn_unit.millimeter(78))
         dim_in_y = sn_unit.meter_to_inch(sn_unit.millimeter(21))
         bore_depth = sn_unit.meter_to_inch(sn_unit.millimeter(14))
-        screw_hole_y_dim = sn_unit.meter_to_inch(sn_unit.millimeter(10))
+        screw_hole_y_dim = sn_unit.meter_to_inch(sn_unit.millimeter(30))
         screw_hole_dia = sn_unit.meter_to_inch(sn_unit.millimeter(1.5))
         screw_hole_depth = sn_unit.meter_to_inch(sn_unit.millimeter(2))
         distance_between_holes = sn_unit.meter_to_inch(sn_unit.millimeter(45))
@@ -2105,8 +2130,8 @@ class OPS_Export_XML(Operator):
         if door_swing == "Bottom":
             print("Bottom swing hamper door")
 
-        #Bottom
-        #Add Main hole
+        # Bottom
+        # Add Main hole
         cir = {}
         cir['cen_x'] = -dim_in_x
         cir['cen_y'] = dim_in_y
@@ -2114,22 +2139,22 @@ class OPS_Export_XML(Operator):
         cir['diameter'] = bore_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
-        #Add screw hole left
+        # Add screw hole left
         cir = {}
         cir['cen_x'] = -(dim_in_x - distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_y + screw_hole_y_dim
+        cir['cen_y'] = screw_hole_y_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
-        #add screw hole right
+        # Add screw hole right
         cir = {}
         cir['cen_x'] = -(dim_in_x + distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_y + screw_hole_y_dim
+        cir['cen_y'] = screw_hole_y_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
@@ -2138,8 +2163,8 @@ class OPS_Export_XML(Operator):
 
         dim_in_x = door_x_dim - dim_in_x
 
-        #Top
-        #Add Main hole
+        # Top
+        # Add Main hole
         cir = {}
         cir['cen_x'] = -dim_in_x
         cir['cen_y'] = dim_in_y
@@ -2147,39 +2172,39 @@ class OPS_Export_XML(Operator):
         cir['diameter'] = bore_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
-        #Add screw hole left
+        # Add screw hole left
         cir = {}
         cir['cen_x'] = -(dim_in_x - distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_y + screw_hole_y_dim
-        cir['cen_z'] = screw_hole_depth
-        cir['diameter'] = screw_hole_dia 
-        cir['normal_z'] = normal_z
-        cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
-
-        #add screw hole right
-        cir = {}
-        cir['cen_x'] = -(dim_in_x + distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_y + screw_hole_y_dim
+        cir['cen_y'] = screw_hole_y_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
         circles.append(cir)
 
-        #Mid hinge drilling for doors longer than 39H Count
+        # Add screw hole right
+        cir = {}
+        cir['cen_x'] = -(dim_in_x + distance_between_holes * 0.5)
+        cir['cen_y'] = screw_hole_y_dim
+        cir['cen_z'] = screw_hole_depth
+        cir['diameter'] = screw_hole_dia 
+        cir['normal_z'] = normal_z
+        cir['org_displacement'] = org_displacement
+        circles.append(cir)
+
+        # Mid hinge drilling for doors longer than 39H Count
         if door_x_dim > 50:
-            if(round(sn_unit.meter_to_millimeter(assembly.obj_x.location.x)/32) % 2 == 0):
+            if round(sn_unit.meter_to_millimeter(assembly.obj_x.location.x) / 32) % 2 == 0:
                 if door_swing == 0:
                     dim_in_x = door_x_dim * 0.5 - mid_hole_offset
                 else:
                     dim_in_x = door_x_dim * 0.5 + mid_hole_offset
             else:
-                dim_in_x = door_x_dim * 0.5            
+                dim_in_x = door_x_dim * 0.5
 
-            #Add Main hole
+            # Add Main hole
             cir = {}
             cir['cen_x'] = -dim_in_x
             cir['cen_y'] = dim_in_y
@@ -2187,22 +2212,22 @@ class OPS_Export_XML(Operator):
             cir['diameter'] = bore_dia 
             cir['normal_z'] = normal_z
             cir['org_displacement'] = org_displacement
-            circles.append(cir)                                        
+            circles.append(cir)
 
-            #Add screw hole left
+            # Add screw hole left
             cir = {}
             cir['cen_x'] = -(dim_in_x - distance_between_holes * 0.5)
-            cir['cen_y'] = dim_in_y + screw_hole_y_dim
+            cir['cen_y'] = screw_hole_y_dim
             cir['cen_z'] = screw_hole_depth
             cir['diameter'] = screw_hole_dia 
             cir['normal_z'] = normal_z
             cir['org_displacement'] = org_displacement
-            circles.append(cir)                                        
+            circles.append(cir)
 
-            #add screw hole right
+            # Add screw hole right
             cir = {}
             cir['cen_x'] = -(dim_in_x + distance_between_holes * 0.5)
-            cir['cen_y'] = dim_in_y + screw_hole_y_dim
+            cir['cen_y'] = screw_hole_y_dim
             cir['cen_z'] = screw_hole_depth
             cir['diameter'] = screw_hole_dia 
             cir['normal_z'] = normal_z
@@ -2212,41 +2237,40 @@ class OPS_Export_XML(Operator):
         return circles
 
     def get_hamper_door_hinge_drilling(self, assembly, token, circles):
-        #door_x_dim = sn_unit.meter_to_inch(assembly.obj_x.location.x)
         door_y_dim = abs(sn_unit.meter_to_inch(assembly.obj_y.location.y))
         normal_z = -1
         org_displacement = self.distance(sn_utils.get_part_thickness(get_cutpart(assembly.obj_bp)))
         bore_dia = sn_unit.meter_to_inch(sn_unit.millimeter(35))
         dim_in_x = sn_unit.meter_to_inch(sn_unit.millimeter(21))
-        dim_in_y = sn_unit.meter_to_inch(sn_unit.millimeter(78))                                   
+        dim_in_y = sn_unit.meter_to_inch(sn_unit.millimeter(78))
         bore_depth = sn_unit.meter_to_inch(sn_unit.inch(0.55))
-        screw_hole_x_dim = sn_unit.meter_to_inch(sn_unit.millimeter(9.5)) 
+        screw_hole_x_dim = sn_unit.meter_to_inch(sn_unit.millimeter(30)) 
         screw_hole_dia = sn_unit.meter_to_inch(sn_unit.millimeter(1.5)) 
         screw_hole_depth = sn_unit.meter_to_inch(sn_unit.millimeter(2))
         distance_between_holes = sn_unit.meter_to_inch(sn_unit.millimeter(45))
 
-        #Right
+        # Right
         cir = {}
-        cir['cen_x'] = -dim_in_y  # -dim_in_x
-        cir['cen_y'] = dim_in_x  # dim_in_y
+        cir['cen_x'] = -dim_in_y
+        cir['cen_y'] = dim_in_x
         cir['cen_z'] = bore_depth
         cir['diameter'] = bore_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
         cir = {}
         cir['cen_x'] = -(dim_in_y + distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_x + screw_hole_x_dim
+        cir['cen_y'] = screw_hole_x_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
         cir = {}
         cir['cen_x'] = -(dim_in_y - distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_x + screw_hole_x_dim
+        cir['cen_y'] = screw_hole_x_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
@@ -2255,28 +2279,28 @@ class OPS_Export_XML(Operator):
 
         dim_in_y = door_y_dim - dim_in_y
 
-        #Left
+        # Left
         cir = {}
-        cir['cen_x'] = -dim_in_y  # -dim_in_x
-        cir['cen_y'] = dim_in_x  # dim_in_y
+        cir['cen_x'] = -dim_in_y
+        cir['cen_y'] = dim_in_x
         cir['cen_z'] = bore_depth
         cir['diameter'] = bore_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
         cir = {}
         cir['cen_x'] = -(dim_in_y + distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_x + screw_hole_x_dim
+        cir['cen_y'] = screw_hole_x_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
         cir['org_displacement'] = org_displacement
-        circles.append(cir)                                        
+        circles.append(cir)
 
         cir = {}
         cir['cen_x'] = -(dim_in_y - distance_between_holes * 0.5)
-        cir['cen_y'] = dim_in_x + screw_hole_x_dim
+        cir['cen_y'] = screw_hole_x_dim
         cir['cen_z'] = screw_hole_depth
         cir['diameter'] = screw_hole_dia 
         cir['normal_z'] = normal_z
@@ -3755,6 +3779,249 @@ class OPS_Export_XML(Operator):
 
             lengths.append([self.get_part_length(flat_crown_assembly), eb_type])
 
+    def get_lighted_rod_id(self, color, length_inch, kelvin):
+        colors = ['Matte Aluminum', 'Polished Chrome', 'Matte Nickel', 'Black', 'Matte Gold', 'Slate']
+        matched_color = None
+
+        for col in colors:
+            if col in color:
+                matched_color = col
+                break
+
+        vendor_ids = {
+            'Matte Aluminum': {
+                0: {'18': '833.96.020', '24': '833.96.021', '30': '833.96.022', '36': '833.96.023'},
+                1: {'18': '833.96.024', '24': '833.96.025', '30': '833.96.026', '36': '833.96.027'}},
+            'Polished Chrome': {
+                0: {'18': '833.96.028', '24': '833.96.029', '30': '833.96.030', '36': '833.96.031'},
+                1: {'18': '833.96.032', '24': '833.96.033', '30': '833.96.034', '36': '833.96.035'}},
+            'Matte Nickel': {
+                0: {'18': '833.96.036', '24': '833.96.037', '30': '833.96.038', '36': '833.96.039'},
+                1: {'18': '833.96.040', '24': '833.96.041', '30': '833.96.042', '36': '833.96.043'}},
+            'Black': {
+                0: {'18': '833.96.100', '24': '833.96.101', '30': '833.96.102', '36': '833.96.103'},
+                1: {'18': '833.96.104', '24': '833.96.105', '30': '833.96.106', '36': '833.96.107'}},
+            'Matte Gold': {
+                0: {'18': '833.96.052', '24': '833.96.053', '30': '833.96.054', '36': '833.96.055'},
+                1: {'18': '833.96.056', '24': '833.96.057', '30': '833.96.058', '36': '833.96.059'}},
+            'Slate': {
+                0: {'18': '833.96.060', '24': '833.96.061', '30': '833.96.062', '36': '833.96.063'},
+                1: {'18': '833.96.064', '24': '833.96.065', '30': '833.96.066', '36': '833.96.067'}}
+        }
+
+        # Convert length in inches to string as we need to match dictionary keys
+        length_str = str(length_inch)
+
+        # Check if the color and Kelvin value are valid
+        if matched_color in vendor_ids and kelvin in vendor_ids[matched_color]:
+            # Check if the length is valid for the selected color and Kelvin value
+            if length_str in vendor_ids[matched_color][kelvin]:
+                return vendor_ids[matched_color][kelvin][length_str]
+            else:
+                return "Length is not available for the selected color and Kelvin value."
+        else:
+            return "Invalid color or Kelvin value."
+
+    def get_shelf_bar_light_id(self, length_inch, kelvin):
+        length_str = str(length_inch)
+        vendor_ids = {
+            0: {'18': '833.88.978', '24': '833.88.979', '30': '833.88.980', '36': '833.88.981'},
+            1: {'18': '833.88.982', '24': '833.88.983', '30': '833.88.984', '36': '833.88.985'}}
+
+        if kelvin in vendor_ids:
+            if str(length_inch) in vendor_ids[kelvin]:
+                return vendor_ids[kelvin][length_str]
+            else:
+                return f"{length_inch} Length is not available for shelf bar lighting."
+
+    def get_puck_light_housing_sku(self, housing_type, housing_color):
+        sku = ""
+        if housing_type == 'ROUND' and housing_color == 'ANTHRICITE':
+            sku = "LT-0000031"
+        elif housing_type == 'ROUND' and housing_color == 'BLACK':
+            sku = "LT-0000025"
+        elif housing_type == 'ROUND' and housing_color == 'BRONZE':
+            sku = "LT-0000032"
+        elif housing_type == 'ROUND' and housing_color == 'NICKEL':
+            sku = "LT-0000026"
+        elif housing_type == 'ROUND' and housing_color == 'SILVER':
+            sku = "LT-0000023"
+        elif housing_type == 'ROUND' and housing_color == 'STAINLESS_STEEL':
+            sku = "LT-0000033"
+        elif housing_type == 'ROUND' and housing_color == 'WHITE':
+            sku = "LT-0000027"
+        elif housing_type == 'SQUARE' and housing_color == 'ANTHRICITE':
+            sku = "LT-0000034"
+        elif housing_type == 'SQUARE' and housing_color == 'BLACK':
+            sku = "LT-0000028"
+        elif housing_type == 'SQUARE' and housing_color == 'BRONZE':
+            sku = "LT-0000035"
+        elif housing_type == 'SQUARE' and housing_color == 'NICKEL':
+            sku = "LT-0000029"
+        elif housing_type == 'SQUARE' and housing_color == 'SILVER':
+            sku = "LT-0000024"
+        elif housing_type == 'SQUARE' and housing_color == 'STAINLESS_STEEL':
+            sku = "LT-0000033"
+        elif housing_type == 'SQUARE' and housing_color == 'WHITE':
+            sku = "LT-0000030"
+        return sku
+
+    def add_ribbon_accessories(self, elm_parts, light_insert, qty=1):
+        for i in range(1, qty + 1):
+            self.write_lighting_node(elm_parts, light_insert, sku="LT-0000018", name="LOOX5 Clip connector for ribbon, 8mm/12-24v")
+            sku, name = get_light_sku_by_vendor_id("833.74.696")
+            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name)
+
+    def write_lighting(self, elm_parts, spec_group):
+        closet_options = sn_utils.get_main_scene().sn_closets.closet_options
+        light_obj = [
+            obj for obj in bpy.context.visible_objects
+            if obj.get('IS_PUCK_LIGHT_HOUSING')
+            or obj.get('IS_RIBBON_LIGHT')
+            or obj.get('IS_ROD_LIGHT')]
+
+        inserts_processed = []
+        shelf_stacks_processed = []
+
+        # Driver SKU
+        room_driver_qty = closet_options.light_driver_qty
+        if room_driver_qty > 0:
+            self.write_lighting_node(elm_parts, sku="AC-0000380", name="Light Driver", qty=room_driver_qty)
+
+        # Switch SKU
+        room_switch_qty = closet_options.light_switch_qty
+        if room_switch_qty > 0:
+            sku, name = get_light_sku_by_vendor_id("850.00.952")
+            self.write_lighting_node(elm_parts, sku=sku, name=name, qty=room_switch_qty)
+        
+        # Distributor SKU
+        room_dist_qty = closet_options.light_distributor_qty
+        if room_dist_qty > 0:
+            sku, name = get_light_sku_by_vendor_id("850.00.042")
+            self.write_lighting_node(elm_parts, sku=sku, name=name, qty=room_dist_qty)
+
+        for obj in light_obj:
+            insert_bp = sn_utils.get_bp(obj, 'INSERT')
+            if insert_bp:
+                light_insert = sn_types.Assembly(insert_bp)
+
+            if light_insert.obj_bp.get("IS_BP_ROD_AND_SHELF"):
+                light_assy = sn_types.Assembly(sn_utils.get_assembly_bp(obj))
+                brightness_ppt = light_assy.get_prompt("Brightness")
+                if brightness_ppt:
+                    brightness = brightness_ppt.get_value()
+
+                sku = ""
+                width = ""
+                color = sn_utils.get_main_scene().sn_closets.closet_options.rods_name
+
+                width = sn_unit.meter_to_inch(light_insert.obj_x.location.x)
+                width_rd = int(round(width, 2))
+
+                vendor_id = self.get_lighted_rod_id(color, width_rd, brightness)
+                sku, _ = get_light_sku_by_vendor_id(vendor_id)
+                self.write_lighting_node(elm_parts, light_insert, sku=sku, name="Lighted Rod")
+
+            if light_insert:
+                brightness = ""
+                brightness_ppt = light_insert.get_prompt("Brightness")
+                if brightness_ppt:
+                    brightness = brightness_ppt.get_value()
+
+                if light_insert.obj_bp.get("IS_BP_PUCK_LIGHT"):
+                    housing_type = light_insert.get_prompt("Housing Type")
+                    housing_color = light_insert.get_prompt("Housing Color")
+
+                    # Light SKU
+                    if brightness:
+                        sku = ""
+                        if brightness == 0:
+                            sku = "LT-0000036"
+                        elif brightness == 1:
+                            sku = "LT-0000037"
+                        if sku:
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name="Puck Light")
+
+                    # Housing SKU
+                    if housing_color and housing_type:
+                        sku = ""
+                        name = ""
+                        sku = self.get_puck_light_housing_sku(housing_type.get_value(), housing_color.get_value())
+
+                        if housing_type.get_value() == 'ROUND':
+                            name = "Puck Light Housing Round"
+                        elif housing_type.get_value() == 'SQUARE':
+                            name = "Puck Light Housing Square"
+
+                        if sku:
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name)
+
+                    # Cable SKU
+                    # TODO: Calculate cable lengths and extensions needed, using 1 meter lead as default for now
+                    self.write_lighting_node(elm_parts, light_insert, sku="LT-0000038", name="Lead for Modular Light 12v")
+
+                elif light_insert.obj_bp.get("IS_BP_RIBBON_LIGHT_V"):
+                    self.write_lighting_node(elm_parts, light_insert, sku="LT-0000022", name="Profile 1101 polycarbonate white opal/2.5 meters")
+
+                    if light_insert.obj_bp.name not in inserts_processed:
+                        # 3000K Ribbon Light
+                        if brightness == 0:
+                            sku, name = get_light_sku_by_vendor_id("833.02.187")
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name, qty=2)
+                        # 4000K Ribbon Light
+                        if brightness == 1:
+                            sku, name = get_light_sku_by_vendor_id("833.02.197")
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name, qty=2)
+
+                        self.add_ribbon_accessories(elm_parts, light_insert, qty=2)
+                        inserts_processed.append(light_insert.obj_bp.name)
+
+                elif light_insert.obj_bp.get("IS_BP_RIBBON_LIGHT_H"):
+                    needs_profile = True
+                    light_parent = light_insert.obj_bp.parent
+
+                    # Skip ribbon lighting applied to toe kicks
+                    if light_parent:
+                        if light_parent.get("IS_BP_TOE_KICK"):
+                            needs_profile = False
+
+                    # Add ribbon light housing
+                    if needs_profile:
+                        self.write_lighting_node(elm_parts, light_insert, sku="LT-0000022", name="Profile 1101 polycarbonate white opal/2.5 meters")
+                    # 3000K Ribbon Light
+                    if brightness == 0:
+                        sku, name = get_light_sku_by_vendor_id("833.02.187")
+                        self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name)
+                    # 4000K Ribbon Light
+                    if brightness == 1:
+                        sku, name = get_light_sku_by_vendor_id("833.02.197")
+                        self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name)
+
+                    self.add_ribbon_accessories(elm_parts, light_insert)
+
+                elif light_insert.obj_bp.get("IS_BP_SHELF_BAR_LIGHT"):
+                    if light_insert.obj_bp.parent:
+                        shelf_stack_bp = sn_utils.get_bp(light_insert.obj_bp.parent, 'INSERT')
+                        length = sn_unit.meter_to_inch(light_insert.obj_x.location.x)
+                        length_rd = int(round(length, 2))
+
+                        # Shelf light bar
+                        shelf_bar_light_id = self.get_shelf_bar_light_id(length_rd, brightness)
+                        if shelf_bar_light_id:
+                            sku, name = get_light_sku_by_vendor_id(shelf_bar_light_id)
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name)
+
+                        # Per opening items
+                        if shelf_stack_bp not in shelf_stacks_processed:
+                            # 2 buss bars per opening
+                            sku, name = get_light_sku_by_vendor_id("833.74.996")
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name, qty=2)
+
+                            # Power transfer
+                            sku, name = get_light_sku_by_vendor_id("833.88.986")
+                            self.write_lighting_node(elm_parts, light_insert, sku=sku, name=name, qty=1)
+                            shelf_stacks_processed.append(shelf_stack_bp)
+
     def write_parts_for_product(self, elm_parts, obj_bp, spec_group):
         for child in obj_bp.children:
             #Write part nodes for cleat and append cover cleat length to cover_cleat_lengths
@@ -3926,7 +4193,6 @@ class OPS_Export_XML(Operator):
             subassemblies = self.get_subassemblies(obj_bp)
         
         for assembly in subassemblies:
-            print("write_subassemblies_for_product",assembly.obj_bp)
             # Had to move some of the garage leg logic here due to how the assembly is set up
             if assembly.obj_bp.get('IS_BP_GARAGE_LEG'):
                 hide = sn_types.Assembly(assembly.obj_bp).get_prompt("Hide") # Don't know why, but only retrieving the Hide prompt let me actually find the unhidden legs
@@ -4494,7 +4760,61 @@ class OPS_Export_XML(Operator):
             if assembly.obj_bp.location.z > 0:
                 elm_prompt = self.xml.add_element(elm_prompts,'Prompt',"HeightAboveFloor")
                 self.xml.add_element_with_text(elm_prompt,'Value',"0")                  
-    
+
+    def write_lighting_node(self, elm_product, assembly=None, sku=None, name=None, qty=1):
+        if assembly:
+            obj_hasnt_wall = not sn_utils.get_wall_bp(assembly.obj_bp)
+            if obj_hasnt_wall:
+                return
+
+        if name:
+            light_name = name
+        elif assembly:
+            light_name = assembly.obj_bp.snap.name_object if assembly.obj_bp.snap.name_object != "" else assembly.obj_bp.name
+
+        elm_light_part = self.xml.add_element(
+            elm_product,
+            'Part',
+            {
+                'ID': "IDP-{}".format(self.part_count),
+                'LabelID': "IDL-{}".format(self.label_count)
+            })
+        
+        self.xml.add_element_with_text(elm_light_part, 'Name', light_name)
+        self.xml.add_element_with_text(elm_light_part, 'Quantity', str(qty))
+        self.xml.add_element_with_text(elm_light_part, 'Routing', "HDSTK")
+        self.xml.add_element_with_text(elm_light_part, 'Type', "lighting")
+
+        wallname = ""
+
+        if assembly:
+            wallname = self.get_wall_name(assembly.obj_bp)
+
+        lbl = [
+            ("IDL-{}".format(self.label_count), "IDJ-{}".format(self.job_count), "IDP-{}".format(self.part_count)),
+            ("name", "text", light_name),
+            ("wallname", "text", wallname),
+            ("x", "text", "0"),
+            ("y", "text", "0"),
+            ("z", "text", "0"),
+            ("lenx", "text", "0"),
+            ("leny", "text", "0"),
+            ("lenz", "text", "0"),
+            ("rotx", "text", "0"),
+            ("roty", "text", "0"),
+            ("rotz", "text", "0"),
+            ("material", "text", ""),
+            ("copies", "text", ""),
+            ("catnum", "text", "9851"),
+            ("sku", "text", sku if sku else ""),
+            ("color", "text", ""),
+            ("type", "text", "lighting")
+        ]
+
+        self.labels.append(lbl)
+        self.label_count += 1
+        self.part_count += 1
+
     def write_hardware_node(self, elm_product, obj_bp, name="", qty=1):
         if obj_bp.get('IS_BP_ASSEMBLY'):
             assembly = sn_types.Assembly(obj_bp=obj_bp)
@@ -4532,7 +4852,6 @@ class OPS_Export_XML(Operator):
                         if soft_close_hinge.get_value():
                             hardware_name = "Soft Close Hinge Blind Corner 110"
 
-
         if is_hanging_rod:
             if "Oval" in rods_name or "Round" in rods_name:
                 part_length = self.get_part_length(assembly)
@@ -4550,11 +4869,13 @@ class OPS_Export_XML(Operator):
             part_length = self.get_part_length(assembly)
             part_width = self.get_part_width(assembly)
 
-        elm_hdw_part = self.xml.add_element(elm_product,
-                                        'Part',
-                                        {'ID': "IDP-{}".format(self.part_count),
-                                        'LabelID': "IDL-{}".format(self.label_count)                          
-                                        })
+        elm_hdw_part = self.xml.add_element(
+            elm_product,
+            'Part',
+            {
+                'ID': "IDP-{}".format(self.part_count),
+                'LabelID': "IDL-{}".format(self.label_count)
+            })
         
         self.xml.add_element_with_text(elm_hdw_part, 'Name', hardware_name)
         self.xml.add_element_with_text(elm_hdw_part, 'Quantity', str(qty))
@@ -4584,11 +4905,11 @@ class OPS_Export_XML(Operator):
             ("rotx", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.x)))),
             ("roty", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.y)))),
             ("rotz", "text", str(int(math.degrees(assembly.obj_bp.rotation_euler.z)))),
-            ("material", "text", ""),#Str literal OKAY
-            ("copies", "text", ""),#Str literal OKaY
-            ("sku", "text", get_hardware_sku(obj_bp, assembly, hardware_name)),#Get sku value from Database
-            ("color", "text", ""),#Str literal OKAY
-            ("type", "text", "hardware")#Str literal OKAY
+            ("material", "text", ""),  # Str literal OKAY
+            ("copies", "text", ""),  # Str literal OKaY
+            ("sku", "text", get_hardware_sku(obj_bp, assembly, hardware_name)), # Get sku value from Database
+            ("color", "text", ""),  # Str literal OKAY
+            ("type", "text", "hardware")  # Str literal OKAY
         ]
 
         self.labels.append(lbl)
@@ -4604,10 +4925,17 @@ class OPS_Export_XML(Operator):
         wooden_materials = ["BBBB", "1/4 BIRCH VENEER PRE FINISHED"]
         obj_props = assembly.obj_bp.sn_closets
         if(obj_props.is_door_bp or obj_props.is_drawer_front_bp or obj_props.is_hamper_front_bp or obj.get('IS_DOOR') or obj.get('IS_BP_DRAWER_FRONT')):
+            is_drawer = False
+            drawer_height = 0
+            if obj_props.is_drawer_front_bp or obj.get('IS_BP_DRAWER_FRONT'):
+                is_drawer = True
+                drawer_height = float(self.get_part_length(assembly))
             if(assembly.get_prompt("Door Style")):
                 door_style = assembly.get_prompt("Door Style").get_value()
-                if (door_style != "Slab Door") and (door_style != "Melamine Door Glass"):
-                    return True
+                if (door_style == "Traviso Door") and is_drawer and drawer_height < 7:  # Traviso Drawers that are 5H or smaller (Less than 7 inches tall) need to be marked as not a wood part to be cut correctly
+                    return False
+                elif (door_style != "Slab Door") and (door_style != "Melamine Door Glass"):
+                    return True        
         for cur_mat in wooden_materials:
             if cur_mat in mat_inventory_name:
                 return True

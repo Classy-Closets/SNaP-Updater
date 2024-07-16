@@ -21,10 +21,11 @@ from snap import sn_utils
 def update_project_props(self, context):
     self.modify_project_file()
 
+def update_room_props(self, context):
+    self.modify_room_data()
 
 def make_new_name(path, new_name):
     return path + "\\" + new_name + ".blend"
-
 
 def rename_room(self, context):
     props = bpy.context.window_manager.sn_project
@@ -88,7 +89,6 @@ def rename_room(self, context):
                 icon="ERROR",
                 width=400)
             return
-
 
 def rename_project(self, context):
     props = bpy.context.window_manager.sn_project
@@ -223,6 +223,39 @@ class Room(PropertyGroup, CollectionMixIn):
     selected: BoolProperty(name="Room Selected", default=False)
     version: StringProperty(name="Version", default="")
 
+    prop_id: StringProperty(name="Proposal ID", default="", update=update_room_props)
+    prop_published: StringProperty(name="Proposal Published", default="", update=update_room_props)
+    prop_published_utc: StringProperty(name="Proposal Published UTC", default="", update=update_room_props)
+    
+    prop_selected: BoolProperty(name="Room on Proposal", default=False, update=update_room_props)
+    prop_thumbnail: StringProperty(name="Proposal Room Thumbnail", default="", update=update_room_props)
+    prop_thumbnail_custom: StringProperty(name="Proposal Room Custom Thumbnail", default="", update=update_room_props)
+    prop_thumbnail_custom_utc: StringProperty(name="Proposal Room Custom Thumbnail UTC", default="", update=update_room_props)
+    prop_3d_prepared: StringProperty(name="Room 3D Prepared", default="", update=update_room_props)
+    prop_3d_prepared_utc: StringProperty(name="Room 3D Prepared UTC", default="", update=update_room_props)
+    prop_3d_exported: StringProperty(name="Room 3D Exported", default="", update=update_room_props)
+    prop_3d_exported_utc: StringProperty(name="Room 3D Exported UTC", default="", update=update_room_props)
+    prop_3d_exported_url: StringProperty(name="Room 3D Exported URL", default="", update=update_room_props)
+    prop_3d_exported_uid: StringProperty(name="Room 3D Exported UID", default="", update=update_room_props)
+    prop_3d_exported_acct: StringProperty(name="Room 3D Exported Account", default="", update=update_room_props)
+
+    prop_room_label: StringProperty(name="Proposal Room Label", default="", maxlen=22, update=update_room_props)
+    prop_room_estimate: StringProperty(name="Proposal Room Estimate", default="", update=update_room_props)
+    prop_room_estimate_custom: StringProperty(name="Proposal Room Custom Estimate", default="", update=update_room_props)
+    prop_room_ext_color_custom: StringProperty(name="Proposal Room Custom Ext Color", default="", update=update_room_props)
+    prop_room_int_color_custom: StringProperty(name="Proposal Room Custom Int Color", default="", update=update_room_props)
+    prop_room_trim_color_custom: StringProperty(name="Proposal Room Custom Trim Color", default="", update=update_room_props)
+    prop_room_hardware_custom: StringProperty(name="Proposal Room Custom Hardware", default="", update=update_room_props)
+    prop_room_rods_custom: StringProperty(name="Proposal Room Custom Rods", default="", update=update_room_props)
+    prop_room_door_drawer_custom: StringProperty(name="Proposal Room Custom Door Drawer", default="", update=update_room_props)
+    prop_room_boxes_custom: StringProperty(name="Proposal Room Custom Boxes", default="", update=update_room_props)
+    prop_room_hamper_custom: StringProperty(name="Proposal Room Custom Hamper", default="", update=update_room_props)
+    prop_room_accessories_custom: StringProperty(name="Proposal Room Custom Accessories", default="", update=update_room_props)
+    prop_room_countertop_custom: StringProperty(name="Proposal Room Custom Countertop", default="", update=update_room_props)
+    prop_room_backing_custom: StringProperty(name="Proposal Room Custom Backing", default="", update=update_room_props)
+    prop_room_glass_custom: StringProperty(name="Proposal Room Custom Glass", default="", update=update_room_props)
+    prop_room_notes: StringProperty(name="Proposal Room Notes", default="", maxlen=175, update=update_room_props)
+
     def init(self, name, path=None, project_index=None, save_room_file=True):
         wm = bpy.context.window_manager.sn_project
         # On initial load, project index won't work.
@@ -253,6 +286,8 @@ class Room(PropertyGroup, CollectionMixIn):
 
             self.update_project_xml(project)
 
+        self.load_room_data()
+  
     def update_project_xml(self, project):
         # write info to project file
         tree = ET.parse(project.file_path)
@@ -264,8 +299,132 @@ class Room(PropertyGroup, CollectionMixIn):
             elm_room = ET.Element("Room", {'name': self.name, 'path': rel_loc})
             elm_room.text = self.name
             elm.append(elm_room)
+            # elm_selected = ET.Element("Room", {'selected': self.selected, 'path': rel_loc})
+            # elm_selected.text = self.selected
+            # elm.append(elm_selected)
+            
 
         tree.write(project.file_path)
+
+    def modify_room_data(self):
+        wm = bpy.context.window_manager.sn_project
+        project = wm.projects[wm.project_index]
+        tree = ET.parse(project.file_path)
+        root = tree.getroot()
+
+        for rooms in root.findall("Rooms"):
+            for room in rooms.findall("Room"):
+                if room.attrib['name'] == self.name:
+                    room.set('prop_id', str(self.prop_id))
+                    room.set('prop_published', self.prop_published)
+                    room.set('prop_published_utc', self.prop_published_utc)
+                    room.set('prop_selected', str(self.prop_selected))
+                    room.set('prop_thumbnail', self.prop_thumbnail)
+                    room.set('prop_thumbnail_custom', self.prop_thumbnail_custom)
+                    room.set('prop_thumbnail_custom_utc', self.prop_thumbnail_custom_utc)
+                    room.set('prop_3d_prepared', self.prop_3d_prepared)
+                    room.set('prop_3d_prepared_utc', self.prop_3d_prepared_utc)
+                    room.set('prop_3d_exported', self.prop_3d_exported)
+                    room.set('prop_3d_exported_utc', self.prop_3d_exported_utc)
+                    room.set('prop_3d_exported_url', self.prop_3d_exported_url)
+                    room.set('prop_3d_exported_uid', str(self.prop_3d_exported_uid))
+                    room.set('prop_3d_exported_acct', self.prop_3d_exported_acct)
+
+                    room.set('prop_room_label', self.prop_room_label)
+                    room.set('prop_room_estimate', self.prop_room_estimate)
+                    if self.prop_room_estimate_custom.strip() != "":
+                        room.set('prop_room_estimate_custom', self.prop_room_estimate_custom)
+                    else:
+                        room.set('prop_room_estimate_custom', "")
+                    room.set('prop_room_ext_color_custom', self.prop_room_ext_color_custom)
+                    room.set('prop_room_int_color_custom', self.prop_room_int_color_custom)
+                    room.set('prop_room_trim_color_custom', self.prop_room_trim_color_custom)
+                    room.set('prop_room_hardware_custom', self.prop_room_hardware_custom)
+                    room.set('prop_room_rods_custom', self.prop_room_rods_custom)
+                    room.set('prop_room_door_drawer_custom', self.prop_room_door_drawer_custom)
+                    room.set('prop_room_boxes_custom', self.prop_room_boxes_custom)
+                    room.set('prop_room_hamper_custom', self.prop_room_hamper_custom)
+                    room.set('prop_room_accessories_custom', self.prop_room_accessories_custom)
+                    room.set('prop_room_countertop_custom', self.prop_room_countertop_custom)
+                    room.set('prop_room_backing_custom', self.prop_room_backing_custom)
+                    room.set('prop_room_glass_custom', self.prop_room_glass_custom)
+                    room.set('prop_room_notes', self.prop_room_notes)
+                       
+        tree.write(project.file_path)
+
+    def load_room_data(self):
+        wm = bpy.context.window_manager.sn_project
+        project = wm.projects[wm.project_index]
+        tree = ET.parse(project.file_path)
+        root = tree.getroot()
+
+        for rooms in root.findall("Rooms"):
+            for room in rooms.findall("Room"):
+                if room.attrib['name'] == self.name:
+                    if "prop_id" in room.attrib and room.get('prop_id') != "":
+                        self.prop_id = room.get('prop_id')
+                    if "prop_selected" in room.attrib and room.get('prop_selected') != "":
+                        if room.get('prop_selected') == "True":
+                            self.prop_selected = True
+                        else:
+                            self.prop_selected = False
+                    if "prop_published" in room.attrib and room.get('prop_published') != "":
+                        self.prop_published = room.get('prop_published')
+                    if 'prop_published_utc' in room.attrib and room.get('prop_published_utc') != "":
+                        self.prop_published_utc = room.get('prop_published_utc')
+                    if "prop_thumbnail" in room.attrib and room.get('prop_thumbnail') != "":
+                        self.prop_thumbnail = room.get('prop_thumbnail')
+                    if "prop_thumbnail_custom" in room.attrib and room.get('prop_thumbnail_custom') != "":
+                        self.prop_thumbnail_custom = room.get('prop_thumbnail_custom')
+                    if "prop_thumbnail_custom_utc" in room.attrib and room.get('prop_thumbnail_custom_utc') != "":
+                        self.prop_thumbnail_custom_utc = room.get('prop_thumbnail_custom_utc')
+                    if "prop_3d_prepared" in room.attrib and room.get('prop_3d_prepared') != "":
+                        self.prop_3d_prepared = room.get('prop_3d_prepared')
+                    if "prop_3d_prepared_utc" in room.attrib and room.get('prop_3d_prepared_utc') != "":
+                        self.prop_3d_prepared_utc = room.get('prop_3d_prepared_utc')
+                    if "prop_3d_exported" in room.attrib and room.get('prop_3d_exported') != "":
+                        self.prop_3d_exported = room.get('prop_3d_exported')
+                    if "prop_3d_exported_utc" in room.attrib and room.get('prop_3d_exported_utc') != "":
+                        self.prop_3d_exported_utc = room.get('prop_3d_exported_utc')
+                    if "prop_3d_exported_url" in room.attrib and room.get('prop_3d_exported_url') != "":
+                        self.prop_3d_exported_url = room.get('prop_3d_exported_url')
+                    if "prop_3d_exported_uid" in room.attrib and room.get('prop_3d_exported_uid') != "":
+                        self.prop_3d_exported_uid = room.get('prop_3d_exported_uid')
+                    if "prop_3d_exported_acct" in room.attrib and room.get('prop_3d_exported_acct') != "":
+                        self.prop_3d_exported_acct = room.get('prop_3d_exported_acct')
+                    if "prop_room_label" in room.attrib and room.get('prop_room_label') != "":
+                        self.prop_room_label = room.get('prop_room_label')
+                    if "prop_room_estimate" in room.attrib and room.get('prop_room_estimate') != "":
+                        self.prop_room_estimate = room.get('prop_room_estimate')
+                    if "prop_room_estimate_custom" in room.attrib and room.get('prop_room_estimate_custom') != "":
+                        self.prop_room_estimate_custom = "$" + room.get('prop_room_estimate_custom').replace("$","")
+
+                    if "prop_room_ext_color_custom" in room.attrib and room.get('prop_room_ext_color_custom') != "":
+                        self.prop_room_ext_color_custom = room.get('prop_room_ext_color_custom')
+                    if "prop_room_int_color_custom" in room.attrib and room.get('prop_room_int_color_custom') != "":
+                        self.prop_room_int_color_custom = room.get('prop_room_int_color_custom')
+                    if "prop_room_trim_color_custom" in room.attrib and room.get('prop_room_trim_color_custom') != "":
+                        self.prop_room_trim_color_custom = room.get('prop_room_trim_color_custom')
+                    if "prop_room_hardware_custom" in room.attrib and room.get('prop_room_hardware_custom') != "":
+                        self.prop_room_hardware_custom = room.get('prop_room_hardware_custom')
+                    if "prop_room_rods_custom" in room.attrib and room.get('prop_room_rods_custom') != "":
+                        self.prop_room_rods_custom = room.get('prop_room_rods_custom')
+                    if "prop_room_door_drawer_custom" in room.attrib and room.get('prop_room_door_drawer_custom') != "":
+                        self.prop_room_door_drawer_custom = room.get('prop_room_door_drawer_custom')
+                    if "prop_room_boxes_custom" in room.attrib and room.get('prop_room_boxes_custom') != "":
+                        self.prop_room_boxes_custom = room.get('prop_room_boxes_custom')
+                    if "prop_room_hamper_custom" in room.attrib and room.get('prop_room_hamper_custom') != "":
+                        self.prop_room_hamper_custom = room.get('prop_room_hamper_custom')
+                    if "prop_room_accessories_custom" in room.attrib and room.get('prop_room_accessories_custom') != "":
+                        self.prop_room_accessories_custom = room.get('prop_room_accessories_custom')
+                    if "prop_room_countertop_custom" in room.attrib and room.get('prop_room_countertop_custom') != "":
+                        self.prop_room_countertop_custom = room.get('prop_room_countertop_custom')
+                    if "prop_room_backing_custom" in room.attrib and room.get('prop_room_backing_custom') != "":
+                        self.prop_room_backing_custom = room.get('prop_room_backing_custom')
+                    if "prop_room_glass_custom" in room.attrib and room.get('prop_room_glass_custom') != "":
+                        self.prop_room_glass_custom = room.get('prop_room_glass_custom')    
+                    if "prop_room_notes" in room.attrib and room.get('prop_room_notes') != "":
+                        self.prop_room_notes = room.get('prop_room_notes')
 
     def set_filename(self):
         self.file_name = self.get_clean_name(self.name)
@@ -309,6 +468,12 @@ class Project(PropertyGroup, CollectionMixIn):
                                   update=update_project_props)
     designer: StringProperty(name="Designer", description="Designer", update=update_project_props)
     design_date: StringProperty(name="Design Date", description="Design Date", update=update_project_props)
+    
+    prop_id: StringProperty(name="Proposal ID", default="", update=update_project_props)
+    prop_published: StringProperty(name="Proposal Published", default="", update=update_project_props)
+    prop_published_utc: StringProperty(name="Proposal Published UTC", default="", update=update_project_props)
+    prop_status: StringProperty(name="Proposal Status", default="", update=update_project_props)
+
 
     def init(self, name, path=None):
         col = bpy.context.window_manager.sn_project.projects
@@ -373,6 +538,10 @@ class Project(PropertyGroup, CollectionMixIn):
         ccp.add_element_with_text(project_info, "project_notes", "None")
         ccp.add_element_with_text(project_info, "designer", "None")
         ccp.add_element_with_text(project_info, "design_date", "None")
+        ccp.add_element_with_text(project_info, "prop_id", "None")
+        ccp.add_element_with_text(project_info, "prop_published", "None")
+        ccp.add_element_with_text(project_info, "prop_published_utc", "None")
+        ccp.add_element_with_text(project_info, "prop_status", "None")
 
         ccp.add_element(root, 'Rooms')
 
@@ -386,6 +555,10 @@ class Project(PropertyGroup, CollectionMixIn):
         for elm in root.findall("ProjectInfo"):
             items = list(elm)
             missing_lead_id = True
+            missing_prop_id = True
+            missing_prop_published = True
+            missing_prop_pubhlished_utc = True
+            missing_prop_status = True
 
             for item in items:
                 if item.tag == 'customer_name':
@@ -428,8 +601,39 @@ class Project(PropertyGroup, CollectionMixIn):
                 if item.tag == 'design_date':
                     item.text = self.design_date
 
+                if item.tag == 'prop_id':
+                    missing_prop_id = False
+                    item.text = self.prop_id
+
+                if item.tag == 'prop_published':
+                    missing_prop_published = False
+                    if item.text != "":
+                        item.text = self.prop_published
+
+                if item.tag == 'prop_published_utc':
+                    missing_prop_pubhlished_utc = False
+                    if item.text != "":
+                        item.text = self.prop_published_utc
+
+                if item.tag == 'prop_status':
+                    missing_prop_status = False
+                    if item.text != "":
+                        item.text = self.prop_status
+
             if missing_lead_id:
                 ccp.add_element_with_text(elm, "lead_id", self.lead_id)
+
+            if missing_prop_id:
+                ccp.add_element_with_text(elm, "prop_id", self.prop_id)
+
+            if missing_prop_published:
+                ccp.add_element_with_text(elm, "prop_published", self.prop_published)
+            
+            if missing_prop_pubhlished_utc:
+                ccp.add_element_with_text(elm, "prop_published_utc", self.prop_published_utc)
+
+            if missing_prop_status:
+                ccp.add_element_with_text(elm, "prop_status", self.prop_status)
 
         tree.write(self.file_path)
 
@@ -484,6 +688,15 @@ class Project(PropertyGroup, CollectionMixIn):
 
                     if item.tag == 'design_date':
                         self.design_date = item.text
+
+                    if item.tag == 'prop_id':
+                        self.prop_id = item.text
+
+                    if item.tag == 'prop_published':
+                        self.prop_published = item.text
+
+                    if item.tag == 'prop_published_utc':
+                        self.prop_published_utc = item.text
 
     def draw_room_info(self, layout):
         active_room_path = self.rooms[self.room_index].file_path

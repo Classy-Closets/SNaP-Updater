@@ -73,8 +73,6 @@ def get_glass_shelf_backing_setback(insert, product):
         return insert.get_prompt("Shelf Backing Setback").get_value()
 
 
-
-
 class Hanging_Rods_with_Shelves(sn_types.Assembly):
 
     type_assembly = "INSERT"

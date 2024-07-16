@@ -24,6 +24,7 @@ from .data import data_closet_splitters
 tagged_sss_list = []
 tagged_kds = []
 
+
 def spread(arg):
     ret = []
     for i in arg:
@@ -459,7 +460,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         global_vertices = obj.matrix_world
         local_vertices = obj.data.vertices[0].co
         return global_vertices @ local_vertices
-    
+
     def has_nearest_kd(self, kd_data):
         kd_parent, kd_position = kd_data
         x, y, z = kd_position
@@ -527,7 +528,6 @@ class SNAP_OT_Auto_Dimension(Operator):
                 dim.start_z(value=sn_unit.inch(5))
                 dim.set_label(label)
 
-    
     def arrayed_shelves_door_inserts(self, context, item):
         if 'INSERT' in item.name and 'doors' in item.name.lower():
             for k_item in item.children:
@@ -538,7 +538,6 @@ class SNAP_OT_Auto_Dimension(Operator):
                             self.arrayed_shelf_dimension(
                                 context, x_item, k_item)
 
-    
     def arrayed_hangs_inserts(self, context, item):
         if 'INSERT' in item.name and 'hang' in item.name.lower():
             for k_item in item.children:
@@ -549,7 +548,6 @@ class SNAP_OT_Auto_Dimension(Operator):
                             self.arrayed_shelf_dimension(
                                 context, x_item, k_item)
 
-    
     def arrayed_hamper_doors_inserts(self, context, item):
         if 'INSERT' in item.name and 'hamper' in item.name.lower():
             for k_item in item.children:
@@ -562,14 +560,12 @@ class SNAP_OT_Auto_Dimension(Operator):
                                     self.arrayed_shelf_dimension(
                                         context, y_item, x_item)
 
-    
     def arrayed_shelves_section_depth_dimension(self, context, item):
         for n_item in item.children:
             self.arrayed_shelves_door_inserts(context, n_item)
             self.arrayed_hangs_inserts(context, n_item)
             self.arrayed_hamper_doors_inserts(context, n_item)
 
-    
     def chk_shelf_cutpart(self, cutpart, shelf_bp):
         setback = 0.25
         shelf_depth = self.to_inch(shelf_bp.location.y)
@@ -673,7 +669,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                     setback_dim.parent(hashmark.end_point)
                     setback_dim.start_z(value=sn_unit.inch(2))
                     setback_dim.set_label(label_depth)
-    
+
     def hangers_setback(self, item):
         for obj in item.children:
             # Hang Short and Hang Short Tall
@@ -722,7 +718,6 @@ class SNAP_OT_Auto_Dimension(Operator):
                         result['label_depth'] = label_depth
                         self.place_setbacks(result)
 
-    
     def setback_standard_shelf(self, item):
         # We add dimensions for shelves that differs
         # from the section depth + default cutpart (1/4")
@@ -826,7 +821,7 @@ class SNAP_OT_Auto_Dimension(Operator):
                             self.apply_partition_height_label(mesh, "left")
                 if mesh not in skip:
                     self.apply_partition_height_label(mesh)
-    
+
     def corner_shelves_l_shelves(self, item):
         assy = sn_types.Assembly(item)
         has_top_kd = assy.get_prompt("Add Top KD").get_value()
@@ -897,7 +892,6 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_z(value=height)
         dim.set_label("KD")
 
-
     def csh_lsh_botom_kd_lbl(self, item, assy):
         panel_height, tk_height = 0, 0
         is_hanging = False
@@ -919,7 +913,6 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_y(value=0)
         dim.start_z(value=height)
         dim.set_label("KD")
-
 
     def csh_lsh_width(self, item, assy):
         wall_height = 0
@@ -995,7 +988,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         if len(partition_overlaps) > 0:
             return list(set(partition_overlaps))
         return None
-    
+
     def apply_partition_height_label(self, partition, displacement=None):
         label = self.to_inch_str(partition.dimensions[0])
         dim = self.add_tagged_dimension(partition)
@@ -1260,7 +1253,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         if hang_opng_count_check:
             return True
         return False
-    
+
     def overlapping_diff_hang_opng_only_one(self, opng_data):
         hang_opng_count = []
         hang_opngs = [obj for obj in opng_data.keys()]
@@ -1369,7 +1362,7 @@ class SNAP_OT_Auto_Dimension(Operator):
             return True
         elif not any(overlaps):
             return False
-    
+
     def opening_absolute_start_end(self, opening):
         opening_number = opening.sn_closets.opening_name
         bp = sn_utils.get_closet_bp(opening)
@@ -1652,7 +1645,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_z(value=sn_unit.inch(2))
         dim.set_label(self.to_inch_lbl(abs(ts_depth)))
         self.topshelf_exposed_labels(obj_bp)
-    
+
     def corner_topshelf_overhang(self, ts_assembly):
         obj_bp = ts_assembly.obj_bp
         ts_width = ts_assembly.obj_x.location.x
@@ -1857,7 +1850,6 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_x(value=lbl_x)
         dim.start_y(value=lbl_y)
         dim.set_label(label)
-
 
     def slanted_shoes_shelves_old(self, item):
         already_tagged = item in tagged_sss_list
@@ -2179,11 +2171,11 @@ class SNAP_OT_Auto_Dimension(Operator):
                 self.filler_labeling(lower[2], 'down')
                 self.filler_labeling(upper[2], 'up')
 
-
     def capping_bottom_label(self, assembly):
         assy_bp = assembly.obj_bp
-        [cp_btm_bp] = [obj for obj in assy_bp.children
-                       if obj.get('IS_BP_ASSEMBLY')]
+        [cp_btm_bp] = [
+            obj for obj in assy_bp.children
+            if obj.get('IS_BP_ASSEMBLY') and obj.get('IS_BP_PLANT_ON_TOP')]
 
         # Main capping bottom label
         cp_btm_assy = sn_types.Assembly(cp_btm_bp)
@@ -2764,7 +2756,6 @@ class SNAP_OT_Auto_Dimension(Operator):
             lbl.set_label(lbl_str)
             lbl.start_z(value=lbl_off)
 
-
     def section_bh(self, bh_dims, item):
         build_height_dim = 0
         countertop_height = 0
@@ -2814,7 +2805,6 @@ class SNAP_OT_Auto_Dimension(Operator):
             elif topshelf_thickness > 0:
                 build_height_dim = (tallest_partition_height + topshelf_thickness)
             bh_dims.append(build_height_dim)
-
 
     def strict_corner_bh(self, bh_dims, item):
         tk_height, tsh_height = 0, 0
@@ -2866,7 +2856,6 @@ class SNAP_OT_Auto_Dimension(Operator):
         dims_offset = (sn_unit.inch(-4) * len(bh_dims))
         max_offset = sn_unit.inch(-7) + dims_offset
         return max_offset
-
 
     def apply_build_height_label(self, wall_bp, position, 
                                  multiplier, overlay_offset):
@@ -2937,7 +2926,6 @@ class SNAP_OT_Auto_Dimension(Operator):
                     smallest_meas_diff_hole_number = value
             return smallest_meas_diff_hole_number
         return label
-
 
     def get_drawer_size_by_dim(self, drawer_height):
         drawer_h_query = str(round(drawer_height * 1000, 3))
@@ -3020,13 +3008,16 @@ class SNAP_OT_Auto_Dimension(Operator):
 
             for side in sides:
                 panel_part = sn_types.Part(side)
-                [cutpart] = panel_part.get_cutparts()
-                mach_tks = cutpart.snap.mp.machine_tokens
+                cutparts = panel_part.get_cutparts()
 
-                if side == panel_l:
-                    holes_l = any(['Mid Right' in m.name for m in mach_tks])
-                if side == panel_r:
-                    holes_r = any(['Mid Left' in m.name for m in mach_tks])
+                if cutparts:
+                    cutpart = cutparts[0]
+                    mach_tks = cutpart.snap.mp.machine_tokens
+
+                    if side == panel_l:
+                        holes_l = any(['Mid Right' in m.name for m in mach_tks])
+                    if side == panel_r:
+                        holes_r = any(['Mid Left' in m.name for m in mach_tks])
 
             if holes_l and holes_r:
                 lbl = self.add_tagged_dimension(opening)
@@ -3064,7 +3055,7 @@ class SNAP_OT_Auto_Dimension(Operator):
             hashmark.start_z(value=0)
             hashmark.anchor.name = 'PARTHGT'
             hashmark.end_point.name = 'PARTHGT'
-    
+
     def door_has_pointers(self, door_parent):
         door_parent_pointers = []
         for door_obj in door_parent.children:
@@ -3085,7 +3076,7 @@ class SNAP_OT_Auto_Dimension(Operator):
         dim.start_x(value=x_loc / 2)
         dim.start_z(value=z_loc + sn_unit.inch(6))
         dim.set_label("Positive|Overlay")
-        
+
     def label_regular_doors(self, assembly, door_obj):
         has_pointers = self.door_has_pointers(door_obj.parent)
         door_assy = sn_types.Assembly(door_obj)
@@ -3521,7 +3512,7 @@ class SNAP_PROPS_2D_Dimensions(PropertyGroup):
     auto_add_on_save: BoolProperty(name="Auto Add On Save",
                                    default=False,
                                    description="Automatically add annotations and dimensions to scene")
-    
+
     disable_2dviews_shading: BoolProperty(name="Disable 2D Views Shading",
                                    default=False,
                                    description="Disable shading for obstacles and glass panels")
@@ -3566,7 +3557,7 @@ class SNAP_PROPS_2D_Dimensions(PropertyGroup):
     partition_depths: BoolProperty(name="Add Partition Depths",
                                    default=True,
                                    description="")
-    
+
     positive_overlay: BoolProperty(name="Add Positive Overlays",
                                    default=True,
                                    description="")
@@ -3582,7 +3573,7 @@ class SNAP_PROPS_2D_Dimensions(PropertyGroup):
     toe_kicks: BoolProperty(name="Add Toe Kicks",
                                   default=True,
                                   description="")
-    
+
     garage_legs: BoolProperty(name="Add Garage Legs",
                                   default=True,
                                   description="")

@@ -2,7 +2,9 @@ import bpy
 import os
 import re
 import shutil
-from snap import sn_utils
+from snap import sn_utils, sn_paths, sn_types, sn_db, sn_unit
+from snap.libraries.closets import project_pricing
+
 import pathlib
 from distutils.dir_util import copy_tree
 import xml.etree.ElementTree as ET
@@ -17,7 +19,80 @@ from bpy.props import (StringProperty,
 from shutil import copyfile
 
 from . import pm_utils, pm_props
+import webbrowser
+import uuid
+import ctypes
+import random
+import datetime
+import pyperclip
+import boto3
+import time
+import math
+import mathutils
+from urllib.parse import quote
 
+
+# AWS_S3_REGION_NAME = 'us-west-2'
+# AWS_S3_BUCKET_NAME = 'snap-proposals'
+# AWS_S3_ACCESS_KEY_ID = 'gAAAAABl-2ovZa1SmRKioZSAnqdQlpmoRAynY0xbGQ5kO-ofJlXVjkehms-cQ5euGONLGH2A0xh2_ulRVlkxojPLBG73MYAc34hAJUly2t00BN3YOgY8JRc='
+# AWS_S3_ACCESS_KEY = 'gAAAAABl-2d3mvtwZEBFupQt6hNjpEYI9jyy5kpGxxi4FnnuOHx3ypBWgD3GCu1oPt6g3Q6T6bVcbCNh3vqgL3oRNgIBxV5gJ5WsqzzdKsTNLOgb6WUNPNaheBEJmUGpvodb6DrGTjm2'
+
+AWS_S3_REGION_NAME = 'us-west-1'
+AWS_S3_BUCKET_NAME = 'snap-proposals-1'
+AWS_S3_ACCESS_KEY_ID = 'gAAAAABmDxSuCsGbViR6sNeOi0L2JPBjkB66tKgZ-eKSWFVa0dBhNq8R1gd68B_waB9qmjQzC-QOrxeEeuJmnDwpuZIl897x1ca9Q48xURkOKbqexKgJYlc='
+AWS_S3_ACCESS_KEY = 'gAAAAABmDxSue4C4ftTHw1XpBU3FXm4ZX2CBFWAA2yUv5BsBje1WL8up9Uh8mzlpOueFc83b1FHuxelztkLxygTuqhR3mjbYj8NADxWFMkGwj34_fY-ejZ1_FzLTSwLKMACJ-nB7FuWO'
+
+
+
+def get_s3_client():
+    return boto3.client(
+        's3',
+        aws_access_key_id=pm_utils.decode(AWS_S3_ACCESS_KEY_ID),
+        aws_secret_access_key=pm_utils.decode(AWS_S3_ACCESS_KEY),
+        region_name=AWS_S3_REGION_NAME
+    )
+
+def upload_object_to_s3(file_name, bucket_name, object_name=None):
+    # If S3 object_name was not specified, use file_name
+    if object_name is None:
+        object_name = file_name
+
+    content_type = ''
+    if object_name.endswith('.html'):
+            content_type = 'text/html'
+    
+    s3_client = get_s3_client()
+    public_folder = 'public/'
+
+    try:
+        response = s3_client.upload_file(file_name, bucket_name, public_folder + object_name, ExtraArgs={'ContentType': content_type})
+        print("response=",response)
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        return False
+    return True
+
+def delete_s3_objects_by_prefix(bucket_name, prefix):
+    
+    s3_client = get_s3_client()
+    target_prefix = 'public/' + prefix
+    print("target_prefix=",target_prefix)
+
+    if target_prefix != 'public/' and target_prefix != 'public//':
+        objects_to_delete = s3_client.list_objects_v2(Bucket=bucket_name, Prefix=target_prefix)
+
+        # Check if there are objects to delete
+        if 'Contents' in objects_to_delete:
+            objects = [{'Key': obj['Key']} for obj in objects_to_delete['Contents']]
+            s3_client.delete_objects(Bucket=bucket_name, Delete={'Objects': objects})
+            print(f"All objects with prefix '{target_prefix}' deleted.")
+        else:
+            print(f"No objects found with prefix '{target_prefix}'.")
+
+    return True
+
+def get_s3_object_url(bucket_name, object_name, region_name):
+    return f"https://{bucket_name}.s3-{region_name}.amazonaws.com/public/{quote(object_name)}"
 
 class SNAP_OT_Copy_Room(Operator):
     bl_idname = "product_manager.copy_room"
@@ -638,6 +713,1973 @@ class SNAP_OT_Load_Projects(Operator):
         pm_utils.load_projects()
 
         return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Select_All_Rooms(Operator):
+    bl_idname = "project_manager.proposal_select_all_rooms"
+    bl_label = "Select All Rooms"
+    bl_description = "This will select all of the rooms in the Project Proposal room list"
+
+    select_all: BoolProperty(name="Select All", default=True)
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        project = context.window_manager.sn_project.get_project()
+        for room in project.rooms:
+            room.prop_selected = self.select_all
+
+        return{'FINISHED'}    
+
+
+class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
+    """Prepare Room For 3D Export"""
+    bl_idname = "project_manager.prepare_room_for_3d_export"
+    bl_label = "Prepare Room For 3D Export"
+    bl_options = {'UNDO'}
+
+    def invoke(self, context, event):
+        return self.execute(context)
+
+    def apply_all_modifiers(self, objects):
+        for obj in objects:
+            if obj.type == 'MESH':  # Assuming you only want to apply modifiers to mesh objects
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.mode_set(mode='OBJECT')  # Ensure the object is in object mode
+                for modifier in obj.modifiers:
+                    bpy.ops.object.modifier_apply({"object": obj}, modifier=modifier.name)
+
+    def import_texture_image(self, blend_file_path, material_name):
+        new_texture_imaage = None
+        imported_material = None
+
+        if material_name + '_temp' not in bpy.data.materials:
+            print("looking for material.name: ", material_name)
+
+             # rename original material to avoid conflicts...
+            existing_material = bpy.data.materials.get(material_name)
+            existing_material.name = material_name + "_original"
+
+            # append proper material definition from library...
+            with bpy.data.libraries.load(blend_file_path, link=False) as (data_from, data_to):
+                if material_name in data_from.materials:
+                    data_to.materials.append(material_name)
+                    
+                else:
+                    print(f"Material '{material_name}' not found in {blend_file_path}")
+            
+            # Rename the appended material
+            imported_material = bpy.data.materials.get(material_name)
+            if imported_material:
+                imported_material.name = imported_material.name + '_temp'
+
+            # retore original material name
+            existing_material.name = material_name.replace("_original", "")
+        
+        else:
+            imported_material = bpy.data.materials.get(material_name + '_temp')
+            # print("found existing material=",imported_material.name)
+
+        # find the texture image in the imported material
+        nodes = imported_material.node_tree.nodes
+        for node in nodes:
+            if node.type == "TEX_IMAGE" and self.is_texture_image(node.image.name):
+                new_texture_imaage = node.image
+                print("found imported texture=",node.image.name) 
+
+        return new_texture_imaage
+     
+    def is_texture_image(self, image_name):
+        texture_image_names = ['DIFFUSE', 'COLOR','InteriorCarpet_02.jpg']
+        for texture_image_name in texture_image_names:
+            if texture_image_name in image_name:
+                return True
+        return False
+                    
+    def material_needs_simplification(self, material):
+        target_materials = ['Biltmore Cherry Hardwood','Burled Cherry Hardwood','Golden Maple','Hazelnut Birch Hardwood',
+                            'Natural Anagre Hardwood','Outdoor Deck Planks','Pacific Birch Hardwood','Provincial Oak Hardwood',
+                            'Santao Rose Hardwood','Sparrow Walnut Hardwood','Vintage Planks Hardwood','Windsor Mahogany Hardwood',
+                            'Beige Tile','Checker Tile','Grey Tile','Marble Tile',
+                            '-Carpet Cool Grey','Carpet Burgundy','Carpet Burnt Orange','Carpet Butter Cream','Carpet Caramel',
+                            'Carpet Charcoal','Carpet Coco','Carpet Deep Blue','Carpet Emerald','Carpet Gun Metal',
+                            ]
+        if material.name in target_materials:
+            return True
+        else:
+            return False
+    
+    def create_sipmle_materials(self, obj):
+        print("start create_sipmle_materials obj=",obj.name)
+
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.mode_set(mode='OBJECT')
+
+        # Ensure the object has a UV map
+        if obj.type == 'MESH' and not obj.data.uv_layers:
+            if len(obj.data.vertices) > 1:
+                bpy.ops.object.mode_set(mode='EDIT')
+                bpy.ops.mesh.select_all(action='SELECT')
+                bpy.ops.uv.smart_project()
+                bpy.ops.object.mode_set(mode='OBJECT')
+
+        for slot in obj.material_slots:
+            if slot.material:
+                old_material = slot.material
+
+                if self.material_needs_simplification(old_material):
+                    print("material=",old_material.name)
+                    nodes = old_material.node_tree.nodes
+                    old_texture_image = None
+                    imported_texture_image = None
+     
+                    for node in nodes:
+                        if node.type == "TEX_IMAGE" and self.is_texture_image(node.image.name):
+                            old_texture_image = node.image
+                                                   
+                    if old_texture_image:
+                        print("old_texture_image=",old_texture_image.name)
+
+                        if old_texture_image.name == 'InteriorCarpet_02.jpg':
+                            # if texture image from old material, import texture image from current material libray... currently just carpet materials but could be expanded.
+                            imported_texture_image = self.import_texture_image(os.path.join(sn_paths.MATERIAL_DIR, "Flooring - Carpet", old_material.name + ".blend"), old_material.name)
+                            if imported_texture_image:
+                                old_texture_image = imported_texture_image
+    
+                            # imported_material = bpy.data.materials.get(old_material.name + '_temp')
+                            # if imported_material:
+                            #     print(f"Material '{old_material.name + '_temp'}' successfully imported.")
+                           
+                        # Create a new material
+                        new_material = bpy.data.materials.new(name=old_material.name + '_suv')
+                        new_material.use_nodes = True
+
+                        # Get the material's node tree
+                        nodes = new_material.node_tree.nodes
+                        links = new_material.node_tree.links
+
+                        # Clear any existing nodes
+                        nodes.clear()
+
+                        # Create the necessary nodes
+                        uv_map_node = nodes.new(type='ShaderNodeUVMap')
+                        uv_map_node.location = (-300, 0)
+                        uv_map_node.uv_map = obj.data.uv_layers[0].name  # Use the name of the first UV map
+
+                        mapping_node = nodes.new(type='ShaderNodeMapping')
+                        mapping_node.location = (-300, 0)
+                        mapping_node.inputs['Scale'].default_value = (5.0, 5.0, 5.0)  # Set the scale to 5
+
+                        image_texture_node = nodes.new(type='ShaderNodeTexImage')
+                        image_texture_node.location = (-100, 0)
+                        image_texture_node.image = old_texture_image
+
+                        principled_shader_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+                        principled_shader_node.location = (200, 0)
+
+                        material_output_node = nodes.new(type='ShaderNodeOutputMaterial')
+                        material_output_node.location = (600, 0)
+
+                        links.new(uv_map_node.outputs['UV'], mapping_node.inputs['Vector'])
+                        links.new(mapping_node.outputs['Vector'], image_texture_node.inputs['Vector'])
+                        links.new(image_texture_node.outputs['Color'], principled_shader_node.inputs['Base Color'])
+                        links.new(principled_shader_node.outputs['BSDF'], material_output_node.inputs['Surface'])
+
+                        print("new material=",new_material.name)
+                        slot.material = new_material
+
+    def execute(self, context):
+        print("Preparing Room For 3D Export")
+        wall_count = 0
+        if "3D Export" in bpy.data.scenes:
+            print("  Deleting 3D Export scene")
+            bpy.context.window.scene = bpy.data.scenes.get("3D Export")
+            bpy.ops.scene.delete()
+            bpy.context.window.scene = sn_utils.get_main_scene()
+
+        export_scene = sn_utils.get_3d_export_scene()
+        bpy.ops.object.select_all(action='DESELECT')
+        
+        for obj in context.visible_objects:
+            object_types = [obj.type == 'MESH', obj.type == 'CURVE', obj.type == 'LIGHT']
+           
+            if obj.sn_roombuilder.is_ceiling:
+                print(" Skipping Ceiling:", obj.name)
+                continue
+                
+            if any(object_types):
+                # Skip boolean modifier objects
+                if obj.get("use_as_bool_obj"):
+                    print(" Skipping", obj.name)
+                    continue
+
+                if obj.type == 'CURVE':
+                    bpy.context.view_layer.objects.active = obj
+                    obj.select_set(True)
+                    bpy.ops.object.convert(target='MESH')
+                    obj.select_set(False)
+          
+                # Skip single vertex meshes
+                if obj.type == 'MESH':
+                    num_vertices = len(obj.data.vertices)
+
+                    if num_vertices == 1 and "Window" not in obj.name and "Door" not in obj.name:
+                        print("  Single vet mesh, skipping", obj.name)
+                        continue
+
+                    if obj.get("IS_CAGE"):   # obj is likely an obstacle, need to verify material exists
+                        obj.hide_select = False
+                        material = bpy.data.materials['Winter White']
+                        if len(obj.material_slots) > 0:
+                            if obj.material_slots[0].material is None:
+                                obj.material_slots[0].material = material
+                        else:
+                            obj.data.materials.append(material)
+
+                    if obj.sn_roombuilder.is_floor:
+                         if len(obj.material_slots) > 0:
+                            material = obj.material_slots[0].material
+                            nodes = material.node_tree.nodes
+                            node = nodes.get("Glossy BSDF")
+                            if node:
+                                bpy.data.materials[material.name].node_tree.nodes.remove(node)
+
+                # Duplicate the object and add it to the export scene
+                dup_obj = obj.copy()
+                dup_obj.data = obj.data.copy()
+                dup_obj.animation_data_clear()
+                if obj.parent and obj.parent.get("IS_BP_WALL"):
+                    dup_obj['IS_BP_WALL'] = True
+                export_scene.collection.objects.link(dup_obj)
+
+        bpy.context.window.scene = export_scene
+        self.apply_all_modifiers(export_scene.objects)
+
+        for obj in export_scene.objects:
+            if obj.type == 'MESH':
+                self.create_sipmle_materials(obj)
+
+        for obj in export_scene.objects:
+            rotation_matrix = obj.matrix_world.to_euler()
+            if obj.get("IS_BP_WALL"):
+                wall_count += 1
+            if not (obj.get("IS_BP_WALL") and rotation_matrix.z == 0) and not ("Floor" in obj.name):
+                obj.select_set(True)
+                obj.lock_location[0] = False
+                obj.lock_location[1] = False
+                obj.lock_location[2] = False
+        bpy.ops.object.join()
+
+        obj_room_model = None
+        obj_room_light = None
+        obj_floor = None
+
+        for obj in export_scene.objects:
+            rotation_matrix = obj.matrix_world.to_euler()
+            if "Floor" in obj.name:
+                obj_floor = obj
+            if obj.type == 'LIGHT':
+                obj_room_light = obj
+            else:
+                obj.select_set(True)
+                obj.lock_location[0] = False
+                obj.lock_location[1] = False
+                obj.lock_location[2] = False
+                obj.name = "Room Model"
+                obj['WALL_COUNT'] = wall_count
+
+        if obj_floor:
+            bpy.context.view_layer.objects.active = obj_floor
+
+        bpy.ops.object.join()
+
+        # print("obj_room_model=",obj_room_model.name)
+        # print("obj_room_light=",obj_room_light.name)
+        # print("obj_floor=",obj_floor.name)
+
+        for obj in export_scene.objects:
+            if obj.type != 'LIGHT':
+                obj_room_model = obj
+        
+        if obj_room_model and obj_room_light:
+            matrix_world = obj_room_model.matrix_world
+            bound_box = [matrix_world @ mathutils.Vector(corner) for corner in obj_room_model.bound_box]
+            center_x = (bound_box[0][0] + bound_box[6][0]) / 2
+            center_y = (bound_box[0][1] + bound_box[6][1]) / 2
+            center_z = (bound_box[0][2] + bound_box[6][2]) / 2
+            if wall_count > 3:  #top view camera
+                obj_room_light.location.x = center_x
+                obj_room_light.location.y = center_y
+                obj_room_light.location.z = obj_room_model.location.z + center_z + 4.0
+            else:   #front view camera
+                obj_room_light.location.x = center_x
+                obj_room_light.location.y = center_y - 2.0
+                obj_room_light.location.z = obj_room_model.location.z + (center_z * 2) + 2.0
+                obj_room_light.data.energy = 200
+
+            obj_room_model.name = "Room Model__width=" + str(round(center_x * 2,2)) + "__depth=" + str(round(center_y * 2,2)) + "__height=" + str(round(center_z * 2,2))
+        
+        print("  Deleting extra scenes")
+        for scene in bpy.data.scenes:
+            if scene.name != "3D Export":
+                bpy.data.scenes.remove(scene)
+
+        print("   Deleting orphaned objects")
+        for obj in bpy.data.objects:
+            if obj.users == 0 or (len(obj.users_scene) == 0):
+                bpy.data.objects.remove(obj, do_unlink=True)
+
+        bpy.ops.wm.save_mainfile()
+
+        # export the final 3d scene to glb for better export to web
+        if "io_scene_gltf2" not in bpy.context.preferences.addons:
+
+            # Destination path in Blender's addon directory
+            blender_addons_path = bpy.utils.user_resource('SCRIPTS') + "/addons"
+            dest_path = os.path.join(blender_addons_path, "io_scene_gltf2")
+            addon_folder_path = os.path.join(sn_paths.ROOT_DIR, "io_scene_gltf2")
+
+            # Copy the addon folder to Blender's addon directory
+            if not os.path.exists(dest_path):
+                shutil.copytree(addon_folder_path, dest_path)
+ 
+            bpy.ops.preferences.addon_enable(module="io_scene_gltf2")
+
+        file_path = bpy.data.filepath.replace(".blend", ".gltf")
+        bpy.ops.export_scene.gltf(filepath=file_path, export_format='GLB')
+
+        print("3D Export Scene Ready")
+
+        return {'FINISHED'}
+
+
+class SNAP_OT_Proposal_Create_Room_Custom_Thumbnail(Operator):
+    bl_idname = "project_manager.create_room_custom_thumbnail"
+    bl_description = "Create Room Custom Thumbnail"
+    bl_label = "Create Room Custom Thumbnail"
+
+    active_room: StringProperty(name="Active Room", description="Active Room", default="")
+
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def execute(self, context):
+        print("Create Room Custom Thumbnail")
+        project = context.window_manager.sn_project.get_project()
+        proposal_dir = os.path.join(project.dir_path, "Proposal")
+        
+        bpy.context.scene.render.image_settings.file_format = 'JPEG'
+        bpy.context.scene.render.image_settings.quality = 90
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.scene.render.resolution_x = 1279
+        bpy.context.scene.render.resolution_y = 1048
+        temp_path =  bpy.context.scene.render.filepath
+        bpy.context.scene.render.filepath = os.path.join(proposal_dir, self.active_room.lower().replace(" ","_") + "_thumbnail_custom")
+        bpy.ops.render.opengl(write_still=True)
+    
+        from PIL import Image
+        image = Image.open(bpy.context.scene.render.filepath + ".jpg")  #
+        image.show()
+
+        bpy.context.scene.render.filepath = temp_path
+        room = project.rooms[self.active_room]
+        room.prop_thumbnail_custom = "True"
+
+
+        # Get the current datetime in UTC
+        utc_datetime = datetime.datetime.utcnow()
+        # Convert the UTC datetime to the local timezone
+        local_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+
+        now = datetime.datetime.now()
+        timezone_abbr = local_datetime.strftime('%Z')
+
+        print("UTC Time:", utc_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+        print("Converted Time:", local_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+        print("Local Time: ", now.strftime("%Y-%m-%d %H:%M:%S %Z"))
+        print("Local Timezone:", timezone_abbr)
+
+        room.prop_thumbnail_custom_utc = str(utc_datetime)
+
+        thumb_camera = bpy.data.objects.get("thumbnail_camera")
+        if thumb_camera is not None:
+             bpy.data.objects.remove(thumb_camera, do_unlink=True)
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Start_Room_Custom_Thumbnail(Operator):
+    bl_idname = "project_manager.start_room_custom_thumbnail"
+    bl_description = "Start Room Custom Thumbnail"
+    bl_label = "Start Room Custom Thumbnail"
+
+    active_room: StringProperty(name="Active Room", description="Active Room", default="")
+
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def execute(self, context):
+        print("Create Room Custom Thumbnail")
+        project = context.window_manager.sn_project.get_project()
+        proposal_dir = os.path.join(project.dir_path, "Proposal")
+        
+        view = context.space_data
+        bpy.ops.sn_object.add_camera()
+        thumb_camera = bpy.context.object
+        thumb_camera.name = "thumbnail_camera"
+        view.lock_camera = True
+
+        room = project.rooms[self.active_room]
+        room.prop_thumbnail_custom = "Started"
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Create_Room_Thumbnail(Operator):
+    bl_idname = "project_manager.create_room_thumbnail"
+    bl_description = "Create Room Thumbnail"
+    bl_label = "Create Room Thumbnail"
+
+    room_path: StringProperty(name="Room Path", description="Room Path", default="")
+
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def execute(self, context):
+        print("Create Room Thumbnail")
+        needs_top_view = False
+        focus_obj = None
+        wall_count = 0
+
+        # Append 3d export files to thumbnail scene...
+        with bpy.data.libraries.load(self.room_path) as (data_from, data_to):
+            data_to.objects = [name for name in data_from.objects]
+            print('These are the objs: ', data_to.objects)
+        # Objects have to be linked to show up in a scene
+        for obj in data_to.objects:
+            if obj.type == 'MESH':
+                if "Room Model" in obj.name:
+                    wall_count = obj['WALL_COUNT']
+                    if wall_count> 3:
+                        needs_top_view = True
+                        focus_obj = obj
+            bpy.context.scene.collection.objects.link(obj)   
+
+        if needs_top_view and focus_obj:
+            print("Setting camera to top view")
+            camera_obj = bpy.data.objects['Camera Top View']
+            bpy.context.scene.camera = camera_obj
+            bpy.context.scene.camera.location.z += 10
+        else:
+            camera_obj = bpy.data.objects['Camera Front View']
+            bpy.context.scene.camera = camera_obj
+            bpy.context.scene.camera.location.z += .05
+        bpy.context.scene.camera.data.lens = 40
+
+        render = bpy.context.scene.render
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.context.scene.render.resolution_x = 1279
+        bpy.context.scene.render.resolution_y = 1048
+        bpy.context.scene.render.image_settings.file_format = 'JPEG'
+        bpy.context.scene.render.image_settings.quality = 90
+        render.engine = 'BLENDER_EEVEE'
+        bpy.context.scene.eevee.use_gtao = True
+        bpy.context.scene.eevee.use_ssr = True
+        render.film_transparent = False
+        render.use_file_extension = True
+        
+        bpy.ops.object.select_all(action='SELECT')
+        bpy.ops.view3d.camera_to_view_selected()
+
+        temp_path =  bpy.context.scene.render.filepath
+        bpy.context.scene.render.filepath = self.room_path.replace("-3d_export.blend","_thumbnail")
+        bpy.ops.render.render(write_still=True)  
+        
+        bpy.context.scene.render.filepath = temp_path
+
+        # bpy.ops.wm.save_as_mainfile(filepath=self.room_path.replace(".blend","_temp.blend"))
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_View_Room_Thumbnail(Operator):
+    bl_idname = "project_manager.view_room_thumbnail"
+    bl_description = "Click to view room thumbnail"
+    bl_label = "View Room Thumbnail"
+
+    active_room: StringProperty(name="Active Room", description="Active Room", default="")
+
+
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def execute(self, context):
+        print("View Room Thumbnail")
+        thumb_path = ""
+        project = context.window_manager.sn_project.get_project()
+        proposal_dir = os.path.join(project.dir_path, "Proposal")
+        room = project.rooms[self.active_room]
+
+        if room.prop_thumbnail_custom == "True":
+            thumb_path = os.path.join(proposal_dir, self.active_room.lower().replace(" ","_") + "_thumbnail_custom.jpg")
+        elif room.prop_thumbnail == "True":
+            thumb_path = os.path.join(proposal_dir, self.active_room.lower().replace(" ","_") + "_thumbnail.jpg")
+
+        if thumb_path != "":       
+            from PIL import Image
+            image = Image.open(thumb_path)  #
+            image.show()
+
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_Add_Room_To_Documents(Operator):
+    """Add Room to Project Proposal"""
+    bl_idname = "project_manager.add_room_to_proposal"
+    bl_label = "Add Room to Project Proposal"
+    bl_options = {'UNDO'}
+
+    room_label: StringProperty(name="Room Label", description="Room Label", default="")
+    room_estimate: StringProperty(name="Room Estimate", description="Room Estimate", default="")
+    is_cabinet_bp: BoolProperty(name="Is Cabinet BP", default=False)
+    
+    ext_color: StringProperty(name="Ext Color", description="Ext Color", default="")
+    int_color: StringProperty(name="Int Color", description="Int Color", default="")
+    trim_color: StringProperty(name="Trim Color", description="Trim Color", default="")
+    hardware: StringProperty(name="Hardware", description="Hardware", default="")
+    rods: StringProperty(name="Rods", description="Rods", default="")
+    door_drawer_style: StringProperty(name="Door/Drawer Style", description="Door/Drawer Style", default="")
+    box_style: StringProperty(name="Box Style", description="Box Style", default="")
+    hamper: StringProperty(name="Hamper", description="Hamper", default="")
+    accessories: StringProperty(name="Accessories", description="Accessories", default="")
+    countertop: StringProperty(name="Countertop", description="Countertop Selection", default="")
+    backing: StringProperty(name="Backing", description="Backing", default="")
+    glass: StringProperty(name="Glass", description="Glass", default="")
+    notes: StringProperty(name="Notes", description="Notes", default="")
+    
+
+    def invoke(self, context, event):
+        return self.execute(context)
+    
+    def get_box_style_description(self, style):
+        if style == 0: 
+            return "White Melamine"
+        elif style == 1:
+            return "3/4\" Melamine"
+        elif style == 2:
+            return "Dovetail"
+        else:
+            return ""
+        
+    def get_name_from_part_nbr(self, part_nbr):
+        display_name = ""
+        sql = "SELECT DisplayName\
+                FROM {CCItems}\
+                WHERE VendorItemNum = '{part_nbr}';\
+            ".format(CCItems="CCItems_" + bpy.context.preferences.addons['snap'].preferences.franchise_location, part_nbr=part_nbr)
+        
+        rows = sn_db.query_db(sql)
+
+        for row in rows:
+            display_name = row[0]
+            if part_nbr in display_name:
+                display_name = display_name.replace(part_nbr, "")
+                            
+        # if display_name == "":
+        #     return part_nbr
+        # else:
+        return display_name.title()
+
+    def simulate_word_wrap(self, text, max_chars_per_line=58, target_lines=4):
+        lines = []
+        current_line = ""
+
+        if text.strip() == "":
+            text="None"
+
+        words = text.split()
+        for word in words:
+            if len(current_line) + len(word) + 1 <= max_chars_per_line:
+                # Add the word to the current line
+                if current_line:
+                    current_line += " "
+                current_line += word
+            else:
+                # Start a new line
+                lines.append(current_line)
+                current_line = word
+        if current_line:
+            lines.append(current_line)
+        final_text =  "<br>&nbsp;&nbsp;".join(lines)
+
+        br_count = final_text.count("<br>")
+        if br_count < target_lines:
+            br_needed = target_lines - br_count
+            final_text += "<br>" * br_needed
+
+        return final_text
+
+    def get_door_drawer_type(self, door_drawer_style):
+        
+        if "Slab" in door_drawer_style:
+            return 'slab'
+        elif "Traviso" in door_drawer_style:
+            return 'traviso'
+        elif "Moderno" in door_drawer_style:
+            return 'moderno'
+        else:
+            return 'wood'
+
+    def get_hamper_style(self, hampers):
+        hamper_style_list = []
+
+        for hamper_bp in hampers:
+            vendor_id = ""
+            is_canvas = 'canvas' in hamper_bp.name.lower()
+            is_basket = 'basket' in hamper_bp.name.lower()
+            hamper_types = {0 : "Wire", 1: "Hafele Nylon"}
+     
+            if is_canvas or is_basket:
+                hamper = sn_types.Assembly(hamper_bp)
+                hamper_insert = sn_types.Assembly(hamper_bp.parent)
+
+                hide_ppt = hamper.get_prompt("Hide")
+                hamper_color_ppt = hamper_insert.get_prompt("Wire Basket Color")
+
+                hamper_type_ppt = hamper_insert.get_prompt("Hamper Type")
+                if hamper_type_ppt:
+                    hamper_type = hamper_type_ppt.get_value()
+                    hamper_type = hamper_types.get(hamper_type)
+
+                if hide_ppt and hide_ppt.get_value() != True:
+                    if hamper_type == "Wire" and is_basket:
+                        if hamper_color_ppt:
+                            basket_color = hamper_color_ppt.get_value()
+                            color_id = 2 if basket_color == 0 else 7
+                            basket_width = sn_unit.meter_to_inch(hamper.obj_x.location.x)
+                            basket_depth = sn_unit.meter_to_inch(hamper.obj_y.location.y)
+                            width_id = 1 if basket_width == 18.0 else 2
+                            depth_id = 3 if basket_depth == 14.0 else 4
+                            vendor_id = '547.42.{}{}{}'.format(color_id, depth_id, width_id)
+                    elif hamper_type == "Hafele Nylon" and is_canvas:
+                        basket_width = round(sn_unit.meter_to_inch(hamper_insert.obj_x.location.x), 2)
+                        if 24.0 > basket_width >= 18.0:
+                            # HAMPER TILT OUT 18" 20H 
+                            vendor_id = '547.43.311'
+                        elif 30.0 > basket_width >= 18.0:
+                            # HAMPER TILT OUT 24" 20H DOUBLE BAG
+                            vendor_id = '547.43.313'
+                        elif basket_width >= 30.0:
+                            # HAMPER TILT OUT 30" 20H DOUBLE BAG
+                            vendor_id = '547.43.515'
+
+                    # print("hamper item_nbr=",vendor_id)
+                    if vendor_id:
+                        hamper_style = self.get_name_from_part_nbr(vendor_id).replace("Hamper ","")
+  
+                        if hamper_style and hamper_style not in hamper_style_list:
+                            hamper_style_list.append(hamper_style)
+                        
+        if len(hamper_style_list) > 0:
+            return " / ".join(hamper_style_list)
+        else:
+            return "None"
+
+    def get_rod_style(self, rods):
+        rod_style_list = []
+   
+        for rod in rods:
+            assembly = sn_types.Assembly(rod)
+            hide_ppt = assembly.get_prompt("Hide")
+            if hide_ppt and hide_ppt.get_value() != True:
+                # Format the rod part name as may look like "Hang Rod Round" or "Elite Matte Gold Round 801.42.040"
+                rod_style = rod.snap.name_object
+                rod_style = re.sub(r'\s+\d+[\d\.]*$', '', rod_style)  # regex will strip any sequence of digits and dots at the end of the string
+
+                if rod_style not in rod_style_list:
+                    rod_style_list.append(rod_style)
+
+        if len(rod_style_list) > 0:
+            return " / ".join(rod_style_list)
+        else:
+            return "None"
+
+    def get_backing_style(self, back_panels):
+        hidden = True
+
+        for back_panel in back_panels:
+            assembly = sn_types.Assembly(back_panel)
+            hide_ppt = assembly.get_prompt("Hide")
+            if hide_ppt and hidden == True:
+                hidden = hide_ppt.get_value()
+               
+        if len(back_panels) == 0 or hidden:
+            return "No"
+        else:
+            return "Yes"
+
+    def get_pull_style(self, pulls):
+        pull_style_list = []
+ 
+        for obj in pulls:
+            if obj.parent:
+                pull_style = ""
+                part_nbr = obj.parent.snap.name_object
+                # print("pull part_nbr=",part_nbr)
+                if part_nbr:
+                    if part_nbr == "Pull":
+                        pull_style = "Standard Pulls"
+                    elif part_nbr == "Specialty Handle": 
+                        pull_style = "Specialty Pulls"
+                    elif part_nbr == "Customer Provided Handle":
+                        pull_style = "Customer Provided"
+                    else:
+                        pull_style = self.get_name_from_part_nbr(part_nbr).replace("Mm","mm")
+                                       
+            if pull_style and pull_style not in pull_style_list:
+                pull_style_list.append(pull_style) 
+            
+        if len(pull_style_list) > 0:
+            return " / ".join(pull_style_list)
+        else:
+            return "None"
+                 
+    def get_glass_color(self, context, door_drawer_fronts):
+        glass_color_list = []
+
+        # get current glass color from scene properties...
+        scene_props = context.scene.closet_materials    
+        default_glass_index = scene_props.glass_color_index
+        default_glass_color = scene_props.glass_colors[default_glass_index].name
+  
+        # look for glass objects in the scene and check for custom glass...
+        if self.is_cabinet_bp:
+            return "None"
+        else:
+            for obj in door_drawer_fronts:
+                if "glass" in obj.name.lower():
+                    assy = sn_types.Assembly(obj)
+                    color_ppt = assy.get_prompt("Glass Color")
+                    color = ""
+                    if color_ppt:
+                        color = color_ppt.get_value()
+                    else:
+                        color = default_glass_color
+
+                    if color and color not in glass_color_list:
+                        glass_color_list.append(color)
+                
+        if len(glass_color_list) > 0:
+            return " / ".join(glass_color_list)
+        else:
+            return "None"
+
+    def get_door_drawer_style(self, door_drawer_fronts):
+        door_drawer_style_list = []
+        has_slab_style = False
+        style = ""
+
+        if self.is_cabinet_bp:
+            return "None"
+        else:
+            for obj in door_drawer_fronts:
+                print("door_drawer obj=",obj.name)
+                assy = sn_types.Assembly(obj)
+                style_ppt = assy.get_prompt("Door Style")
+                if style_ppt:
+                    style_ppt_value = style_ppt.get_value()
+                    # print("glass prompted obj=",assy.obj_bp.snap.name_object)
+                    style = style_ppt_value
+                    if style.endswith("Door Glass"):
+                        style = style.replace("Door Glass"," (Glass)")
+                    elif style.endswith(" Door and Drawer"):
+                        style = style.replace(" Door and Drawer","")
+                    elif style.endswith(" Door"):
+                        style = style.replace(" Door","")
+                    elif style.endswith(" Drawer"):
+                        style = style.replace(" Drawer","")
+                    elif "Angled" in style:
+                        style = ""
+                else:  # if no door style prompt, may be an applied pannel which is missing prompts like this
+                    part_name = assy.obj_bp.snap.name_object
+                    # print("glass part_name=",part_name)
+                    if part_name == "Left Door" or part_name == "Right Door" or part_name == "Drawer Front":
+                        # style = "Slab"
+                        has_slab_style = True
+                    elif part_name.endswith(" Door Glass"):
+                        style = part_name.replace("Door Glass"," (Glass)")
+                    elif part_name.endswith(" Door"):
+                        style = part_name.replace(" Door","")
+                    else:
+                        has_slab_style = True
+
+                if style and style not in door_drawer_style_list:
+                    door_drawer_style_list.append(style)
+
+        if has_slab_style and "Slab" not in door_drawer_style_list:
+            door_drawer_style_list.append("Slab")
+               
+        if len(door_drawer_style_list) > 0:
+            return " / ".join(door_drawer_style_list)
+        else:
+            return "None"
+     
+    def get_room_box_style(self, drawer_inserts):
+        box_style_list = []
+
+        if self.is_cabinet_bp:
+            return "None"
+        else:
+            # find drawer box style types
+            for insert in drawer_inserts:
+                drawer_assembly = sn_types.Assembly(insert)
+                drawer_box_prompt = drawer_assembly.get_prompt("Box Type")
+                if drawer_box_prompt:
+                    style = self.get_box_style_description(drawer_box_prompt.get_value())
+                    if style not in box_style_list:
+                        box_style_list.append(style)
+
+        if len(box_style_list) > 0:
+            return " / ".join(box_style_list)
+        else:
+            return "None"
+        
+    def get_room_accessories(self, accessories):
+        accessory_list = []
+
+        for obj in accessories:
+            accessory = ""
+            assembly = sn_types.Assembly(obj)
+            hide_ppt = assembly.get_prompt("Hide")
+            if hide_ppt and hide_ppt.get_value() != True:
+                if obj.get("IS_BP_BELT_RACK"):
+                    accessory = 'Belt Rack'
+                elif obj.get("IS_BP_TIE_RACK"):
+                    accessory = 'Tie Rack'
+                elif obj.get("IS_BP_VALET_ROD"):
+                    accessory = 'Valet'
+                elif obj.get("IS_BP_GARAGE_LEG"):
+                    part_label = obj.snap.name_object
+                    if "metal" in part_label.lower():
+                        accessory = 'Garage Legs (Metal)'
+                    elif "plastic" in part_label.lower():
+                        accessory = 'Garage Legs (Plastic)'
+                    else:
+                        accessory = 'Garage Legs'
+                elif obj.get("IS_BP_ACCESSORY"):
+                    accessory = 'Hooks'  
+
+                if accessory and accessory not in accessory_list:
+                    accessory_list.append(accessory)
+
+        if len(accessory_list) == 0:
+            return "None"
+        else:
+            return " / ".join(accessory_list)
+    
+    def get_room_countertop(self, context, countertops):
+        materials = []
+
+        for ctop_bp in countertops:
+            ct_mat_props = context.scene.closet_materials.countertops
+            material_name = ""
+            material_dict = {
+                0: 'Melamine',    # 0: 'Melamine'
+                1: 'Custom',    # 1: 'Custom'
+                2: 'Granite',   # 2: 'Granite'
+                3: 'HPL',    # 3: 'HPL'
+                4: 'Quartz',    # 4: 'Quartz'
+                5: 'Quartz',   # 5: 'Standard Quartz'
+                6: 'Wood'       # 6: 'Wood'
+            }
+            
+            ctop_assembly = sn_types.Assembly(ctop_bp)
+            ctop_mat_pmpt = None
+            ctop_mat_option = None
+            material_str = None
+
+            ctop_mat_pmpt = ctop_assembly.get_prompt("Countertop Type")
+            if not ctop_mat_pmpt and ctop_bp.parent:
+                ctop_parent_assembly = sn_types.Assembly(ctop_bp.parent)
+                ctop_mat_pmpt = ctop_parent_assembly.get_prompt("Countertop Type")
+            if ctop_mat_pmpt:
+                ctop_mat_option = ctop_mat_pmpt.get_value()
+                material_str = material_dict.get(ctop_mat_option)
+
+
+            context_material = material_name
+            material = ""
+            if material_str is not None:
+                material += material_str
+            if not None:
+                material += context_material
+            material += " "
+            for spec_group in context.scene.snap.spec_groups:
+                if material_str == "Melamine":
+                    material = spec_group.materials["Countertop_Surface"].item_name + ' ' + material
+                if material_str == "Granite":
+                    material = spec_group.materials["Countertop_Granite_Surface"].item_name + ' ' + material
+                if material_str == "HPL":
+                    material = spec_group.materials["Countertop_HPL_Surface"].item_name + ' ' + material
+                if material_str == "Quartz":
+                    material = spec_group.materials["Countertop_Quartz_Surface"].item_name + ' ' + material
+                # if material_str == "Standard Quartz":
+                #     material = spec_group.materials["Countertop_Quartz_Surface"].item_name + ' ' + material
+                if material_str == "Wood":
+                    for child in ctop_bp.children:
+                        if child.get("COUNTERTOP_WOOD"):
+                            if child.sn_closets.use_unique_material:
+                                material = child.sn_closets.wood_countertop_types
+                            else:
+                                mfg = ct_mat_props.get_type().get_mfg()
+                                material = mfg.name
+
+            print("ctop material=",material)
+            if material not in materials:
+                materials.append(material)
+                
+        print("materials=",materials)
+        if len(materials) > 0:        
+            ctop_label = " / ".join(materials) 
+            if len(ctop_label) > 50: 
+                ctop_label = ctop_label.replace("Melamine", "Mel")
+            if len(ctop_label) > 50:
+                ctop_label = ctop_label[:50] + "..."
+            return ctop_label
+        else:
+            return "None"
+
+    def get_ext_color(self, context, door_drawer_fronts):
+        ext_colors = []
+        scene_props = context.scene.closet_materials
+        
+        if scene_props.use_kb_color_scheme:
+            ext_colors = scene_props.get_kb_material_list()
+        else:
+            for obj in door_drawer_fronts:
+                assy = sn_types.Assembly(obj)
+                style_ppt = assy.get_prompt("Door Style")
+                if style_ppt:
+                    style_ppt_value = style_ppt.get_value()
+                else:
+                    style_ppt_value = "Slab"
+                style = self.get_door_drawer_type(style_ppt_value)
+                color = None
+
+                if style == 'traviso':
+                    color = scene_props.get_five_piece_melamine_door_color().name
+                elif style == 'moderno':
+                    color = scene_props.get_moderno_door_color().name
+                elif style == 'slab':
+                    mat_types = scene_props.materials.mat_types
+                    type_index = scene_props.door_drawer_mat_type_index
+                    material_type = mat_types[type_index]
+
+                    if material_type.name == "Upgrade Options":
+                        if scene_props.upgrade_options.get_type().name == "Paint":
+                            color = scene_props.paint_colors[scene_props.paint_color_index].name
+                        else:
+                            color = scene_props.stain_colors[scene_props.stain_color_index].name
+                    # elif material_type.name == "Garage Material":
+                    #     color = scene_props.materials.get_mat_color().two_sided_display_name
+                    else:
+                        colors = material_type.colors
+                        if scene_props.use_custom_color_scheme:
+                            color_index = scene_props.get_dd_mat_color_index(material_type.name)
+                        else:
+                            color_index = scene_props.get_mat_color_index(material_type.name)
+                        color = colors[color_index].name
+
+                elif style == "wood" and scene_props.use_custom_color_scheme:
+                    if scene_props.upgrade_options.get_type().name == "Paint":
+                        color = scene_props.paint_colors[scene_props.paint_color_index].name
+                    else:
+                        color = scene_props.stain_colors[scene_props.stain_color_index].name
+                else: 
+                    color = scene_props.materials.get_mat_color().name
+                print("color=",color)
+                if color and color not in ext_colors:
+                    ext_colors.append(color)
+
+        if len(ext_colors) > 0:
+            return " / ".join(ext_colors)
+        else:
+            return scene_props.materials.get_mat_color().name
+
+    def get_int_color(self, context):
+        scene_props = context.scene.closet_materials
+        mat_types = scene_props.materials.mat_types
+        type_index = scene_props.mat_type_index
+        material_type = mat_types[type_index]
+
+        if material_type.name == "Upgrade Options":
+            if scene_props.upgrade_options.get_type().name == "Paint":
+                colors = scene_props.paint_colors
+            else:
+                colors = scene_props.stain_colors
+        else:
+            colors = material_type.colors
+
+        if material_type.name != "Garage Material":
+            color_index = scene_props.get_mat_color_index(material_type.name)
+            color = colors[color_index].name
+        else:
+            color = scene_props.materials.get_mat_color().two_sided_display_name
+            if color and color.endswith(" White"):
+                color = "Winter White"
+
+        print("int_color=",color)
+        if color:
+            return color
+        else:
+            return scene_props.materials.get_mat_color().name
+
+    def get_trim_color(self, context):
+        scene_props = context.scene.closet_materials
+        edge_types = scene_props.edges.edge_types
+        type_index = scene_props.edge_type_index
+        edge_type = edge_types[type_index]
+        colors = edge_type.colors
+        color_index = scene_props.edge_color_index
+        color = colors[color_index].name
+
+        print("trim_color=",color)
+        if color:
+            return color
+        else:
+            return scene_props.materials.get_mat_color().name
+
+    def load_room_custom_selections(self, room):
+
+        self.room_label = room.prop_room_label
+        self.room_estimate = room.prop_room_estimate_custom
+
+        self.ext_color = room.prop_room_ext_color_custom
+        self.int_color = room.prop_room_int_color_custom
+        self.trim_color = room.prop_room_trim_color_custom
+        self.hardware = room.prop_room_hardware_custom
+        self.rods = room.prop_room_rods_custom
+        self.door_drawer_style = room.prop_room_door_drawer_custom
+        self.hamper = room.prop_room_hamper_custom
+        self.box_style = room.prop_room_boxes_custom
+        self.accessories = room.prop_room_accessories_custom
+        self.countertop = room.prop_room_countertop_custom
+        self.backing = room.prop_room_backing_custom
+        self.glass = room.prop_room_glass_custom
+        self.notes = room.prop_room_notes
+        
+    def get_room_selection_data(self, context):
+        drawer_inserts = []
+        door_drawer_fronts = []
+        accessories = []
+        countertops = []
+        pulls = []
+        rods = []
+        hampers = []
+        back_panels = []
+
+        project = context.window_manager.sn_project.get_project()
+        room = project.rooms[project.room_index]
+ 
+        self.load_room_custom_selections(room)
+
+        main_scene = sn_utils.get_main_scene()
+        for obj in main_scene.objects:
+            if obj.get("IS_BP_CABNET") and self.is_cabinet_bp == False: 
+                self.is_cabinet_bp = True
+
+            if obj.get("IS_BP_DRAWER_STACK"):
+                drawer_inserts.append(obj)
+            elif obj.get("IS_DOOR") or obj.get("IS_BP_DRAWER_FRONT") or obj.get("IS_BP_HAMPER_FRONT") or obj.get("IS_BP_APPLIED_PANEL"):
+                door_drawer_fronts.append(obj)
+            elif obj.get("IS_BP_BELT_RACK") or obj.get("IS_BP_TIE_RACK") or obj.get("IS_BP_VALET_ROD") or obj.get("IS_BP_ACCESSORY") or obj.get("IS_BP_GARAGE_LEG"):
+                accessories.append(obj)
+            elif obj.get("IS_BP_COUNTERTOP"):
+                countertops.append(obj)
+            elif obj.get("IS_BACK"):
+                back_panels.append(obj)
+            elif obj.get("IS_BP_HAMPER"):
+                hampers.append(obj)
+
+        
+            if obj.type == 'MESH':
+                if obj.sn_closets.is_handle or obj.snap.is_cabinet_pull or obj.get("IS_SPECIALTY_PULL"):
+                    pulls.append(obj)
+
+                assembly_bp = sn_utils.get_assembly_bp(obj)
+                if assembly_bp and assembly_bp.sn_closets and assembly_bp.sn_closets.is_hanging_rod:
+                    rods.append(assembly_bp)
+
+        # ////// Room Label
+        if not self.room_label:
+            self.room_label = room.name
+        # ////// Room Estimate
+        if not self.room_estimate:
+            self.room_estimate = "&nbsp;"
+        else:
+            self.room_estimate = "$" + self.room_estimate.replace("$","") + "**"
+
+        # ////// Exterior Color
+        if not self.ext_color:
+            self.ext_color = self.get_ext_color(context, door_drawer_fronts)
+        # ////// Interior Color
+        if not self.int_color:
+            self.int_color = self.get_int_color(context)
+        # ////// Trim Color
+        if not self.trim_color:
+            self.trim_color = self.get_trim_color(context)
+        # ////// Hardware
+        if not self.hardware:
+            self.hardware = self.get_pull_style(pulls)
+        # ////// Rods
+        if not self.rods:
+            self.rods = self.get_rod_style(rods)
+        # ////// Door/Drawer Faces
+        if not self.door_drawer_style:
+            self.door_drawer_style = self.get_door_drawer_style(door_drawer_fronts)
+        # ////// Hamper
+        if not self.hamper:
+            self.hamper = self.get_hamper_style(hampers)
+        # ////// Box Style
+        if not self.box_style:
+            self.box_style = self.get_room_box_style(drawer_inserts)
+        # ////// Accessories
+        if not self.accessories:
+            self.accessories = self.get_room_accessories(accessories)
+        # ////// Countertop
+        if not self.countertop:
+            self.countertop = self.get_room_countertop(context, countertops)
+        # ////// Backing
+        if not self.backing:
+            self.backing = self.get_backing_style(back_panels)
+        # ////// Glass
+        if not self.glass:
+            self.glass = self.get_glass_color(context, door_drawer_fronts)
+        # ////// Notes
+        self.notes = self.simulate_word_wrap(self.notes)
+
+    def add_room_to_proposal_document(self, context):
+        project = context.window_manager.sn_project.get_project()
+        room = project.rooms[project.room_index]
+
+        proposal_path = os.path.join(project.dir_path, "Proposal", project.name + ".html")
+        proposal_path_mobile = os.path.join(project.dir_path, "Proposal", project.name + "_mobile.html")
+        template_path = os.path.join(os.path.dirname(__file__), 'proposals', 'prop_room.html')
+        if room.prop_3d_exported == "True":
+            room_thumb_html_path = os.path.join(os.path.dirname(__file__), 'proposals', 'prop_room_thumb_link.html')
+        else:
+            room_thumb_html_path = os.path.join(os.path.dirname(__file__), 'proposals', 'prop_room_thumb_nolink.html')
+        
+        # ////// Read html templates
+        with open(proposal_path, 'r', encoding='utf-8') as file:
+            html_content = file.read()
+
+        with open(proposal_path_mobile, 'r', encoding='utf-8') as file:
+            html_content_mobile = file.read()
+
+        with open(room_thumb_html_path, 'r', encoding='utf-8') as file:
+            html_room_thumb_segment = file.read()
+
+        with open(template_path, 'r', encoding='utf-8') as file:
+            html_room_segment = file.read()
+
+        # ////// Room Label, estimate, 3d link, thumbnail
+        html_room_segment = html_room_segment.replace("<room_label>", self.room_label)
+        html_room_segment = html_room_segment.replace("<room_estimate>", self.room_estimate) 
+        html_room_segment = html_room_segment.replace("<room_thumbnail_segment>", html_room_thumb_segment)
+        
+        # ///// Room Viewer/Classy Portal link
+        room_viewer_doc = room.name.lower().replace(" ","_") + "_viewer.html"
+        html_room_segment = html_room_segment.replace("<room_3d_link>", room_viewer_doc)
+        if room.prop_thumbnail_custom == "True":
+            html_room_segment = html_room_segment.replace("<room_thumbnail>", room.name.lower().replace(" ","_") + "_thumbnail_custom.jpg?key=" + str(random.randint(1, 100000)))
+        else:
+            html_room_segment = html_room_segment.replace("<room_thumbnail>", room.name.lower().replace(" ","_") + "_thumbnail.jpg?key=" + str(random.randint(1, 100000)))
+        
+        # ////// Room Customer Selections
+        html_room_segment = html_room_segment.replace("<ext_color>", self.ext_color)
+        html_room_segment = html_room_segment.replace("<int_color>", self.int_color)
+        html_room_segment = html_room_segment.replace("<trim_color>", self.trim_color)
+        html_room_segment = html_room_segment.replace("<hardware>", self.hardware)
+        html_room_segment = html_room_segment.replace("<rods>", self.rods)
+        html_room_segment = html_room_segment.replace("<door_drawer_faces>", self.door_drawer_style)
+        html_room_segment = html_room_segment.replace("<drawer_boxes>", self.box_style)
+        html_room_segment = html_room_segment.replace("<hamper>", self.hamper)
+        html_room_segment = html_room_segment.replace("<accessories>", self.accessories)
+        html_room_segment = html_room_segment.replace("<countertop>", self.countertop)
+        html_room_segment = html_room_segment.replace("<backing>", self.backing)
+        html_room_segment = html_room_segment.replace("<glass>", self.glass)
+        html_room_segment = html_room_segment.replace("<notes>", self.notes)
+
+        # ////// Add the room data to our proposal html documents
+        html_content = html_content.replace("<room_segment>", html_room_segment)
+        html_content = html_content.replace("<thumbnail_max_width>", "520")
+        html_content_mobile = html_content_mobile.replace("<tr><td><room_segment></td></tr>", html_room_segment + "<tr><td><room_segment></td></tr>")
+        html_content_mobile = html_content_mobile.replace("<thumbnail_max_width>", "550")
+        # ////// Embed AWS S3 URLs to final html docs
+        html_content = html_content.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
+        html_content_mobile = html_content_mobile.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
+
+        # https://snap-proposals.s3.us-west-2.amazonaws.com/public/resource
+        # ////// Save the proposal files
+        with open(proposal_path, 'w', encoding='utf-8') as file:
+                file.write(html_content)
+
+        with open(proposal_path_mobile, 'w', encoding='utf-8') as file:
+                file.write(html_content_mobile)
+
+    def add_room_viewer_document(self, context):
+        project = context.window_manager.sn_project.get_project()
+        proposal_dir = os.path.join(project.dir_path, "Proposal")
+        room = project.rooms[project.room_index]
+        room_path = os.path.join(proposal_dir, room.name.lower().replace(" ","_") + "_viewer.html")
+       
+        with open(room_path, 'r', encoding='utf-8') as file:
+            html_content = file.read()
+       
+        html_content = html_content.replace("<model_uid>", room.prop_3d_exported_uid)
+        html_content = html_content.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
+
+        with open(room_path, 'w', encoding='utf-8') as file:
+                file.write(html_content)
+
+    def execute(self, context):
+        print("Add Room to Proposal")
+
+        self.get_room_selection_data(context)
+       
+        self.add_room_to_proposal_document(context)
+
+        self.add_room_viewer_document(context)
+
+        return {'FINISHED'}
+
+
+class SNAP_OT_Proposal_Operations(Operator):
+    """ Library management tools.
+    """
+    bl_idname = "project_manager.proposal_operations"
+    bl_label = "Project Proposal Operations"
+    bl_description = "Project Proposal Operations"
+    bl_options = {'UNDO'}
+    
+    operation_type: EnumProperty(name="Operation Type",items=[('PREPARE_THUMBS','Prepare Thumbs','Prepare Thumbs'),
+                                                                ('PREPARE_3D','Prepare 3D','Prepare 3D'),
+                                                                ('EXPORT_3D','Export 3D','Export 3D'),
+                                                                ('BUILD_PROPOSAL','Build Proposal','Build Proposal'),
+                                                                ('DELETE_CUSTOM_THUMB','Delete Custom Thumbnail','Delete Custom Thumbnail'),
+                                                                ('DELETE_PREPARE_3D','Delete Prepare 3D','Delete Prepare 3D'),
+                                                                ('DELETE_EXPORT_3D','Delete Export 3D','Delete Export 3D'),
+                                                                ('DELETE_ROOM_PROGRESS','Delete Room Progress','Delete Room Progress'),
+                                                                ('DELETE_PROPOSAL','Delete Proposal','Delete Proposal')])
+    
+    _timer = None
+
+    project = None
+    room_list = []
+    proposal_dir = ""
+    proposal_path = ""
+    proposal_path_mobile = ""
+
+    status_updated = False
+    header_text = ""
+   
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def invoke(self, context, event):
+        wm = context.window_manager
+        props = wm.snap
+        self.project = context.window_manager.sn_project.get_project()
+        self.proposal_dir = os.path.join(self.project.dir_path, "Proposal")
+        self.proposal_path = os.path.join(self.proposal_dir, self.project.name + ".html")
+        self.proposal_path_mobile = os.path.join(self.proposal_dir, self.project.name + "_mobile.html")
+
+        if self.operation_type != 'BUILD_PROPOSAL':
+            self.project.prop_status = "Starting..."
+        else:
+            self.project.prop_status = "Generating Proposal Room Data"
+            self.header_text = "Generating Proposal Room Data"
+            bpy.context.area.tag_redraw()
+
+        if bpy.data.is_dirty:
+            bpy.ops.wm.save_mainfile()
+ 
+        if self.project.prop_id == "" or self.project.prop_id == "None" or self.project.prop_id == "True":
+            self.project.prop_id = str(uuid.uuid4())
+
+        if not os.path.exists(self.proposal_dir):
+            os.makedirs(self.proposal_dir, exist_ok=True)
+        
+        if self.operation_type == 'BUILD_PROPOSAL':
+            self.prepare_project_proposal_files()
+              
+        self.room_list = []
+        for room in self.project.rooms:
+            if room.prop_selected:
+                if self.operation_type == 'PREPARE_3D':
+                    room.prop_3d_prepared = ""
+                    room.prop_thumbnail = ""
+                elif self.operation_type == 'EXPORT_3D':
+                    room.prop_3d_exported = ""
+                self.room_list.append(room)
+
+            if self.operation_type == 'BUILD_PROPOSAL':
+                room.prop_published = ""
+                room.prop_published_utc = ""
+                
+        props.total_items = len(self.room_list)
+
+        self._timer = wm.event_timer_add(1.0, window=context.window)
+        wm.modal_handler_add(self)
+        return {'RUNNING_MODAL'}
+        
+    def modal(self, context, event):
+        context.window.cursor_set('WAIT')
+        
+        progress = context.window_manager.snap
+        context.area.header_text_set(text=self.header_text)
+        self.project.prop_status = self.header_text
+                
+        self.mouse_loc = (event.mouse_region_x,event.mouse_region_y)
+        if event.type in {'RIGHTMOUSE', 'ESC'}:
+            return self.cancel(context)
+
+        if event.type == 'TIMER':
+            if progress.current_item + 1 <= len(self.room_list):
+                if self.operation_type == 'PREPARE_3D':
+                    print("starting prepare_room_for_3d_export: " + self.room_list[progress.current_item].name)
+                    
+                    if self.status_updated == False:
+                        self.header_text = "Preparing " + self.room_list[progress.current_item].name + " for 3D Export"
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        self.prepare_room_for_3d_export(self.room_list[progress.current_item])
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_prepared = "True"
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_prepared_utc = str(datetime.datetime.utcnow())
+                        bpy.context.area.tag_redraw()
+                        print("finished prepare_room_for_3d_export: " + self.room_list[progress.current_item].name)
+               
+                        print("starting create_room_thumbnail: " + self.room_list[progress.current_item].name)
+                        self.create_room_thumbnail(self.room_list[progress.current_item])
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_thumbnail = "True"
+                        bpy.context.area.tag_redraw()
+                        print("finished create_room_thumbnail: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        progress.current_item += 1
+                        
+                elif self.operation_type == 'EXPORT_3D':
+                    if self.status_updated == False:
+                        self.header_text = "Exporting " + self.room_list[progress.current_item].name + " to Classy Portal"
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting export_room_to_sketchfab: " + self.room_list[progress.current_item].name)
+                        room_name = self.room_list[progress.current_item].name
+                        bpy.ops.project_manager.update_room_in_sketchfab(active_room=room_name)
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_exported = "True"
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_exported_utc = str(datetime.datetime.utcnow())
+                        self.status_updated = False
+                        print("ending export_room_to_sketchfab: " + self.room_list[progress.current_item].name)
+                        progress.current_item += 1
+
+                elif self.operation_type == 'BUILD_PROPOSAL':
+                    if self.status_updated == False:
+                        self.header_text = "Adding " + self.room_list[progress.current_item].name + " to Project Proposal"
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting add_room_to_proposal: " + self.room_list[progress.current_item].name)
+                        self.add_room_to_proposal(self.room_list[progress.current_item])
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_id = self.project.prop_id
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_published = "True"
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_published_utc = str(datetime.datetime.utcnow())
+                        print("ending add_room_to_proposal: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        bpy.context.area.tag_redraw()
+                        progress.current_item += 1
+
+                elif self.operation_type == 'DELETE_CUSTOM_THUMB':
+                    if self.status_updated == False:
+                        self.header_text = "Resetting Thumbnail for " + self.room_list[progress.current_item].name + ""
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting delete_room_custom_thumbnail: " + self.room_list[progress.current_item].name)
+                        self.delete_room_custom_thumbnail(self.room_list[progress.current_item])
+                        print("ending delete_room_custom_thumbnail: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        bpy.context.area.tag_redraw()
+                        progress.current_item += 1
+
+                elif self.operation_type == 'DELETE_PREPARE_3D':
+                    if self.status_updated == False:
+                        self.header_text = "Deleting 3D Preparation for " + self.room_list[progress.current_item].name + ""
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting delete_room_3d_prep: " + self.room_list[progress.current_item].name)
+                        self.delete_room_3d_prep(self.room_list[progress.current_item])
+                        print("ending delete_room_3d_prep: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        bpy.context.area.tag_redraw()
+                        progress.current_item += 1
+
+                elif self.operation_type == 'DELETE_EXPORT_3D':
+                    if self.status_updated == False:
+                        self.header_text = "Deleting " + self.room_list[progress.current_item].name + " from Sketchfab"
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting delete_room_from_sketchfab: " + self.room_list[progress.current_item].name)
+                        self.delete_room_3d_export(self.room_list[progress.current_item])
+                        print("ending delete_room_from_sketchfab: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        bpy.context.area.tag_redraw()
+                        progress.current_item += 1
+
+                elif self.operation_type == 'DELETE_ROOM_PROGRESS':
+                    if self.status_updated == False:
+                        self.header_text = "Deleting Progress for " + self.room_list[progress.current_item].name + ""
+                        bpy.context.area.tag_redraw()
+                        self.status_updated = True
+                    elif self.status_updated == True:
+                        print("starting delete_room_progress: " + self.room_list[progress.current_item].name)
+                        self.delete_room_progress(self.room_list[progress.current_item])
+                        print("ending delete_room_progress: " + self.room_list[progress.current_item].name)
+                        self.status_updated = False
+                        bpy.context.area.tag_redraw()
+                        progress.current_item += 1
+
+                elif self.operation_type == 'DELETE_PROPOSAL':
+                    self.project.prop_status = "Deleting Published Proposal"
+                    self.header_text = "Deleting Published Proposal"
+                    self.status_updated = False
+                    bpy.context.area.tag_redraw()
+                    progress.current_item += 1
+
+                context.area.header_text_set(text=self.header_text)
+                self.project.prop_status = self.header_text
+
+            else:
+                print("end loop status_updated=",self.status_updated)
+                if self.operation_type == 'BUILD_PROPOSAL':
+                    if self.status_updated == False:
+                        self.project.prop_status = "Publishing Project Proposal to the web"
+                        self.header_text = "Publishing Project Proposal to the web"
+                        self.status_updated = True
+                    else:
+                        print("starting upload_to_s3_bucket")
+                        self.publish_project_proposal_files()
+                        return self.cancel(context)
+                elif self.operation_type == 'DELETE_PROPOSAL':
+                    if self.status_updated == False:
+                        self.project.prop_status = "Deleting Published Proposal"
+                        self.header_text = "Deleting Published Proposal"
+                        self.status_updated = True
+                    else:
+                        print("starting delete_published_proposal")
+                        self.delete_published_proposal()
+                        return self.cancel(context)
+
+                else:
+                    return self.cancel(context)
+        
+        return {'PASS_THROUGH'}
+
+    def publish_project_proposal_files(self):
+        print("publish_project_proposal_files")
+        bucket_name = AWS_S3_BUCKET_NAME
+        region_name = AWS_S3_REGION_NAME
+        object_name = self.project.prop_id + '/' + self.project.name + ".html"
+        object_name_mobile = self.project.prop_id + '/' + self.project.name + "_mobile.html"
+
+        # Upload the html file
+        if upload_object_to_s3(self.proposal_path, bucket_name, object_name):
+            print("Upload successful")
+            proposal_url = get_s3_object_url(bucket_name, object_name, region_name)
+            self.project.prop_published = "True"    
+            self.project.prop_published_utc = str(datetime.datetime.utcnow())      
+        else:
+            print("Upload failed")
+            self.project.prop_published = "True"  
+            self.project.prop_published_utc = str(datetime.datetime.utcnow())     
+
+        # Upload the mobile html file
+        if upload_object_to_s3(self.proposal_path_mobile, bucket_name, object_name_mobile):
+            print("Upload mobile successful")
+        else:
+            print("Upload mobile failed")
+
+        # upload the room viewer files
+        for room in self.room_list:
+            print("room viewer to upload: ", room.name)
+            file_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "_viewer.html")
+            object_name = self.project.prop_id + '/' + room.name.lower().replace(" ","_") + "_viewer.html"
+            if upload_object_to_s3(file_path, bucket_name, object_name):
+                print("Upload room viewer successful")
+            else:
+                print("Upload room viewr failed")
+
+        # upload the room thumb files
+        for room in self.room_list:
+            print("room thumb to upload: ", room.name)
+            if room.prop_thumbnail_custom == "True":
+                file_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "_thumbnail_custom.jpg")
+                object_name = self.project.prop_id + '/' + room.name.lower().replace(" ","_") + "_thumbnail_custom.jpg"
+            else:
+                file_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "_thumbnail.jpg")
+                object_name = self.project.prop_id + '/' + room.name.lower().replace(" ","_") + "_thumbnail.jpg"
+            if upload_object_to_s3(file_path, bucket_name, object_name):
+                print("Upload thumb successful")
+            else:
+                print("Upload thumb failed")
+               
+        webbrowser.open(proposal_url)
+
+    def prepare_project_proposal_files(self):
+        template_folder = os.path.join(os.path.dirname(__file__), 'proposals')
+
+        shutil.copyfile(os.path.join(template_folder, 'prop_body.html'), self.proposal_path)
+
+        shutil.copyfile(os.path.join(template_folder, 'prop_body_mobile.html'), self.proposal_path_mobile)
+
+        for room in self.project.rooms:
+            if room.prop_selected == True:
+                room_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "_viewer.html")
+                shutil.copyfile(os.path.join(template_folder, 'prop_room_viewer.html'), room_path)
+
+    def create_room_thumbnail(self, room):
+        print("create_room_thumbnail: " + room.name)
+        room_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "-3d_export.blend")
+        thumbnail_blend_path = os.path.join(sn_paths.ROOT_DIR, 'library_manager', 'thumbnail_room.blend')
+       
+        script = os.path.join(bpy.app.tempdir, 'create_room_thumbnail.py')
+        script_file = open(script, 'w')
+        script_file.write("import bpy\n")
+        script_file.write("bpy.ops.project_manager.create_room_thumbnail(room_path=r'" + room_path + "')\n")
+        script_file.close()
+        subprocess.call(bpy.app.binary_path + ' "' + thumbnail_blend_path + '" -b --python "' + script + '"')
+
+    def prepare_room_for_3d_export(self, room):
+        bpy.context.area.tag_redraw()
+        export_file_path = os.path.join(self.proposal_dir, room.name.lower().replace(" ","_") + "-3d_export.blend")
+        shutil.copyfile(room.file_path, export_file_path)
+        
+        script_start = time.time()
+        script = os.path.join(bpy.app.tempdir, 'prepare_3d_export.py')
+        script_file = open(script, 'w')
+        script_file.write("import bpy\n")
+        script_file.write("bpy.ops.project_manager.prepare_room_for_3d_export()\n")
+        script_file.close()
+        subprocess.call(bpy.app.binary_path + ' "' + export_file_path + '" -b --python "' + script + '"')
+        script_end = time.time()
+
+        script_time = script_end - script_start
+        print("---------------------------------")
+        print(f"Script Start Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(script_start))}")
+        print(f"Script End Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(script_end))}")
+        print(f"Script Elapsed Time: {script_time} seconds")
+
+    def delete_room_custom_thumbnail(self, room):
+        print("delete_room_custom_thumbnail: " + room.name)
+        if room.prop_selected == True and room.prop_thumbnail_custom == "True":
+            file_path = os.path.join(self.project.dir_path, "Proposal", room.name.lower().replace(" ","_") + "_thumbnail_custom.jpg")
+            print("removing custom thumbnail file: ",file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            room.prop_thumbnail_custom = ""
+            room.prop_thumbnail_custom_utc = ""
+
+    def delete_room_3d_prep(self, room):
+        print("delete_room_3d_prep: " + room.name)
+        if room.prop_selected == True and room.prop_3d_prepared == "True":
+            file_path = os.path.join(self.project.dir_path, "Proposal", room.name.lower().replace(" ","_") + "-3d_export.blend")
+            print("removing 3d_prep file: ",file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            room.prop_3d_prepared = ""
+            room.prop_3d_prepared_utc = ""
+
+            file_path = os.path.join(self.project.dir_path, "Proposal", room.name.lower().replace(" ","_") + "_thumbnail.jpg")
+            print("removing custom thumbnail file: ",file_path)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            room.prop_thumbnail = ""
+
+    def delete_room_3d_export(self, room):
+        print("delete_room_3d_export: " + room.name)
+        if room.prop_selected == True and room.prop_3d_exported == "True" and room.prop_3d_exported_uid != "":
+            bpy.ops.project_manager.update_room_in_sketchfab(active_room=room.name, http_method="DELETE")
+        elif room.prop_selected == True and room.prop_3d_exported == "True":
+            room.prop_3d_exported = ""
+            room.prop_3d_exported_utc = ""
+            room.prop_3d_exported_url = ""
+            room.prop_3d_exported_uid = ""
+
+    def delete_room_progress(self, room):
+        print("delete_room_progress: " + room.name)
+        if room.prop_selected == True:
+            if room.prop_thumbnail_custom == "True":
+                self.delete_room_custom_thumbnail(room)
+            if room.prop_3d_prepared == "True":
+                self.delete_room_3d_prep(room)
+            if room.prop_3d_exported == "True":
+                self.delete_room_3d_export(room)
+
+    def delete_published_proposal(self):
+        bucket_name = AWS_S3_BUCKET_NAME
+        target_folder = self.project.prop_id + '/' 
+        delete_s3_objects_by_prefix(bucket_name, target_folder)
+
+        file_path = os.path.join(self.project.dir_path, "Proposal", self.project.name + ".html")
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        self.project.prop_published = ""
+        self.project.prop_published_utc = ""
+
+    def add_room_to_proposal(self, room):
+        print("add_room_to_proposal: " + room.name)
+        filepath = room.file_path
+        script = os.path.join(bpy.app.tempdir, 'add_room_to_proposal.py')
+        script_file = open(script, 'w')
+        script_file.write("import bpy\n")
+        script_file.write("bpy.ops.project_manager.add_room_to_proposal()\n")
+        script_file.close()
+        subprocess.call(bpy.app.binary_path + ' "' + filepath + '" -b --python "' + script + '"')
+
+    def cancel(self, context):
+        self.project.prop_status = ""
+        progress = context.window_manager.snap
+        progress.current_item = 0
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
+        context.window.cursor_set('DEFAULT')
+        context.area.header_text_set(None)        
+
+        return {'FINISHED'}
+
+
+class SNAP_OT_Proposal_View(Operator):
+    bl_idname = "project_manager.proposal_view"
+    bl_label = "View Proposal on the Web"
+    bl_description = "View the published proposal on the web"
+
+    @classmethod
+    def poll(cls, context):
+        return True
+    
+    def execute(self, context):
+        project = context.window_manager.sn_project.get_project()
+
+        bucket_name = AWS_S3_BUCKET_NAME
+        region_name = AWS_S3_REGION_NAME
+        object_name = project.prop_id + '/' + project.name + ".html"
+        proposal_url = get_s3_object_url(bucket_name, object_name, region_name)
+        
+        webbrowser.open(proposal_url)
+
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_Copy_URL(Operator):
+    bl_idname = "project_manager.proposal_copy_url"
+    bl_label = "Copy Proposal URL to Clipboard"
+    bl_description = "Copy the published proposal URL to your windows clipboard"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        if project.prop_published == "True":
+            return True
+        else:
+            return False
+   
+    def execute(self, context):
+        project = context.window_manager.sn_project.get_project()
+
+        bucket_name = AWS_S3_BUCKET_NAME
+        region_name = AWS_S3_REGION_NAME
+        object_name = project.prop_id + '/' + project.name + ".html"
+        proposal_url = get_s3_object_url(bucket_name, object_name, region_name)
+        
+        pyperclip.copy(proposal_url)
+
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_Copy_Link(Operator):
+    bl_idname = "project_manager.proposal_copy_link"
+    bl_label = "Copy Proposal Link to Clipboard"
+    bl_description = "Copy the published proposal link to your windows clipboard"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        if project.prop_published == "True":
+            return True
+        else:
+            return False
+        
+    def execute(self, context):
+        project = context.window_manager.sn_project.get_project()
+
+        bucket_name = AWS_S3_BUCKET_NAME
+        region_name = AWS_S3_REGION_NAME
+        object_name = project.prop_id + '/' + project.name + ".html"
+        proposal_url = get_s3_object_url(bucket_name, object_name, region_name)
+
+        #// copy base url to clipboard to ensure windows clipboard is initialized...
+        pyperclip.copy(proposal_url)
+            
+        # Create the HTML formatted link
+        html = f'<a href="{proposal_url}">Click here for your Classy Closets Proposal</a>'
+
+        CF_HTML = ctypes.windll.user32.RegisterClipboardFormatW("HTML Format")
+        HTML_HEADER = """Version:0.9
+            StartHTML:{start_html:08d}
+            EndHTML:{end_html:08d}
+            StartFragment:{start_fragment:08d}
+            EndFragment:{end_fragment:08d}
+            """
+
+        # Calculate the positions
+        start_html = len(HTML_HEADER.format(start_html=0, end_html=0, start_fragment=0, end_fragment=0))
+        start_fragment = start_html
+        end_fragment = start_fragment + len(html)
+        end_html = end_fragment
+
+        # Format the header with correct positions
+        header = HTML_HEADER.format(start_html=start_html, end_html=end_html, start_fragment=start_fragment, end_fragment=end_fragment)
+        full_html = header + html
+
+        # Prepare the HTML data
+        data = full_html.encode('utf-8')
+
+        # Allocate global memory
+        h_global_mem = ctypes.windll.kernel32.GlobalAlloc(0x2000, len(data) + 1)
+        pch_data = ctypes.windll.kernel32.GlobalLock(h_global_mem)
+        ctypes.cdll.msvcrt.strcpy(ctypes.c_char_p(pch_data), data)
+        ctypes.windll.kernel32.GlobalUnlock(h_global_mem)
+
+        # Set the clipboard data
+        ctypes.windll.user32.OpenClipboard(0)
+        ctypes.windll.user32.EmptyClipboard()
+        ctypes.windll.user32.SetClipboardData(CF_HTML, h_global_mem)
+        ctypes.windll.user32.CloseClipboard()
+        print("The HTML fragement link has been copied to the clipboard.")
+
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_Build_Poll(Operator):
+    bl_idname = "project_manager.proposal_build_poll"
+    bl_label = "Publish/Update Project Proposal"
+    bl_description = "Publish/Update the published proposal on the web"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        room_count = 0
+        validation = True
+       
+        if project.prop_status != "":
+            return False
+        else:
+            for room in project.rooms:
+                if room.prop_selected and room.prop_3d_prepared != "True":
+                    validation = False
+                # elif room.prop_selected and room.prop_3d_exported != "True":
+                #     validation = False
+                if room.prop_selected:
+                    room_count += 1
+
+            if room_count == 0 or validation == False:
+                return False
+            else:
+                return True
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='BUILD_PROPOSAL')
+
+        return{'FINISHED'}
+
+
+class SNAP_OT_Proposal_Prepare_3D_Poll(Operator):
+    bl_idname = "project_manager.proposal_prepare_3d_poll"
+    bl_label = "Prepare selected rooms for 3D export"
+    bl_description = "Prepare selected rooms for 3D export"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        for room in project.rooms:
+            if room.prop_selected:
+                return True
+                break
+        return False
+
+   
+    def execute(self, context):
+        print("starting project_manager.prepare_project_proposal")
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='PREPARE_3D')
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Export_3D_Poll(Operator):
+    bl_idname = "project_manager.proposal_export_3d_poll"
+    bl_label = "Export selected rooms to Classy Portal (Lead ID required)"
+    bl_description = "Export selected rooms to Classy Portal (Lead ID required)"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        room_count = 0
+        validation = True
+       
+        if project.lead_id.strip() == "" or project.lead_id == "None":
+            validation = False
+        else:
+            for room in project.rooms:
+                if room.prop_selected and room.prop_3d_prepared != "True":
+                    validation = False
+                if room.prop_selected:
+                    room_count += 1
+
+            if room_count == 0 or validation == False:
+                return False
+            else:
+                return True
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='EXPORT_3D')
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Delete_Custom_Thumbnail_Poll(Operator):
+    bl_idname = "project_manager.proposal_delete_custom_thumbnail_poll"
+    bl_label = "Restore default thumbnails for selected rooms"
+    bl_description = "Restore default thumbnails for selected rooms"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        for room in project.rooms:
+            if room.prop_selected and room.prop_thumbnail_custom == "True":
+                return True
+        return False
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='DELETE_CUSTOM_THUMB')
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Delete_Prepare_3D_Poll(Operator):
+    bl_idname = "project_manager.proposal_delete_prepare_3d_poll"
+    bl_label = "Clear 3D preparation for selected rooms"
+    bl_description = "Clear 3D preparation for selected rooms"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        for room in project.rooms:
+            if room.prop_selected and room.prop_3d_prepared == "True":
+                return True
+        return False
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='DELETE_PREPARE_3D')
+
+        return{'FINISHED'}
+    
+    
+class SNAP_OT_Proposal_Delete_Export_3D_Poll(Operator):
+    bl_idname = "project_manager.proposal_delete_export_3d_poll"
+    bl_label = "Clear 3D Export for selected rooms"
+    bl_description = "Clear 3D Export for selected rooms"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        for room in project.rooms:
+            if room.prop_selected and room.prop_3d_exported == "True":
+                return True
+        return False
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='DELETE_EXPORT_3D')
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Delete_All_Progress_Poll(Operator):
+    bl_idname = "project_manager.proposal_delete_all_progress_poll"
+    bl_label = "Clear ALL progress for selected rooms"
+    bl_description = "Clear ALL progress for selected rooms"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        for room in project.rooms:
+            if room.prop_selected and room.prop_3d_exported == "True":
+                return True
+            elif room.prop_selected and room.prop_3d_prepared == "True":
+                return True
+            elif room.prop_selected and room.prop_thumbnail_custom == "True":
+                return True
+        return False
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='DELETE_ROOM_PROGRESS')
+
+        return{'FINISHED'}
+    
+
+class SNAP_OT_Proposal_Delete_Published_Poll(Operator):
+    bl_idname = "project_manager.proposal_delete_published_poll"
+    bl_label = "Delete published proposal from the web"
+    bl_description = "Delete published proposal from the web"
+
+    @classmethod
+    def poll(cls, context):
+        project = context.window_manager.sn_project.get_project()
+        
+        if project.prop_published == "True":
+            return True
+        else:
+            return False
+   
+    def execute(self, context):
+
+        bpy.ops.project_manager.proposal_operations('INVOKE_DEFAULT', operation_type='DELETE_PROPOSAL')
+
+        return{'FINISHED'}
+
 
 
 classes = (
@@ -653,7 +2695,30 @@ classes = (
     SNAP_OT_Prepare_Project_XML,
     SNAP_OT_Copy_Room,
     SNAP_OT_Load_Projects,
-    SNAP_OT_Unarchive_Project
+    SNAP_OT_Unarchive_Project,
+
+    SNAP_OT_Proposal_Select_All_Rooms,
+    SNAP_OT_Proposal_Prepare_Room_For_3D_Export,
+    SNAP_OT_Proposal_Add_Room_To_Documents,
+    SNAP_OT_Proposal_Create_Room_Custom_Thumbnail,
+    SNAP_OT_Proposal_Start_Room_Custom_Thumbnail,
+    SNAP_OT_Proposal_Create_Room_Thumbnail,
+    SNAP_OT_Proposal_View_Room_Thumbnail,
+
+    SNAP_OT_Proposal_Operations,
+
+    SNAP_OT_Proposal_View,
+    SNAP_OT_Proposal_Copy_URL,
+    SNAP_OT_Proposal_Copy_Link,
+    SNAP_OT_Proposal_Build_Poll,
+    SNAP_OT_Proposal_Prepare_3D_Poll,
+    SNAP_OT_Proposal_Export_3D_Poll,
+    SNAP_OT_Proposal_Delete_Custom_Thumbnail_Poll,
+    SNAP_OT_Proposal_Delete_Prepare_3D_Poll,
+    SNAP_OT_Proposal_Delete_Export_3D_Poll,
+    SNAP_OT_Proposal_Delete_All_Progress_Poll,
+    SNAP_OT_Proposal_Delete_Published_Poll,
+
 )
 
 

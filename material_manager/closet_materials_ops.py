@@ -1458,9 +1458,12 @@ class SN_MAT_OT_Assign_Materials(Operator):
                                     if exposed_prompt.name == "Exposed Front":
                                         cut_part_mesh.snap.edge_l1 = 'Edge' if exposed_value else ''
 
-                                        # Crown molding
-                                        if "IS_BP_FLAT_CROWN" in sn_utils.get_bp(obj_bp, 'INSERT'):
-                                            exposed_prompt.set_value(True)
+                                        # Crown molding insert
+                                        molding_insert_bp = sn_utils.get_bp(obj_bp, 'INSERT')
+
+                                        if molding_insert_bp:
+                                            if "IS_BP_FLAT_CROWN" in molding_insert_bp:
+                                                exposed_prompt.set_value(True)
 
                                     elif exposed_prompt.name == "Exposed Back":
                                         pass

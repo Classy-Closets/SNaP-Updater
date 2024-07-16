@@ -161,7 +161,7 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
         with bpy.data.libraries.load(object_file_path, link=False, relative=False) as (data_from, data_to):
             data_to.objects = data_from.objects
         for obj in data_to.objects:
-            context.view_layer.active_layer_collection.collection.objects.link(obj)
+            context.scene.collection.objects.link(obj)
             return obj
 
     def create_drawing_plane(self, context):
@@ -171,6 +171,7 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
         self.drawing_plane = context.active_object
         self.drawing_plane.display_type = 'WIRE'
         self.drawing_plane.dimensions = (100, 100, 1)
+        self.drawing_plane.select_set(False)
 
     def position_asset(self, context):
         wall_bp = sn_utils.get_wall_bp(self.selected_obj)
@@ -197,24 +198,20 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
             y_loc = 0
 
             if wall_bp:
-                self.current_wall = sn_types.Assembly(wall_bp)
-                rot += self.current_wall.obj_bp.rotation_euler.z
+                self.current_wall_bp = wall_bp
+                rot += self.current_wall_bp.rotation_euler.z
 
             if dist_to_bp < dist_to_x:
                 self.placement = 'LEFT'
                 add_x_loc = 0
                 add_y_loc = 0
-                x_loc =\
-                    sel_asset_loc_x - math.cos(rot) * self.obj.location.x + add_x_loc  # noqa: E501
-                y_loc =\
-                    sel_asset_loc_y - math.sin(rot) * self.obj.location.x + add_y_loc  # noqa: E501
+                x_loc = sel_asset_loc_x - math.cos(rot) * self.obj.location.x + add_x_loc
+                y_loc = sel_asset_loc_y - math.sin(rot) * self.obj.location.x + add_y_loc
 
             else:
                 self.placement = 'RIGHT'
-                x_loc =\
-                    sel_asset_loc_x + math.cos(rot) * self.selected_asset.obj_x.location.x  # noqa: E501
-                y_loc =\
-                    sel_asset_loc_y + math.sin(rot) * self.selected_asset.obj_x.location.x  # noqa: E501
+                x_loc = sel_asset_loc_x + math.cos(rot) * self.selected_asset.obj_x.location.x
+                y_loc = sel_asset_loc_y + math.sin(rot) * self.selected_asset.obj_x.location.x
 
             self.obj.rotation_euler.z = rot
             self.obj.location.x = x_loc
@@ -222,8 +219,8 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
 
         elif wall_bp:
             self.placement = 'WALL'
-            self.current_wall = sn_types.Assembly(wall_bp)
-            self.obj.rotation_euler = self.current_wall.obj_bp.rotation_euler
+            self.current_wall_bp = wall_bp
+            self.obj.rotation_euler = self.current_wall_bp.rotation_euler
             self.obj.location.x = self.selected_point[0]
             self.obj.location.y = self.selected_point[1]
 
@@ -232,26 +229,31 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
             self.obj.location.y = self.selected_point[1]
 
     def confirm_placement(self, context):
-        if self.current_wall:
+        if self.current_wall_bp:
             x_loc = sn_utils.calc_distance(
                 (
                     self.obj.location.x,
                     self.obj.location.y,
                     0),
                 (
-                    self.current_wall.obj_bp.matrix_local[0][3],
-                    self.current_wall.obj_bp.matrix_local[1][3],
+                    self.current_wall_bp.matrix_local[0][3],
+                    self.current_wall_bp.matrix_local[1][3],
                     0))
             self.obj.location = (0, 0, self.obj.location.z)
             self.obj.rotation_euler = (0, 0, 0)
-            self.obj.parent = self.current_wall.obj_bp
+            self.obj.parent = self.current_wall_bp
             self.obj.location.x = x_loc
+
+            for coll in self.current_wall_bp.users_collection:
+                if coll.snap.type == 'WALL':
+                    coll.objects.link(self.obj)
+                    context.scene.collection.objects.unlink(self.obj)
+                    break
 
         if self.placement == 'LEFT':
             self.obj.parent = self.selected_asset.obj_bp.parent
             constraint_obj = self.asset.obj_x
-            constraint =\
-                self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
+            constraint = self.selected_asset.obj_bp.constraints.new('COPY_LOCATION')
             constraint.target = constraint_obj
             constraint.use_x = True
             constraint.use_y = True
@@ -279,7 +281,7 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
         split_path = obj_path.split("\\")
         category = split_path[-2:-1][0]
 
-        if category == "Outlets and Switches":
+        if category == "Outlets and Switches" or category == "Products - Lighting":
             self.position_asset(context)
 
         if event.ctrl:
@@ -308,7 +310,7 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
     def position_object(self, selected_point, selected_obj, selected_normal):
         self.obj.location = selected_point
         forward_axis = mathutils.Vector([0.0, -1.0, 0.0])
-        if self.obj.get('follow_normal_on_drop'):
+        if self.obj.get('follow_normal_on_drop') and selected_obj:
             angle = selected_normal.angle(forward_axis, 0)
             axis = forward_axis.cross(selected_normal)
             euler = mathutils.Matrix.Rotation(angle, 4, axis).to_euler()
@@ -331,7 +333,7 @@ class SN_LIB_OT_drop_object_from_library(bpy.types.Operator):
         obj_path = self.filepath
         split_path = obj_path.split("\\")
         category = split_path[-2:-1][0]
-        if category == "Outlets and Switches":
+        if category == "Outlets and Switches" or category == "Products - Lighting":
             self.confirm_placement(context)
         self.obj.name = category + "." + self.obj.name
         bpy.ops.wm.popup_props('INVOKE_DEFAULT')

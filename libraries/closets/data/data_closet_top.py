@@ -123,6 +123,7 @@ class PROMPTS_Top_Shelf(sn_types.Prompts_Interface):
         """ This is called everytime a change is made in the UI """
         self.check_width()
         self.check_depth()
+        self.check_light()
         closet_props.update_render_materials(self, context)
         top_assembly = sn_types.Assembly(obj_bp=self.top_shelf)
         exposed_left = top_assembly.get_prompt("Exposed Left")
@@ -275,6 +276,23 @@ class PROMPTS_Top_Shelf(sn_types.Prompts_Interface):
             self.insert.get_prompt("Front Overhang").get_value()
         self.prev_front_overhang = front_overhang_value
         self.prev_depth = self.insert.obj_y.location.y
+
+    def check_light(self):
+        """ Check if this top shelf has ribbon lighting. Remove light if front overhang is less than 3 inches."""
+        front_overhang = self.insert.get_prompt("Front Overhang").get_value()
+        light = None
+
+        for child in self.insert.obj_bp.children:
+            if child.get('IS_BP_PLANT_ON_TOP'):
+                for nchild in child.children:
+                    if nchild.get('IS_BP_RIBBON_LIGHT_H'):
+                        light = nchild
+                        break
+
+        if light and front_overhang < sn_unit.inch(3):
+            sn_utils.delete_object_and_children(light)
+            message = 'Ribbon lighting requires a front overhang of at least 3"\nRibbon light has been removed.'
+            bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message, width=400)
 
 
 bpy.utils.register_class(PROMPTS_Top_Shelf)

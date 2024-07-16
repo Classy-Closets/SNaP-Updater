@@ -312,58 +312,62 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         diff = ImageChops.add(diff, diff, 2.0, 0)
         bbox = diff.getbbox()
         if bbox:
+            lighting_img = "lighting" in image.filename.lower()
             original = image.crop(bbox)
-            grayscale = ImageOps.grayscale(original)
-            return grayscale
+
+            if lighting_img:
+                return original
+            else:
+                grayscale = ImageOps.grayscale(original)
+                return grayscale
         return None
 
-    """
-    Parameters:
-        images_list - a list of image paths (string)
-        output - output image file (string)
-        border - an optional tuple with the desired border in pixels, in the following order: (left, top, right, bottom)
-    """
-
     def join_images_horizontal(self, images_list, output, border=(25, 0, 50, 0), keep_width=False):
+        """
+        Parameters:
+            images_list - a list of image paths (string)
+            output - output image file (string)
+            border - an optional tuple with the desired border in pixels, in the following order: (left, top, right, bottom)
+        """
         white_bg = (255, 255, 255)
         cropped_ims = []
         original_ims = []
+
+        # Load images and ensure they are in RGB mode
         for i in images_list:
             im = PImage.open(i)
             original_ims.append(im)
             cropped_ims.append(self.trim(im))
-        for i in cropped_ims:
-            if not i:
-                cropped_ims.remove(i)
+
+        # Remove any None values from the cropped images list
+        cropped_ims = [im for im in cropped_ims if im]
+
         if len(cropped_ims) > 0:
             widths, heights = zip(*(i.size for i in cropped_ims))
             orig_widths, orig_heights = zip(*(i.size for i in original_ims))
-            # need to set keep_width = true when is custom view - SCC
+
+            # Need to set keep_width = true when is custom view - SCC
             if keep_width:
                 total_width = sum(orig_widths) + border[0] + border[2]
                 x_offset = border[0] + int((sum(orig_widths) - sum(widths)) / 2)
             else:
                 total_width = sum(widths) + border[0] + border[2]
                 x_offset = border[0]
+
             max_height = max(heights) + border[1] + border[3]
             new_im = PImage.new('RGB', (total_width, max_height), white_bg)
+
             for im in cropped_ims:
                 y_offset = int((max(heights) - im.size[1]) / 2) + border[1]
                 new_im.paste(im, (x_offset, y_offset))
                 x_offset += im.size[0] + 10
+
             # Always save as PNG, JPG makes blender crash silently
-            img_file = os.path.join(bpy.app.tempdir + output + ".png")
+            img_file = os.path.join(bpy.app.tempdir, output + ".png")
             new_im.save(img_file)
             return img_file
         else:
             return None
-    
-    """
-    Parameters:
-        images_list - a list of image paths (string)
-        output - output image file (string)
-        border - an optional tuple with the desired border in pixels, in the following order: (left, top, right, bottom)
-    """
 
     def island_images_horizontal(self, images_list, output, border=(25, 0, 50, 0)):
         white_bg = (255, 255, 255)
@@ -487,9 +491,14 @@ class OPERATOR_create_pdf(bpy.types.Operator):
     # 2up2down - Two images on upper half, two on the bottom half
     def __prepare_image_page__(self, sn_images_list, page_paper_size, option):
         custom_width = sn_images_list[0].is_custom_view
+
+        # TODO: Update other options to use image name for lighting img ID
         if option == "full":
-            return self.join_images_horizontal([bpy.app.tempdir + sn_images_list[0].name + ".jpg"],
-                                               self.random_string(6),keep_width=custom_width)
+            return self.join_images_horizontal(
+                [bpy.app.tempdir + sn_images_list[0].name + ".jpg"],
+                sn_images_list[0].name + self.random_string(6),
+                keep_width=custom_width)
+
         if option == "two":
             sn_images_list = sn_images_list[:2]
             image_files = [(bpy.app.tempdir + image.name + ".jpg")
@@ -829,9 +838,11 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         accordions_mode = props.views_option == 'ACCORDIONS'
         elevations_mode = props.views_option == 'ELEVATIONS'
         room_type = bpy.context.scene.sn_roombuilder.room_type
+
         if room_type == 'SINGLE' or wall_qty == 1:
             accordions_mode = False
             elevations_mode = True
+
         pages = []
         elvs = None
         page_layout = ''
@@ -841,11 +852,9 @@ class OPERATOR_create_pdf(bpy.types.Operator):
         elevations = [view for view in image_views if view.is_elv_view]
         islands = [view for view in image_views if view.is_island_view]
         customs = [view for view in image_views if view.is_custom_view]
-        accordions =\
-            [view for view in image_views if view.is_acc_view]
-        just_islands = len(accordions) == 0 and\
-                       len(elevations) == 0 and\
-                       len(islands) > 0
+        accordions = [view for view in image_views if view.is_acc_view]
+        just_islands = len(accordions) == 0 and len(elevations) == 0 and len(islands) > 0
+
         if accordions_mode:
             page_layout = props.accordions_layout_setting
         elif elevations_mode and room_type != 'SINGLE':
@@ -856,11 +865,13 @@ class OPERATOR_create_pdf(bpy.types.Operator):
             page_layout = props.page_layout_setting
         if room_type == 'SINGLE' or wall_qty == 1:
             page_layout = props.single_page_layout_setting
+
         #  NOTE 1) For each accordion there will be one page for it
         #      2) Plan views also as they have their page once it's there the
         #      legends will cover every walls objects
-        #      3) As elevations can vary their page formation, we get the 
+        #      3) As elevations can vary their page formation, we get the
         #         entire list and slice it accordingly
+
         if len(plan_view) > 0 and page_layout != '1_ACCORD':
             pages_walls[page_counter] = self.get_plan_view_walls(plan_view)
             page_counter += 1

@@ -480,10 +480,21 @@ class SNAP_OT_delete_closet_insert(Delete_Closet_Assembly):
     bl_idname = "sn_closets.delete_closet_insert"
     bl_label = "Delete Insert"
 
+    obj_name: StringProperty(name="Object Name", default="")
+
     @classmethod
     def poll(cls, context):
+        assembly_bp = sn_utils.get_assembly_bp(context.object)
         insert_bp = sn_utils.get_bp(context.object, 'INSERT')
-        if insert_bp:
+        closet_bp = sn_utils.get_closet_bp(context.object)
+        is_corner_shelf = closet_bp.get("IS_BP_CORNER_SHELVES") or closet_bp.get("IS_BP_L_SHELVES")
+
+        # For allowing deletion of vertical ribbon lighting by selecting partitions
+        if assembly_bp:
+            if assembly_bp.get('IS_BP_PANEL'):
+                return True
+
+        if insert_bp or is_corner_shelf:
             return True
         else:
             return False
@@ -495,48 +506,50 @@ class SNAP_OT_delete_closet_insert(Delete_Closet_Assembly):
     def make_opening_available(self, obj_bp):
         insert = sn_types.Assembly(obj_bp)
         obj_product_bp = sn_utils.get_bp(obj_bp, 'PRODUCT')
-        is_cabinet = obj_product_bp.get('IS_BP_CABINET')
 
-        if not is_cabinet:
-            if obj_bp.parent:
-                for child in obj_bp.parent.children:
-                    op_num = child.sn_closets.opening_name
-                    insert_op_num = insert.obj_bp.sn_closets.opening_name
-                    if child.snap.type_group == 'OPENING' and op_num == insert_op_num:
-                        if insert.obj_bp.snap.placement_type == 'SPLITTER':
-                            child.snap.interior_open = True
-                            child.snap.exterior_open = True
-                            break
-                        if insert.obj_bp.snap.placement_type == 'INTERIOR':
-                            child.snap.interior_open = True
-                            break
-                        if insert.obj_bp.snap.placement_type == 'EXTERIOR':
-                            if insert.obj_bp.get('IS_BP_DOOR_INSERT') and not is_cabinet:
+        if obj_product_bp:
+            is_cabinet = obj_product_bp.get('IS_BP_CABINET')
+
+            if not is_cabinet:
+                if obj_bp.parent:
+                    for child in obj_bp.parent.children:
+                        op_num = child.sn_closets.opening_name
+                        insert_op_num = insert.obj_bp.sn_closets.opening_name
+                        if child.snap.type_group == 'OPENING' and op_num == insert_op_num:
+                            if insert.obj_bp.snap.placement_type == 'SPLITTER':
                                 child.snap.interior_open = True
-                            child.snap.exterior_open = True
-                            break
-                    elif child.get('IS_BP_SHELVES'):
-                        opening = child.parent
-                        opening.snap.interior_open = True
-        else:
-            if obj_bp.parent:
-                opening_nbr = insert.obj_bp.get("OPENING_NBR")
-                for child in obj_bp.parent.children:
-                    if child.get('IS_BP_OPENING') and child.get('OPENING_NBR') == opening_nbr:
-                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Splitter':
-                            child.snap.interior_open = True
-                            child.snap.exterior_open = True
-                            break
-                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Interior':
-                            child.snap.interior_open = True
-                            break
-                        if insert.obj_bp.get('PLACEMENT_TYPE') == 'Exterior':
-                            child.snap.exterior_open = True
-                            break
-                    elif child.get('IS_BP_SHELVES'):
-                        opening = child.parent
-                        opening.snap.interior_open = True
-                       
+                                child.snap.exterior_open = True
+                                break
+                            if insert.obj_bp.snap.placement_type == 'INTERIOR':
+                                child.snap.interior_open = True
+                                break
+                            if insert.obj_bp.snap.placement_type == 'EXTERIOR':
+                                if insert.obj_bp.get('IS_BP_DOOR_INSERT') and not is_cabinet:
+                                    child.snap.interior_open = True
+                                child.snap.exterior_open = True
+                                break
+                        elif child.get('IS_BP_SHELVES'):
+                            opening = child.parent
+                            opening.snap.interior_open = True
+            else:
+                if obj_bp.parent:
+                    opening_nbr = insert.obj_bp.get("OPENING_NBR")
+                    for child in obj_bp.parent.children:
+                        if child.get('IS_BP_OPENING') and child.get('OPENING_NBR') == opening_nbr:
+                            if insert.obj_bp.get('PLACEMENT_TYPE') == 'Splitter':
+                                child.snap.interior_open = True
+                                child.snap.exterior_open = True
+                                break
+                            if insert.obj_bp.get('PLACEMENT_TYPE') == 'Interior':
+                                child.snap.interior_open = True
+                                break
+                            if insert.obj_bp.get('PLACEMENT_TYPE') == 'Exterior':
+                                child.snap.exterior_open = True
+                                break
+                        elif child.get('IS_BP_SHELVES'):
+                            opening = child.parent
+                            opening.snap.interior_open = True
+
     def delete_insert_and_children(self, obj_bp):
         insert = sn_types.Assembly(obj_bp)
         is_parent_splitter = insert.obj_bp.parent.get('IS_BP_SPLITTER')
@@ -566,7 +579,8 @@ class SNAP_OT_delete_closet_insert(Delete_Closet_Assembly):
             if obj_linked_shelves:
                 obj_linked_opening.snap.interior_open = True
                 obj_linked_opening.snap.exterior_open = True
-                sn_utils.delete_object_and_children(obj_linked_shelves)     
+                sn_utils.delete_object_and_children(obj_linked_shelves)
+
             sn_utils.delete_object_and_children(obj_bp)
 
     def execute(self, context):
@@ -698,7 +712,7 @@ class SNAP_OT_copy_product(Operator):
     def hide_empties_and_boolean_meshes(self, obj):
         if obj.type == 'MESH':
             self.mute_hide_viewport_driver(obj, mute=False)
-        if obj.type == 'EMPTY':
+        if obj.type == 'EMPTY' or obj.get('IS_CAGE'):
             obj.hide_viewport = True
         for child in obj.children:
             self.hide_empties_and_boolean_meshes(child)
@@ -780,14 +794,16 @@ class SNAP_OT_copy_insert(Operator):
             bpy.ops.object.select_all(action='DESELECT')
 
             for obj in obj_list:
-                if obj.type == 'EMPTY':
-                    obj.hide_select = False
-                    obj.hide_viewport = False
+                if obj.name in bpy.context.view_layer.objects:
+                    if obj.type == 'EMPTY':
+                        obj.hide_select = False
+                        obj.hide_viewport = False
 
-                self.mute_hide_drivers(obj)
-                obj.hide_set(False)
-                obj.hide_viewport = False
-                obj.select_set(True)
+                    self.mute_hide_drivers(obj)
+                    obj.hide_set(False)
+                    obj.hide_viewport = False
+                    print(obj.name)
+                    obj.select_set(True)
 
             bpy.ops.object.duplicate()
 

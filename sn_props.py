@@ -22,6 +22,7 @@ from snap.libraries.kitchen_bath import cabinet_interiors, frameless_exteriors, 
 from snap.libraries.doors_and_windows import doors_and_windows_library
 from snap.libraries.appliances import appliance_library, appliance_inserts
 from . import addon_updater_ops
+from . import sketchfab
 
 ASSET_LIBRARIES = (
     (closet_library, "Product Library"),
@@ -1334,7 +1335,7 @@ class SnapObjectProps(PropertyGroup):
         description="Used for inserts to determine if an opening has an exterior assembly",
         default=True)
 
-    comment: StringProperty(name="Comment", description="Comment to store information for reporting.")
+    comment: StringProperty(name="Comment", description="Comment to store information for reporting.")  # type: ignore
     comment_2: StringProperty(name="Comment 2", description="Comment 2 to store information for reporting.")
     comment_3: StringProperty(name="Comment 3", description="Comment 3 to store information for reporting.")
 
@@ -1607,6 +1608,10 @@ class Library_Package(bpy.types.PropertyGroup):
     enabled: BoolProperty(name="Enabled", default=True, update=update_library_paths)
 
 
+class Opening_Light_Status(PropertyGroup):
+    has_fixed_width_light: BoolProperty(name="Has Fixed Width Light", default=False)
+
+
 class sn_image(PropertyGroup):
     image_name: StringProperty(name="Image Name",
                                description="The Image name that is assign to the image view")
@@ -1692,6 +1697,8 @@ class SnapWindowManagerProps(PropertyGroup):
                                      default=0,
                                      min=0,
                                      max=26)
+
+    curr_pard_lighting_status: CollectionProperty(name="Current Pard Lighting Status", type=Opening_Light_Status)
 
     def get_library_assets(self):
         library_path = sn_paths.CLOSET_THUMB_DIR
@@ -1848,7 +1855,8 @@ class SnapSceneProps(PropertyGroup):
             ('ACCORDION', 'Accordion View', 'Accordion View'),
             ('ISLAND', 'Island View', 'Island View'),
             ('VIRTUAL', 'Virtual View', 'Virtual View'),
-            ('GARBAGE_COLLECTION', 'Garbage Collection', 'Garbage Collection')
+            ('GARBAGE_COLLECTION', 'Garbage Collection', 'Garbage Collection'),
+            ('3D_EXPORT', '3D Export', '3D Export')
         ],
         default='NONE'
     )
@@ -2029,6 +2037,13 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         description="If enabled, show Kitchen and Bath library",
         default=True if DEV_TOOLS_AVAILABLE else False,
         update=update_active_lib)
+    
+    enable_project_proposal_panel: BoolProperty(
+        name="Enable Project Proposal Tools",
+        description="If enabled, show Project Proposal Tools",
+        default=False)
+    
+    project_proposal_password: StringProperty(name="Project Proposal Password", subtype='PASSWORD')
 
     franchise_location: EnumProperty(name="",
                                 description="Select Franchise Materials List Location",
@@ -2078,6 +2093,28 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         name="Access Key",
         default="")
 
+    # Sketchfab settings
+    cachePath: StringProperty(
+        name="Cache folder",
+        description=(
+            "Temporary directory for downloads from sketchfab.com\n"
+            "Set by the OS by default, make sure to have write access\n"
+            "to this directory if you set it manually"
+        ),
+        subtype='DIR_PATH',
+        update=sketchfab.updateCacheDirectory
+    )
+
+    downloadHistory: StringProperty(
+        name="Download history file",
+        description=(
+            ".csv file containing your downloads from sketchfab.com\n"
+            "If valid, the name, license and url of every model you\n"
+            "download through the plugin will be saved in this file"
+        ),
+        subtype='FILE_PATH'
+    )
+
     def draw(self, context):
         layout = self.layout
         box = layout.box()
@@ -2093,6 +2130,14 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
         box.label(text="Franchise Materials Locations")
         row = box.row()
         row.prop(self, "franchise_location")
+
+        box = layout.box()
+        box.label(text="Sketchfab Settings")
+
+        row = box.row()
+        row.prop(self, "cachePath", text="Download directory")
+        row = box.row()
+        row.prop(self, "downloadHistory", text="Download history (.csv)")
 
         row = layout.row(align=True)
         row.prop(
@@ -2121,9 +2166,28 @@ class SnapAddonPreferences(bpy.types.AddonPreferences):
                     col.label(text="Wrong Password: Access Denied")
                     col.prop(self, "franchise_password", text="")
             row.prop(self, "enable_drill_dia_options")
+
             row = box.row()
             row.prop(self, "enable_kitchen_bath_lib")
             row.operator('closet_materials.unpack_material_images')
+
+            box = layout.box()
+            row = box.row()
+            row.label(text="Project Proposal Settings")
+            row = box.row()
+            row.prop(self, "enable_project_proposal_panel")
+            if self.enable_project_proposal_panel:
+                row_password = box.row()
+                row_status = box.row()
+                if self.project_proposal_password == "":
+                    row_password.prop(self, "project_proposal_password", text="       Password")
+                    row_status.label(text="             Status:    Password Required")
+                elif self.project_proposal_password == "Cla$$yProposals123":
+                    row_password.prop(self, "project_proposal_password", text="       Password")
+                    row_status.label(text="             Status:    Access Granted!")
+                else:
+                    row_password.prop(self, "project_proposal_password", text="       Password")
+                    row_status.label(text="             Status:    Invalid Password!")
 
             addon_updater_ops.update_settings_ui(self, context)
 
@@ -2229,6 +2293,7 @@ classes = (
     sn_image,  # TODO: tmp1
     Library_Package,  # TODO: tmp
     library_items,  # TODO: tmp
+    Opening_Light_Status,
     SnapObjectProps,
     SnapWindowManagerProps,
     SnapSceneProps,

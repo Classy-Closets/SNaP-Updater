@@ -97,6 +97,11 @@ class ROOM_BUILDER_OT_Collect_Walls(Operator):
         for old_wall in props.walls:
             props.walls.remove(0)
 
+        if props.room_category == 'Please Select':
+            bpy.ops.sn_roombuilder.delete_room()
+            message = "Room not created: Category not Selected"
+            return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message)
+
         bpy.ops.sn_object.draw_floor_plane()
         obj_floor = context.active_object
         obj_floor.name = "Floor"

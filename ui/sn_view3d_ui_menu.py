@@ -42,17 +42,20 @@ class SN_OT_object_properties(sn_types.Prompts_Interface):
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        obj = bpy.context.selected_objects[0]
-        self.product = sn_types.Assembly(obj_bp=obj)
-        split_name = obj.name.split(".")
-        category = split_name[0]
+        if context.selected_objects:
+            obj = bpy.context.selected_objects[0]
+            self.product = sn_types.Assembly(obj_bp=obj)
+            split_name = obj.name.split(".")
+            category = split_name[0]
 
-        if category == "Outlets and Switches":
-            self.plane = "XZ"
+            if category == "Outlets and Switches":
+                self.plane = "XZ"
+            else:
+                self.plane = ""
+
+            return super().invoke(context, event, width=300)
         else:
-            self.plane = ""
-
-        return super().invoke(context, event, width=300)
+            return {'CANCELLED'}
 
     def draw(self, context):
         super().draw(context)

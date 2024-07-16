@@ -124,10 +124,12 @@ class VIEW_PT_2d_views(bpy.types.Panel):
             row.operator("sn_2d_views.generate_2d_views",
                          text="Prepare 2D Views", icon='RENDERLAYERS')
             views_option_row = panel_box.row(align=True)
-            if room_type != "SINGLE" and wall_qty > 1:
+
+            if wall_qty > 1:
                 views_option_row.prop(props, 'views_option', expand=True)
             elif room_type == "SINGLE" or wall_qty == 1:
                 views_option_row.prop(props, 'single_views_option', expand=True)
+
         else:
             row.operator_context = 'INVOKE_DEFAULT'
             row.operator("sn_2d_views.generate_2d_views",
@@ -233,8 +235,9 @@ class VIEW_UL_scenes(bpy.types.UIList):
         for i, scene in enumerate(scenes):
             gc_scene = scene.snap.scene_type == 'GARBAGE_COLLECTION'
             drill_scene = scene.snap.scene_type == 'DRILL'
+            export_3d_scene = scene.snap.scene_type == 'EXPORT_3D'
 
-            if drill_scene or gc_scene:
+            if drill_scene or gc_scene or export_3d_scene:
                 flt_flags[i] &= ~self.bitflag_filter_item
 
         flt_neworder = helper_funcs.sort_items_by_name(scenes, "name")

@@ -1,7 +1,7 @@
 bl_info = {
     "name": "SNaP",
     # "author": "Ryan Montes",
-    "version": (2, 8, 5),
+    "version": (2, 8, 6),
     "blender": (3, 00, 0),
     "location": "Tools Shelf",
     "description": "SNaP",
@@ -28,6 +28,7 @@ from . import views
 from . import library_manager
 from . import sn_updater
 from . import addon_updater_ops
+from . import sketchfab
 from snap.libraries import closets
 from snap.libraries import doors_and_windows
 from snap.libraries import appliances
@@ -53,7 +54,8 @@ modules = (
     ops,
     views,
     library_manager,
-    sn_updater
+    sketchfab,
+    sn_updater,
 )
 
 

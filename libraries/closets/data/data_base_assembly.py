@@ -38,7 +38,6 @@ class Base_Assembly(sn_types.Assembly):
         self.add_prompt("Right", 'CHECKBOX', False)  # Deeper Toe Kick Right
         self.add_prompt("Far Left Panel Selected", 'CHECKBOX', False)
         self.add_prompt("Far Right Panel Selected", 'CHECKBOX', False)
-        self.add_prompt("Toe Kick Setback", 'DISTANCE', 0)
         self.add_prompt("Left Capping Base Return", 'CHECKBOX', False)
         self.add_prompt("Right Capping Base Return", 'CHECKBOX', False)
 
@@ -85,20 +84,19 @@ class Base_Assembly(sn_types.Assembly):
         TKST = self.get_prompt("TK Skin Thickness").get_var("TKST")
         LR = self.get_prompt("Left Return").get_var("LR")
         RR = self.get_prompt("Right Return").get_var("RR")
-        tk_dim_x =\
-            "Width-(TK_Thk*3)+EL_Amt+ER_Amt"+\
-            "+IF(ACB,TK_Thk,"+\
-            "-IF(DTKL,-TKST,IF(LR,TKST,0))"+\
-            "-IF(DTKR,-TKST,IF(RR,TKST,0)))"
-        tk_dim_limit =\
-            "Width-(TK_Thk)+EL_Amt+ER_Amt"+\
-            "+IF(ACB,TK_Thk,"+\
-            "-IF(DTKL,-TKST,IF(LR,TKST,0))"+\
-            "-IF(DTKR,-TKST,IF(RR,TKST,0)))"
+        tk_dim_x = (
+            "Width-(TK_Thk*3)+EL_Amt+ER_Amt"
+            "+IF(ACB,TK_Thk,"
+            "-IF(DTKL,-TKST,IF(LR,TKST,0))"
+            "-IF(DTKR,-TKST,IF(RR,TKST,0)))")
+        tk_dim_limit = (
+            "Width-(TK_Thk)+EL_Amt+ER_Amt"
+            "+IF(ACB,TK_Thk,"
+            "-IF(DTKL,-TKST,IF(LR,TKST,0))"
+            "-IF(DTKR,-TKST,IF(RR,TKST,0)))")
         toe_kick_front.dim_x(
-            "IF(("+tk_dim_limit+")>INCH(97.5),INCH(96),"+tk_dim_x+")",
-            [Width, TK_Thk, ER_Amt, EL_Amt, LR,
-             RR, TKST, DTKL, DTKR, ACB])
+            f"IF(({tk_dim_limit})>INCH(97.5),INCH(96),{tk_dim_x})",
+            [Width, TK_Thk, ER_Amt, EL_Amt, LR, RR, TKST, DTKL, DTKR, ACB])
         toe_kick_front.dim_y('-Height', [Height])
         toe_kick_front.dim_z('Toe_Kick_Thickness', [Toe_Kick_Thickness])
         toe_kick_front.loc_x(
@@ -857,15 +855,15 @@ class DROP_OPERATOR_Place_Base_Assembly(Operator, PlaceClosetInsert):
                     Panel_Thickness = carcass_assembly.get_prompt("Panel Thickness").get_var()
                     P1_X_Loc = self.selected_panel_1.obj_bp.snap.get_var('location.x','P1_X_Loc')
                     P2_X_Loc = selected_panel_2.obj_bp.snap.get_var('location.x','P2_X_Loc')
-                    
+
                     if "End Cap" in self.selected_panel_1.obj_bp.name:
                         Parent_X_Loc = self.selected_panel_1.obj_bp.parent.snap.get_var('location.x', 'Parent_X_Loc')
                         self.product.loc_x(
                             'IF(P1_X_Loc>0,P1_X_Loc+Parent_X_Loc-Panel_Thickness,0)',
-                            [P1_X_Loc,Panel_Thickness, Parent_X_Loc])
+                            [P1_X_Loc ,Panel_Thickness, Parent_X_Loc])
                         self.product.dim_x(
                             'P2_X_Loc-IF(P1_X_Loc>0,P1_X_Loc+Parent_X_Loc-Panel_Thickness,0)',
-                            [P1_X_Loc,P2_X_Loc,Panel_Thickness, Parent_X_Loc])
+                            [P1_X_Loc, P2_X_Loc, Panel_Thickness, Parent_X_Loc])
                         tk_setback = '0'
                         ext_depth = 'Extend_Depth_Amount'
                         panel_assembly = sn_types.Assembly(obj_bp=panel_1_bp)

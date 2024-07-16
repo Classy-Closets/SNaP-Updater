@@ -1,0 +1,85 @@
+[
+    {
+        "label": "", "value": "", "position": { "LEGAL": [43, 85], "ELEVENSEVENTEEN": [43, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [43, 83], "ELEVENSEVENTEEN": [43, 83] } },
+        "varname": "puck_light_qty" },
+    {
+        "label": "PUCK LIGHT", "value": "", "position": { "LEGAL": [63, 85], "ELEVENSEVENTEEN": [63, 85] },
+        "line": { "length": { "LEGAL" : 80, "ELEVENSEVENTEEN" : 80}, "position": { "LEGAL": [103, 83], "ELEVENSEVENTEEN": [103, 83] } },
+        "varname": "puck_light_brightness" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [43, 75], "ELEVENSEVENTEEN": [43, 75] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [43, 73], "ELEVENSEVENTEEN": [43, 73] } },
+        "varname": "puck_light_round_qty" },
+    {
+        "label": "ROUND HOUSING", "value": "", "position": { "LEGAL": [63, 75], "ELEVENSEVENTEEN": [63, 75] },
+        "line": { "length": { "LEGAL" : 60, "ELEVENSEVENTEEN" : 60}, "position": { "LEGAL": [123, 73], "ELEVENSEVENTEEN": [123, 73] } },
+        "varname": "puck_light_round_color" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [43, 65], "ELEVENSEVENTEEN": [43, 65] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [43, 63], "ELEVENSEVENTEEN": [43, 63] } },
+        "varname": "puck_light_square_qty" },
+    {
+        "label": "SQUARE HOUSING", "value": "", "position": { "LEGAL": [63, 65], "ELEVENSEVENTEEN": [63, 65] },
+        "line": { "length": { "LEGAL" : 58, "ELEVENSEVENTEEN" : 58}, "position": { "LEGAL": [125, 63], "ELEVENSEVENTEEN": [125, 63] } },
+        "varname": "puck_light_square_color" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [213, 85], "ELEVENSEVENTEEN": [213, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [213, 83], "ELEVENSEVENTEEN": [213, 83] } },
+        "varname": "ribbon_light_qty" },
+    {
+        "label": "RIBBON LIGHT", "value": "", "position": { "LEGAL": [233, 85], "ELEVENSEVENTEEN": [233, 85] },
+        "line": {"length": { "LEGAL" : 50, "ELEVENSEVENTEEN" : 105}, "position": { "LEGAL": [283, 83], "ELEVENSEVENTEEN": [283, 83] } },
+        "varname": "ribbon_light_brightness" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [363, 85], "ELEVENSEVENTEEN": [420, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [363, 83], "ELEVENSEVENTEEN": [420, 83] } },
+        "varname": "shelf_bar_light_qty" },
+    {
+        "label": "SHELF BAR LIGHT", "value": "", "position": { "LEGAL": [381, 85], "ELEVENSEVENTEEN": [438, 85] },
+        "line": {"length": { "LEGAL" : 35, "ELEVENSEVENTEEN" : 65}, "position": { "LEGAL": [440, 83], "ELEVENSEVENTEEN": [497, 83] } },
+        "varname": "shelf_bar_light_brightness" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [504, 85], "ELEVENSEVENTEEN": [504, 85] }, 
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [504, 83], "ELEVENSEVENTEEN": [598, 83] } },
+        "varname": "lit_hang_rod_qty" },
+    {
+        "label": "LIGHTED ROD", "value": "", "position": { "LEGAL": [522, 85], "ELEVENSEVENTEEN": [616, 85] },
+        "line": {"length": { "LEGAL" : 24, "ELEVENSEVENTEEN" : 70}, "position": { "LEGAL": [574, 83], "ELEVENSEVENTEEN": [667, 83] } },
+        "varname": "lit_hang_rod_brightness"},
+    {
+        "label": "", "value": "", "position": { "LEGAL": [627, 85], "ELEVENSEVENTEEN": [698, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [627, 83], "ELEVENSEVENTEEN": [698, 83] } },
+        "varname": "driver_qty" },
+    {
+        "label": "ROOM TOTAL DRIVER QTY", "value": "", "position": { "LEGAL": [647, 85], "ELEVENSEVENTEEN": [718, 85] },
+        "varname": "driver_qty" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [43, 85], "ELEVENSEVENTEEN": [43, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [627, 73], "ELEVENSEVENTEEN": [698, 73] } },
+        "varname": "switch_qty" },
+    {
+        "label": "ROOM TOTAL SWITCH QTY", "value": "", "position": { "LEGAL": [647, 75], "ELEVENSEVENTEEN": [718, 75] },
+        "varname": "switch_qty" },
+    {
+        "label": "", "value": "", "position": { "LEGAL": [43, 85], "ELEVENSEVENTEEN": [43, 85] },
+        "line": { "length": { "LEGAL" : 15, "ELEVENSEVENTEEN" : 15}, "position": { "LEGAL": [627, 63], "ELEVENSEVENTEEN": [698, 63] } },
+        "varname": "distributor_qty" },
+    {
+        "label": "ROOM TOTAL DISTRIBUTOR QTY", "value": "", "position": { "LEGAL": [647, 65], "ELEVENSEVENTEEN": [718, 65] },
+        "varname": "distributor_qty" },
+
+    { "label": "Room Name", "value": "", "position": { "LEGAL": [775, 587], "ELEVENSEVENTEEN": [995, 766] }, "line": { "length": {"LEGAL": 155, "ELEVENSEVENTEEN": 153}, "position": { "LEGAL": [825, 585], "ELEVENSEVENTEEN": [1047, 763] } }, "varname": "room_name" },
+    { "label": "Signature", "value": "", "position": { "LEGAL": [775, 574], "ELEVENSEVENTEEN": [995, 752] }, "line": { "length": {"LEGAL": 165, "ELEVENSEVENTEEN": 165}, "position": { "LEGAL": [815, 571], "ELEVENSEVENTEEN": [1035, 749] } }, "varname": "signature" },
+    { "label": "Job #", "value": "", "position": { "LEGAL": [775, 560], "ELEVENSEVENTEEN": [995, 737] }, "line": { "length": {"LEGAL": 65, "ELEVENSEVENTEEN": 65}, "position": { "LEGAL": [798, 557], "ELEVENSEVENTEEN": [1020, 735] } }, "varname": "job_number" },
+    { "label": "Install Date", "value": "", "position": { "LEGAL": [868, 560], "ELEVENSEVENTEEN": [1088, 737] }, "line": { "length": {"LEGAL": 65, "ELEVENSEVENTEEN": 65}, "position": { "LEGAL": [915, 557], "ELEVENSEVENTEEN": [1135, 735] } }, "varname": "install_date" },
+    { "label": "Lead ID#", "value": "", "position": { "LEGAL": [775, 545], "ELEVENSEVENTEEN": [995, 725] }, "line": { "length": {"LEGAL": 72, "ELEVENSEVENTEEN": 72}, "position": { "LEGAL": [812, 543], "ELEVENSEVENTEEN": [1034, 721] } }, "varname": "lead_id" },
+    { "label": "Sheet", "value": "", "position": { "LEGAL": [889, 545], "ELEVENSEVENTEEN": [1109, 725] }, "line": { "length": {"LEGAL": 65, "ELEVENSEVENTEEN": 65}, "position": { "LEGAL": [915, 543], "ELEVENSEVENTEEN": [1135, 721] } }, "varname": "sheet" },
+    { "label": "LINE HOLE DIA", "value": "", "position": { "LEGAL": [775, 525], "ELEVENSEVENTEEN": [995, 705] }, "line": { "length": {"LEGAL": 50, "ELEVENSEVENTEEN": 50}, "position": { "LEGAL": [833, 525], "ELEVENSEVENTEEN": [1053, 705] } }, "varname": "line_hole_dia" },
+    { "label": "ROOM HAS LIGHTING", "value": false, "position": { "LEGAL": [889, 525], "ELEVENSEVENTEEN": [1109, 705] }, "checkbox": { "position": { "LEGAL": [972, 524], "ELEVENSEVENTEEN": [1192, 704] } }, "varname": "room_has_lighting" },
+
+    { "label": "", "value": "", "position": { "LEGAL": [45, 108], "ELEVENSEVENTEEN": [45, 108] }, "line": { "length": {"LEGAL": 313, "ELEVENSEVENTEEN": 518}, "position": { "LEGAL": [45, 108], "ELEVENSEVENTEEN": [45, 108] } }, "varname": "customer_name"},
+    { "label": "", "value": "", "position": { "LEGAL": [395, 108], "ELEVENSEVENTEEN": [395, 108] }, "line": { "length": {"LEGAL": 108, "ELEVENSEVENTEEN": 118}, "position": { "LEGAL": [395, 108], "ELEVENSEVENTEEN": [605, 108] } }, "varname": "cphone" },
+    { "label": "", "value": "", "position": { "LEGAL": [533, 108], "ELEVENSEVENTEEN": [533, 108] }, "line": { "length": {"LEGAL": 121, "ELEVENSEVENTEEN": 115}, "position": { "LEGAL": [533, 108], "ELEVENSEVENTEEN": [755, 108] } }, "varname": "design_date" },
+    { "label": "", "value": "", "position": { "LEGAL": [702, 108], "ELEVENSEVENTEEN": [702, 108] }, "line": { "length": {"LEGAL": 278, "ELEVENSEVENTEEN": 279}, "position": { "LEGAL": [702, 108], "ELEVENSEVENTEEN": [920, 108] } }, "varname": "designer" }
+]

@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="text/html"; charset="utf-8" http-equiv="Content-Type" />
+    <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="expires" content="0">
+    <title>Classy Closets Room View</title>
+</head>
+<style type="text/css">
+      body {
+        /* Ensure full coverage of the viewport */
+        background-image: url('<s3_resource_url>/prop_background_1.jpg');
+        height: 100vh;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        font-family: "Calibri Light", Arial, sans-serif;
+        font-size: 1rem;
+        color: #1A1818;
+        background-size: cover; /* Cover the entire viewport */
+        background-position: center; /* Center the background image */
+        position: relative; /* Required for stacking */
+    }
+  
+    body::before {
+        content: "";
+        z-index: 0; /* Ensure the content is on top of the gradient */
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: linear-gradient(to top, rgba(255,255,255,0), rgba(255,255,255,1)); /* White gradient */
+        height: 50%
+    }
+
+    .content-frame {
+      position: relative; /* Required for stacking */
+      border: 3px solid #611A2B;
+      margin-top: 4%;
+      padding: 50px;
+      opacity: 1
+    }
+
+    .content-iframe {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+
+        padding: 50px;
+        border: 3px solid #611A2B;
+    }
+
+    .content-logo {
+      z-index: 2; /* Ensure the content is on top of the gradient */
+      position: absolute; /* Required for stacking */
+    
+      padding: 0 25px;
+      background-color: white;
+      border: 0px solid black;
+      width: 50%
+      
+    }
+    .img-logo {
+      width: 100%; /* Set the width to 50% (adjust as needed) */
+      max-width: 100%; /* Ensure the image doesn't exceed its container */
+      height: auto; /* Let the height adjust automatically based on aspect ratio */
+      display: block; /* Ensure the image behaves as a block-level element */
+      margin: 0 auto; /* Center the image horizontally */
+      border: 0px solid blue;
+      /* You can adjust the border width, style, and color as needed */
+    }
+
+    .centered {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+</style>
+<body>
+    <script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
+    <script>
+        
+        var model_width = 100;
+        var model_depth = 100;
+        var model_height = 100;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var version = '1.12.1';
+            var uid = '<model_uid>';
+            // var uid = '8318e55d041849369b8b8e4283d32cc1';
+            // var uid = '90c16e07ddae435485c080548fa4fc47';
+            // var uid = '00c031f119044ec2a1501bc405d9d059';
+            // var uid = 'f5cea3a092164d539622f0c6302a2407';
+            // var uid = 'bcd65cce785344f18ba7720e51a6f51b';
+            
+            // var uid = '90c16e07ddae435485c080548fa4fc47'
+            // var uid = '4d823e3e3e4c49f6b656cc5bf0a15b3c';
+            var iframe = document.getElementById('api-frame');
+            var client = new Sketchfab(version, iframe);
+            var success = function(api) {
+                api.start(function() {
+                    api.addEventListener('viewerready', function() {
+                        adjust_light_settings(api);
+                        set_enviornment_options(api);
+                        adjust_glass_materials(api);
+                        adjust_scaled_materials(api);
+                    });
+                });
+            };
+
+            var error = function() {
+                console.error('Sketchfab API error');
+            };
+
+            client.init(uid, {
+                success: success,
+                error: error,
+                autostart: 1,
+                transparent: 0,
+                ui_fadeout: 0,
+                ui_settings: 0,
+                ui_inspector: 0,
+                ui_vr: 0,
+                ui_help: 1,
+                ui_infos: 0,
+                ui_watermark: 0,
+                ui_stop: 0
+            });
+        });
+
+    function set_enviornment_options(api) {
+   
+        api.setBackground({color: [0.6, 0.6, 0.6]}, function() {
+            window.console.log('Background changed');
+        });
+        
+        api.setEnvironment({
+            enabled: true,
+            uid: "df380da788ee444885722735039b0c09", // Industrial Room
+            // uid: "08468d6fcf9846039cc3e51accddd9f9", // Studio Soft
+            exposure: 1.0,
+            lightIntensity: 5,  // dim brightness level
+            rotation: 0.0,
+            shadowEnabled: false,
+        });
+
+        // Enable post-processing filters and sharpen filter
+        api.setPostProcessing({
+            enable: true,
+            ssrEnable: true,
+            ssaoEnable: true,
+            ssaoIntensity: 0.3,
+            sharpenEnable: true,
+            vignetteEnable: true,
+            // colorBalanceEnable: true,
+        }, function() {
+            window.console.log('Post-processing filters set');
+        });
+
+        // recenter camera and focus on visible geometries
+        api.recenterCamera(function(err) {
+            if (!err) {
+                window.console.log('Camera recentered');
+            }
+        });
+
+        api.focusOnVisibleGeometries(function(err) {
+            if (!err) {
+                window.console.log('Camera recentered');
+            }
+        });
+        // list post processing effects
+        api.getPostProcessing(function(settings) {
+            window.console.log(settings);
+        });
+         // list environment settingss
+        api.getEnvironment(function(err, envInfo) {
+            if (!err) {
+                window.console.log('Current environment:', envInfo);
+            }
+        });
+
+    }  // end of function set_enviornment_options
+
+    function adjust_scaled_materials(api) {
+            api.getMaterialList(function(err, materials) {
+                if (!err) {
+                    window.console.log("length: " + materials.length)
+                    window.console.log(materials);
+                }
+            });
+
+            api.getMaterialList(function(err, materials) {
+                if (!err) {
+                    materials.forEach(function(material) {
+
+                        // Check if the material name contains the string "carpet"
+                        if (material.name.toLowerCase().includes("carpet")) {
+                            window.console.log("Found a carpet material:", material.name);
+                            api.setUVScale(material, 'AlbedoPBR', 5.0, 5.0);
+                        }
+                        
+                    });  // end of materials.forEach
+                } else {
+                    console.error('Error getting materials:', err);
+                }
+            });
+
+    }  // end of function adjust_scaled_materials
+
+    function adjust_glass_materials(api) {
+        console.log('Adjusting glass materials');
+        api.getMaterialList(function(err, materials) {
+            if (err) {
+                console.error('Error getting materials:', err);
+                return;
+            }
+            materials.forEach(function(material) {
+                if (material.name.toLowerCase().includes("glass")) {  // Assuming material names include 'glass'
+                    material.channels['Opacity'].enable = true;
+                    material.channels['Opacity'].factor = 0.8;
+                    material.channels['SpecularF0'].factor = 0.0;
+                    material.channels['AlbedoPBR'].enable = true;
+                    material.channels['AlbedoPBR'].color = [0.1, 0.1, 0.1];
+
+                    api.setMaterial(material);
+                }
+            });  // end of materials.forEach
+        });   // end of api.getMaterialList
+
+    }    // end of function adjustGlassMaterials
+    
+    function adjust_light_settings(api) {
+
+        api.getSceneGraph(function(err, result) {
+            if (err) {
+                console.error('Error retrieving scene graph:', err);
+                return;
+            }
+            console.log("Scene Graph: ", result);
+            // Find the node with the name "Room Model"
+            let modelWidth = null;
+            for (let key in result.children[0].children) {
+                console.log(result.children[0].children[key].name.toLowerCase());
+                if (result.children[0].children[key].name.toLowerCase().includes("room model")) {
+                    let raw_name = result.children[0].children[key].name;
+                    let name_segments = raw_name.split("__");
+
+                    name_segments.forEach(segment => {
+                        let [param, value] = segment.split("=");
+                        if (param && value) {
+                            if (param.toLowerCase().includes("width")) {
+                                model_width = parseFloat(value);
+                            } else if (param.toLowerCase().includes("depth")) {
+                                model_depth = parseFloat(value);
+                            } else if (param.toLowerCase().includes("height")) {
+                                model_height = parseFloat(value);
+                            }
+                        }
+                    });
+
+                    break;
+                }
+            }
+
+            updateLightSettings(api);
+
+        });
+    }
+
+    function updateLightSettings(api) {
+
+        api.setLightFeatureEnabled(true, function(err) {
+            if (!err) {
+                window.console.log("Lights ready to be used");
+            }
+        });
+
+        for (var iL = 0; iL < 3; iL++) {
+            console.log("Model Width for Lights: ", model_width)
+            console.log("Model Depth for Lights: ", model_depth)
+            console.log("Model Height for Lights: ", model_height)
+            x_offset = model_width >= 1 ? 1 : 1;
+            y_offset = model_depth >= 1 ? 1 : 1;
+            z_offset = 1.35 * iL;
+            light_intensity = 0.5;
+            if (model_width < 2 || model_depth < 2) {
+                light_intensity = 0.2;
+            }
+
+            api.setLight(iL, {
+                color: [1, 1, 1],
+                intensity: light_intensity,
+                type: "POINT",
+                matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x_offset, y_offset, z_offset, 1],
+                enabled: true                    
+            });
+
+            // api.getLight(iL, function(err, light) {
+            //     if (!err) {
+            //         window.console.log('Light ' + light.index + ' settings:', light);
+            //     }
+            // });
+        }
+    }
+
+    </script>
+ 
+    <div align="center" class="content-logo" id="div_logo">
+        <br>    
+        <p align="center">
+            <a href="https://classyclosets.com/" target="_blank">
+                <img class="img-logo" src="<s3_resource_url>/prop_logo_1.jpg" alt="Classy Closets"></a></p><a href="https://classyclosets.com/" target="_blank">
+            </a>
+    </div>
+
+    <!-- Placeholder for the embedded video -->
+    <div class="content-iframe" id="div_content">
+        <iframe id="api-frame" width="800" height="600" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" onmousewheel=""></iframe>
+    </div>
+
+</body>
+</html>
