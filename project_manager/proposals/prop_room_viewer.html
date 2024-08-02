@@ -9,6 +9,17 @@
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="expires" content="0">
     <title>Classy Closets Room View</title>
+
+    <script>
+        // Check if the sales proposal has expired
+        var timeDifference = new Date() - new Date('<doc_date>'); 
+        var daysDifference = timeDifference / (1000 * 3600 * 24);
+        if (daysDifference > parseInt('<exp_days>')) {
+            window.location.href = '<s3_resource_url>/prop_expired.html';
+        }
+        
+    </script>
+
 </head>
 <style type="text/css">
       body {
@@ -247,11 +258,11 @@
                 return;
             }
             console.log("Scene Graph: ", result);
-            // Find the node with the name "Room Model"
+            // Find the node with the name "Room Floor"
             let modelWidth = null;
             for (let key in result.children[0].children) {
                 console.log(result.children[0].children[key].name.toLowerCase());
-                if (result.children[0].children[key].name.toLowerCase().includes("room model")) {
+                if (result.children[0].children[key].name.toLowerCase().includes("floor")) {
                     let raw_name = result.children[0].children[key].name;
                     let name_segments = raw_name.split("__");
 

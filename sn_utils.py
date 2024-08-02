@@ -363,7 +363,6 @@ def get_cabinet_countertop_bp(obj):
         return get_cabinet_countertop_bp(obj.parent)
 
 
-
 def get_tagged_bp(obj, tag):
     if not obj:
         return None

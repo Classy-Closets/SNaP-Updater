@@ -23,7 +23,7 @@ import webbrowser
 import uuid
 import ctypes
 import random
-import datetime
+from datetime import datetime, timedelta, timezone
 import pyperclip
 import boto3
 import time
@@ -41,6 +41,7 @@ AWS_S3_REGION_NAME = 'us-west-1'
 AWS_S3_BUCKET_NAME = 'snap-proposals-1'
 AWS_S3_ACCESS_KEY_ID = 'gAAAAABmDxSuCsGbViR6sNeOi0L2JPBjkB66tKgZ-eKSWFVa0dBhNq8R1gd68B_waB9qmjQzC-QOrxeEeuJmnDwpuZIl897x1ca9Q48xURkOKbqexKgJYlc='
 AWS_S3_ACCESS_KEY = 'gAAAAABmDxSue4C4ftTHw1XpBU3FXm4ZX2CBFWAA2yUv5BsBje1WL8up9Uh8mzlpOueFc83b1FHuxelztkLxygTuqhR3mjbYj8NADxWFMkGwj34_fY-ejZ1_FzLTSwLKMACJ-nB7FuWO'
+PROPOSAL_LIFECYCLE_DAYS = 30
 
 
 
@@ -93,6 +94,7 @@ def delete_s3_objects_by_prefix(bucket_name, prefix):
 
 def get_s3_object_url(bucket_name, object_name, region_name):
     return f"https://{bucket_name}.s3-{region_name}.amazonaws.com/public/{quote(object_name)}"
+
 
 class SNAP_OT_Copy_Room(Operator):
     bl_idname = "product_manager.copy_room"
@@ -743,6 +745,24 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
     def invoke(self, context, event):
         return self.execute(context)
 
+    def save_export_to_glb(self):
+        # export the final 3d scene to glb for better export to web
+        if "io_scene_gltf2" not in bpy.context.preferences.addons:
+
+            # Destination path in Blender's addon directory
+            blender_addons_path = bpy.utils.user_resource('SCRIPTS') + "/addons"
+            dest_path = os.path.join(blender_addons_path, "io_scene_gltf2")
+            addon_folder_path = os.path.join(sn_paths.ROOT_DIR, "io_scene_gltf2")
+
+            # Copy the addon folder to Blender's addon directory
+            if not os.path.exists(dest_path):
+                shutil.copytree(addon_folder_path, dest_path)
+ 
+            bpy.ops.preferences.addon_enable(module="io_scene_gltf2")
+
+        file_path = bpy.data.filepath.replace(".blend", ".gltf")
+        bpy.ops.export_scene.gltf(filepath=file_path, export_format='GLB')
+
     def apply_all_modifiers(self, objects):
         for obj in objects:
             if obj.type == 'MESH':  # Assuming you only want to apply modifiers to mesh objects
@@ -750,6 +770,8 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
                 bpy.ops.object.mode_set(mode='OBJECT')  # Ensure the object is in object mode
                 for modifier in obj.modifiers:
                     bpy.ops.object.modifier_apply({"object": obj}, modifier=modifier.name)
+                
+                obj.vertex_groups.clear()
 
     def import_texture_image(self, blend_file_path, material_name):
         new_texture_imaage = None
@@ -811,98 +833,129 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
         else:
             return False
     
-    def create_sipmle_materials(self, obj):
-        print("start create_sipmle_materials obj=",obj.name)
+    def create_sipmle_materials(self, objects):
+        # print("start create_sipmle_materials obj=",obj.name)
 
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.mode_set(mode='OBJECT')
+        for obj in objects:
 
-        # Ensure the object has a UV map
-        if obj.type == 'MESH' and not obj.data.uv_layers:
-            if len(obj.data.vertices) > 1:
-                bpy.ops.object.mode_set(mode='EDIT')
-                bpy.ops.mesh.select_all(action='SELECT')
-                bpy.ops.uv.smart_project()
-                bpy.ops.object.mode_set(mode='OBJECT')
+            bpy.context.view_layer.objects.active = obj
+            bpy.ops.object.mode_set(mode='OBJECT')
 
-        for slot in obj.material_slots:
-            if slot.material:
-                old_material = slot.material
+            # Ensure the object has a UV map
+            if obj.type == 'MESH' and not obj.data.uv_layers:
+                if len(obj.data.vertices) > 1 and len(obj.data.polygons) > 0:
+                    bpy.ops.object.mode_set(mode='EDIT')
+                    bpy.ops.mesh.select_all(action='SELECT')
+                    bpy.ops.uv.smart_project()
+                    bpy.ops.object.mode_set(mode='OBJECT')
 
-                if self.material_needs_simplification(old_material):
-                    print("material=",old_material.name)
-                    nodes = old_material.node_tree.nodes
-                    old_texture_image = None
-                    imported_texture_image = None
-     
-                    for node in nodes:
-                        if node.type == "TEX_IMAGE" and self.is_texture_image(node.image.name):
-                            old_texture_image = node.image
-                                                   
-                    if old_texture_image:
-                        print("old_texture_image=",old_texture_image.name)
+            for slot in obj.material_slots:
+                if slot.material:
+                    old_material = slot.material
 
-                        if old_texture_image.name == 'InteriorCarpet_02.jpg':
-                            # if texture image from old material, import texture image from current material libray... currently just carpet materials but could be expanded.
-                            imported_texture_image = self.import_texture_image(os.path.join(sn_paths.MATERIAL_DIR, "Flooring - Carpet", old_material.name + ".blend"), old_material.name)
-                            if imported_texture_image:
-                                old_texture_image = imported_texture_image
-    
-                            # imported_material = bpy.data.materials.get(old_material.name + '_temp')
-                            # if imported_material:
-                            #     print(f"Material '{old_material.name + '_temp'}' successfully imported.")
-                           
-                        # Create a new material
-                        new_material = bpy.data.materials.new(name=old_material.name + '_suv')
-                        new_material.use_nodes = True
-
-                        # Get the material's node tree
-                        nodes = new_material.node_tree.nodes
-                        links = new_material.node_tree.links
-
-                        # Clear any existing nodes
-                        nodes.clear()
-
-                        # Create the necessary nodes
-                        uv_map_node = nodes.new(type='ShaderNodeUVMap')
-                        uv_map_node.location = (-300, 0)
-                        uv_map_node.uv_map = obj.data.uv_layers[0].name  # Use the name of the first UV map
-
-                        mapping_node = nodes.new(type='ShaderNodeMapping')
-                        mapping_node.location = (-300, 0)
-                        mapping_node.inputs['Scale'].default_value = (5.0, 5.0, 5.0)  # Set the scale to 5
-
-                        image_texture_node = nodes.new(type='ShaderNodeTexImage')
-                        image_texture_node.location = (-100, 0)
-                        image_texture_node.image = old_texture_image
-
-                        principled_shader_node = nodes.new(type='ShaderNodeBsdfPrincipled')
-                        principled_shader_node.location = (200, 0)
-
-                        material_output_node = nodes.new(type='ShaderNodeOutputMaterial')
-                        material_output_node.location = (600, 0)
-
-                        links.new(uv_map_node.outputs['UV'], mapping_node.inputs['Vector'])
-                        links.new(mapping_node.outputs['Vector'], image_texture_node.inputs['Vector'])
-                        links.new(image_texture_node.outputs['Color'], principled_shader_node.inputs['Base Color'])
-                        links.new(principled_shader_node.outputs['BSDF'], material_output_node.inputs['Surface'])
-
-                        print("new material=",new_material.name)
-                        slot.material = new_material
-
-    def execute(self, context):
-        print("Preparing Room For 3D Export")
-        wall_count = 0
-        if "3D Export" in bpy.data.scenes:
-            print("  Deleting 3D Export scene")
-            bpy.context.window.scene = bpy.data.scenes.get("3D Export")
-            bpy.ops.scene.delete()
-            bpy.context.window.scene = sn_utils.get_main_scene()
-
-        export_scene = sn_utils.get_3d_export_scene()
-        bpy.ops.object.select_all(action='DESELECT')
+                    if self.material_needs_simplification(old_material):
+                        # print("material=",old_material.name)
+                        nodes = old_material.node_tree.nodes
+                        old_texture_image = None
+                        imported_texture_image = None
         
-        for obj in context.visible_objects:
+                        for node in nodes:
+                            if node.type == "TEX_IMAGE" and self.is_texture_image(node.image.name):
+                                old_texture_image = node.image
+                                                    
+                        if old_texture_image:
+                            print("old_texture_image=",old_texture_image.name)
+
+                            if old_texture_image.name == 'InteriorCarpet_02.jpg':
+                                # if texture image from old material, import texture image from current material libray... currently just carpet materials but could be expanded.
+                                imported_texture_image = self.import_texture_image(os.path.join(sn_paths.MATERIAL_DIR, "Flooring - Carpet", old_material.name + ".blend"), old_material.name)
+                                if imported_texture_image:
+                                    old_texture_image = imported_texture_image
+                            
+                            # Create a new material
+                            new_material = bpy.data.materials.new(name=old_material.name + '_suv')
+                            new_material.use_nodes = True
+
+                            # Get the material's node tree
+                            nodes = new_material.node_tree.nodes
+                            links = new_material.node_tree.links
+
+                            # Clear any existing nodes
+                            nodes.clear()
+
+                            # Create the necessary nodes
+                            uv_map_node = nodes.new(type='ShaderNodeUVMap')
+                            uv_map_node.location = (-300, 0)
+                            uv_map_node.uv_map = obj.data.uv_layers[0].name  # Use the name of the first UV map
+
+                            mapping_node = nodes.new(type='ShaderNodeMapping')
+                            mapping_node.location = (-300, 0)
+                            mapping_node.inputs['Scale'].default_value = (5.0, 5.0, 5.0)  # Set the scale to 5
+
+                            image_texture_node = nodes.new(type='ShaderNodeTexImage')
+                            image_texture_node.location = (-100, 0)
+                            image_texture_node.image = old_texture_image
+
+                            principled_shader_node = nodes.new(type='ShaderNodeBsdfPrincipled')
+                            principled_shader_node.location = (200, 0)
+
+                            material_output_node = nodes.new(type='ShaderNodeOutputMaterial')
+                            material_output_node.location = (600, 0)
+
+                            links.new(uv_map_node.outputs['UV'], mapping_node.inputs['Vector'])
+                            links.new(mapping_node.outputs['Vector'], image_texture_node.inputs['Vector'])
+                            links.new(image_texture_node.outputs['Color'], principled_shader_node.inputs['Base Color'])
+                            links.new(principled_shader_node.outputs['BSDF'], material_output_node.inputs['Surface'])
+
+                            # print("new material=",new_material.name)
+                            slot.material = new_material
+
+    def tag_objects(self, obj, base_name):
+        obj['base_name'] = base_name
+        
+        for child in obj.children:
+            self.tag_objects(child, base_name)
+ 
+    def tag_base_mesh_objects(self, objects):
+        base_objects = []
+        for obj in objects:       
+            if obj.get("IS_BP_WALL") or "floor" in obj.name.lower():
+                if "floor" in obj.name.lower():
+                    obj.hide_viewport = False
+
+                base_mesh = None
+                if obj.type == 'MESH':
+                    base_mesh = obj
+                else:
+                    for child in obj.children:
+                        if child.type == 'MESH':
+                            base_mesh = child
+                            break
+
+                if base_mesh:
+                    base_mesh["IS_BASE_OBJECT"] = True
+                    base_objects.append(base_mesh)
+                    self.tag_objects(obj, base_mesh.name)
+
+    def create_temp_material(self, material_name):
+        material = bpy.data.materials.new(name=material_name)
+
+        material.use_nodes = True
+        nodes = material.node_tree.nodes
+
+        for node in nodes:
+            nodes.remove(node)
+
+        bsdf = nodes.new(type='ShaderNodeBsdfPrincipled')
+        bsdf.inputs['Base Color'].default_value = (1, 1, 1, 1)  # RGBA
+        output = nodes.new(type='ShaderNodeOutputMaterial')
+        material.node_tree.links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
+        print("created new material=",material.name)
+
+        return material
+
+    def get_objects_for_export(self, objects, export_scene):
+        for obj in objects:
             object_types = [obj.type == 'MESH', obj.type == 'CURVE', obj.type == 'LIGHT']
            
             if obj.sn_roombuilder.is_ceiling:
@@ -931,12 +984,16 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
 
                     if obj.get("IS_CAGE"):   # obj is likely an obstacle, need to verify material exists
                         obj.hide_select = False
-                        material = bpy.data.materials['Winter White']
+
                         if len(obj.material_slots) > 0:
+                            # if obj material is none, assign winter white, or create new white mat if unavailable
                             if obj.material_slots[0].material is None:
+                                material = bpy.data.materials.get('Winter White')
+                                if material is None:
+                                    material = bpy.data.materials.get('White Export')
+                                if material is None:
+                                    material = self.create_temp_material('White Export')
                                 obj.material_slots[0].material = material
-                        else:
-                            obj.data.materials.append(material)
 
                     if obj.sn_roombuilder.is_floor:
                          if len(obj.material_slots) > 0:
@@ -950,81 +1007,102 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
                 dup_obj = obj.copy()
                 dup_obj.data = obj.data.copy()
                 dup_obj.animation_data_clear()
+                dup_obj['base_name'] = obj.get('base_name')
+                if obj.get('IS_BASE_OBJECT'):
+                        dup_obj['IS_BASE_OBJECT'] = True
                 if obj.parent and obj.parent.get("IS_BP_WALL"):
                     dup_obj['IS_BP_WALL'] = True
                 export_scene.collection.objects.link(dup_obj)
 
+    def execute(self, context):
+        print("Preparing Room For 3D Export")
+        wall_count = 0
+        if "3D Export" in bpy.data.scenes:
+            bpy.context.window.scene = bpy.data.scenes.get("3D Export")
+            bpy.ops.scene.delete()
+            bpy.context.window.scene = sn_utils.get_main_scene()
+
+        export_scene = sn_utils.get_3d_export_scene()
+        bpy.ops.object.select_all(action='DESELECT')
+
+        self.tag_base_mesh_objects(bpy.context.scene.objects)
+        self.get_objects_for_export(context.visible_objects, export_scene)
+
         bpy.context.window.scene = export_scene
         self.apply_all_modifiers(export_scene.objects)
+        self.create_sipmle_materials(export_scene.objects)
 
-        for obj in export_scene.objects:
-            if obj.type == 'MESH':
-                self.create_sipmle_materials(obj)
-
-        for obj in export_scene.objects:
-            rotation_matrix = obj.matrix_world.to_euler()
-            if obj.get("IS_BP_WALL"):
+        base_objects = [obj for obj in export_scene.objects if obj.get('IS_BASE_OBJECT')]
+        for base_object in base_objects:
+            bpy.ops.object.select_all(action='DESELECT')
+            
+            if base_object.get("IS_BP_WALL"):
                 wall_count += 1
-            if not (obj.get("IS_BP_WALL") and rotation_matrix.z == 0) and not ("Floor" in obj.name):
-                obj.select_set(True)
-                obj.lock_location[0] = False
-                obj.lock_location[1] = False
-                obj.lock_location[2] = False
-        bpy.ops.object.join()
+    
+            for obj in export_scene.objects:
+                if obj.get('base_name') == base_object.get('base_name') and not obj.get('IS_BASE_OBJECT'):
+                    if obj.type == 'MESH':
+                        obj.select_set(True)
+                        obj.lock_location[0] = False
+                        obj.lock_location[1] = False
+                        obj.lock_location[2] = False
 
-        obj_room_model = None
+            base_object.select_set(True)
+            bpy.context.view_layer.objects.active = base_object
+            obj.lock_location[0] = False
+            obj.lock_location[1] = False
+            obj.lock_location[2] = False
+            obj['WALL_COUNT'] = len(base_objects) - 1
+            bpy.ops.object.join()
+            bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
+        
+        obj_room_wall = None
         obj_room_light = None
-        obj_floor = None
+        obj_room_floor = None
 
         for obj in export_scene.objects:
             rotation_matrix = obj.matrix_world.to_euler()
             if "Floor" in obj.name:
-                obj_floor = obj
-            if obj.type == 'LIGHT':
+                obj_room_floor = obj
+            elif obj.type == 'LIGHT':
                 obj_room_light = obj
-            else:
-                obj.select_set(True)
-                obj.lock_location[0] = False
-                obj.lock_location[1] = False
-                obj.lock_location[2] = False
-                obj.name = "Room Model"
-                obj['WALL_COUNT'] = wall_count
+            elif rotation_matrix.z == 0:
+                obj_room_wall = obj
 
-        if obj_floor:
-            bpy.context.view_layer.objects.active = obj_floor
+        for i, obj in enumerate(bpy.data.objects):
+            new_name = obj.name + f"_{i}"
+            obj.name = new_name
+            if obj.type == 'MESH':
+                obj.data.name = new_name + "_mesh"
 
-        bpy.ops.object.join()
-
-        # print("obj_room_model=",obj_room_model.name)
+        # print("obj_room_wall=",obj_room_wall.name)
         # print("obj_room_light=",obj_room_light.name)
-        # print("obj_floor=",obj_floor.name)
+        # print("obj_room_floor=",obj_room_floor.name)
 
-        for obj in export_scene.objects:
-            if obj.type != 'LIGHT':
-                obj_room_model = obj
-        
-        if obj_room_model and obj_room_light:
-            matrix_world = obj_room_model.matrix_world
-            bound_box = [matrix_world @ mathutils.Vector(corner) for corner in obj_room_model.bound_box]
+        if obj_room_floor and obj_room_light:
+            matrix_world = obj_room_floor.matrix_world
+            bound_box = [matrix_world @ mathutils.Vector(corner) for corner in obj_room_floor.bound_box]
             center_x = (bound_box[0][0] + bound_box[6][0]) / 2
             center_y = (bound_box[0][1] + bound_box[6][1]) / 2
             center_z = (bound_box[0][2] + bound_box[6][2]) / 2
             if wall_count > 3:  #top view camera
                 obj_room_light.location.x = center_x
                 obj_room_light.location.y = center_y
-                obj_room_light.location.z = obj_room_model.location.z + center_z + 4.0
+                obj_room_light.location.z = obj_room_wall.location.z + center_z + 4.0
             else:   #front view camera
                 obj_room_light.location.x = center_x
                 obj_room_light.location.y = center_y - 2.0
-                obj_room_light.location.z = obj_room_model.location.z + (center_z * 2) + 2.0
+                obj_room_light.location.z = obj_room_wall.location.z + (center_z * 2) + 2.0
                 obj_room_light.data.energy = 200
 
-            obj_room_model.name = "Room Model__width=" + str(round(center_x * 2,2)) + "__depth=" + str(round(center_y * 2,2)) + "__height=" + str(round(center_z * 2,2))
-        
+            obj_room_floor.name = "Room_Floor__width=" + str(round(center_x * 2,2)) + "__depth=" + str(round(center_y * 2,2)) + "__height=" + str(round(center_z * 2,2))
+                
         print("  Deleting extra scenes")
         for scene in bpy.data.scenes:
             if scene.name != "3D Export":
                 bpy.data.scenes.remove(scene)
+
+        bpy.ops.wm.save_mainfile()
 
         print("   Deleting orphaned objects")
         for obj in bpy.data.objects:
@@ -1033,23 +1111,8 @@ class SNAP_OT_Proposal_Prepare_Room_For_3D_Export(Operator):
 
         bpy.ops.wm.save_mainfile()
 
-        # export the final 3d scene to glb for better export to web
-        if "io_scene_gltf2" not in bpy.context.preferences.addons:
-
-            # Destination path in Blender's addon directory
-            blender_addons_path = bpy.utils.user_resource('SCRIPTS') + "/addons"
-            dest_path = os.path.join(blender_addons_path, "io_scene_gltf2")
-            addon_folder_path = os.path.join(sn_paths.ROOT_DIR, "io_scene_gltf2")
-
-            # Copy the addon folder to Blender's addon directory
-            if not os.path.exists(dest_path):
-                shutil.copytree(addon_folder_path, dest_path)
- 
-            bpy.ops.preferences.addon_enable(module="io_scene_gltf2")
-
-        file_path = bpy.data.filepath.replace(".blend", ".gltf")
-        bpy.ops.export_scene.gltf(filepath=file_path, export_format='GLB')
-
+        self.save_export_to_glb()
+    
         print("3D Export Scene Ready")
 
         return {'FINISHED'}
@@ -1066,6 +1129,14 @@ class SNAP_OT_Proposal_Create_Room_Custom_Thumbnail(Operator):
     def poll(cls, context):
         return True
     
+    def is_viewport_rendered(self):
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        return space.shading.type == 'RENDERED'
+        return False
+    
     def execute(self, context):
         print("Create Room Custom Thumbnail")
         project = context.window_manager.sn_project.get_project()
@@ -1078,7 +1149,40 @@ class SNAP_OT_Proposal_Create_Room_Custom_Thumbnail(Operator):
         bpy.context.scene.render.resolution_y = 1048
         temp_path =  bpy.context.scene.render.filepath
         bpy.context.scene.render.filepath = os.path.join(proposal_dir, self.active_room.lower().replace(" ","_") + "_thumbnail_custom")
-        bpy.ops.render.opengl(write_still=True)
+        # bpy.ops.render.opengl(write_still=True)
+        if self.is_viewport_rendered():
+            hidden_objs = []
+            collections = bpy.data.collections
+            wall_objects = sn_utils.get_wall_bps(context)
+            # render-hide collections that are hidden in viewport but not hidden in render ivew
+            for wall in wall_objects:
+                wall_name = wall.snap.name_object
+                if wall_name in collections:
+                    wall_coll = collections[wall_name]
+                    if wall_coll.hide_viewport == True and wall_coll.hide_render == False:
+                        wall_coll.hide_render = True
+                        hidden_objs.append(wall_coll)
+
+            # render-hide objects that are hidden in viewport but not hidden in render ivew
+            for obj in bpy.context.scene.objects:
+                if obj.hide_viewport == True and obj.hide_render == False:
+                    obj.hide_render = True
+                    hidden_objs.append(obj)
+
+            # render scene...
+            orig_samples = bpy.context.scene.cycles.samples
+            orig_denoise = bpy.context.scene.cycles.use_denoising
+            bpy.context.scene.cycles.samples = 64
+            bpy.context.scene.cycles.use_denoising = True  
+            bpy.ops.render.render(write_still=True)
+                       
+            # restore original render visibility
+            bpy.context.scene.cycles.samples = orig_samples
+            bpy.context.scene.cycles.use_denoising = orig_denoise
+            for coll in hidden_objs:
+                coll.hide_render = False
+        else:
+            bpy.ops.render.opengl(write_still=True)
     
         from PIL import Image
         image = Image.open(bpy.context.scene.render.filepath + ".jpg")  #
@@ -1090,11 +1194,11 @@ class SNAP_OT_Proposal_Create_Room_Custom_Thumbnail(Operator):
 
 
         # Get the current datetime in UTC
-        utc_datetime = datetime.datetime.utcnow()
+        utc_datetime = datetime.utcnow()
         # Convert the UTC datetime to the local timezone
-        local_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+        local_datetime = utc_datetime.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
-        now = datetime.datetime.now()
+        now = datetime.now()
         timezone_abbr = local_datetime.strftime('%Z')
 
         print("UTC Time:", utc_datetime.strftime("%Y-%m-%d %H:%M:%S"))
@@ -1159,19 +1263,19 @@ class SNAP_OT_Proposal_Create_Room_Thumbnail(Operator):
         # Append 3d export files to thumbnail scene...
         with bpy.data.libraries.load(self.room_path) as (data_from, data_to):
             data_to.objects = [name for name in data_from.objects]
-            print('These are the objs: ', data_to.objects)
+            # print('These are the objs: ', data_to.objects)
+
         # Objects have to be linked to show up in a scene
         for obj in data_to.objects:
-            if obj.type == 'MESH':
-                if "Room Model" in obj.name:
-                    wall_count = obj['WALL_COUNT']
-                    if wall_count> 3:
-                        needs_top_view = True
-                        focus_obj = obj
+            if obj.type == 'MESH' and obj.get("IS_BP_WALL"):
+                wall_count += 1
+                focus_obj = obj
             bpy.context.scene.collection.objects.link(obj)   
 
+        if wall_count > 3:
+            needs_top_view = True
+
         if needs_top_view and focus_obj:
-            print("Setting camera to top view")
             camera_obj = bpy.data.objects['Camera Top View']
             bpy.context.scene.camera = camera_obj
             bpy.context.scene.camera.location.z += 10
@@ -1198,10 +1302,9 @@ class SNAP_OT_Proposal_Create_Room_Thumbnail(Operator):
 
         temp_path =  bpy.context.scene.render.filepath
         bpy.context.scene.render.filepath = self.room_path.replace("-3d_export.blend","_thumbnail")
-        bpy.ops.render.render(write_still=True)  
-        
+        bpy.ops.render.render(write_still=True)
+                
         bpy.context.scene.render.filepath = temp_path
-
         # bpy.ops.wm.save_as_mainfile(filepath=self.room_path.replace(".blend","_temp.blend"))
         return{'FINISHED'}
 
@@ -1925,6 +2028,12 @@ class SNAP_OT_Proposal_Add_Room_To_Documents(Operator):
         html_content = html_content.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
         html_content_mobile = html_content_mobile.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
 
+        # ////// Stamp proposal expiration date on the documents
+        html_content = html_content.replace("<doc_date>", datetime.today().strftime('%Y-%m-%d'))
+        html_content = html_content.replace("<exp_days>", str(PROPOSAL_LIFECYCLE_DAYS))
+        html_content_mobile = html_content_mobile.replace("<doc_date>", datetime.today().strftime('%Y-%m-%d'))
+        html_content_mobile = html_content_mobile.replace("<exp_days>", str(PROPOSAL_LIFECYCLE_DAYS))
+
         # https://snap-proposals.s3.us-west-2.amazonaws.com/public/resource
         # ////// Save the proposal files
         with open(proposal_path, 'w', encoding='utf-8') as file:
@@ -1944,7 +2053,8 @@ class SNAP_OT_Proposal_Add_Room_To_Documents(Operator):
        
         html_content = html_content.replace("<model_uid>", room.prop_3d_exported_uid)
         html_content = html_content.replace("<s3_resource_url>", "https://" + AWS_S3_BUCKET_NAME + ".s3." + AWS_S3_REGION_NAME + ".amazonaws.com/public/resource")
-
+        html_content = html_content.replace("<doc_date>", datetime.today().strftime('%Y-%m-%d'))
+        html_content = html_content.replace("<exp_days>", str(PROPOSAL_LIFECYCLE_DAYS))
         with open(room_path, 'w', encoding='utf-8') as file:
                 file.write(html_content)
 
@@ -2063,7 +2173,7 @@ class SNAP_OT_Proposal_Operations(Operator):
                     elif self.status_updated == True:
                         self.prepare_room_for_3d_export(self.room_list[progress.current_item])
                         self.project.rooms[self.room_list[progress.current_item].name].prop_3d_prepared = "True"
-                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_prepared_utc = str(datetime.datetime.utcnow())
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_prepared_utc = str(datetime.utcnow())
                         bpy.context.area.tag_redraw()
                         print("finished prepare_room_for_3d_export: " + self.room_list[progress.current_item].name)
                
@@ -2085,7 +2195,7 @@ class SNAP_OT_Proposal_Operations(Operator):
                         room_name = self.room_list[progress.current_item].name
                         bpy.ops.project_manager.update_room_in_sketchfab(active_room=room_name)
                         self.project.rooms[self.room_list[progress.current_item].name].prop_3d_exported = "True"
-                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_exported_utc = str(datetime.datetime.utcnow())
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_3d_exported_utc = str(datetime.utcnow())
                         self.status_updated = False
                         print("ending export_room_to_sketchfab: " + self.room_list[progress.current_item].name)
                         progress.current_item += 1
@@ -2100,7 +2210,7 @@ class SNAP_OT_Proposal_Operations(Operator):
                         self.add_room_to_proposal(self.room_list[progress.current_item])
                         self.project.rooms[self.room_list[progress.current_item].name].prop_id = self.project.prop_id
                         self.project.rooms[self.room_list[progress.current_item].name].prop_published = "True"
-                        self.project.rooms[self.room_list[progress.current_item].name].prop_published_utc = str(datetime.datetime.utcnow())
+                        self.project.rooms[self.room_list[progress.current_item].name].prop_published_utc = str(datetime.utcnow())
                         print("ending add_room_to_proposal: " + self.room_list[progress.current_item].name)
                         self.status_updated = False
                         bpy.context.area.tag_redraw()
@@ -2206,11 +2316,11 @@ class SNAP_OT_Proposal_Operations(Operator):
             print("Upload successful")
             proposal_url = get_s3_object_url(bucket_name, object_name, region_name)
             self.project.prop_published = "True"    
-            self.project.prop_published_utc = str(datetime.datetime.utcnow())      
+            self.project.prop_published_utc = str(datetime.utcnow())      
         else:
             print("Upload failed")
             self.project.prop_published = "True"  
-            self.project.prop_published_utc = str(datetime.datetime.utcnow())     
+            self.project.prop_published_utc = str(datetime.utcnow())     
 
         # Upload the mobile html file
         if upload_object_to_s3(self.proposal_path_mobile, bucket_name, object_name_mobile):

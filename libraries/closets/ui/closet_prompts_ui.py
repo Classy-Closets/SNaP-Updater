@@ -1772,6 +1772,18 @@ class PROMPTS_Opening_Starter(sn_types.Prompts_Interface):
                                             if not 1485.392 >= float(height[0]):
                                                 self.door_opening_height = common_lists.OPENING_HEIGHTS[index - 1][0]
                                                 break
+                        
+                        door_opening_height = door_insert.get_prompt("Insert Height")
+                        opening_height = self.closet.get_prompt("Opening " + str(opening)  + " Height")
+                        height_match = door_insert.get_prompt("Height Match")
+                        prompts = [door_opening_height, opening_height, height_match]
+                        if all(prompts):
+                            if opening_height and round(opening_height.get_value() * 1000, 2) - 37.66 >= round(door_opening_height.get_value() * 1000, 2) >= round(opening_height.get_value() * 1000, 2) - 37.68:
+                                if height_match:
+                                    height_match.set_value(True)
+                            else:
+                                if height_match:
+                                    height_match.set_value(False)
 
             if obj_props.is_closet_top_bp:
                 extend_left = insert.get_prompt("Extend Left Amount")

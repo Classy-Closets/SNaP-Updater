@@ -94,6 +94,7 @@ class Doors(sn_types.Assembly):
         self.add_prompt("Use Bottom KD Setback", 'CHECKBOX', False)
         self.add_prompt("Pard Has Top KD", 'CHECKBOX', False)
         self.add_prompt("Pard Has Bottom KD", 'CHECKBOX', False)
+        self.add_prompt("Height Match", 'CHECKBOX', False)
         self.add_prompt("Placed In Invalid Opening", 'CHECKBOX', False)
 
         self.add_prompt("Left Filler Amount", 'DISTANCE', 0)
@@ -153,7 +154,7 @@ class Doors(sn_types.Assembly):
             'IF(Door_Type==2,IF(Fill_Opening,0,Height-Insert_Height)-Bottom_Overlay,-Bottom_Overlay)',
             [Fill_Opening, Door_Type, Height, Insert_Height, Bottom_Thickness, Bottom_Overlay])
         assembly.rot_y(value=math.radians(-90))
-        assembly.dim_x('IF(Fill_Opening,Height,Insert_Height)+Top_Overlay+Bottom_Overlay',
+        assembly.dim_x('IF(Fill_Opening,DOORHC(Height),Insert_Height)+Top_Overlay+Bottom_Overlay',
                        [Fill_Opening, Insert_Height, Height, Top_Overlay, Bottom_Overlay, Top_Thickness])
         assembly.dim_z('Front_Thickness', [Front_Thickness])
 
@@ -178,8 +179,8 @@ class Doors(sn_types.Assembly):
         pull_loc_z = assembly.get_prompt("Pull Z Location")
         pull_loc_z.set_formula(
             'IF(Door_Type==0,Base_Pull_Location+(Pull_Length/2),'
-            'IF(Door_Type==1,IF(Fill_Opening,Height,Insert_Height)-Tall_Pull_Location+(Pull_Length/2)+World_Z,'
-            'IF(Fill_Opening,Height,Insert_Height)-Upper_Pull_Location-(Pull_Length/2)))',
+            'IF(Door_Type==1,IF(Fill_Opening,DOORHC(Height),Insert_Height)-Tall_Pull_Location+(Pull_Length/2)+World_Z,'
+            'IF(Fill_Opening,DOORHC(Height),Insert_Height)-Upper_Pull_Location-(Pull_Length/2)))',
             [Door_Type, Base_Pull_Location, Pull_Length, Fill_Opening, Insert_Height, Upper_Pull_Location,
              Tall_Pull_Location, World_Z, Height])
 
@@ -201,7 +202,7 @@ class Doors(sn_types.Assembly):
         self.calculator = self.obj_prompts.snap.add_calculator(self.calculator_name, calc_distance_obj)
 
         self.calculator.set_total_distance(
-            "IF(Fill_Opening,Height,Insert_Height)-Thickness*{}".format(str(amt - 1)),
+            "IF(Fill_Opening,DOORHC(Height),Insert_Height)-Thickness*{}".format(str(amt - 1)),
             [Height, Insert_Height, Fill_Opening, Thickness])
 
     def add_calculator_prompts(self, amt):
@@ -381,6 +382,7 @@ class Doors(sn_types.Assembly):
         Bottom_KD = self.get_prompt("Bottom KD").get_var('Bottom_KD')
         Pard_Has_Top_KD = self.get_prompt("Pard Has Top KD").get_var('Pard_Has_Top_KD')
         Pard_Has_Bottom_KD = self.get_prompt("Pard Has Bottom KD").get_var('Pard_Has_Bottom_KD')
+        Height_Match = self.get_prompt("Height Match").get_var('Height_Match')
         Placed_In_Invalid_Opening = self.get_prompt("Placed In Invalid Opening").get_var('Placed_In_Invalid_Opening')
         Full_Overlay = self.get_prompt("Full Overlay").get_var('Full_Overlay')
         DDHOD = self.get_prompt("Double Door Half Overlay Difference").get_var('DDHOD')
@@ -504,8 +506,8 @@ class Doors(sn_types.Assembly):
         bottom_shelf.dim_z('-ST', [ST, TAS, IBEKD])
         hide = bottom_shelf.get_prompt('Hide')
         hide.set_formula(
-            "IF(Placed_In_Invalid_Opening,IF(Door_Type!=2,True,IF(Bottom_KD, False, True)),IF(OR(AND(Pard_Has_Bottom_KD,Door_Type!=2),AND(Pard_Has_Bottom_KD,Fill_Opening)), True, IF(Bottom_KD, False, True)))", 
-            [Bottom_KD,Pard_Has_Bottom_KD,Door_Type,Fill_Opening,Placed_In_Invalid_Opening])
+            "IF(Placed_In_Invalid_Opening,IF(Door_Type!=2,True,IF(Bottom_KD, False, True)),IF(AND(Pard_Has_Bottom_KD,OR(Door_Type!=2,Fill_Opening,Height_Match)), True, IF(Bottom_KD, False, True)))", 
+            [Bottom_KD,Pard_Has_Bottom_KD,Door_Type,Fill_Opening,Placed_In_Invalid_Opening, Height_Match])
         is_locked_shelf = bottom_shelf.get_prompt('Is Locked Shelf')
         is_locked_shelf.set_value(True)
         bottom_shelf.get_prompt("Is Forced Locked Shelf").set_value(value=True)
@@ -515,7 +517,7 @@ class Doors(sn_types.Assembly):
         IBEKD = top_shelf.get_prompt('Is Bottom Exposed KD').get_var('IBEKD')
         top_shelf.loc_x('Width',[Width])
         top_shelf.loc_y('Depth',[Depth])
-        top_shelf.loc_z('IF(Fill_Opening, Height + ST,IF(Door_Type==2,Height + ST,Insert_Height + ST))',
+        top_shelf.loc_z('IF(Fill_Opening, DOORHC(Height + ST),IF(Door_Type==2,DOORHC(Height + ST),Insert_Height + ST))',
                     [Door_Type,Insert_Height,Height,ST, Fill_Opening])
         top_shelf.rot_z(value=math.radians(180))
         top_shelf.dim_x('Width',[Width])
@@ -523,7 +525,9 @@ class Doors(sn_types.Assembly):
         # top_shelf.dim_z('IF(AND(TAS,IBEKD==False), INCH(1),ST) *-1', [ST, TAS, IBEKD])
         top_shelf.dim_z('-ST', [ST, TAS, IBEKD])
         hide = top_shelf.get_prompt('Hide')
-        hide.set_formula("IF(Placed_In_Invalid_Opening,IF(Door_Type==2,True,IF(Top_KD, False, True)),IF(OR(AND(Pard_Has_Top_KD,Door_Type==2),AND(Pard_Has_Top_KD,Fill_Opening)), True, IF(Top_KD, False, True)))", [Top_KD, Pard_Has_Top_KD,Door_Type,Fill_Opening,Placed_In_Invalid_Opening])
+        hide.set_formula(
+            "IF(Placed_In_Invalid_Opening,IF(Door_Type==2,True,IF(Top_KD, False, True)),IF(AND(Pard_Has_Top_KD,OR(Door_Type==2,Fill_Opening,Height_Match)), True, IF(Top_KD, False, True)))", 
+            [Top_KD, Pard_Has_Top_KD,Door_Type,Fill_Opening,Placed_In_Invalid_Opening, Height_Match])
         is_locked_shelf = top_shelf.get_prompt('Is Locked Shelf')
         is_locked_shelf.set_value(True)
         top_shelf.get_prompt("Is Forced Locked Shelf").set_value(value=True)
@@ -551,8 +555,8 @@ class Doors(sn_types.Assembly):
                         [left_swing,double_door,Width,Lock_to_Panel,DDAS])
         door_lock.rot_z('IF(OR(double_door,Width>DDAS),0,IF(Lock_to_Panel==False,0,IF(left_swing,radians(90),radians(-90))))',
                         [Lock_to_Panel,left_swing,double_door,DDAS,Width])
-        base_lock_z_location_formula = "IF(Fill_Opening,Height,Insert_Height)-INCH(1.5)"
-        tall_lock_z_location_formula = "IF(Fill_Opening,Height/2,Insert_Height/2)-INCH(1.5)"
+        base_lock_z_location_formula = "IF(Fill_Opening,DOORHC(Height),Insert_Height)-INCH(1.5)"
+        tall_lock_z_location_formula = "IF(Fill_Opening,DOORHC(Height)/2,Insert_Height/2)-INCH(1.5)"
         upper_lock_z_location_formula = "IF(Fill_Opening,0,Height-Insert_Height)+INCH(1.5)"
         door_lock.loc_z('IF(Door_Type==0,' + base_lock_z_location_formula + ',IF(Door_Type==1,' + tall_lock_z_location_formula + ',' + upper_lock_z_location_formula + '))',
                         [Door_Type,Fill_Opening,Insert_Height,Height])
@@ -829,6 +833,7 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
         top_KD = self.assembly.get_prompt("Top KD")
         bottom_pard_KD = self.assembly.get_prompt("Pard Has Bottom KD")
         bottom_KD = self.assembly.get_prompt("Bottom KD")
+        height_match = self.assembly.get_prompt("Height Match")
 
         kd_prompts = [
             top_pard_KD,
@@ -857,7 +862,9 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                 if closet_assembly.get_prompt("Remove Top Shelf " + opening_name):
                     does_opening_have_top_KD = closet_assembly.get_prompt("Remove Top Shelf " + opening_name)
                     does_opening_have_bottom_KD = closet_assembly.get_prompt("Remove Bottom Hanging Shelf " + opening_name)
-
+                    opening_height =  closet_assembly.get_prompt("Opening " + opening_name + " Height")
+                    door_opening_height = round(sn_unit.meter_to_inch(float(self.door_opening_height)/1000), 2)
+                    
                     if fill_opening:
                         if top_KD.get_value():
                             does_opening_have_top_KD.set_value(True)
@@ -873,6 +880,27 @@ class PROMPTS_Door_Prompts(sn_types.Prompts_Interface):
                             does_opening_have_bottom_KD.set_value(False)
                             bottom_pard_KD.set_value(False)
                     else:
+                        # if Pard Opening Height and Door Opening Height have the same hole count
+
+                        if opening_height and round(opening_height.get_value() * 1000, 2) - 37.66 >= round(float(self.door_opening_height), 2) >= round(opening_height.get_value() * 1000, 2) - 37.68:
+                            if height_match:
+                                height_match.set_value(True)
+                            if top_KD.get_value():
+                                does_opening_have_top_KD.set_value(True)
+                                top_pard_KD.set_value(True)
+                            else:
+                                does_opening_have_top_KD.set_value(False)
+                                top_pard_KD.set_value(False)
+                            if bottom_KD.get_value():
+                                does_opening_have_bottom_KD.set_value(True)
+                                bottom_pard_KD.set_value(True)
+                            else:
+                                does_opening_have_bottom_KD.set_value(False)
+                                bottom_pard_KD.set_value(False)
+                        else:
+                            if height_match:
+                                height_match.set_value(False)
+
                         if door_type_name == 'Upper':
                             if top_KD.get_value():
                                 does_opening_have_top_KD.set_value(True)

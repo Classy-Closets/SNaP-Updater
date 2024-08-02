@@ -111,6 +111,7 @@ class SN_MAT_OT_Assign_Materials(Operator):
 
     closet_props = None
     props_closet_materials = None
+    door_popup = False
 
     @classmethod
     def poll(cls, context):
@@ -214,6 +215,26 @@ class SN_MAT_OT_Assign_Materials(Operator):
                 obj.snap.edgeband_material_name_w2 = edge_type.get_inventory_edge_name()
                 obj.snap.edgeband_material_name_l1 = edge_type.get_inventory_edge_name()
                 obj.snap.edgeband_material_name_l2 = edge_type.get_inventory_edge_name()
+
+            elif obj.snap.type_mesh == 'BUYOUT':
+                cab_mat_props = self.props_closet_materials
+                mat_type = cab_mat_props.door_drawer_materials.get_mat_type()
+                door_part = sn_types.Part(obj_bp)
+                custom_colors = cab_mat_props.use_custom_color_scheme
+                door_style = ""
+                if door_part.get_prompt("Door Style"):
+                    door_style = door_part.get_prompt("Door Style").get_value()
+                if mat_type.name == "Solid Color Matte Finish" and door_style == "Melamine Door Glass":
+                    obj.snap.cutpart_material_name = "Winter White"
+                    obj.snap.edgeband_material_name_w1 = "Winter White"
+                    obj.snap.edgeband_material_name_w2 = "Winter White"
+                    obj.snap.edgeband_material_name_l1 = "Winter White"
+                    obj.snap.edgeband_material_name_l2 = "Winter White"
+                    door_part.set_material_pointers("White", "")
+                    door_part.set_material_pointers("Glass", "Glass")
+                    self.door_popup = True
+
+
 
     def set_drawer_bottom_material(self, obj_bp):
         for obj in obj_bp.children:
@@ -1588,6 +1609,10 @@ class SN_MAT_OT_Assign_Materials(Operator):
             mat_color_name,
             round(time.perf_counter() - start_time, 8)))
 
+        if self.door_popup:
+            self.door_popup = False
+            message = "Melamine Glass Inset can't be Matte, use Traviso instead"
+            return bpy.ops.snap.message_box('INVOKE_DEFAULT', message=message)
         return {'FINISHED'}
 
 

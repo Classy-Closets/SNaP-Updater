@@ -1,3 +1,5 @@
 Code,DisplayName,Description
 0,Clear,This is the glass color
+1,Frosted,This is the glass color
 9,Mirror,This is the glass color
+10,Double Sided Mirror,This is the glass color

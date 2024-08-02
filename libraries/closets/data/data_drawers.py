@@ -2165,7 +2165,7 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                             width_in = round(sn_unit.meter_to_inch(width_metric), 1)
                             depth_in = round(sn_unit.meter_to_inch(depth_metric), 1)
                             # Height Checks
-                            std_height = drw_H == f6H or drw_H == f5H
+                            std_height = drw_H == f6H or drw_H == f5H or drw_H == f4H
                             std_widths = width_in in [18, 21, 24]
                             is_std_opng = std_height and std_widths and depth_in >= 16
                             non_std_jwlry_ins = not is_std_opng and depth_in >= 16 and non_std_heights
@@ -2212,18 +2212,18 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                     exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[2][0]')
                                     col_4 = row.column(align=True)
                                     col_4.label(text='Jewelry Insert')
-                                    col_4.prop(self,f'lower_jewelry_insert_velvet_liner_18in_{i}',text="")
-                                    chosen_insert = self.assembly.get_prompt(
-                                        f'Lower Jewelry Insert Velvet Liner 18in {i}').get_value()
+                                    col_4.prop(self,f'jewelry_insert_18in_{i}',text="")
+                                    # chosen_insert = self.assembly.get_prompt(
+                                    #     f'Lower Jewelry Insert Velvet Liner 18in {i}').get_value()
                                     # These are the options from
                                     # JEWELRY_INSERTS_VELVET_LINERS_18IN_OPTIONS
-                                    if chosen_insert == 0:
-                                        exec(f'self.lower_jewelry_insert_velvet_liner_18in_{i} = \'1\' ')
-                                        chosen_insert = 1
-                                    if chosen_insert in [1, 2, 3]:
+                                    # if chosen_insert == 0:
+                                    #     exec(f'self.lower_jewelry_insert_velvet_liner_18in_{i} = \'1\' ')
+                                    #     chosen_insert = 1
+                                    # if chosen_insert in [1, 2, 3]:
+                                    if not std_widths or depth_in > 16:
                                         col_5 = row.column(align=True)
-                                        if not std_widths or depth_in > 16:
-                                            col_5.label(text='Placement')
+                                        col_5.label(text='Placement')
                                         if not std_widths:
                                             col_5.prop(self,f'insert_placement_x_{i}',text="")
                                         if depth_in > 16:
@@ -2232,18 +2232,18 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                     exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[2][0]')
                                     col_4 = row.column(align=True)
                                     col_4.label(text='Jewelry Insert')
-                                    col_4.prop(self,f'lower_jewelry_insert_velvet_liner_21in_{i}',text="")
-                                    chosen_insert = self.assembly.get_prompt(
-                                        f'Lower Jewelry Insert Velvet Liner 21in {i}').get_value()
+                                    col_4.prop(self,f'jewelry_insert_21in_{i}',text="")
+                                    # chosen_insert = self.assembly.get_prompt(
+                                    #     f'Lower Jewelry Insert Velvet Liner 21in {i}').get_value()
                                     # These are the options from
                                     # JEWELRY_INSERTS_VELVET_LINERS_21IN_OPTIONS
-                                    if chosen_insert == 0:
-                                        exec(f'self.lower_jewelry_insert_velvet_liner_21in_{i} = \'1\' ')
-                                        chosen_insert = 1
-                                    if chosen_insert in [1, 2, 3, 4]:
+                                    # if chosen_insert == 0:
+                                    #     exec(f'self.lower_jewelry_insert_velvet_liner_21in_{i} = \'1\' ')
+                                    #     chosen_insert = 1
+                                    # if chosen_insert in [1, 2, 3, 4]:
+                                    if not std_widths or depth_in > 16:
                                         col_5 = row.column(align=True)
-                                        if not std_widths or depth_in > 16:
-                                            col_5.label(text='Placement')
+                                        col_5.label(text='Placement')
                                         if not std_widths:
                                             col_5.prop(self,f'insert_placement_x_{i}',text="")
                                         if depth_in > 16:
@@ -2252,22 +2252,22 @@ class PROMPTS_Drawer_Prompts(sn_types.Prompts_Interface):
                                     exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[2][0]')
                                     col_4 = row.column(align=True)
                                     col_4.label(text='Jewelry Insert')
-                                    col_4.prop(self,f'lower_jewelry_insert_velvet_liner_24in_{i}',text="")
-                                    chosen_insert = self.assembly.get_prompt(
-                                        f'Lower Jewelry Insert Velvet Liner 24in {i}').get_value()
+                                    col_4.prop(self,f'jewelry_insert_24in_{i}',text="")
+                                    # chosen_insert = self.assembly.get_prompt(
+                                    #     f'Lower Jewelry Insert Velvet Liner 24in {i}').get_value()
                                     # These are the options from
                                     # JEWELRY_INSERTS_VELVET_LINERS_24IN_OPTIONS
-                                    if chosen_insert == 0:
-                                        exec(f'self.lower_jewelry_insert_velvet_liner_24in_{i} = \'1\' ')
-                                        chosen_insert = 1
-                                    if chosen_insert in [1, 2, 3, 4]:
+                                    # if chosen_insert == 0:
+                                    #     exec(f'self.lower_jewelry_insert_velvet_liner_24in_{i} = \'1\' ')
+                                    #     chosen_insert = 1
+                                    # if chosen_insert in [1, 2, 3, 4]:
+                                    if not std_widths or depth_in > 16:
                                         col_5 = row.column(align=True)
-                                        if not std_widths or depth_in > 16:
-                                            col_5.label(text='Placement')
-                                        if not std_widths:
-                                            col_5.prop(self,f'insert_placement_x_{i}',text="")
-                                        if depth_in > 16:
-                                            col_5.prop(self,f'insert_placement_y_{i}',text="")
+                                        col_5.label(text='Placement')
+                                    if not std_widths:
+                                        col_5.prop(self,f'insert_placement_x_{i}',text="")
+                                    if depth_in > 16:
+                                        col_5.prop(self,f'insert_placement_y_{i}',text="")
                             elif has_jwl_ins and not_dbl_drw and non_std_velvet:
                                 exec(f'self.jewelry_insert_type_{i} = common_lists.JEWELRY_TYPE_OPTIONS[3][0]')
                                 col_4 = row.column(align=True)

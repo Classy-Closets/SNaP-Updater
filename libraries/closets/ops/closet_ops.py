@@ -1771,6 +1771,11 @@ class SNAP_OT_update_door_selection(Operator):
                     if height_exceeded_ppt:
                         height_exceeded_ppt.set_value(False)
 
+                    if new_door.obj_bp.get("IS_DOOR") and "Melamine Door Glass" in door_style.get_value():
+                        mat_type = context.scene.closet_materials.materials.get_mat_type()
+                        if mat_type.name == "Solid Color Matte Finish":
+                            assign_materials = True
+
             if parent_door_style:
                 if slab_face_needed:
                     parent_door_style.set_value("Slab Door")

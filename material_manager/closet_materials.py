@@ -1084,6 +1084,8 @@ class SnapMaterialSceneProps(PropertyGroup):
                         if self.get_five_piece_melamine_door_color().name != 'None':
                             return self.get_five_piece_melamine_door_color().sku
 
+                    if door_style.get_value() == "Melamine Door Glass" and type_code == 7:  # Solid Color Matte Finish
+                        return "PM-0000413"
                     elif door_style.get_value() != "Slab Door" and door_style.get_value() != "Melamine Door Glass":
                         if obj.snap.material_slots:
                             door_color = obj.snap.material_slots[0].item_name

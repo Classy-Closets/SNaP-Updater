@@ -12,7 +12,7 @@ from bpy.props import (
     EnumProperty
 )
 
-from snap import sn_paths, sn_utils
+from snap import sn_paths, sn_utils, sn_types
 
 
 def render_material_exists(material_name):
@@ -520,6 +520,15 @@ class Materials(PropertyGroup):
     def has_render_mat(self):
         return self.get_mat_type().has_render_mat
 
+    def any_melamine_glass_doors(self, context):
+        for obj_bp in context.scene.objects:
+            if "IS_DOOR" in obj_bp:
+                door_assembly = sn_types.Assembly(obj_bp)
+                door_style = door_assembly.get_prompt("Door Style")
+                if door_style:
+                    if door_style.get_value() == "Melamine Door Glass":
+                        return True
+
     def draw(self, layout):
         box = layout.box()
         box.label(text="Material Selection:")
@@ -547,6 +556,12 @@ class Materials(PropertyGroup):
                 row.label(text="Two Sided Color Schemes Come With White Interiors")
             if (self.get_mat_type().name == "Solid Color Matte Finish") and (scene_props.use_custom_color_scheme == False) and self.get_mat_color().name != 'Cloud':
                 row.label(text="Painted Wooden Door/Drawer Faces Will NOT Be Matte")
+            if (self.get_mat_type().name == "Solid Color Matte Finish"):
+                if self.any_melamine_glass_doors(bpy.context):
+                    row = box.row()
+                    row.label(text="Melamine Glass Inset Doors cannot be Matte")
+                    row = box.row()
+                    row.label(text="Use Traviso Doors instead")
 
         else:
             row = box.row()

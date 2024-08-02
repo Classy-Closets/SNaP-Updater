@@ -69,3 +69,14 @@ def CHECK(value, *vars):
             if var > val:
                 val = var
     return val
+
+
+def DOORHC(value):
+    """ Returns the given value as the next closest door hole count
+    """
+
+    from .libraries.closets.common import common_lists as common_lists
+    for index, height in enumerate(common_lists.DOOR_OPENING_HEIGHTS):
+        door_height = round(value * 1000, 3)
+        if not door_height > float(height[0]):
+            return float(common_lists.DOOR_OPENING_HEIGHTS[index][0])/1000

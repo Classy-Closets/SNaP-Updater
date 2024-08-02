@@ -457,6 +457,12 @@ class Query_PDF_Form_Data:
                 elif "Moderno_Door" == slot.pointer_name:
                     return "moderno"
 
+        door_assembly = sn_types.Assembly(obj)
+        door_style = door_assembly.get_prompt("Door Style")
+        if door_style:
+            if "Melamine Door Glass" in door_style.get_value():
+                return "slab"
+
     def __get_ext_wall_color(self, context, wall):
         ext_colors = []
         wall_obj = wall.obj_bp
@@ -494,6 +500,9 @@ class Query_PDF_Form_Data:
 
                 if style == "slab":
                     ext_colors.append(color.name)
+                    if material_type.name == "Solid Color Matte Finish":
+                        ext_colors.append("Winter White")
+
                 elif style == "traviso":
                     # always use the five piece melamine door color for traviso as is auto-changed if not using custom color scheme
                     ext_colors.append(scene_props.get_five_piece_melamine_door_color().name)
@@ -736,7 +745,7 @@ class Query_PDF_Form_Data:
             results = self.etl_object.part_walls_query(liner, walls)
             for k, v in results.items():
                 show_string = liner.replace("Velvet Liner - ", "")
-                vl_results[k] = (show_string, v)
+                vl_results[liner] = (show_string, v)
         for a_hamper in hampers_bags:
             results = self.etl_object.part_walls_query(a_hamper, walls)
             for k, v in results.items():

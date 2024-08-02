@@ -1035,7 +1035,10 @@ class OPS_Export_XML(Operator):
     debugger = None
 
     top_shelf_sizes = (60.0, 72.0, 84.0, 96.0)
-    top_shelf_offset = 2.0  
+    top_shelf_offset = 2.0 
+
+    kd_shelves = []
+    island_kd_shelves = []
 
     @classmethod
     def poll(cls, context):
@@ -4659,10 +4662,10 @@ class OPS_Export_XML(Operator):
         if ji == 0:
             ji_label = common_lists.VELVET_LINERS_DICT.get(0)  # Black
             drawers_dict[obj_bp].append(ji_label)
-        if ji == 1:
+        if ji == 2:
             ji_label = common_lists.VELVET_LINERS_DICT.get(1)  # Burgundy
             drawers_dict[obj_bp].append(ji_label)
-        if ji == 2:
+        if ji == 3:
             ji_label = common_lists.VELVET_LINERS_DICT.get(2)  # Sterling Grey
             drawers_dict[obj_bp].append(ji_label)
 
@@ -4670,10 +4673,10 @@ class OPS_Export_XML(Operator):
         if ji == 1:
             ji_label = common_lists.VELVET_LINERS_DICT.get(0)  # Black
             drawers_dict[obj_bp].append(ji_label)
-        if ji == 2:
+        if ji == 3:
             ji_label = common_lists.VELVET_LINERS_DICT.get(1)  # Burgundy
             drawers_dict[obj_bp].append(ji_label)
-        if ji == 3:
+        if ji == 4:
             ji_label = common_lists.VELVET_LINERS_DICT.get(2)  # Sterling Grey
             drawers_dict[obj_bp].append(ji_label)
 
@@ -4941,6 +4944,116 @@ class OPS_Export_XML(Operator):
                 return True
         return False
 
+    def check_shelf_collision(self, assembly):
+        shelf_wall_name = self.get_wall_name(assembly.obj_bp)
+        shelf_x_loc = assembly.obj_bp.matrix_world[0][3]
+        shelf_x_dim = assembly.obj_x.matrix_world[0][3]
+        if shelf_wall_name != 'Island':
+            for shelf in self.kd_shelves:
+                curr_wall_name = self.get_wall_name(shelf.obj_bp)
+                
+                if shelf_wall_name == curr_wall_name:
+                    if assembly.has_height_collision(shelf):
+                        curr_shelf_x_loc = shelf.obj_bp.matrix_world[0][3]
+                        curr_shelf_x_dim = shelf.obj_x.matrix_world[0][3]
+                        if shelf_x_loc > shelf_x_dim:
+                            grp1_x_1 = shelf_x_dim
+                            grp1_x_2 = shelf_x_loc
+                        else:
+                            grp1_x_1 = shelf_x_loc
+                            grp1_x_2 = shelf_x_dim
+
+                        if curr_shelf_x_loc > curr_shelf_x_dim:
+                            grp2_x_1 = curr_shelf_x_dim
+                            grp2_x_2 = curr_shelf_x_loc
+                        else:
+                            grp2_x_1 = curr_shelf_x_loc
+                            grp2_x_2 = curr_shelf_x_dim
+
+                        if grp1_x_1 >= grp2_x_1 and grp1_x_1 <= grp2_x_2:
+                            return True
+
+                        if grp1_x_2 >= grp2_x_1 and grp1_x_2 <= grp2_x_2:
+                            return True
+
+                        if grp2_x_1 >= grp1_x_1 and grp2_x_1 <= grp1_x_2:
+                            return True
+
+                        if grp2_x_2 >= grp1_x_1 and grp2_x_2 <= grp1_x_2:
+                            return True
+            self.kd_shelves.append(assembly)
+        else:
+            for shelf in self.island_kd_shelves:
+                shelf_island_bp = sn_utils.get_closet_bp(assembly.obj_bp)
+                curr_shelf_island_bp = sn_utils.get_closet_bp(shelf.obj_bp)
+                shelf_y_loc = assembly.obj_bp.matrix_world[1][3]
+                shelf_y_dim = assembly.obj_x.matrix_world[1][3]
+                if shelf_island_bp.name == curr_shelf_island_bp.name:
+                    if assembly.has_height_collision(shelf):
+                        print("Found Height Collision")
+                        curr_shelf_x_loc = shelf.obj_bp.matrix_world[0][3]
+                        curr_shelf_x_dim = shelf.obj_x.matrix_world[0][3]
+                        has_x_collision = False
+                        if shelf_x_loc > shelf_x_dim:
+                            grp1_x_1 = shelf_x_dim
+                            grp1_x_2 = shelf_x_loc
+                        else:
+                            grp1_x_1 = shelf_x_loc
+                            grp1_x_2 = shelf_x_dim
+
+                        if curr_shelf_x_loc > curr_shelf_x_dim:
+                            grp2_x_1 = curr_shelf_x_dim
+                            grp2_x_2 = curr_shelf_x_loc
+                        else:
+                            grp2_x_1 = curr_shelf_x_loc
+                            grp2_x_2 = curr_shelf_x_dim
+
+                        if grp1_x_1 >= grp2_x_1 and grp1_x_1 <= grp2_x_2:
+                            has_x_collision = True
+
+                        if grp1_x_2 >= grp2_x_1 and grp1_x_2 <= grp2_x_2:
+                            has_x_collision = True
+
+                        if grp2_x_1 >= grp1_x_1 and grp2_x_1 <= grp1_x_2:
+                            has_x_collision = True
+
+                        if grp2_x_2 >= grp1_x_1 and grp2_x_2 <= grp1_x_2:
+                            has_x_collision = True
+                        
+                        curr_shelf_y_loc = shelf.obj_bp.matrix_world[1][3]
+                        curr_shelf_y_dim = shelf.obj_y.matrix_world[1][3]
+                        has_y_collision = False
+                        if shelf_y_loc > shelf_y_dim:
+                            grp1_y_1 = shelf_y_dim
+                            grp1_y_2 = shelf_y_loc
+                        else:
+                            grp1_y_1 = shelf_y_loc
+                            grp1_y_2 = shelf_y_dim
+
+                        if curr_shelf_y_loc > curr_shelf_y_dim:
+                            grp2_y_1 = curr_shelf_y_dim
+                            grp2_y_2 = curr_shelf_y_loc
+                        else:
+                            grp2_y_1 = curr_shelf_y_loc
+                            grp2_y_2 = curr_shelf_y_dim
+
+                        if grp1_y_1 >= grp2_y_1 and grp1_y_1 <= grp2_y_2:
+                            has_y_collision = True
+
+                        if grp1_y_2 >= grp2_y_1 and grp1_y_2 <= grp2_y_2:
+                            has_y_collision = True
+
+                        if grp2_y_1 >= grp1_y_1 and grp2_y_1 <= grp1_y_2:
+                            has_y_collision = True
+
+                        if grp2_y_2 >= grp1_y_1 and grp2_y_2 <= grp1_y_2:
+                            has_y_collision = True
+                        
+                        if has_x_collision and has_y_collision:
+                            return True
+
+            self.island_kd_shelves.append(assembly)
+
     def write_part_node(self,node,obj,spec_group):
         if obj.get('IS_BP_ASSEMBLY'):
             assembly = sn_types.Assembly(obj_bp=obj)
@@ -4952,6 +5065,13 @@ class OPS_Export_XML(Operator):
         if not sn_utils.get_cabinet_bp(obj):
             if obj_hasnt_wall and obj_hasnt_island:
                 return
+
+        if assembly.obj_bp.get('IS_SHELF'):
+            is_locked_shelf = assembly.get_prompt("Is Locked Shelf")
+            if is_locked_shelf:
+                if is_locked_shelf.get_value():
+                    if self.check_shelf_collision(assembly):
+                        return
 
         if assembly.obj_bp.snap.type_group != "PRODUCT":
 

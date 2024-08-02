@@ -1,7 +1,7 @@
 bl_info = {
     "name": "SNaP",
     # "author": "Ryan Montes",
-    "version": (2, 8, 6),
+    "version": (2, 8, 7),
     "blender": (3, 00, 0),
     "location": "Tools Shelf",
     "description": "SNaP",
@@ -14,6 +14,7 @@ import os
 import sys
 
 from bpy.utils import previews
+from bpy import app
 
 from . import sn_paths
 from . import sn_props
@@ -28,18 +29,25 @@ from . import views
 from . import library_manager
 from . import sn_updater
 from . import addon_updater_ops
-from . import sketchfab
 from snap.libraries import closets
 from snap.libraries import doors_and_windows
 from snap.libraries import appliances
 from snap.libraries import kitchen_bath
 
 
+# Check if Blender is running in background mode
+if not app.background:
+    try:
+        from . import sketchfab
+    except ImportError:
+        print("Sketchfab package is not installed")
+
+
 snap_icons = None
 python_lib_path = os.path.join(os.path.dirname(__file__), "python_lib")
 sys.path.append(python_lib_path)
 
-modules = (
+modules = [
     sn_handlers,
     sn_props,
     sn_import,
@@ -54,9 +62,11 @@ modules = (
     ops,
     views,
     library_manager,
-    sketchfab,
     sn_updater,
-)
+]
+
+if not app.background:
+    modules.append(sketchfab)
 
 
 def register():
